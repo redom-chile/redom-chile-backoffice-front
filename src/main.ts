@@ -29,7 +29,21 @@ bootstrapApplication(AppComponent, {
     // Se desactiva para que el toast global (z-[9999]) se muestre encima de los modales.
     { provide: OVERLAY_DEFAULT_CONFIG, useValue: { usePopover: false } },
   ],
-}).catch((err) => console.error(err));
+})
+  .then(() => hideBootScreen())
+  .catch((err) => console.error(err));
+
+/** Desvanece la pantalla de carga de index.html, dejándola visible al menos BOOT_MIN_MS desde que abrió la página. */
+function hideBootScreen() {
+  const BOOT_MIN_MS = 1000;
+  const boot = document.querySelector<HTMLElement>('.redom-boot');
+  if (!boot) return;
+  setTimeout(() => {
+    boot.classList.add('is-done');
+    boot.addEventListener('transitionend', () => boot.remove(), { once: true });
+    setTimeout(() => boot.remove(), 600); // por si no hay transición (movimiento reducido, pestaña oculta)
+  }, Math.max(0, BOOT_MIN_MS - performance.now()));
+}
 
 function selfXSSWarning() {
   setTimeout(() => {

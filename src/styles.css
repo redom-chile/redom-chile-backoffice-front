@@ -724,30 +724,31 @@ select {
 .redom-glass {
   position: relative;
   z-index: 1;
-  border-radius: 48px;
-  background: rgba(255, 255, 255, 0.42);
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(28px) saturate(170%);
-  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.9),
-    0 40px 80px rgba(28, 24, 21, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 24px 48px -24px rgba(28, 24, 21, 0.25);
   color: #1c1815;
 }
 .dark .redom-glass {
-  background: rgba(251, 248, 243, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(251, 248, 243, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.35),
-    0 40px 80px rgba(0, 0, 0, 0.45);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 24px 48px -24px rgba(0, 0, 0, 0.5);
   color: #f4eee6;
 }
 
 /* Manchas difuminadas detrás del panel; el ají queda detrás del punto del isotipo. */
 .redom-glow {
   position: absolute;
-  inset: -25% -15%;
+  inset: -15% -10%;
   z-index: 0;
+  opacity: 0.45;
   pointer-events: none;
 }
 .redom-glow::before,

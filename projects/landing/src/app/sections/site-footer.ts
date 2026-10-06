@@ -24,16 +24,20 @@ import { APP_LINKS } from '../ui/links';
     </section>
 
     <footer class="border-t border-border">
-      <div class="text-muted-foreground mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm sm:flex-row sm:px-6">
-        <div class="flex items-center gap-2">
-          <app-redom-logo class="h-4" />
-          <span>© {{ year }} · Todo tu restaurante, en una vuelta.</span>
+      <div class="text-muted-foreground mx-auto max-w-6xl px-4 py-10 text-sm sm:px-6">
+        <!-- Celular: todo centrado y apilado. Desde md: marca a la izquierda y enlaces a la derecha. -->
+        <div class="flex flex-col items-center gap-6 text-center md:flex-row md:justify-between md:text-left">
+          <div class="flex flex-col items-center gap-2 md:items-start">
+            <app-redom-logo class="h-5" />
+            <p>Todo tu restaurante, en una vuelta.</p>
+          </div>
+          <nav aria-label="Pie de página" class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <a href="#funciones" class="hover:text-foreground">Funciones</a>
+            <a href="#preguntas" class="hover:text-foreground">Preguntas</a>
+            <a [href]="app.signIn" class="hover:text-foreground">Ingresar</a>
+          </nav>
         </div>
-        <nav aria-label="Pie de página" class="flex gap-5">
-          <a href="#funciones" class="hover:text-foreground">Funciones</a>
-          <a href="#preguntas" class="hover:text-foreground">Preguntas</a>
-          <a [href]="app.signIn" class="hover:text-foreground">Ingresar</a>
-        </nav>
+        <p class="border-border/60 mt-8 border-t pt-6 text-center text-xs md:text-left">© {{ year }} Redom. Hecho en Chile.</p>
       </div>
     </footer>
   `,

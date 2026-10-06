@@ -73,3 +73,32 @@
 :host(.is-glass) .redom-logo-svg {
   height: var(--redom-logo-size, 3rem);
 }
+
+/* Animación ocasional (ciclo de 9 s): la "o" se redibuja en una vuelta y el punto late; el resto del tiempo queda quieta. */
+:host(.is-animated) .redom-logo-o {
+  stroke-dasharray: 100;
+  animation: redom-logo-o 9s cubic-bezier(0.65, 0, 0.35, 1) 3s infinite;
+}
+:host(.is-animated) .redom-logo-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: redom-logo-dot 9s ease-in-out 3s infinite;
+}
+@keyframes redom-logo-o {
+  0%, 80% { stroke-dashoffset: 0; opacity: 1; }
+  82% { stroke-dashoffset: 0; opacity: 0; }
+  83% { stroke-dashoffset: 100; opacity: 1; }
+  93%, 100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes redom-logo-dot {
+  0%, 80% { transform: scale(1); opacity: 1; }
+  83%, 90% { transform: scale(0.6); opacity: 0.4; }
+  95% { transform: scale(1.15); opacity: 1; }
+  98%, 100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :host(.is-animated) .redom-logo-o,
+  :host(.is-animated) .redom-logo-dot {
+    animation: none;
+  }
+}
