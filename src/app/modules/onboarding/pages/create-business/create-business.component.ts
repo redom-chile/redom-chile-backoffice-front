@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, Injector, OnDestroy, signal, untracked, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  Injector,
+  OnDestroy,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -7,7 +18,10 @@ import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/ap
 import { ProfilePhotoService } from 'src/app/modules/profile/data-access';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
-import { FindAllCurrenciesService, UpdateBusinessLogoService } from 'src/app/modules/restaurante/pages/business/data-access';
+import {
+  FindAllCurrenciesService,
+  UpdateBusinessLogoService,
+} from 'src/app/modules/restaurante/pages/business/data-access';
 import {
   CreateBusinessLocationDto,
   GetAllBusinessLocationsService,
@@ -184,7 +198,10 @@ export class CreateBusinessComponent implements OnDestroy {
     this.submitted = true;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.toast.show(this.form.controls.name.invalid ? 'Ingresa el nombre de tu negocio' : 'Elige la moneda', 'warning');
+      this.toast.show(
+        this.form.controls.name.invalid ? 'Ingresa el nombre de tu negocio' : 'Elige la moneda',
+        'warning',
+      );
       return;
     }
     this.#draftName.set(this.form.getRawValue().name.trim());
@@ -328,7 +345,8 @@ export class CreateBusinessComponent implements OnDestroy {
     if (!business) return;
     this.api.updateTablesEnabled(business.id, tablesEnabled).subscribe({
       next: () => this.injector.get(BusinessSettingsService).reload(),
-      error: () => this.toast.show('No pudimos guardar si atiendes con mesas. Puedes cambiarlo en Mi negocio.', 'warning'),
+      error: () =>
+        this.toast.show('No pudimos guardar si atiendes con mesas. Puedes cambiarlo en Mi negocio.', 'warning'),
     });
   }
 
@@ -379,7 +397,9 @@ export class CreateBusinessComponent implements OnDestroy {
             return;
           }
           this.toast.show(
-            memberElsewhere ? 'Tu cuenta ya pertenece a un negocio. Te llevamos al panel.' : 'Tu cuenta ya tiene un negocio. Te llevamos al panel.',
+            memberElsewhere
+              ? 'Tu cuenta ya pertenece a un negocio. Te llevamos al panel.'
+              : 'Tu cuenta ya tiene un negocio. Te llevamos al panel.',
             'warning',
           );
           this.router.navigateByUrl('/dashboard/admin');
@@ -391,8 +411,8 @@ export class CreateBusinessComponent implements OnDestroy {
       status === 0
         ? 'No hay conexión con el servidor.'
         : status === 400
-          ? 'Revisa los datos de tu negocio y de tu local.'
-          : 'No se pudo crear el negocio. Intenta nuevamente.';
+        ? 'Revisa los datos de tu negocio y de tu local.'
+        : 'No se pudo crear el negocio. Intenta nuevamente.';
     this.toast.show(message, 'error');
   }
 }

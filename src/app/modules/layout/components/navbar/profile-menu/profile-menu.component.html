@@ -66,7 +66,11 @@
             type="button"
             role="radio"
             [attr.aria-checked]="themeService.theme().mode === item.value"
-            [ngClass]="themeService.theme().mode === item.value ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+            [ngClass]="
+              themeService.theme().mode === item.value
+                ? 'bg-primary text-primary-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            "
             class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors"
             (click)="themeService.setMode(item.value)">
             <app-icon class="h-4 w-4">{{ item.icon }}</app-icon>
