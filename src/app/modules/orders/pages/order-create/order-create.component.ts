@@ -3,7 +3,8 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ApiError } from 'src/app/core/utils';
-import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
+import { ButtonComponent, EmptyStateComponent, IconComponent, ToastService } from 'src/ui';
+import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllCategoriesService } from 'src/app/modules/products/pages/categories/data-access';
@@ -44,6 +45,7 @@ type OrderCreateMode = 'create' | 'add';
     RouterLink,
     ButtonComponent,
     IconComponent,
+    EmptyStateComponent,
     BusinessLocationSelector,
     ProductPickerComponent,
     OrderTicketComponent,
@@ -68,6 +70,9 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   readonly mode: OrderCreateMode = this.route.snapshot.data['mode'] === 'add' ? 'add' : 'create';
   readonly $orderId = signal<number | null>(null);
   readonly $locationId = signal<number | null>(null);
+  // Sin sucursales no se puede abrir un pedido: se muestra cómo crear la primera.
+  private readonly locationsService = inject(GetAllBusinessLocationsService);
+  readonly $noLocations = computed(() => this.mode === 'create' && this.locationsService.$locations()?.length === 0);
 
   readonly $products = this.menuService.$products;
   readonly $isLoadingProducts = computed(() => this.menuService.$isLoading() ?? false);

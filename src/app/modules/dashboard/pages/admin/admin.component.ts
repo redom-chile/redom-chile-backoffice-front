@@ -10,8 +10,8 @@ import { paymentMethodLabel } from 'src/app/modules/payments/pages/payment-list/
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
 import { ExpiryAlertComponent, LowStockAlertComponent } from 'src/app/modules/inventory/pages/stock/features';
-import { GetDashboardMetricsService } from './data-access';
-import { KpiCardComponent, RecentOrdersCardComponent, TopProductsCardComponent } from './features';
+import { GetDashboardMetricsService, GettingStartedStore } from './data-access';
+import { GettingStartedComponent, KpiCardComponent, RecentOrdersCardComponent, TopProductsCardComponent } from './features';
 import {
   BreakdownChartComponent,
   BreakdownItem,
@@ -61,6 +61,7 @@ function toQuery(params: ParamMap): DashboardQuery {
     BreakdownChartComponent,
     LowStockAlertComponent,
     ExpiryAlertComponent,
+    GettingStartedComponent,
   ],
   templateUrl: './admin.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -122,6 +123,9 @@ export class AdminComponent implements OnInit {
     const name = this.$locations().find((location) => location.id === this.$inventoryLocationId())?.name;
     return name ? `En ${name}` : 'En el local elegido';
   });
+
+  // Checklist de primeros pasos: oculto por el usuario (en este navegador) se reabre desde un enlace.
+  readonly gettingStarted = inject(GettingStartedStore);
 
   readonly $comparison = computed(() => comparisonLabel(this.$query().preset));
   readonly $includesToday = computed(() => this.$query().to >= toDateKey(new Date()));

@@ -1,0 +1,98 @@
+<app-card>
+  <div class="border-border border-b border-dashed p-4">
+    <h2 class="text-foreground text-base font-semibold">Identidad</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">Cómo se ve tu negocio en el sistema, en el POS y en los comprobantes.</p>
+  </div>
+
+  <div class="border-border border-b border-dashed p-4">
+    <label for="business-name" class="text-foreground mb-1 block text-sm font-medium">Nombre del negocio</label>
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
+      <div class="min-w-0 flex-1">
+        <input
+          id="business-name"
+          type="text"
+          autocomplete="organization"
+          class="glass-input w-full rounded-md px-3 py-2 text-sm"
+          [class.border-red-500]="$nameError()"
+          [attr.maxlength]="nameMaxLength"
+          [value]="$name()"
+          [disabled]="$isSavingName()"
+          [attr.aria-invalid]="!!$nameError()"
+          aria-describedby="business-name-error"
+          (input)="onNameInput($event)"
+          (keydown.enter)="saveName()" />
+        @if ($nameError(); as error) {
+        <p id="business-name-error" class="mt-1 text-xs text-red-500">{{ error }}</p>
+        }
+      </div>
+      <div class="flex justify-end gap-2">
+        @if ($nameChanged()) {
+        <app-button impact="light" type="button" [disabled]="$isSavingName()" (buttonClick)="discardName()">Descartar</app-button>
+        }
+        <app-button
+          impact="bold"
+          tone="primary"
+          type="button"
+          [disabled]="!$nameChanged() || !!$nameError() || $isSavingName()"
+          [isLoading]="$isSavingName()"
+          (buttonClick)="saveName()">
+          Guardar
+        </app-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="border-border border-b border-dashed p-4">
+    @for (key of [$pickerKey()]; track key) {
+    <app-image-picker
+      folder="business_logos"
+      label="Logo del negocio"
+      [currentUrl]="$business().logoUrl"
+      [uploading]="$isUploading()"
+      [progress]="$uploadProgress()"
+      [disabled]="$isSavingLogo()"
+      (selectionChange)="$logoSelection.set($event)" />
+    }
+    @if ($logoSelection().kind !== 'keep') {
+    <div class="mt-3 flex justify-end gap-2">
+      <app-button impact="light" type="button" [disabled]="$isSavingLogo()" (buttonClick)="discardLogo()">Descartar</app-button>
+      <app-button
+        impact="bold"
+        tone="primary"
+        type="button"
+        [disabled]="$isSavingLogo()"
+        [isLoading]="$isSavingLogo()"
+        (buttonClick)="saveLogo()">
+        {{ $logoSelection().kind === 'remove' ? 'Quitar logo' : 'Guardar logo' }}
+      </app-button>
+    </div>
+    }
+  </div>
+
+  <div class="p-4">
+    <p class="text-foreground text-sm font-medium">Color de marca</p>
+    <p class="text-muted-foreground mb-3 text-xs">Se aplica al instante en la app de todo tu equipo: botones, menú, login y POS.</p>
+    <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="Color de marca">
+      @for (color of themeColors; track color.name) {
+      <button
+        type="button"
+        role="radio"
+        [attr.aria-checked]="$currentColor() === color.name"
+        [attr.aria-label]="color.label"
+        [title]="color.label"
+        [disabled]="!!$savingColor()"
+        class="focus-visible:ring-foreground relative flex size-10 items-center justify-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-transparent transition-transform hover:scale-110 focus-visible:ring-2 disabled:cursor-wait"
+        [class.ring-2]="$currentColor() === color.name"
+        [class.ring-foreground]="$currentColor() === color.name"
+        [style.backgroundColor]="color.hex"
+        (click)="selectColor(color.name)">
+        @if ($savingColor() === color.name) {
+        <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+        } @else if ($currentColor() === color.name) {
+        <app-icon class="h-4.5 w-4.5">check</app-icon>
+        }
+      </button>
+      }
+    </div>
+  </div>
+</app-card>

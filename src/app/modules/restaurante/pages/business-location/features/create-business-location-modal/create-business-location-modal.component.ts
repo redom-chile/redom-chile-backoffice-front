@@ -1,8 +1,10 @@
 import { Component, effect, inject, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { CreateBusinessLocationService } from '../../data-access';
+
+export type CreateBusinessLocationModalData = Readonly<{ suggestedName?: string }>;
 
 @Component({
   selector: 'app-create-business-location-modal',
@@ -12,13 +14,14 @@ import { CreateBusinessLocationService } from '../../data-access';
 })
 export class CreateBusinessLocationModalComponent implements OnDestroy {
   protected readonly dialogRef = inject(MatDialogRef);
+  readonly #data = inject<CreateBusinessLocationModalData | null>(MAT_DIALOG_DATA, { optional: true });
   protected readonly $service = inject(CreateBusinessLocationService);
   private readonly $toast = inject(ToastService);
   protected readonly $isLoading = this.$service.$isLoading;
 
   private fb = inject(FormBuilder);
   form = this.fb.group({
-    name: ['', Validators.required],
+    name: [this.#data?.suggestedName ?? '', Validators.required],
     country: ['Chile'],
     state: [''],
     city: [''],

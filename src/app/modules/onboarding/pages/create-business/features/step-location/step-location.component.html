@@ -1,0 +1,41 @@
+<form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()">
+  <div class="text-center">
+    <h2 class="text-foreground mb-1 text-2xl font-semibold sm:text-3xl">Tu local <span class="text-primary">!</span></h2>
+    <p class="text-muted-foreground text-sm">Es el lugar donde vendes: ahí se registran tus pedidos y tu caja.</p>
+  </div>
+
+  <div class="space-y-3 text-left">
+    <label class="block">
+      <span class="text-muted-foreground mb-1 block text-xs font-medium">Nombre del local</span>
+      <input type="text" class="w-full px-3 py-3" formControlName="name" maxlength="256" autocomplete="off"
+        [class.is__invalid-input]="submittedOnce && form.controls.name.invalid" />
+      <span class="text-muted-foreground mt-1 block text-xs">Puedes cambiarlo si tienes varias sucursales.</span>
+    </label>
+
+    <label class="block">
+      <span class="text-muted-foreground mb-1 block text-xs font-medium">Dirección (opcional)</span>
+      <input type="text" class="w-full px-3 py-3" formControlName="address" autocomplete="street-address" placeholder="Ej: Av. Providencia 1234" />
+    </label>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label class="block min-w-0">
+        <span class="text-muted-foreground mb-1 block text-xs font-medium">Comuna (opcional)</span>
+        <input type="text" class="w-full px-3 py-3" formControlName="city" maxlength="100" autocomplete="address-level2" />
+      </label>
+      <label class="block min-w-0">
+        <span class="text-muted-foreground mb-1 block text-xs font-medium">Teléfono (opcional)</span>
+        <input type="tel" class="w-full px-3 py-3" formControlName="mobile" maxlength="30" autocomplete="tel" placeholder="+56 9 1234 5678" />
+      </label>
+    </div>
+  </div>
+
+  <app-button full impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+    [disabled]="saving()" [isLoading]="saving()" (buttonClick)="submit()">
+    {{ createsBusiness() ? 'Crear negocio y local' : 'Crear local' }}
+  </app-button>
+
+  <p class="text-muted-foreground flex items-start justify-center gap-1.5 text-center text-xs">
+    <app-icon class="h-4 w-4 shrink-0">info</app-icon>
+    Este paso es obligatorio: sin un local no se pueden tomar pedidos.
+  </p>
+</form>

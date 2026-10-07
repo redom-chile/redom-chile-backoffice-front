@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ProductModifierOptionDto, ProductModifierSetDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
-import { CartItemConfig, CartModifier, MAX_MODIFIER_TIMES, QUICK_NOTES, unitPriceWithModifiers } from '../cart-line';
+import { CartItemConfig, CartModifier, cartPricing, cartUnitPrice, MAX_MODIFIER_TIMES, QUICK_NOTES } from '../cart-line';
 
 export type ProductModifiersModalData = Readonly<{
   name: string;
@@ -59,7 +60,9 @@ export class ProductModifiersModalComponent {
         .map((option) => ({ variationId: option.variationId, name: option.name, price: option.price, quantity: selected[option.variationId] })),
     );
   });
-  readonly $unitPrice = computed(() => unitPriceWithModifiers(this.data.basePrice, this.$modifiers()));
+  // Los precios del catálogo pueden ser netos: la estimación suma el IVA como el backend.
+  readonly $pricing = cartPricing(inject(BusinessSettingsService));
+  readonly $unitPrice = computed(() => cartUnitPrice(this.data.basePrice, this.$modifiers(), this.$pricing()));
   readonly $total = computed(() => this.$unitPrice() * this.$quantity());
 
   timesOf(option: ProductModifierOptionDto): number {

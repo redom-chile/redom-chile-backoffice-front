@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { IconComponent } from 'src/ui';
 import { formatCurrency } from '../../../order-list/ui';
-import { CartLine, modifierLabel, QUICK_NOTES } from '../cart-line';
+import { CartLine, cartLineTotal, cartPricing, cartTotal, cartUnitPrice, modifierLabel, QUICK_NOTES } from '../cart-line';
 
 export type CartNoteChange = Readonly<{ key: string; note: string }>;
 
@@ -29,8 +30,18 @@ export class OrderTicketComponent {
   readonly $editingKey = signal<string | null>(null);
   readonly $draft = signal('');
 
-  readonly $total = computed(() => this.lines().reduce((sum, line) => sum + line.unitPrice * line.quantity, 0));
+  // Con precios netos (Datos fiscales) la estimación suma el IVA, como lo hará el backend.
+  readonly $pricing = cartPricing(inject(BusinessSettingsService));
+  readonly $total = computed(() => cartTotal(this.lines(), this.$pricing()));
   readonly $itemCount = computed(() => this.lines().reduce((sum, line) => sum + line.quantity, 0));
+
+  unitPrice(line: CartLine): number {
+    return cartUnitPrice(line.basePrice, line.modifiers, this.$pricing());
+  }
+
+  lineTotal(line: CartLine): number {
+    return cartLineTotal(line, this.$pricing());
+  }
 
   editNote(line: CartLine) {
     this.$draft.set(line.note);

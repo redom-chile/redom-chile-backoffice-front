@@ -19,12 +19,24 @@
     </div>
   </section>
 
-  <app-period-selector
-    [preset]="$query().preset"
-    [from]="$query().from"
-    [to]="$query().to"
-    (presetChange)="handlePreset($event)"
-    (customChange)="handleCustom($event)" />
+  <!-- Primeros pasos (checklist de puesta en marcha) -->
+  @if (gettingStarted.$businessId() && !gettingStarted.$hidden()) {
+  <app-getting-started />
+  }
+
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <app-period-selector
+      [preset]="$query().preset"
+      [from]="$query().from"
+      [to]="$query().to"
+      (presetChange)="handlePreset($event)"
+      (customChange)="handleCustom($event)" />
+    @if (gettingStarted.$businessId() && gettingStarted.$hidden()) {
+    <button type="button" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="gettingStarted.show()">
+      <app-icon class="h-4 w-4">checklist</app-icon>Ver primeros pasos
+    </button>
+    }
+  </div>
 
   @if ($metrics(); as m) {
   <!-- Indicadores principales -->

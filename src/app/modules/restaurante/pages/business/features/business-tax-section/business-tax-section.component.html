@@ -1,0 +1,107 @@
+<app-card>
+  <div class="border-border border-b border-dashed p-4">
+    <h2 class="text-foreground text-base font-semibold">Datos fiscales</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">Se usan para calcular el IVA de tus ventas y en los documentos del negocio.</p>
+  </div>
+
+  <div class="grid gap-4 p-4 sm:grid-cols-2">
+    <div>
+      <label for="business-rut" class="text-foreground mb-1 block text-sm font-medium">RUT del negocio</label>
+      <input
+        id="business-rut"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        placeholder="12.345.678-9"
+        maxlength="12"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="$rutError()"
+        [value]="$rut()"
+        [disabled]="$isSaving()"
+        [attr.aria-invalid]="!!$rutError()"
+        aria-describedby="business-rut-hint"
+        (input)="onRutInput($event)"
+        (blur)="formatRutOnBlur()" />
+      @if ($rutError(); as error) {
+      <p id="business-rut-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
+      } @else {
+      <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">RUT de la empresa o persona que vende. Opcional.</p>
+      }
+    </div>
+
+    <div>
+      <label for="business-vat" class="text-foreground mb-1 block text-sm font-medium">IVA (%)</label>
+      <input
+        id="business-vat"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        max="100"
+        step="0.01"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="$vatRateError()"
+        [value]="$vatRate()"
+        [disabled]="$isSaving()"
+        [attr.aria-invalid]="!!$vatRateError()"
+        aria-describedby="business-vat-hint"
+        (input)="onVatRateInput($event)" />
+      @if ($vatRateError(); as error) {
+      <p id="business-vat-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
+      } @else {
+      <p id="business-vat-hint" class="text-muted-foreground mt-1 text-xs">En Chile es 19 %.</p>
+      }
+    </div>
+
+    <fieldset class="sm:col-span-2" [disabled]="$isSaving()">
+      <legend class="text-foreground mb-2 text-sm font-medium">Los precios de mis productos</legend>
+      <div class="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Los precios de mis productos">
+        @for (option of sellPriceTaxOptions; track option.value) {
+        <label
+          class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors"
+          [class]="$sellPriceTax() === option.value ? 'border-primary bg-primary/10' : 'glass-row border-border'">
+          <input
+            type="radio"
+            name="business-sell-price-tax"
+            class="accent-primary mt-0.5 size-4 shrink-0"
+            [value]="option.value"
+            [checked]="$sellPriceTax() === option.value"
+            (change)="$sellPriceTax.set(option.value)" />
+          <span class="min-w-0">
+            <span class="text-foreground block text-sm font-medium">{{ option.label }}</span>
+            <span class="text-muted-foreground block text-xs">{{ option.hint }}</span>
+          </span>
+        </label>
+        }
+      </div>
+      @if ($example(); as example) {
+      <p class="text-foreground mt-2 text-xs tabular-nums">
+        Ejemplo: producto a {{ example.price }}
+        @if ($sellPriceTax() === 'excludes') {
+        → el cliente paga {{ example.total }} (IVA {{ example.vat }}).
+        } @else {
+        → el cliente paga {{ example.price }} (incluye IVA {{ example.includedVat }}).
+        }
+      </p>
+      }
+      <p class="text-muted-foreground mt-1 text-xs">
+        Se aplica a las líneas que agregues a los pedidos desde ahora; los pedidos ya creados no cambian. La carta QR
+        siempre muestra el precio con IVA y el food cost se calcula sobre el precio neto.
+      </p>
+    </fieldset>
+  </div>
+
+  <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
+    @if ($hasChanges()) {
+    <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    }
+    <app-button
+      impact="bold"
+      tone="primary"
+      type="button"
+      [disabled]="!$hasChanges() || !$isValid() || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar
+    </app-button>
+  </div>
+</app-card>

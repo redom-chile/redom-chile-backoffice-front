@@ -2,6 +2,7 @@ import { Component, computed, DestroyRef, inject, input, OnInit, output, signal 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ImageSelection } from 'src/app/core/services/file-upload';
 import { RouterLink } from '@angular/router';
 import { IconComponent, ImagePickerComponent } from 'src/ui';
@@ -16,6 +17,11 @@ import { ProductForm, suggestSku } from './product-form';
 })
 export class ProductFormFieldsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly businessSettings = inject(BusinessSettingsService);
+
+  // Según "Datos fiscales": el precio incluye IVA (lo habitual) o es neto y el IVA se suma al vender.
+  readonly $pricesExcludeVat = this.businessSettings.$pricesExcludeVat;
+  readonly $vatRate = this.businessSettings.$vatRate;
 
   readonly form = input.required<ProductForm>();
   readonly categories = input<CategoryDto[]>([]);

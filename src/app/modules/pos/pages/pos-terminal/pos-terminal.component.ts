@@ -2,8 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { ApiError } from 'src/app/core/utils';
-import { ConfirmModalComponent, ConfirmModalData, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
+import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
+import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
 import { GetAllTablesService, TableDto } from 'src/app/modules/tables/pages/table-list/data-access';
@@ -43,6 +45,8 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
   standalone: true,
   imports: [RedomLogoComponent, 
     IconComponent,
+    EmptyStateComponent,
+    RouterLink,
     BusinessLocationSelector,
     WaiterLoginComponent,
     PosTablesPanelComponent,
@@ -71,6 +75,10 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(GetOrderByIdService);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
+
+  // Sin sucursales no se puede vender: se muestra cómo crear la primera (no aplica a la terminal, que tiene la suya).
+  private readonly locationsService = inject(GetAllBusinessLocationsService);
+  readonly $noLocations = computed(() => !this.terminalMode() && this.locationsService.$locations()?.length === 0);
 
   readonly $waiter = this.session.$waiter;
   readonly $isReady = computed(() => !!this.$waiter() || this.session.$isAnonymous());

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { IconComponent, ProgressBarComponent } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { CategoryDto } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
@@ -39,6 +40,8 @@ export class ProductPickerComponent implements OnInit {
   // URLs firmadas que vencieron o fallaron: se muestra la inicial.
   readonly brokenImages = signal<ReadonlySet<number>>(new Set());
   readonly formatCurrency = formatCurrency;
+  // Precios netos: la tarjeta muestra el del catálogo con la marca "+IVA".
+  readonly $pricesExcludeVat = inject(BusinessSettingsService).$pricesExcludeVat;
 
   ngOnInit(): void {
     this.search.valueChanges

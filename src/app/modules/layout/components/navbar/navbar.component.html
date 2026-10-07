@@ -25,8 +25,17 @@
         <app-navbar-menu></app-navbar-menu>
       </div>
 
-      <!-- Profile menu -->
-      <div class="items-center justify-end sm:order-4 md:flex md:flex-1 lg:w-0">
+      <!-- Negocio + menú de perfil -->
+      <div class="flex min-w-0 items-center justify-end gap-3 sm:order-4 md:flex-1 lg:w-0">
+        @if ($businessName(); as businessName) {
+        <a
+          routerLink="/business"
+          class="glass-row text-foreground hidden min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:inline-flex"
+          [title]="businessName + ' · Mi negocio'">
+          <app-icon class="text-primary h-4 w-4">storefront</app-icon>
+          <span class="max-w-[14rem] truncate">{{ businessName }}</span>
+        </a>
+        }
         <app-profile-menu></app-profile-menu>
       </div>
     </div>

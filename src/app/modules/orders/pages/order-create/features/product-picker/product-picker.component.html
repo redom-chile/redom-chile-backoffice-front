@@ -112,7 +112,9 @@
       <span class="flex flex-1 flex-col gap-1.5 p-2">
         <span class="text-foreground line-clamp-2 min-h-[2rem] text-xs font-medium leading-4">{{ product.name }}</span>
         <span class="mt-auto flex items-center justify-between gap-2">
-          <span class="text-foreground text-sm font-semibold tabular-nums">{{ formatCurrency(price(product)) }}</span>
+          <span class="text-foreground text-sm font-semibold tabular-nums">
+            {{ formatCurrency(price(product)) }}@if ($pricesExcludeVat()) {<span class="text-muted-foreground ml-0.5 text-[10px] font-medium">+IVA</span>}
+          </span>
           <span
             class="bg-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-transform group-hover:scale-110"
             aria-hidden="true">

@@ -95,9 +95,24 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - [ ] E2E de "Dividir por productos" (pasos del prompt del backend, #40) y de la propina sugerida.
 - El total "Por productos" es una estimación: en pagos parciales de una línea el backend calcula sobre el neto de la línea y puede diferir en algunos pesos (#41).
 - La página de Pagos no muestra los productos de cada pago hasta que `GET /payments/all` devuelva `lines` (#41).
-- Propina sugerida 10 % fija en el front (`DEFAULT_TIP_PERCENT`): falta como configuración del negocio (#41). Se sugiere en cada pago parcial; no se lleva la propina total del pedido.
+- La propina sugerida se configura en Mi negocio → Punto de venta (10 % si no viene). Se sugiere en cada pago parcial; no se lleva la propina total del pedido.
 - Si lo elegido supera el saldo (por pagos por monto anteriores), hay que terminar "Por monto".
 - La pre-cuenta por persona estima el IVA en proporción.
+
+## Onboarding y Mi negocio
+
+- [ ] Probar el onboarding de punta a punta (registro → negocio y local en una llamada → mesas → productos → POS), retomar sin local y los 409 (`BUSINESS_ALREADY_EXISTS`, `USER_ALREADY_IN_BUSINESS`).
+- [ ] Probar "no incluyen IVA" ($1.000 → $1.190) y la propina sugerida configurada en el cobro.
+- El nombre del negocio en el encabezado se oculta en pantallas muy angostas (celular) para no tapar el menú.
+- El POS todavía no aplica las opciones de mesas, meseros y mesero obligatorio (`GET /pos/details`): solo se configuran.
+- `businessGuard` manda al onboarding ("Tu local") al dueño que desactiva todos sus locales. Confirmar con producto.
+- Con `BUSINESS_ALREADY_EXISTS` y 0 locales se retoma en "Tu local" (el backend sugería ir a la app, pero el guard lo devolvería igual).
+- Si fallan el sector o algunas mesas, no hay reintento dentro del onboarding (se completan en Mesas/Sectores).
+- El SKU de los productos rápidos es aleatorio; un SKU duplicado se muestra como error genérico.
+- `CreateBusinessService` quedó sin uso (el onboarding usa `OnboardingApiService`).
+- Los montos se formatean siempre en CLP (`formatCurrency`) aunque el negocio use otra moneda.
+- Los errores de validación de Mi negocio se muestran genéricos; el skeleton de Mi negocio tiene la forma del diseño anterior.
+- Primeros pasos: si la consulta falla, toda la tarjeta queda "sin verificar"; `teamMembers` cuenta también usuarios desactivados; "Ocultar" es por navegador.
 
 ## Otros pendientes generales
 
@@ -105,4 +120,4 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38. Bloqueante: #39.
+- Solicitudes al backend con workaround: #15, #16, #28–#38, #41. Bloqueante: #39.

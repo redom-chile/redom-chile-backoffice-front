@@ -9,14 +9,13 @@
 </app-header-dashboard>
 
 @if (hasError) {
-<div class="flex flex-col items-center gap-4 py-16 text-center">
-  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
-  <div>
-    <h2 class="text-foreground text-lg font-semibold">Error al cargar las sucursales</h2>
-    <p class="text-muted-foreground mt-1 text-sm">No se pudieron obtener los datos. Intenta nuevamente.</p>
-  </div>
+<app-empty-state icon="error_outline" title="Error al cargar las sucursales" description="No se pudieron obtener los datos. Intenta nuevamente.">
   <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retry()">Reintentar</app-button>
-</div>
+</app-empty-state>
+} @else if (!isLoading && locations && !locations.length) {
+<app-empty-state icon="storefront" title="Aún no tienes sucursales" description="Crea tu primera sucursal: es el local donde vendes, con su dirección y su propio stock.">
+  <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="createBusinessLocation()">Crear sucursal</app-button>
+</app-empty-state>
 } @else {
 <app-business-location-list
   [locations]="locations ?? []"

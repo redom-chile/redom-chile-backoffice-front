@@ -17,6 +17,7 @@ import {
   paymentLinesLabel,
   paymentMethodLabel,
 } from 'src/app/modules/payments/pages/payment-list/ui';
+import { BusinessSettingsService, roundCurrency } from 'src/app/core/services/business-settings';
 import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/business/data-access';
 import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
 import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
@@ -28,15 +29,16 @@ export type CollectPaymentResult = 'paid' | 'partial' | 'dismissed';
 type CollectMode = 'amount' | 'products';
 type RegisteredPayment = Readonly<{ method: PaymentMethod; amount: number; tip: number; change: number; products: string }>;
 
-// Propina sugerida habitual en Chile (a futuro, configuración del negocio).
-export const DEFAULT_TIP_PERCENT = 10;
-// percent null = monto manual ("Otro").
-const TIP_OPTIONS: ReadonlyArray<{ label: string; percent: number | null }> = [
-  { label: 'Sin propina', percent: 0 },
-  { label: `${DEFAULT_TIP_PERCENT} %`, percent: DEFAULT_TIP_PERCENT },
-  { label: '15 %', percent: 15 },
-  { label: 'Otro', percent: null },
-];
+type TipOption = Readonly<{ label: string; percent: number | null }>;
+
+// Chips de propina: la sugerida del negocio, 15 % si es distinta y "Otro" (percent null = monto manual).
+function tipOptions(suggested: number): TipOption[] {
+  const options: TipOption[] = [{ label: 'Sin propina', percent: 0 }];
+  if (suggested > 0) options.push({ label: `${suggested.toLocaleString('es-CL')} %`, percent: suggested });
+  if (suggested !== 15) options.push({ label: '15 %', percent: 15 });
+  options.push({ label: 'Otro', percent: null });
+  return options;
+}
 const CASH_BILLS = [5000, 10000, 20000];
 
 // Los productos por peso (0,5 kg) admiten decimales; el resto se paga por unidades.
@@ -58,12 +60,16 @@ export class CollectPaymentModalComponent implements OnDestroy {
   private readonly orderService = inject(GetOrderByIdService);
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
+  private readonly businessSettings = inject(BusinessSettingsService);
 
   readonly methods = PAYMENT_METHODS;
-  readonly tipOptions = TIP_OPTIONS;
-  readonly defaultTipPercent = DEFAULT_TIP_PERCENT;
+  // Propina sugerida del negocio (10 si la configuración no llegó; 0 = sin sugerencia).
+  readonly $suggestedTipPercent = this.businessSettings.$suggestedTipPercent;
+  readonly $tipOptions = computed(() => tipOptions(this.$suggestedTipPercent()));
   // Porcentaje activo; null cuando la propina se ingresó a mano.
-  readonly $tipPercent = signal<number | null>(DEFAULT_TIP_PERCENT);
+  readonly $tipPercent = signal<number | null>(this.$suggestedTipPercent());
+  // Si la configuración llega con el modal abierto, se respeta lo que el cajero ya eligió.
+  private tipTouched = false;
   readonly formatCurrency = formatCurrency;
   readonly formatQuantity = formatQuantity;
   readonly methodLabel = paymentMethodLabel;
@@ -158,12 +164,17 @@ export class CollectPaymentModalComponent implements OnDestroy {
   });
 
   constructor() {
+    effect(() => {
+      const suggested = this.$suggestedTipPercent();
+      if (!this.tipTouched) untracked(() => this.$tipPercent.set(suggested));
+    });
+
     // Con un porcentaje activo la propina sigue al monto (o a la selección de productos).
     effect(() => {
       const percent = this.$tipPercent();
       const amount = this.$amount();
       if (percent === null) return;
-      const tip = Math.round((amount * percent) / 100);
+      const tip = this.tipFor(amount, percent);
       untracked(() => {
         if ((Number(this.form.controls.tipAmount.value) || 0) !== tip) this.form.patchValue({ tipAmount: tip });
       });
@@ -194,11 +205,11 @@ export class CollectPaymentModalComponent implements OnDestroy {
         this.form.reset({
           method: 'cash',
           amount: result.remaining,
-          tipAmount: Math.round((result.remaining * DEFAULT_TIP_PERCENT) / 100),
+          tipAmount: this.tipFor(result.remaining, this.$suggestedTipPercent()),
           amountTendered: null,
           note: '',
         });
-        this.$tipPercent.set(DEFAULT_TIP_PERCENT);
+        this.$tipPercent.set(this.$suggestedTipPercent());
         this.$selection.set({});
         // Lo pagado por producto (o por monto) cambia lo pendiente de cada línea.
         if (this.$supportsProducts()) this.reloadOrder();
@@ -255,8 +266,14 @@ export class CollectPaymentModalComponent implements OnDestroy {
   }
 
   selectTip(percent: number | null, input?: HTMLInputElement) {
+    this.tipTouched = true;
     this.$tipPercent.set(percent);
     if (percent === null) input?.focus();
+  }
+
+  manualTip() {
+    this.tipTouched = true;
+    this.$tipPercent.set(null);
   }
 
   setTendered(value: number) {
@@ -322,7 +339,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
       taxAmount: order.finalTotal > 0 ? Math.round((order.taxAmount * total) / order.finalTotal) : 0,
       paid: 0,
       remaining: total,
-      suggestedTipPercent: 10,
+      suggestedTipPercent: this.$suggestedTipPercent(),
       note: 'Montos estimados: el sistema calcula el monto final al cobrar',
     });
     try {
@@ -368,6 +385,11 @@ export class CollectPaymentModalComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.paymentService.reset();
+  }
+
+  // Redondeada a los decimales de la moneda (CLP: 0).
+  private tipFor(amount: number, percent: number): number {
+    return percent > 0 ? roundCurrency((amount * percent) / 100, this.businessSettings.$currencyPrecision()) : 0;
   }
 
   private reloadOrder() {

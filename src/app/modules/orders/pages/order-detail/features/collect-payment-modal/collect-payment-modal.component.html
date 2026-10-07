@@ -202,10 +202,16 @@
 
     <!-- Propina sugerida: voluntaria, se calcula sobre lo que se paga en este cobro -->
     <div>
-      <label for="pay-tip" class="text-foreground text-sm font-medium">Propina sugerida ({{ defaultTipPercent }} %)</label>
+      <label for="pay-tip" class="text-foreground text-sm font-medium">
+        @if ($suggestedTipPercent() > 0) {
+        Propina sugerida ({{ $suggestedTipPercent().toLocaleString('es-CL') }} %)
+        } @else {
+        Propina
+        }
+      </label>
       <p class="text-muted-foreground mb-2 text-xs">Es voluntaria y no suma al total del pedido.</p>
       <div class="mb-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Propina">
-        @for (option of tipOptions; track option.label) {
+        @for (option of $tipOptions(); track option.label) {
         <button
           type="button"
           role="radio"
@@ -219,7 +225,7 @@
       </div>
       <div class="relative">
         <span class="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center">$</span>
-        <input #tipInput id="pay-tip" type="number" formControlName="tipAmount" min="0" inputmode="numeric" class="glass-input w-full rounded-md py-2 pl-7 pr-3 tabular-nums" (input)="$tipPercent.set(null)" />
+        <input #tipInput id="pay-tip" type="number" formControlName="tipAmount" min="0" inputmode="numeric" class="glass-input w-full rounded-md py-2 pl-7 pr-3 tabular-nums" (input)="manualTip()" />
       </div>
     </div>
 

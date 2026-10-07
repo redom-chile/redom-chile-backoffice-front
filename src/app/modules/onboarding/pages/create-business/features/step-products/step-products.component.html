@@ -1,0 +1,48 @@
+<div class="space-y-6">
+  <div class="text-center">
+    <h2 class="text-foreground mb-1 text-2xl font-semibold sm:text-3xl">Tus primeros productos <span class="text-primary">!</span></h2>
+    <p class="text-muted-foreground text-sm">Agrega lo que más vendes para probar tu primer pedido.</p>
+  </div>
+
+  <div class="space-y-3 text-left">
+    @for (row of rows.controls; track row; let i = $index) {
+    <div class="flex items-end gap-2" [formGroup]="row">
+      <label class="block min-w-0 flex-1">
+        <span class="text-muted-foreground mb-1 block text-xs font-medium">Producto</span>
+        <input type="text" class="w-full px-3 py-3" formControlName="name" maxlength="120" placeholder="Ej: Completo italiano"
+          [attr.aria-label]="'Nombre del producto ' + (i + 1)"
+          [class.is__invalid-input]="submitted && row.controls.name.invalid && row.controls.name.touched" />
+      </label>
+      <label class="block w-28 shrink-0 sm:w-32">
+        <span class="text-muted-foreground mb-1 block text-xs font-medium">Precio ({{ currencySymbol() }})</span>
+        <input type="number" inputmode="numeric" min="0" [step]="$priceStep()" class="w-full px-3 py-3" formControlName="price"
+          placeholder="0" [attr.aria-label]="'Precio del producto ' + (i + 1)"
+          [class.is__invalid-input]="submitted && row.controls.price.invalid && row.controls.price.touched" />
+      </label>
+      @if ($rowCount() > 1) {
+      <button type="button" class="text-muted-foreground hover:text-destructive mb-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+        aria-label="Quitar producto" [disabled]="$isSaving()" (click)="removeRow(i)">
+        <app-icon class="h-5 w-5">close</app-icon>
+      </button>
+      }
+    </div>
+    }
+
+    @if ($rowCount() < maxRows) {
+    <button type="button" class="text-primary flex items-center gap-1 text-sm font-semibold hover:underline" [disabled]="$isSaving()" (click)="addRow()">
+      <app-icon class="h-4 w-4">add</app-icon> Agregar otro
+    </button>
+    }
+    <p class="text-muted-foreground text-xs">Precio con IVA incluido.</p>
+  </div>
+
+  <p class="bg-primary/10 text-foreground flex items-start gap-2 rounded-xl p-3 text-xs">
+    <app-icon class="text-primary h-4 w-4 shrink-0">lightbulb</app-icon>
+    Podrás agregar categorías, fotos y modificadores después en Carta.
+  </p>
+
+  <app-button full impact="bold" tone="primary" shape="rounded" size="medium" type="button"
+    [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="save()">
+    Guardar productos
+  </app-button>
+</div>

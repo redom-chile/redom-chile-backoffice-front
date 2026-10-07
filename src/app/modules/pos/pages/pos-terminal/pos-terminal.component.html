@@ -1,3 +1,10 @@
+@if ($noLocations()) {
+<app-empty-state icon="storefront" title="Primero crea tu local" description="Para tomar pedidos en el POS necesitas al menos una sucursal. Créala con su dirección y horario, y vuelve aquí.">
+  <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+    <app-icon class="h-4 w-4">add_business</app-icon>Crear local
+  </a>
+</app-empty-state>
+} @else {
 <div class="flex flex-col gap-3">
   <!-- Barra superior: sucursal y mesero. En /pos se ve también en la pantalla de PIN: la sucursal define qué meseros aparecen -->
   @if ($isReady() || !terminalMode()) {
@@ -82,3 +89,4 @@
   </div>
   }
 </div>
+}

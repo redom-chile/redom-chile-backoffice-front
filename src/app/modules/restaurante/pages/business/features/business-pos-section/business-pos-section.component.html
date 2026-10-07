@@ -1,0 +1,88 @@
+<app-card>
+  <div class="border-border border-b border-dashed p-4">
+    <h2 class="text-foreground text-base font-semibold">Punto de venta</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">Cómo tomas y cobras los pedidos en el POS.</p>
+  </div>
+
+  <div class="divide-border divide-y divide-dashed">
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Trabajo con mesas</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">Permite asignar una mesa a cada pedido.</p>
+      </div>
+      <app-toggle
+        aria-label="Trabajo con mesas"
+        [checked]="$tablesEnabled()"
+        [disabled]="$isSaving()"
+        (changed)="$tablesEnabled.set($event)" />
+    </div>
+
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Uso meseros</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">Permite indicar qué mesero atiende cada pedido.</p>
+      </div>
+      <app-toggle
+        aria-label="Uso meseros"
+        [checked]="$waiterEnabled()"
+        [disabled]="$isSaving()"
+        (changed)="setWaiterEnabled($event)" />
+    </div>
+
+    <div class="flex items-start justify-between gap-4 p-4" [class.opacity-60]="!$waiterEnabled()">
+      <div>
+        <p class="text-foreground text-sm font-medium">Mesero obligatorio al tomar pedidos</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          @if ($waiterEnabled()) {
+          No se podrá crear un pedido sin elegir mesero.
+          } @else {
+          Activa "Uso meseros" para poder exigirlo.
+          }
+        </p>
+      </div>
+      <app-toggle
+        aria-label="Mesero obligatorio al tomar pedidos"
+        [checked]="$waiterEnabled() && $staffRequired()"
+        [disabled]="$isSaving() || !$waiterEnabled()"
+        (changed)="$staffRequired.set($event)" />
+    </div>
+
+    <div class="p-4 sm:max-w-xs">
+      <label for="business-tip" class="text-foreground mb-1 block text-sm font-medium">Propina sugerida (%)</label>
+      <input
+        id="business-tip"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        max="100"
+        step="0.01"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="$tipError()"
+        [value]="$tipPercent()"
+        [disabled]="$isSaving()"
+        [attr.aria-invalid]="!!$tipError()"
+        aria-describedby="business-tip-hint"
+        (input)="onTipInput($event)" />
+      @if ($tipError(); as error) {
+      <p id="business-tip-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
+      } @else {
+      <p id="business-tip-hint" class="text-muted-foreground mt-1 text-xs">Se propone al cobrar y en la precuenta. 0 = sin sugerencia.</p>
+      }
+    </div>
+  </div>
+
+  <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
+    @if ($hasChanges()) {
+    <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    }
+    <app-button
+      impact="bold"
+      tone="primary"
+      type="button"
+      [disabled]="!$hasChanges() || !$isValid() || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar
+    </app-button>
+  </div>
+</app-card>

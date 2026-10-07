@@ -175,7 +175,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       taxAmount: order.taxAmount,
       paid: order.totalPaid,
       remaining: order.remaining,
-      suggestedTipPercent: 10,
+      suggestedTipPercent: this.businessSettings.$suggestedTipPercent(),
     });
     try {
       await printHtml(html, this.printConfig.$config().paperWidth);

@@ -32,11 +32,15 @@
   </div>
 
   <div>
-    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Precio (IVA incluido) *</label>
+    <label for="product-price" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {{ $pricesExcludeVat() ? 'Precio neto (se suma IVA al vender)' : 'Precio (IVA incluido)' }} *
+    </label>
     <div class="relative">
       <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-500">$</span>
       <input
+        id="product-price"
         type="number"
+        aria-describedby="product-price-hint"
         formControlName="price"
         min="0"
         step="1"
@@ -45,6 +49,13 @@
         [class]="inputClass + ' pl-7'"
         [ngClass]="{ 'border-red-500': isInvalid('price') }" />
     </div>
+    <p id="product-price-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      @if ($pricesExcludeVat()) {
+      Al venderlo se suma el IVA ({{ $vatRate() }} %). La carta QR lo muestra con IVA.
+      } @else {
+      Es lo que paga el cliente. Puedes cambiarlo en Mi negocio → Datos fiscales.
+      }
+    </p>
   </div>
 
   <div>

@@ -34,7 +34,7 @@
           @if (line.note) {
           <p class="truncate text-xs italic text-amber-600 dark:text-amber-400">“{{ line.note }}”</p>
           }
-          <p class="text-muted-foreground text-xs tabular-nums">{{ formatCurrency(line.unitPrice) }} c/u</p>
+          <p class="text-muted-foreground text-xs tabular-nums">{{ formatCurrency(unitPrice(line)) }} c/u{{ $pricing().excludesVat ? ' con IVA' : '' }}</p>
         </div>
         <div class="flex items-center gap-1">
           <button
@@ -58,7 +58,7 @@
             <app-icon class="h-4 w-4">add</app-icon>
           </button>
         </div>
-        <span class="text-foreground w-20 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(line.unitPrice * line.quantity) }}</span>
+        <span class="text-foreground w-20 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(lineTotal(line)) }}</span>
       </div>
 
       @if ($editingKey() === line.key) {
@@ -94,9 +94,15 @@
     }
   </ul>
   <div class="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-3">
-    <span class="text-foreground font-semibold">Total estimado</span>
+    <span class="text-foreground font-semibold">Total estimado{{ $pricing().excludesVat ? ' con IVA' : '' }}</span>
     <span class="text-foreground text-lg font-bold tabular-nums">{{ formatCurrency($total()) }}</span>
   </div>
-  <p class="text-muted-foreground mt-1 text-xs">IVA incluido. El total final lo confirma el sistema al guardar.</p>
+  <p class="text-muted-foreground mt-1 text-xs">
+    @if ($pricing().excludesVat) {
+    Incluye el IVA ({{ $pricing().vatRate }} %) que se suma a tus precios netos. El total final lo confirma el sistema al guardar.
+    } @else {
+    IVA incluido. El total final lo confirma el sistema al guardar.
+    }
+  </p>
   }
 </div>

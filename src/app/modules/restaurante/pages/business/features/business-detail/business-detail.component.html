@@ -1,120 +1,80 @@
-<app-card>
-  <ng-template app-slot="header">
-    <div class="flex items-center justify-between">
+@let business = this.business();
+<div class="space-y-4">
+  <app-card>
+    <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex min-w-0 items-center gap-3">
         <app-image-thumb
-          class="bg-primary/10 text-primary size-11 text-base"
-          [src]="business().logoUrl"
-          [name]="business().name"
-          [alt]="'Logo de ' + business().name"
+          class="bg-primary/10 text-primary size-12 shrink-0 text-base"
+          [src]="business.logoUrl"
+          [name]="$name()"
+          [alt]="'Logo de ' + $name()"
           (expired)="refreshExpiredLogo()" />
-        <h2 class="text-foreground truncate text-xl font-bold">{{ business().name }}</h2>
+        <div class="min-w-0">
+          <h2 class="text-foreground truncate text-lg font-bold">{{ $name() }}</h2>
+        </div>
       </div>
-      <app-toggle [checked]="business().isActive" (changed)="onToggleChange($event)" />
     </div>
-  </ng-template>
+  </app-card>
 
-  <div class="border-border border-b border-dashed p-4">
-    @for (key of [$pickerKey()]; track key) {
-    <app-image-picker
-      folder="business_logos"
-      label="Logo del negocio"
-      [currentUrl]="business().logoUrl"
-      [uploading]="$isUploading()"
-      [progress]="$uploadProgress()"
-      [disabled]="$isSavingLogo()"
-      (selectionChange)="$logoSelection.set($event)" />
-    }
-    @if ($logoSelection().kind !== 'keep') {
-    <div class="mt-3 flex justify-end gap-2">
-      <app-button impact="light" type="button" [disabled]="$isSavingLogo()" (buttonClick)="discardLogo()">Descartar</app-button>
-      <app-button impact="bold" tone="primary" type="button" [disabled]="$isSavingLogo()" [isLoading]="$isSavingLogo()" (buttonClick)="saveLogo()">
-        {{ $logoSelection().kind === 'remove' ? 'Quitar logo' : 'Guardar logo' }}
-      </app-button>
+  @if ($settingsLoaded()) {
+  <app-business-identity-section [business]="business" />
+  <app-business-currency-section />
+  <app-business-tax-section />
+  <app-business-pos-section />
+  } @else if ($settingsError()) {
+  <app-card>
+    <div class="flex flex-col items-center gap-4 py-12 text-center">
+      <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+      <div>
+        <h2 class="text-foreground text-lg font-semibold">No se pudo cargar la configuración del negocio</h2>
+        <p class="text-muted-foreground mt-1 text-sm">Revisa tu conexión e intenta nuevamente.</p>
+      </div>
+      <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retrySettings()">Reintentar</app-button>
     </div>
-    }
-  </div>
+  </app-card>
+  } @else {
+  @for (card of [1, 2, 3]; track card) {
+  <app-card>
+    <div class="space-y-3 p-4" aria-busy="true" aria-label="Cargando configuración del negocio">
+      <app-skeleton size="xs" style="width: 160px" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+    </div>
+  </app-card>
+  }
+  }
 
-  <div class="border-border border-b border-dashed p-4">
-    <p class="text-foreground text-sm font-medium">Color del restaurante</p>
-    <p class="text-muted-foreground mb-3 text-xs">Se aplica en la app de todo tu equipo: botones, menú, login y POS.</p>
-    <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="Color del restaurante">
-      @for (color of themeColors; track color.name) {
-      <button
-        type="button"
-        role="radio"
-        [attr.aria-checked]="$currentColor() === color.name"
-        [attr.aria-label]="color.label"
-        [title]="color.label"
-        [disabled]="!!$savingColor()"
-        class="focus-visible:ring-foreground relative flex size-10 items-center justify-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-transparent transition-transform hover:scale-110 focus-visible:ring-2 disabled:cursor-wait"
-        [class.ring-2]="$currentColor() === color.name"
-        [class.ring-foreground]="$currentColor() === color.name"
-        [style.backgroundColor]="color.hex"
-        (click)="selectColor(color.name)">
-        @if ($savingColor() === color.name) {
-        <span class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-        } @else if ($currentColor() === color.name) {
-        <app-icon class="h-4.5 w-4.5">check</app-icon>
-        }
-      </button>
+  <app-card>
+    <div class="border-border border-b border-dashed p-4">
+      <h2 class="text-foreground text-base font-semibold">Información</h2>
+    </div>
+    <dl class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+      @if (business.startDate) {
+      <div>
+        <dt class="text-muted-foreground text-xs">Fecha de inicio</dt>
+        <dd class="text-foreground text-sm">{{ business.startDate | date: 'longDate' }}</dd>
+      </div>
       }
-    </div>
-  </div>
-
-  <div class="grid grid-cols-2 gap-4 p-4">
-    <div>
-      <p class="text-muted-foreground text-sm">Zona horaria</p>
-      <p class="text-foreground">{{ business().timeZone }}</p>
-    </div>
-    <div>
-      <p class="text-muted-foreground text-sm">Moneda</p>
-      <p class="text-foreground">ID: {{ business().currencyId }}</p>
-    </div>
-    <div>
-      <p class="text-muted-foreground text-sm">Formato de fecha</p>
-      <p class="text-foreground">{{ business().dateFormat }}</p>
-    </div>
-    <div>
-      <p class="text-muted-foreground text-sm">Formato de hora</p>
-      <p class="text-foreground">{{ business().timeFormat }}</p>
-    </div>
-    <div>
-      <p class="text-muted-foreground text-sm">Estado</p>
-      <p class="text-foreground">{{ business().isActive ? 'Activo' : 'Inactivo' }}</p>
-    </div>
-    @if (business().startDate) {
-    <div>
-      <p class="text-muted-foreground text-sm">Fecha de inicio</p>
-      <p class="text-foreground">{{ business().startDate | date : 'shortDate' }}</p>
-    </div>
-    }
-    <div>
-      <p class="text-muted-foreground text-sm">Creado</p>
-      <p class="text-foreground">{{ business().createdAt | date : 'shortDate' }}</p>
-    </div>
-    <div>
-      <p class="text-muted-foreground text-sm">Actualizado</p>
-      <p class="text-foreground">{{ business().updatedAt | date : 'shortDate' }}</p>
-    </div>
-  </div>
-
-  <ng-template app-slot="footer">
-    <div class="flex justify-evenly gap-2 xl:justify-end">
-      <app-button
-        full
-        impact="bold"
-        tone="primary"
-        [disabled]="business().isActive && !!business().startDate"
-        (buttonClick)="openSetupModal()">
-        <app-icon class="h-6 w-6">settings</app-icon>
-        Configurar
-      </app-button>
-
-      <app-button full impact="bold" tone="primary" (buttonClick)="navigateToLocations()">
-        <app-icon class="h-6 w-6">location_on</app-icon>
-        Ver Sucursales
-      </app-button>
-    </div>
-  </ng-template>
-</app-card>
+      <div>
+        <dt class="text-muted-foreground text-xs">Creado</dt>
+        <dd class="text-foreground text-sm">{{ business.createdAt | date: 'longDate' }}</dd>
+      </div>
+      <div>
+        <dt class="text-muted-foreground text-xs">Última actualización</dt>
+        <dd class="text-foreground text-sm">{{ business.updatedAt | date: 'longDate' }}</dd>
+      </div>
+    </dl>
+    <a routerLink="/business/location" class="glass-row border-border flex items-center justify-between gap-3 border-t border-dashed p-4">
+      <span class="flex items-center gap-3">
+        <span class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+          <app-icon class="h-5 w-5">location_on</app-icon>
+        </span>
+        <span>
+          <span class="text-foreground block text-sm font-semibold">Sucursales</span>
+          <span class="text-muted-foreground block text-xs">Locales donde vendes: dirección, contacto y stock propio.</span>
+        </span>
+      </span>
+      <app-icon class="text-muted-foreground h-5 w-5">chevron_right</app-icon>
+    </a>
+  </app-card>
+</div>

@@ -24,6 +24,17 @@ import { WhoamiDto } from './dtos';
 
 const MINUTE = 60_000;
 
+const isOwner = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code === 'OWNER');
+
+/**
+ * Con negocio: ¿falta el paso "Tu local"? undefined si whoami no trae locationsCount (hay que consultar los locales).
+ */
+export function needsLocationStep(whoami: WhoamiDto): boolean | undefined {
+  if (!isOwner(whoami)) return false;
+  const count = whoami.user.locationsCount;
+  return typeof count === 'number' ? count === 0 : undefined;
+}
+
 export type SessionUser = Readonly<{
   code: string;
   name: string;
@@ -89,9 +100,27 @@ export class WhoamiService implements OnDestroy {
     );
   }
 
-  // Adónde ir después de iniciar sesión: sin negocio → onboarding.
+  /**
+   * ¿Le falta el onboarding? Sin negocio → desde "Tu negocio"; dueño con negocio y 0 locales activos → "Tu local".
+   * Quien no es dueño nunca va al onboarding (no puede crear locales).
+   * Respuestas antiguas sin locationsCount: se consultan los locales; si falla, no se bloquea la entrada a la app.
+   */
+  needsOnboarding(whoami: WhoamiDto | null): Observable<boolean> {
+    if (!whoami?.user.restaurantId) return of(true);
+    const known = needsLocationStep(whoami);
+    if (known !== undefined) return of(known);
+    return this.#httpClient.get<unknown[]>(`${ApiPathEnum.RESTAURANT}/business-locations`).pipe(
+      map((locations) => locations.length === 0),
+      catchError(() => of(false)),
+    );
+  }
+
+  // Adónde ir después de iniciar sesión: sin negocio o sin local → onboarding.
   homeRoute(): Observable<string> {
-    return this.load().pipe(map((whoami) => (whoami?.user.restaurantId ? '/dashboard/admin' : '/onboarding')));
+    return this.load().pipe(
+      switchMap((whoami) => this.needsOnboarding(whoami)),
+      map((pending) => (pending ? '/onboarding' : '/dashboard/admin')),
+    );
   }
 
   forget() {

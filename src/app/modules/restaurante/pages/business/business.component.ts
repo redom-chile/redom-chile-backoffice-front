@@ -1,12 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
-import { ButtonComponent, CardComponent, HeaderDashboardComponent, IconComponent } from 'src/ui';
+import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { FindMyBusinessesService } from './data-access';
 import { BusinessDetailComponent, InventorySettingsComponent } from './features';
-import { MatDialog } from '@angular/material/dialog';
-import { CreateNewBusinessModalComponent } from './features';
 import { BusinessDetailSkeletonComponent } from './ui';
 
 type BusinessTab = 'general' | 'inventario';
@@ -23,17 +22,18 @@ function toTab(value: string | null): BusinessTab {
     IconComponent,
     BusinessDetailComponent,
     BusinessDetailSkeletonComponent,
-    CardComponent,
+    EmptyStateComponent,
     InventorySettingsComponent,
   ],
   templateUrl: './business.component.html',
   styleUrl: './business.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BusinessComponent {
-  private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly $findMyBusinessesService = inject(FindMyBusinessesService);
+  readonly #settings = inject(BusinessSettingsService);
 
   readonly tabs: ReadonlyArray<{ value: BusinessTab; label: string }> = [
     { value: 'general', label: 'General' },
@@ -58,6 +58,7 @@ export class BusinessComponent {
 
   retry() {
     this.$findMyBusinessesService.retry();
+    this.#settings.reload();
   }
 
   selectTab(tab: BusinessTab) {
@@ -68,10 +69,8 @@ export class BusinessComponent {
     });
   }
 
-  createNewBusiness() {
-    this.dialog.open(CreateNewBusinessModalComponent, {
-      width: '90%',
-      data: {},
-    });
+  // Sin negocio: se crea desde el onboarding.
+  goToOnboarding() {
+    this.router.navigate(['/onboarding']);
   }
 }

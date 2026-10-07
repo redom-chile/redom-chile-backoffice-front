@@ -1,0 +1,62 @@
+<app-card>
+  <div class="border-border border-b border-dashed p-4">
+    <h2 class="text-foreground text-base font-semibold">Moneda y horario</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">La moneda con la que cobras y la hora que usan los pedidos, turnos y reportes.</p>
+  </div>
+
+  <div class="grid gap-4 p-4 sm:grid-cols-2">
+    <div>
+      <label for="business-currency" class="text-foreground mb-1 block text-sm font-medium">Moneda</label>
+      <select
+        id="business-currency"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [disabled]="$isSaving() || !$currencies().length"
+        (change)="onCurrencyChange($event)">
+        @if (!$currencies().length) {
+        <option value="">{{ $currenciesError() ? 'No se pudieron cargar las monedas' : 'Cargando monedas…' }}</option>
+        }
+        @for (currency of $currencies(); track currency.id) {
+        <option [value]="currency.id" [selected]="currency.id === $currencyId()">{{ currency.currency }} ({{ currency.code }})</option>
+        }
+      </select>
+      @if ($currenciesError()) {
+      <button type="button" class="text-primary mt-1 text-xs font-medium" (click)="retryCurrencies()">Reintentar</button>
+      }
+    </div>
+
+    <div>
+      <label for="business-time-zone" class="text-foreground mb-1 block text-sm font-medium">Zona horaria</label>
+      <select
+        id="business-time-zone"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [disabled]="$isSaving()"
+        (change)="onTimeZoneChange($event)">
+        @for (zone of $timeZones(); track zone.value) {
+        <option [value]="zone.value" [selected]="zone.value === $timeZone()">{{ zone.label }}</option>
+        }
+      </select>
+    </div>
+
+    @if ($currencyChanged()) {
+    <div class="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 sm:col-span-2 dark:text-amber-300" role="alert">
+      <app-icon class="h-4 w-4 shrink-0">warning</app-icon>
+      <span>Los precios no se convierten: tus productos mantienen el mismo número con la nueva moneda. Revísalos después de cambiarla.</span>
+    </div>
+    }
+  </div>
+
+  <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
+    @if ($hasChanges()) {
+    <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    }
+    <app-button
+      impact="bold"
+      tone="primary"
+      type="button"
+      [disabled]="!$hasChanges() || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar
+    </app-button>
+  </div>
+</app-card>

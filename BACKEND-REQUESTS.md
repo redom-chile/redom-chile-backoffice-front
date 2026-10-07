@@ -15,7 +15,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40 |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -240,9 +240,31 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - En `GET /orders/:id`, por línea: `netUnitAmount` (o `netAmount`) para que la vista previa calce exacto; o un `POST /payments/preview` con `lines` que devuelva el monto.
 - `lines` en `GET /payments/all`.
 - Códigos: `PAYMENT_EXCEEDS_REMAINING` (`details: { remaining }`), `CASH_NOT_ENOUGH`, `TENDERED_ONLY_CASH`.
-- En la configuración del negocio: `suggestedTipPercent` (número, 0 = sin sugerencia).
 
 **Front mientras tanto:** muestra el total por productos como estimado y el monto real sale de la respuesta; la propina sugerida usa la constante `DEFAULT_TIP_PERCENT = 10`.
+
+### 42. 🟢 Onboarding: simplificar el alta del negocio (resuelta)
+
+> Resuelta: `POST /business` con `location` devuelve `{ id, locationId }` y deja el negocio activo; `onboarding-status`; whoami con `businessName` y `locationsCount`; `posSettings`, `suggestedTipPercent` y `sellPriceTax` aplicados. Nota: `GET /business/:id/settings` devuelve `posSettings` como texto JSON en snake_case, mientras el PATCH recibe un objeto camelCase; el front normaliza ambos.
+
+**Problema:**
+- `POST /business` responde `void`: el front tiene que pedir `whoami` o `my-businesses` para saber el id.
+- No crea el primer local; el front llama `POST /business-locations` aparte. Sin local, el POS no puede vender.
+- Los locales nuevos quedan con `invoiceSchemeId: 0` y `invoiceLayoutId: 0` en vez del esquema `FAC-` creado con el negocio.
+- El asistente de 5 pasos (`/setup/steps`) pide datos que nada usa (`enabledModules`, `keyboardShortcuts`, `enableTooltip`, `transactionEditDays`, `skuPrefix`, método contable, vencimientos) y `isActive` solo se exige para activarse a sí mismo. El front ya no muestra el asistente: lo completa en segundo plano con valores por defecto y activa el negocio.
+- `sellPriceTax` se guarda pero los pedidos y el food cost siempre separan el IVA como si el precio lo incluyera.
+- `posSettings` (meseros, mesas) solo se escribe en el paso 5 y no se puede editar con `PATCH /business/:id/settings`.
+
+**Se pide:**
+- `POST /business` que devuelva `{ id }` y acepte opcionalmente `location: { name, address?, city?, mobile? }` para crear el primer local en la misma transacción, con el esquema de facturación por defecto.
+- Locales nuevos asociados al esquema de facturación por defecto del negocio.
+- Definir si el asistente y `isActive` siguen existiendo; si no, retirarlos (o activar el negocio al crearlo).
+- Aplicar `sellPriceTax` en el cálculo de pedidos o quitar el campo.
+- `posSettings` editable en `PATCH /business/:id/settings`.
+
+**Prompt para el backend:** `docs/backend-prompts/onboarding-negocio.md` (incluye además `GET /business/:id/onboarding-status` y `businessName` / `locationsCount` en whoami).
+
+**Front mientras tanto:** crea el negocio, luego el local (y sector, mesas y productos si el dueño los elige) en llamadas separadas; completa los 5 pasos en segundo plano con `BusinessQuickSetupService` y activa el negocio; en Mi negocio solo se editan nombre, logo, moneda, zona horaria, RUT, IVA y "precios incluyen IVA".
 
 ---
 

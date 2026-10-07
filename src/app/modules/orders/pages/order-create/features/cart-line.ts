@@ -1,10 +1,12 @@
+import { computed, Signal } from '@angular/core';
+import { BusinessSettingsService, grossSellPrice } from 'src/app/core/services/business-settings';
 import { ProductDto, ProductModifierSetDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { OrderProductDto } from '../data-access';
 
 export type CartModifier = Readonly<{
   variationId: number;
   name: string;
-  // Precio por cada vez (IVA incluido); solo para estimar, el backend pone el real.
+  // Precio del catálogo por cada vez; solo para estimar, el backend pone el real.
   price: number;
   // Veces por cada unidad del producto (1..10).
   quantity: number;
@@ -16,7 +18,8 @@ export type CartLine = Readonly<{
   productId: number;
   variationId: number;
   name: string;
-  // Precio del producto solo; unitPrice ya suma los modificadores.
+  // Precios del catálogo (netos si el negocio vende "más IVA"): usar cartUnitPrice para mostrarlos.
+  // basePrice es el producto solo; unitPrice ya suma los modificadores.
   basePrice: number;
   unitPrice: number;
   quantity: number;
@@ -44,6 +47,35 @@ export function hasModifierSets(product: ProductDto): boolean {
 
 export function productPrice(product: ProductDto): number {
   return product.variations[0]?.sellPriceIncTax ?? 0;
+}
+
+/** Cómo pasar del precio del catálogo al que paga el cliente (Datos fiscales del negocio). */
+export type CartPricing = Readonly<{ excludesVat: boolean; vatRate: number; decimals: number }>;
+
+export function cartPricing(settings: BusinessSettingsService): Signal<CartPricing> {
+  return computed(() => ({
+    excludesVat: settings.$pricesExcludeVat(),
+    vatRate: settings.$vatRate(),
+    decimals: settings.$currencyPrecision(),
+  }));
+}
+
+/** Precio con IVA, como lo calcula el backend (cada precio del catálogo por separado). */
+export function grossPrice(price: number, pricing: CartPricing): number {
+  return grossSellPrice(price, pricing.vatRate, pricing.excludesVat ? 'excludes' : 'includes', pricing.decimals);
+}
+
+/** Precio unitario estimado que paga el cliente: producto + opciones, con IVA. */
+export function cartUnitPrice(basePrice: number, modifiers: readonly CartModifier[], pricing: CartPricing): number {
+  return modifiers.reduce((sum, mod) => sum + grossPrice(mod.price, pricing) * mod.quantity, grossPrice(basePrice, pricing));
+}
+
+export function cartLineTotal(line: CartLine, pricing: CartPricing): number {
+  return cartUnitPrice(line.basePrice, line.modifiers, pricing) * line.quantity;
+}
+
+export function cartTotal(lines: readonly CartLine[], pricing: CartPricing): number {
+  return lines.reduce((sum, line) => sum + cartLineTotal(line, pricing), 0);
 }
 
 export function unitPriceWithModifiers(basePrice: number, modifiers: readonly CartModifier[]): number {
