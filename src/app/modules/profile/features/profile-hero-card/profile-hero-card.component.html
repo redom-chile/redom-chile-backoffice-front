@@ -40,17 +40,17 @@
         aria-haspopup="menu"
         [disabled]="$isSaving()"
         (click)="toggleMenu()">
-        <app-icon class="text-lg">photo_camera</app-icon>
+        <app-icon class="h-4.5 w-4.5">photo_camera</app-icon>
       </button>
 
       @if ($menuOpen()) {
       <div role="menu" class="glass absolute left-1/2 top-full z-20 mt-2 w-44 -translate-x-1/2 rounded-xl p-1 text-left shadow-xl">
         <button role="menuitem" type="button" class="glass-row text-foreground flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm" (click)="chooseFile()">
-          <app-icon class="text-lg">upload</app-icon> Subir nueva
+          <app-icon class="h-4.5 w-4.5">upload</app-icon> Subir nueva
         </button>
         @if (p.profileImageUrl) {
         <button role="menuitem" type="button" class="glass-row flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600" (click)="removePhoto()">
-          <app-icon class="text-lg">delete</app-icon> Quitar foto
+          <app-icon class="h-4.5 w-4.5">delete</app-icon> Quitar foto
         </button>
         }
       </div>
@@ -68,7 +68,7 @@
       }
       @if (p.emailVerifyAt) {
       <span class="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">
-        <app-icon class="text-sm">verified</app-icon> Email verificado
+        <app-icon class="h-3.5 w-3.5">verified</app-icon> Email verificado
       </span>
       }
     </div>
@@ -85,7 +85,7 @@
 
     @if ($memberSince(); as since) {
     <p class="text-muted-foreground mt-4 inline-flex items-center gap-1 text-xs">
-      <app-icon class="text-sm">calendar_month</app-icon> Miembro desde {{ since }}
+      <app-icon class="h-3.5 w-3.5">calendar_month</app-icon> Miembro desde {{ since }}
     </p>
     }
   </div>

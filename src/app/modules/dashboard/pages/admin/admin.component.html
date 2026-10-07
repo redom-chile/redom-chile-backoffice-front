@@ -29,18 +29,18 @@
   @if ($metrics(); as m) {
   <!-- Indicadores principales -->
   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4" [class.opacity-60]="$isLoading()">
-    <app-kpi-card label="Ventas" icon="payments" [value]="formatCurrency(m.sales.current)" [current]="m.sales.current" [previous]="m.sales.previous" [comparison]="$comparison()" />
-    <app-kpi-card label="Pedidos" icon="receipt_long" [value]="'' + m.orders.current" [current]="m.orders.current" [previous]="m.orders.previous" [comparison]="$comparison()" />
-    <app-kpi-card label="Ticket promedio" icon="sell" [value]="formatCurrency(m.avgTicket)" hint="Ventas / pedidos cerrados" />
-    <app-kpi-card label="Cobrado" icon="point_of_sale" [value]="formatCurrency(m.sales.collected)" [hint]="'Propinas: ' + formatCurrency(m.sales.tips)" />
+    <app-kpi-card label="Ventas" info="Total de los pedidos cerrados en el período, con IVA y descuentos aplicados. Se compara con el período anterior de igual duración." icon="payments" [value]="formatCurrency(m.sales.current)" [current]="m.sales.current" [previous]="m.sales.previous" [comparison]="$comparison()" />
+    <app-kpi-card label="Pedidos" info="Pedidos creados en el período, sin contar los cancelados. Se compara con el período anterior." icon="receipt_long" [value]="'' + m.orders.current" [current]="m.orders.current" [previous]="m.orders.previous" [comparison]="$comparison()" />
+    <app-kpi-card label="Ticket promedio" info="Cuánto gasta en promedio cada pedido: ventas dividido por la cantidad de pedidos cerrados." icon="sell" [value]="formatCurrency(m.avgTicket)" hint="Ventas / pedidos cerrados" />
+    <app-kpi-card label="Cobrado" info="Suma de los pagos registrados en el período (sin los anulados), sin la propina. La propina se muestra aparte." icon="point_of_sale" [value]="formatCurrency(m.sales.collected)" [hint]="'Propinas: ' + formatCurrency(m.sales.tips)" />
   </div>
 
   <!-- Operación en curso -->
   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4" [class.opacity-60]="$isLoading()">
-    <app-kpi-card label="Cuentas abiertas" icon="room_service" [value]="'' + m.orders.open" hint="Pedidos sin cerrar" link="/orders" linkLabel="Ver pedidos" />
-    <app-kpi-card label="Mesas ocupadas" icon="table_bar" [value]="m.tables.occupied + ' / ' + m.tables.total" [hint]="$locationId() ? 'En este momento' : 'En este momento, todas las sucursales'" link="/tables" linkLabel="Ver mesas" />
-    <app-kpi-card label="Ventas netas" icon="account_balance" [value]="formatCurrency(m.sales.netSales)" [hint]="'IVA: ' + formatCurrency(m.sales.taxAmount)" />
-    <app-kpi-card label="Cancelados" icon="block" [value]="'' + m.orders.cancelled" hint="Pedidos cancelados en el período" />
+    <app-kpi-card label="Cuentas abiertas" info="Pedidos del período que todavía no se cierran: están en curso o tienen saldo por pagar." icon="room_service" [value]="'' + m.orders.open" hint="Pedidos sin cerrar" link="/orders" linkLabel="Ver pedidos" />
+    <app-kpi-card label="Mesas ocupadas" info="Mesas que están ocupadas en este momento sobre el total de mesas. No depende del período elegido." icon="table_bar" [value]="m.tables.occupied + ' / ' + m.tables.total" [hint]="$locationId() ? 'En este momento' : 'En este momento, todas las sucursales'" link="/tables" linkLabel="Ver mesas" />
+    <app-kpi-card label="Ventas netas" info="Ventas sin IVA: lo que queda para el restaurante después de descontar el impuesto." icon="account_balance" [value]="formatCurrency(m.sales.netSales)" [hint]="'IVA: ' + formatCurrency(m.sales.taxAmount)" />
+    <app-kpi-card label="Cancelados" info="Pedidos cancelados en el período. No suman en ventas ni en pedidos." icon="block" [value]="'' + m.orders.cancelled" hint="Pedidos cancelados en el período" />
   </div>
 
   <!-- Inventario: stock bajo mínimo y lotes por vencer / vencidos (solo si el inventario está activo) -->

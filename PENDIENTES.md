@@ -86,10 +86,23 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
   - El badge de vencimiento del stock calcula los días con la zona del navegador; el umbral ámbar es fijo en 7 días.
   - El detalle de una producción no muestra los lotes consumidos (los movimientos no traen lote).
 
+## Sesión
+
+- Por un error del backend (#39), el token renovado no sirve: la sesión se cierra a las 2 h aunque haya refresh token. Cuando se corrija, la renovación debería quedar transparente sin cambios en el front.
+
+## Cobro
+
+- [ ] E2E de "Dividir por productos" (pasos del prompt del backend, #40) y de la propina sugerida.
+- El total "Por productos" es una estimación: en pagos parciales de una línea el backend calcula sobre el neto de la línea y puede diferir en algunos pesos (#41).
+- La página de Pagos no muestra los productos de cada pago hasta que `GET /payments/all` devuelva `lines` (#41).
+- Propina sugerida 10 % fija en el front (`DEFAULT_TIP_PERCENT`): falta como configuración del negocio (#41). Se sugiere en cada pago parcial; no se lleva la propina total del pedido.
+- Si lo elegido supera el saldo (por pagos por monto anteriores), hay que terminar "Por monto".
+- La pre-cuenta por persona estima el IVA en proporción.
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38.
+- Solicitudes al backend con workaround: #15, #16, #28–#38. Bloqueante: #39.

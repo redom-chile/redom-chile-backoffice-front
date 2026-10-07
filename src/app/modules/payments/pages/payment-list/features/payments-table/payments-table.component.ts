@@ -4,7 +4,7 @@ import { PaginationMeta } from 'src/app/core/standarized-response/standardized-p
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatCurrency, formatDateTime } from 'src/app/modules/orders/pages/order-list/ui';
 import { PaymentDto } from '../../data-access';
-import { paymentMethodIcon, paymentMethodLabel } from '../../ui';
+import { paymentLinesLabel, paymentMethodIcon, paymentMethodLabel } from '../../ui';
 
 @Component({
   selector: 'app-payments-table',
@@ -31,4 +31,5 @@ export class PaymentsTableComponent {
   readonly formatDateTime = formatDateTime;
   readonly methodLabel = paymentMethodLabel;
   readonly methodIcon = paymentMethodIcon;
+  readonly linesLabel = paymentLinesLabel;
 }

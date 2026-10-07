@@ -1,8 +1,8 @@
 <app-modal-card>
   <ng-template app-slot="header">
     <div class="flex items-center justify-between gap-3">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Cobrar {{ order.invoiceNo }}</h2>
-      <span class="text-muted-foreground text-sm font-normal">{{ order.tableName ?? 'Sin mesa' }}</span>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Cobrar {{ $order().invoiceNo }}</h2>
+      <span class="text-muted-foreground text-sm font-normal">{{ $order().tableName ?? 'Sin mesa' }}</span>
     </div>
   </ng-template>
 
@@ -10,13 +10,13 @@
   <div class="mb-4 grid grid-cols-3 gap-2 text-center">
     <div class="glass-row rounded-lg p-2">
       <p class="text-muted-foreground text-xs">Total</p>
-      <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(order.finalTotal) }}</p>
+      <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency($order().finalTotal) }}</p>
     </div>
     <div class="glass-row rounded-lg p-2">
       <p class="text-muted-foreground text-xs">Pagado</p>
-      <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(order.finalTotal - $remaining()) }}</p>
+      <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency($order().finalTotal - $remaining()) }}</p>
     </div>
-    <div class="rounded-lg p-2" [class]="$isPaid() ? 'bg-green-500/15 text-green-700' : 'bg-amber-500/15 text-amber-700'">
+    <div class="rounded-lg p-2" [class]="$isPaid() ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'">
       <p class="text-xs">Saldo</p>
       <p class="font-bold tabular-nums">{{ formatCurrency($remaining()) }}</p>
     </div>
@@ -25,8 +25,8 @@
   @if ($lastChange(); as last) {
   <!-- Vuelto destacado -->
   <div class="mb-4 rounded-xl bg-green-500/15 p-5 text-center" role="status" aria-live="polite">
-    <p class="text-sm font-medium text-green-700">Vuelto a entregar</p>
-    <p class="text-4xl font-bold tabular-nums text-green-700">{{ formatCurrency(last.change) }}</p>
+    <p class="text-sm font-medium text-green-700 dark:text-green-400">Vuelto a entregar</p>
+    <p class="text-4xl font-bold tabular-nums text-green-700 dark:text-green-400">{{ formatCurrency(last.change) }}</p>
     <p class="text-muted-foreground mt-1 text-xs">Pago en efectivo de {{ formatCurrency(last.amount + last.tip) }}{{ last.tip ? ' (incluye propina)' : '' }}</p>
     @if (!$isPaid()) {
     <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="dismissChange()">Continuar con el siguiente pago</button>
@@ -59,6 +59,128 @@
       }
     </div>
 
+    @if ($supportsProducts()) {
+    <!-- Cómo dividir la cuenta -->
+    <div class="glass-row grid grid-cols-2 gap-1 rounded-lg p-1" role="tablist" aria-label="Forma de cobro">
+      @for (tab of [{ value: 'amount', label: 'Por monto', icon: 'attach_money' }, { value: 'products', label: 'Por productos', icon: 'restaurant_menu' }]; track tab.value) {
+      <button
+        type="button"
+        role="tab"
+        class="inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors"
+        [class]="$mode() === tab.value ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-selected]="$mode() === tab.value"
+        (click)="setMode($any(tab.value))">
+        <app-icon class="h-4 w-4">{{ tab.icon }}</app-icon>{{ tab.label }}
+      </button>
+      }
+    </div>
+    }
+
+    @if ($byProducts()) {
+    <!-- Productos a pagar -->
+    <div>
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-foreground text-sm font-medium">Productos a pagar</p>
+        <div class="flex gap-1">
+          <button type="button" class="glass-row rounded-full px-3 py-1 text-xs disabled:opacity-50" [disabled]="$allSelected() || !$pendingLines().length" (click)="selectAll()">Seleccionar todo</button>
+          <button type="button" class="glass-row rounded-full px-3 py-1 text-xs disabled:opacity-50" [disabled]="!$selectedLines().length" (click)="clearSelection()">Limpiar</button>
+        </div>
+      </div>
+
+      <ul class="max-h-[45vh] space-y-2 overflow-y-auto pr-1" [class.opacity-60]="$isReloading()" aria-label="Productos pendientes de pago">
+        @for (line of $pendingLines(); track line.lineId) {
+        <li class="glass-row flex items-start gap-3 rounded-lg p-3" [class.ring-2]="quantityOf(line) > 0" [class.ring-primary]="quantityOf(line) > 0">
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground break-words text-sm font-medium">
+              {{ line.productName }}@if (variationLabel(line.variationName); as variation) {<span class="text-muted-foreground font-normal"> · {{ variation }}</span>}
+            </p>
+            @for (modifier of line.modifiers ?? []; track modifier.lineId) {
+            <p class="text-muted-foreground break-words text-xs">+ {{ modifierLabel(line, modifier) }}</p>
+            }
+            <p class="text-muted-foreground mt-0.5 text-xs tabular-nums">
+              @if ((line.paidQuantity ?? 0) > 0) {
+              <span class="text-amber-700 dark:text-amber-400">Pagado {{ formatQuantity(line.paidQuantity ?? 0) }} de {{ formatQuantity(line.quantity) }}</span> ·
+              }
+              Pendiente {{ formatQuantity(line.pendingQuantity ?? 0) }} · {{ formatCurrency(line.pendingAmount) }}
+            </p>
+          </div>
+          <div class="flex shrink-0 flex-col items-end gap-1">
+            <div class="flex items-center gap-1">
+              @if (isDecimalLine(line)) {
+              <input
+                type="number"
+                min="0"
+                step="0.001"
+                inputmode="decimal"
+                class="glass-input w-20 rounded-md px-2 py-1.5 text-center text-sm tabular-nums"
+                [attr.aria-label]="'Cantidad a pagar de ' + line.productName"
+                [max]="line.pendingQuantity ?? 0"
+                [value]="quantityOf(line)"
+                (change)="setQuantity(line, $any($event.target).valueAsNumber)" />
+              } @else {
+              <button type="button" class="glass-row inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="quantityOf(line) <= 0" [attr.aria-label]="'Quitar uno de ' + line.productName" (click)="step(line, -1)">
+                <app-icon class="h-4 w-4">remove</app-icon>
+              </button>
+              <span class="text-foreground w-7 text-center font-semibold tabular-nums" aria-live="polite">{{ quantityOf(line) }}</span>
+              <button type="button" class="glass-row inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="quantityOf(line) >= (line.pendingQuantity ?? 0)" [attr.aria-label]="'Agregar uno de ' + line.productName" (click)="step(line, 1)">
+                <app-icon class="h-4 w-4">add</app-icon>
+              </button>
+              }
+              <button type="button" class="text-primary px-1.5 text-xs font-medium hover:underline disabled:opacity-40" [disabled]="quantityOf(line) === line.pendingQuantity" (click)="setQuantity(line, line.pendingQuantity ?? 0)">Todo</button>
+            </div>
+            @if (quantityOf(line) > 0) {
+            <span class="text-foreground text-xs font-medium tabular-nums">≈ {{ formatCurrency(linePreview(line, quantityOf(line))) }}</span>
+            }
+          </div>
+        </li>
+        } @empty {
+        <li class="text-muted-foreground py-4 text-center text-sm">No quedan productos pendientes. Cobra el saldo con "Por monto".</li>
+        }
+      </ul>
+
+      @if ($paidLines().length) {
+      <!-- Productos ya pagados -->
+      <button type="button" class="text-muted-foreground mt-2 inline-flex items-center gap-1 text-xs font-medium" [attr.aria-expanded]="$showPaid()" (click)="$showPaid.set(!$showPaid())">
+        <app-icon class="h-4 w-4">{{ $showPaid() ? 'expand_less' : 'expand_more' }}</app-icon>Pagado ({{ $paidLines().length }})
+      </button>
+      @if ($showPaid()) {
+      <ul class="mt-1 space-y-1">
+        @for (line of $paidLines(); track line.lineId) {
+        <li class="text-muted-foreground flex justify-between gap-2 px-3 text-xs line-through">
+          <span class="min-w-0 break-words">{{ formatQuantity(line.quantity) }} × {{ line.productName }}</span>
+          <app-icon class="h-4 w-4 shrink-0 text-green-600 no-underline dark:text-green-400">check</app-icon>
+        </li>
+        }
+      </ul>
+      }
+      }
+
+      <div class="mt-3 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
+        <div>
+          <p class="text-foreground text-sm font-medium">Total estimado</p>
+          <p class="text-muted-foreground text-xs">El monto final lo calcula el sistema al cobrar</p>
+        </div>
+        <p class="text-foreground text-lg font-bold tabular-nums">{{ formatCurrency($preview()) }}</p>
+      </div>
+      <button type="button" class="text-primary mt-2 inline-flex items-center gap-1 text-xs font-medium hover:underline disabled:opacity-40" [disabled]="!$selectedLines().length" (click)="printPersonBill()">
+        <app-icon class="h-4 w-4">receipt</app-icon>Pre-cuenta por persona
+      </button>
+
+      <details class="text-muted-foreground mt-2 text-xs">
+        <summary class="cursor-pointer select-none font-medium">¿Cómo funciona?</summary>
+        <ul class="mt-1 list-disc space-y-0.5 pl-5">
+          <li>Cada producto se paga junto con sus modificadores.</li>
+          <li>El sistema calcula el monto e incluye la parte proporcional del descuento del pedido.</li>
+          <li>Un pago por monto baja el saldo, pero no marca productos como pagados.</li>
+          <li>Anular un pago deja sus productos pendientes otra vez.</li>
+        </ul>
+      </details>
+
+      @if ($productsWarning(); as warning) {
+      <p class="mt-2 rounded-md bg-amber-500/15 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">{{ warning }}</p>
+      }
+    </div>
+    } @else {
     <!-- Monto -->
     <div>
       <div class="mb-1 flex items-center justify-between">
@@ -76,22 +198,28 @@
       <p class="text-muted-foreground mt-1 text-xs">Pago parcial: quedará un saldo de {{ formatCurrency($remaining() - $amount()) }}.</p>
       }
     </div>
+    }
 
-    <!-- Propina -->
+    <!-- Propina sugerida: voluntaria, se calcula sobre lo que se paga en este cobro -->
     <div>
-      <div class="mb-1 flex items-center justify-between">
-        <label for="pay-tip" class="text-foreground text-sm font-medium">Propina <span class="text-muted-foreground font-normal">(no suma al total)</span></label>
-        <div class="flex gap-1">
-          @for (percentage of tipPercentages; track percentage) {
-          <button type="button" class="glass-row rounded-full px-3 py-1 text-xs" (click)="setTipPercentage(percentage)">
-            {{ percentage === 0 ? 'Sin propina' : percentage + '%' }}
-          </button>
-          }
-        </div>
+      <label for="pay-tip" class="text-foreground text-sm font-medium">Propina sugerida ({{ defaultTipPercent }} %)</label>
+      <p class="text-muted-foreground mb-2 text-xs">Es voluntaria y no suma al total del pedido.</p>
+      <div class="mb-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Propina">
+        @for (option of tipOptions; track option.label) {
+        <button
+          type="button"
+          role="radio"
+          class="rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+          [class]="$tipPercent() === option.percent ? 'border-primary bg-primary/10 text-primary' : 'glass-row text-foreground border-transparent'"
+          [attr.aria-checked]="$tipPercent() === option.percent"
+          (click)="selectTip(option.percent, tipInput)">
+          {{ option.label }}
+        </button>
+        }
       </div>
       <div class="relative">
         <span class="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center">$</span>
-        <input id="pay-tip" type="number" formControlName="tipAmount" min="0" inputmode="numeric" class="glass-input w-full rounded-md py-2 pl-7 pr-3 tabular-nums" />
+        <input #tipInput id="pay-tip" type="number" formControlName="tipAmount" min="0" inputmode="numeric" class="glass-input w-full rounded-md py-2 pl-7 pr-3 tabular-nums" (input)="$tipPercent.set(null)" />
       </div>
     </div>
 
@@ -111,7 +239,7 @@
         <input id="pay-tendered" type="number" formControlName="amountTendered" min="0" inputmode="numeric" placeholder="0" class="glass-input w-full rounded-md py-2 pl-7 pr-3 tabular-nums" [class.border-red-500]="$change() < 0" />
       </div>
       @if ($tendered() > 0 && $change() >= 0) {
-      <p class="mt-1 text-sm font-medium text-green-700">Vuelto: {{ formatCurrency($change()) }}</p>
+      <p class="mt-1 text-sm font-medium text-green-700 dark:text-green-400">{{ $byProducts() ? 'Vuelto estimado' : 'Vuelto' }}: {{ formatCurrency($change()) }}</p>
       }
     </div>
     }
@@ -129,9 +257,14 @@
     <p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">Pagos registrados</p>
     <ul class="space-y-1 text-sm">
       @for (payment of $registered(); track $index) {
-      <li class="flex justify-between">
-        <span class="text-foreground">{{ methodLabel(payment.method) }}{{ payment.tip ? ' + propina ' + formatCurrency(payment.tip) : '' }}</span>
-        <span class="text-foreground font-medium tabular-nums">{{ formatCurrency(payment.amount) }}</span>
+      <li>
+        <div class="flex justify-between gap-2">
+          <span class="text-foreground">{{ methodLabel(payment.method) }}{{ payment.tip ? ' + propina ' + formatCurrency(payment.tip) : '' }}</span>
+          <span class="text-foreground font-medium tabular-nums">{{ formatCurrency(payment.amount) }}</span>
+        </div>
+        @if (payment.products) {
+        <p class="text-muted-foreground text-xs">{{ payment.products }}</p>
+        }
       </li>
       }
     </ul>
@@ -148,7 +281,7 @@
       </app-button>
       @if (!$lastChange()) {
       <app-button type="button" impact="bold" tone="primary" [disabled]="$isLoading() || !!$validationError()" [isLoading]="$isLoading()" (buttonClick)="handleSubmit()">
-        Registrar {{ formatCurrency($due()) }}
+        Registrar {{ $byProducts() ? '≈ ' : '' }}{{ formatCurrency($due()) }}
       </app-button>
       }
       }

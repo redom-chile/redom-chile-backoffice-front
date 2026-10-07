@@ -4,9 +4,9 @@ import { TableDto, TableStatus } from 'src/app/modules/tables/pages/table-list/d
 import { SectorDto } from 'src/app/modules/sectors/pages/sector-list/data-access';
 
 const STATUS_CLASSES: Record<TableStatus, string> = {
-  available: 'border-green-500/60 text-green-700',
-  occupied: 'border-red-500/60 bg-red-500/10 text-red-700',
-  reserved: 'border-blue-500/60 text-blue-700',
+  available: 'border-green-500/60 text-green-700 dark:text-green-400',
+  occupied: 'border-red-500/60 bg-red-500/10 text-red-700 dark:text-red-400',
+  reserved: 'border-blue-500/60 text-blue-700 dark:text-blue-400',
   blocked: 'border-[var(--border)] text-muted-foreground opacity-50',
 };
 

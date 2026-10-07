@@ -1,20 +1,21 @@
 @let slots = $slots() | asRecord;
 
-<div class="glass rounded-[1rem] flex w-full flex-col content-between overflow-hidden">
-  <div class="h-full content-between p-2">
+<!-- Nunca más alto que la pantalla: título y pie fijos, el contenido se desplaza. -->
+<div class="glass redom-modal-card flex w-full flex-col overflow-hidden rounded-[1rem]">
+  <div class="flex min-h-0 flex-1 flex-col p-2">
     @if (slots['header']; as header) {
-    <div class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+    <div class="mb-2 shrink-0 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
       <ng-container [ngTemplateOutlet]="header" />
       <app-divider />
     </div>
     }
 
-    <div>
+    <div class="redom-modal-body min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <ng-content />
     </div>
 
     @if(slots['footer']; as footer){
-    <div class="mb-0">
+    <div class="mb-0 shrink-0">
       <app-divider />
       <div class="p-2">
         <ng-container [ngTemplateOutlet]="footer" />
@@ -24,6 +25,6 @@
   </div>
 
   @if($addBottomLine()){
-  <div class="bg-linear-to-r bg-primary to-50% mb-0 h-1 w-full from-gray-400"></div>
+  <div class="bg-linear-to-r bg-primary to-50% mb-0 h-1 w-full shrink-0 from-gray-400"></div>
   }
 </div>

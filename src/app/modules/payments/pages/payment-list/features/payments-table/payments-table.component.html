@@ -47,6 +47,12 @@
             <span class="text-foreground inline-flex items-center gap-1.5 text-sm">
               <app-icon class="text-muted-foreground h-4 w-4">{{ methodIcon(payment.method) }}</app-icon>{{ methodLabel(payment.method) }}
             </span>
+            @if (linesLabel(payment.lines); as products) {
+            <!-- Productos que cubrió el pago (dividir la cuenta) -->
+            <p class="text-muted-foreground mt-0.5 max-w-[18rem] text-xs" [class.line-through]="payment.cancelled" [title]="products">
+              <app-icon class="mr-0.5 inline-block h-3.5 w-3.5 align-text-bottom">restaurant_menu</app-icon>{{ products }}
+            </p>
+            }
             @if (payment.note) {
             <p class="text-muted-foreground max-w-[14rem] truncate text-xs" [title]="payment.note">{{ payment.note }}</p>
             }

@@ -40,6 +40,22 @@
             @if (line.sellLineNote) {
             <p class="mt-0.5 text-xs italic text-amber-600">“{{ line.sellLineNote }}”</p>
             }
+            <!-- Pago por productos (dividir la cuenta) -->
+            @switch (paidState(line)) {
+            @case ('paid') {
+            <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+              <app-icon class="h-3.5 w-3.5">check_circle</app-icon>Pagado
+            </span>
+            }
+            @case ('partial') {
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                Pagado {{ formatQuantity(line.paidQuantity ?? 0) }} de {{ formatQuantity(line.quantity) }}
+              </span>
+              <span class="text-muted-foreground text-xs tabular-nums">Pendiente {{ formatCurrency(line.pendingAmount) }}</span>
+            </div>
+            }
+            }
           </td>
           <td class="text-foreground px-4 py-3 text-center font-semibold tabular-nums">{{ line.quantity }}</td>
           <td class="text-muted-foreground hidden px-4 py-3 text-right text-sm tabular-nums sm:table-cell">

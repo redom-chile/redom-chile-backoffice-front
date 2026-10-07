@@ -16,7 +16,7 @@ import { ButtonComponent, IconComponent } from 'src/ui';
         <div class="flex flex-wrap items-center justify-between gap-3 pb-4">
           <div class="flex min-w-0 items-center gap-3">
             <span class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg" aria-hidden="true">
-              <app-icon class="text-lg">lock</app-icon>
+              <app-icon class="h-4.5 w-4.5">lock</app-icon>
             </span>
             <div class="min-w-0">
               <p class="text-foreground text-sm font-medium">Contraseña</p>
@@ -31,7 +31,7 @@ import { ButtonComponent, IconComponent } from 'src/ui';
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
           <div class="flex min-w-0 items-center gap-3">
             <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600" aria-hidden="true">
-              <app-icon class="text-lg">logout</app-icon>
+              <app-icon class="h-4.5 w-4.5">logout</app-icon>
             </span>
             <div class="min-w-0">
               <p class="text-foreground text-sm font-medium">Cerrar sesión</p>

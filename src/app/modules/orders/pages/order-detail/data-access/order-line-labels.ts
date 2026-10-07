@@ -15,3 +15,10 @@ export function modifierLabel(line: OrderLineDto, modifier: OrderLineModifierDto
   const times = modifierTimesPerUnit(line, modifier);
   return times > 1 ? `${times} x ${modifier.name}` : modifier.name;
 }
+
+// Estado de pago por productos. null si no hay pagos por producto (o el backend no lo informa).
+export function linePaidState(line: OrderLineDto): 'paid' | 'partial' | null {
+  const paid = line.paidQuantity ?? 0;
+  if (line.pendingQuantity === undefined || paid <= 0) return null;
+  return line.pendingQuantity <= 0 ? 'paid' : 'partial';
+}

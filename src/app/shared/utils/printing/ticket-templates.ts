@@ -32,6 +32,9 @@ export type BillTicketData = Readonly<{
   remaining: number;
   // Propina sugerida en porcentaje (0 para no mostrarla).
   suggestedTipPercent: number;
+  // Título y nota opcionales (p. ej. precuenta por persona al dividir la cuenta).
+  title?: string;
+  note?: string;
 }>;
 
 const time = (date: string | Date) =>
@@ -81,7 +84,7 @@ export function billTicketHtml(bill: BillTicketData): string {
   const tip = Math.round((bill.total * bill.suggestedTipPercent) / 100);
   return `
     <h2>${escapeHtml(bill.businessName)}</h2>
-    <div class="center big">PRECUENTA</div>
+    <div class="center big">${escapeHtml(bill.title ?? 'PRECUENTA')}</div>
     <div class="center muted">${dateTime(new Date())}</div>
     <div class="row muted"><span>${escapeHtml(bill.invoiceNo)}</span><span>${escapeHtml(bill.tableName ?? 'Sin mesa')}</span></div>
     ${bill.waiterName ? `<div class="muted">Atendido por: ${escapeHtml(bill.waiterName)}</div>` : ''}
@@ -95,6 +98,7 @@ export function billTicketHtml(bill: BillTicketData): string {
     ${bill.paid > 0 ? `<div class="row"><span>Pagado</span><span>${money(bill.paid)}</span></div><div class="row total"><span>SALDO</span><span>${money(bill.remaining)}</span></div>` : ''}
     ${bill.suggestedTipPercent > 0 ? `<div class="sep"></div><div class="row"><span>Propina sugerida ${bill.suggestedTipPercent}%</span><span>${money(tip)}</span></div><div class="row"><span>Total con propina</span><span>${money(bill.remaining + tip)}</span></div>` : ''}
     <div class="sep"></div>
+    ${bill.note ? `<div class="center muted">${escapeHtml(bill.note)}</div>` : ''}
     <div class="center muted">Documento no válido como boleta</div>
     <div class="center">¡Gracias por su visita!</div>
     ${brand(3.5)}`;

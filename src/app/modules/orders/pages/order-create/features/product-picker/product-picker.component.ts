@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, OnInit, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, OnInit, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -29,6 +29,15 @@ export class ProductPickerComponent implements OnInit {
   readonly add = output<ProductDto>();
 
   readonly search = new FormControl('', { nonNullable: true });
+
+  // Categoría padre activa: la elegida o la que contiene la subcategoría elegida.
+  readonly $selectedParent = computed(() => {
+    const id = this.selectedCategoryId();
+    if (id === null) return null;
+    return this.categories().find((c) => c.id === id || c.subcategories?.some((sub) => sub.id === id)) ?? null;
+  });
+  // URLs firmadas que vencieron o fallaron: se muestra la inicial.
+  readonly brokenImages = signal<ReadonlySet<number>>(new Set());
   readonly formatCurrency = formatCurrency;
 
   ngOnInit(): void {
@@ -43,5 +52,13 @@ export class ProductPickerComponent implements OnInit {
 
   hasOptions(product: ProductDto): boolean {
     return hasModifierSets(product);
+  }
+
+  initial(name: string): string {
+    return name.trim().charAt(0) || '?';
+  }
+
+  markBroken(productId: number) {
+    this.brokenImages.update((ids) => new Set(ids).add(productId));
   }
 }

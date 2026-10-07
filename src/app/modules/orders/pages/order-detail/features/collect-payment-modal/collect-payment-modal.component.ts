@@ -1,25 +1,48 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { ApiErrorCode } from 'src/app/core/utils';
 import {
   CreatePaymentDto,
   CreatePaymentService,
   getPaymentErrorMessage,
+  PaymentLineInputDto,
   PaymentMethod,
 } from 'src/app/modules/payments/pages/payment-list/data-access';
-import { PAYMENT_METHODS, paymentMethodLabel } from 'src/app/modules/payments/pages/payment-list/ui';
+import {
+  formatQuantity,
+  PAYMENT_METHODS,
+  paymentLinesLabel,
+  paymentMethodLabel,
+} from 'src/app/modules/payments/pages/payment-list/ui';
+import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/business/data-access';
+import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
+import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
 import { formatCurrency } from '../../../order-list/ui';
-import { OrderDetailDto } from '../../data-access';
+import { GetOrderByIdService, modifierLabel, OrderDetailDto, OrderLineDto, orderVariationLabel } from '../../data-access';
 
 export type CollectPaymentResult = 'paid' | 'partial' | 'dismissed';
 
-type RegisteredPayment = Readonly<{ method: PaymentMethod; amount: number; tip: number; change: number }>;
+type CollectMode = 'amount' | 'products';
+type RegisteredPayment = Readonly<{ method: PaymentMethod; amount: number; tip: number; change: number; products: string }>;
 
-// Propina sugerida habitual en Chile.
-const TIP_PERCENTAGES = [0, 10];
+// Propina sugerida habitual en Chile (a futuro, configuración del negocio).
+export const DEFAULT_TIP_PERCENT = 10;
+// percent null = monto manual ("Otro").
+const TIP_OPTIONS: ReadonlyArray<{ label: string; percent: number | null }> = [
+  { label: 'Sin propina', percent: 0 },
+  { label: `${DEFAULT_TIP_PERCENT} %`, percent: DEFAULT_TIP_PERCENT },
+  { label: '15 %', percent: 15 },
+  { label: 'Otro', percent: null },
+];
 const CASH_BILLS = [5000, 10000, 20000];
+
+// Los productos por peso (0,5 kg) admiten decimales; el resto se paga por unidades.
+const isDecimalLine = (line: OrderLineDto) => !Number.isInteger(line.quantity);
+const roundQuantity = (line: OrderLineDto, value: number) =>
+  isDecimalLine(line) ? Math.round(value * 10_000) / 10_000 : Math.floor(value);
 
 @Component({
   selector: 'app-collect-payment-modal',
@@ -32,30 +55,70 @@ export class CollectPaymentModalComponent implements OnDestroy {
   private readonly dialogRef = inject<MatDialogRef<CollectPaymentModalComponent, CollectPaymentResult>>(MatDialogRef);
   private readonly toast = inject(ToastService);
   private readonly paymentService = inject(CreatePaymentService);
+  private readonly orderService = inject(GetOrderByIdService);
+  private readonly businessesService = inject(FindMyBusinessesService);
+  private readonly printConfig = inject(PrintStationConfigService);
 
-  readonly order = inject<OrderDetailDto>(MAT_DIALOG_DATA);
   readonly methods = PAYMENT_METHODS;
-  readonly tipPercentages = TIP_PERCENTAGES;
+  readonly tipOptions = TIP_OPTIONS;
+  readonly defaultTipPercent = DEFAULT_TIP_PERCENT;
+  // Porcentaje activo; null cuando la propina se ingresó a mano.
+  readonly $tipPercent = signal<number | null>(DEFAULT_TIP_PERCENT);
   readonly formatCurrency = formatCurrency;
+  readonly formatQuantity = formatQuantity;
   readonly methodLabel = paymentMethodLabel;
+  readonly modifierLabel = modifierLabel;
+  readonly variationLabel = orderVariationLabel;
+  readonly isDecimalLine = isDecimalLine;
 
-  readonly $remaining = signal(this.order.remaining);
+  // Se recarga tras cada pago por productos para conocer lo pendiente de cada línea.
+  readonly $order = signal(inject<OrderDetailDto>(MAT_DIALOG_DATA));
+  readonly $remaining = signal(this.$order().remaining);
   readonly $registered = signal<RegisteredPayment[]>([]);
   // Último pago en efectivo con vuelto: se muestra destacado hasta continuar.
   readonly $lastChange = signal<RegisteredPayment | null>(null);
   readonly $isLoading = computed(() => this.paymentService.$isLoading() ?? false);
 
+  readonly $mode = signal<CollectMode>('amount');
+  // lineId → cantidad elegida.
+  readonly $selection = signal<Readonly<Record<number, number>>>({});
+  readonly $showPaid = signal(false);
+  // Pedido vigente al pedir la recarga: se espera uno nuevo.
+  readonly $reloadingFrom = signal<OrderDetailDto | null | undefined>(undefined);
+  readonly $isReloading = computed(() => this.$reloadingFrom() !== undefined);
+
+  // Un backend sin pagos por producto no informa lo pendiente de cada línea.
+  readonly $supportsProducts = computed(() => this.$order().lines.some((line) => line.pendingQuantity !== undefined));
+  readonly $pendingLines = computed(() => this.$order().lines.filter((line) => (line.pendingQuantity ?? 0) > 0));
+  readonly $paidLines = computed(() =>
+    this.$order().lines.filter((line) => line.pendingQuantity !== undefined && line.pendingQuantity <= 0),
+  );
+  readonly $selectedLines = computed(() => {
+    const selection = this.$selection();
+    return this.$pendingLines().filter((line) => (selection[line.lineId] ?? 0) > 0);
+  });
+  // Estimación: el monto exacto (modificadores y descuento proporcional) lo calcula el backend.
+  readonly $preview = computed(() =>
+    this.$selectedLines().reduce((sum, line) => sum + this.linePreview(line, this.$selection()[line.lineId] ?? 0), 0),
+  );
+  readonly $allSelected = computed(() => {
+    const selection = this.$selection();
+    const pending = this.$pendingLines();
+    return pending.length > 0 && pending.every((line) => selection[line.lineId] === line.pendingQuantity);
+  });
+
   readonly form = inject(FormBuilder).nonNullable.group({
     method: ['cash' as PaymentMethod],
-    amount: [this.order.remaining],
+    amount: [this.$order().remaining],
     tipAmount: [0],
     amountTendered: [null as number | null],
     note: [''],
   });
 
   readonly $value = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  readonly $byProducts = computed(() => this.$mode() === 'products');
   readonly $isCash = computed(() => this.$value().method === 'cash');
-  readonly $amount = computed(() => Number(this.$value().amount) || 0);
+  readonly $amount = computed(() => (this.$byProducts() ? this.$preview() : Number(this.$value().amount) || 0));
   readonly $tip = computed(() => Number(this.$value().tipAmount) || 0);
   readonly $due = computed(() => this.$amount() + this.$tip());
   readonly $tendered = computed(() => Number(this.$value().amountTendered) || 0);
@@ -70,41 +133,113 @@ export class CollectPaymentModalComponent implements OnDestroy {
 
   // La interfaz impide pagar más que el saldo (el backend también lo valida).
   readonly $validationError = computed(() => {
-    const amount = this.$amount();
-    if (amount <= 0) return 'Ingresa el monto a pagar';
-    if (amount > this.$remaining()) return `El monto no puede superar el saldo (${formatCurrency(this.$remaining())})`;
+    if (this.$byProducts()) {
+      if (!this.$selectedLines().length) return 'Selecciona los productos a pagar';
+      if (this.$isReloading()) return 'Actualizando la cuenta…';
+    } else {
+      const amount = this.$amount();
+      if (amount <= 0) return 'Ingresa el monto a pagar';
+      if (amount > this.$remaining()) return `El monto no puede superar el saldo (${formatCurrency(this.$remaining())})`;
+    }
     if (this.$tip() < 0) return 'La propina no puede ser negativa';
-    if (this.$isCash() && this.$tendered() > 0 && this.$tendered() < this.$due())
+    if (!this.$byProducts() && this.$isCash() && this.$tendered() > 0 && this.$tendered() < this.$due())
       return 'El efectivo recibido no cubre el monto más la propina';
     return null;
   });
 
+  // Avisos del pago por productos: el monto es estimado, el backend tiene la última palabra.
+  readonly $productsWarning = computed(() => {
+    if (!this.$byProducts() || !this.$selectedLines().length) return null;
+    if (this.$preview() > this.$remaining())
+      return 'Los productos superan el saldo porque hubo pagos por monto. Cobra el resto con "Por monto".';
+    if (this.$isCash() && this.$tendered() > 0 && this.$tendered() < this.$due())
+      return 'El efectivo recibido podría no cubrir el monto estimado más la propina.';
+    return null;
+  });
+
   constructor() {
+    // Con un porcentaje activo la propina sigue al monto (o a la selección de productos).
+    effect(() => {
+      const percent = this.$tipPercent();
+      const amount = this.$amount();
+      if (percent === null) return;
+      const tip = Math.round((amount * percent) / 100);
+      untracked(() => {
+        if ((Number(this.form.controls.tipAmount.value) || 0) !== tip) this.form.patchValue({ tipAmount: tip });
+      });
+    });
+
     effect(() => {
       const result = this.paymentService.$result();
       if (!result) return;
       const { request } = result;
+      const amount = result.amount ?? request.amount ?? 0;
       const payment: RegisteredPayment = {
         method: request.method,
-        amount: request.amount,
+        amount,
         tip: request.tipAmount ?? 0,
         change: result.changeAmount,
+        products: request.lines?.length ? this.productsLabel(request.lines) : '',
       };
       this.$registered.update((list) => [...list, payment]);
       this.$remaining.set(result.remaining);
       this.$lastChange.set(payment.change > 0 ? payment : null);
       this.paymentService.reset();
       if (result.remaining > 0) {
-        this.toast.show(`Pago registrado. Saldo: ${formatCurrency(result.remaining)}`, 'success');
-        this.form.reset({ method: 'cash', amount: result.remaining, tipAmount: 0, amountTendered: null, note: '' });
+        const change = payment.change > 0 ? ` · Vuelto ${formatCurrency(payment.change)}` : '';
+        this.toast.show(
+          `Pago de ${formatCurrency(amount)} registrado${change}. Saldo: ${formatCurrency(result.remaining)}`,
+          'success',
+        );
+        this.form.reset({
+          method: 'cash',
+          amount: result.remaining,
+          tipAmount: Math.round((result.remaining * DEFAULT_TIP_PERCENT) / 100),
+          amountTendered: null,
+          note: '',
+        });
+        this.$tipPercent.set(DEFAULT_TIP_PERCENT);
+        this.$selection.set({});
+        // Lo pagado por producto (o por monto) cambia lo pendiente de cada línea.
+        if (this.$supportsProducts()) this.reloadOrder();
       }
     });
 
     effect(() => {
       // El modal queda abierto (con el monto ingresado) para reintentar, p. ej. tras registrar stock.
       const error = this.paymentService.$error();
-      if (error) this.toast.show(getPaymentErrorMessage(error), 'error');
+      if (!error) return;
+      this.toast.show(getPaymentErrorMessage(error), 'error');
+      if (!this.$byProducts()) return;
+      const lineId = Number(error.details['sellLineId']);
+      if (error.code === ApiErrorCode.LINE_ALREADY_PAID && Number.isFinite(lineId)) {
+        this.setQuantityById(lineId, Number(error.details['pendingQuantity']) || 0);
+      } else if (error.code === ApiErrorCode.INVALID_PAYMENT_LINE && Number.isFinite(lineId)) {
+        this.setQuantityById(lineId, 0);
+      }
+      // Sin código (p. ej. supera el saldo) o con los anteriores: se recarga la cuenta y se ajusta la selección.
+      if (error.status === 400) this.reloadOrder();
     });
+
+    effect(() => {
+      const from = this.$reloadingFrom();
+      if (from === undefined) return;
+      const order = this.orderService.$order();
+      if (order && order !== from && order.transactionId === this.$order().transactionId) {
+        this.$order.set(order);
+        this.$remaining.set(order.remaining);
+        this.form.patchValue({ amount: order.remaining });
+        this.clampSelection();
+        this.$reloadingFrom.set(undefined);
+      } else if (this.orderService.$isLoading() === false && this.orderService.$error()) {
+        this.$reloadingFrom.set(undefined);
+      }
+    });
+  }
+
+  setMode(mode: CollectMode) {
+    this.$mode.set(mode);
+    this.form.patchValue({ amountTendered: null });
   }
 
   selectMethod(method: PaymentMethod) {
@@ -119,12 +254,82 @@ export class CollectPaymentModalComponent implements OnDestroy {
     this.setAmount(Math.ceil(this.$remaining() / 2));
   }
 
-  setTipPercentage(percentage: number) {
-    this.form.patchValue({ tipAmount: Math.round((this.$amount() * percentage) / 100) });
+  selectTip(percent: number | null, input?: HTMLInputElement) {
+    this.$tipPercent.set(percent);
+    if (percent === null) input?.focus();
   }
 
   setTendered(value: number) {
     this.form.patchValue({ amountTendered: value });
+  }
+
+  // ---- Por productos ----
+
+  quantityOf(line: OrderLineDto): number {
+    return this.$selection()[line.lineId] ?? 0;
+  }
+
+  // Proporcional a lo pendiente; pagar todo lo pendiente cobra exactamente pendingAmount.
+  linePreview(line: OrderLineDto, quantity: number): number {
+    const pending = line.pendingQuantity ?? 0;
+    if (quantity <= 0 || pending <= 0) return 0;
+    return Math.round(((line.pendingAmount ?? 0) * quantity) / pending);
+  }
+
+  setQuantity(line: OrderLineDto, value: number) {
+    const max = line.pendingQuantity ?? 0;
+    const quantity = Math.min(Math.max(roundQuantity(line, Number(value) || 0), 0), max);
+    this.$selection.update((selection) => ({ ...selection, [line.lineId]: quantity }));
+  }
+
+  step(line: OrderLineDto, delta: number) {
+    this.setQuantity(line, this.quantityOf(line) + delta);
+  }
+
+  selectAll() {
+    this.$selection.set(Object.fromEntries(this.$pendingLines().map((line) => [line.lineId, line.pendingQuantity ?? 0])));
+  }
+
+  clearSelection() {
+    this.$selection.set({});
+  }
+
+  async printPersonBill() {
+    const order = this.$order();
+    const selection = this.$selection();
+    const lines = this.$selectedLines();
+    if (!lines.length) return;
+    const total = this.$preview();
+    const html = billTicketHtml({
+      businessName: this.businessesService.$businesses()?.[0]?.name ?? 'REDOM',
+      title: 'PRECUENTA POR PERSONA',
+      invoiceNo: order.invoiceNo,
+      tableName: order.tableName,
+      waiterName: order.waiterName,
+      lines: lines.map((line) => {
+        const variation = orderVariationLabel(line.variationName);
+        return {
+          name: variation ? `${line.productName} (${variation})` : line.productName,
+          quantity: selection[line.lineId],
+          total: this.linePreview(line, selection[line.lineId]),
+          modifiers: (line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier)),
+        };
+      }),
+      // Los montos ya incluyen el descuento proporcional del pedido.
+      subtotal: total,
+      discount: 0,
+      total,
+      taxAmount: order.finalTotal > 0 ? Math.round((order.taxAmount * total) / order.finalTotal) : 0,
+      paid: 0,
+      remaining: total,
+      suggestedTipPercent: 10,
+      note: 'Montos estimados: el sistema calcula el monto final al cobrar',
+    });
+    try {
+      await printHtml(html, this.printConfig.$config().paperWidth);
+    } catch {
+      this.toast.show('No se pudo imprimir la precuenta', 'error');
+    }
   }
 
   handleSubmit() {
@@ -134,14 +339,20 @@ export class CollectPaymentModalComponent implements OnDestroy {
       return;
     }
     const { method, note } = this.form.getRawValue();
-    const dto: CreatePaymentDto = {
-      transactionId: this.order.transactionId,
-      amount: this.$amount(),
+    const base = {
+      transactionId: this.$order().transactionId,
       method,
       tipAmount: this.$tip() || undefined,
       amountTendered: this.$isCash() && this.$tendered() > 0 ? this.$tendered() : undefined,
       note: note.trim() || undefined,
     };
+    // Por productos no se envía el monto: lo calcula el backend (si se envía debe coincidir).
+    const dto: CreatePaymentDto = this.$byProducts()
+      ? {
+          ...base,
+          lines: this.$selectedLines().map((line) => ({ sellLineId: line.lineId, quantity: this.quantityOf(line) })),
+        }
+      : { ...base, amount: this.$amount() };
     this.$lastChange.set(null);
     this.paymentService.create(dto);
   }
@@ -157,5 +368,31 @@ export class CollectPaymentModalComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.paymentService.reset();
+  }
+
+  private reloadOrder() {
+    this.$reloadingFrom.set(this.orderService.$order() ?? null);
+    this.orderService.load(this.$order().transactionId);
+  }
+
+  private setQuantityById(lineId: number, value: number) {
+    const line = this.$order().lines.find((item) => item.lineId === lineId);
+    if (line) this.setQuantity({ ...line, pendingQuantity: Math.min(value, line.pendingQuantity ?? 0) }, value);
+  }
+
+  // Tras recargar: nada por sobre lo pendiente y fuera lo que ya se pagó.
+  private clampSelection() {
+    const selection = this.$selection();
+    const next: Record<number, number> = {};
+    for (const line of this.$pendingLines()) {
+      const quantity = Math.min(selection[line.lineId] ?? 0, line.pendingQuantity ?? 0);
+      if (quantity > 0) next[line.lineId] = quantity;
+    }
+    this.$selection.set(next);
+  }
+
+  private productsLabel(lines: readonly PaymentLineInputDto[]): string {
+    const byId = new Map(this.$order().lines.map((line) => [line.lineId, line.productName]));
+    return paymentLinesLabel(lines.map((line) => ({ ...line, productName: byId.get(line.sellLineId) })));
   }
 }

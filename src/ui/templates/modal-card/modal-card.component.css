@@ -1,10 +1,17 @@
+/* El panel del diálogo no pasa del alto visible (dvh: descuenta las barras del navegador en el teléfono). */
+.cdk-overlay-pane.mat-mdc-dialog-panel {
+  max-height: calc(100dvh - 2rem);
+}
+
 .mat-mdc-dialog-container {
+  max-height: inherit;
   background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 20%, transparent), color-mix(in srgb, var(--foreground) 8%, transparent)) !important;
   border-radius: 1rem !important;
   overflow: hidden !important;
 }
 
 .mat-mdc-dialog-surface {
+  max-height: inherit;
   background: transparent !important;
   box-shadow: none !important;
   border-radius: 1rem !important;
@@ -14,4 +21,15 @@
   background: color-mix(in srgb, var(--background) 20%, transparent) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* La card llena el alto disponible del diálogo y solo el cuerpo hace scroll. */
+.redom-modal-card {
+  max-height: calc(100dvh - 2rem);
+}
+
+/* Un poco de aire para la barra de scroll sin mover el contenido. */
+.redom-modal-body {
+  scrollbar-gutter: stable;
+  padding-inline-end: 0.125rem;
 }

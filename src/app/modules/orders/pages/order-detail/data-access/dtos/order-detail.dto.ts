@@ -32,6 +32,11 @@ export type OrderLineDto = Readonly<{
   modifiers: OrderLineModifierDto[];
   // Producto + sus modificadores.
   lineTotal: number;
+  // Pagos por producto (dividir la cuenta). Un pago por monto no los mueve.
+  paidQuantity?: number;
+  pendingQuantity?: number;
+  // Lo que falta pagar de la línea, con modificadores y descuento proporcional.
+  pendingAmount?: number;
 }>;
 
 export type OrderDetailDto = Readonly<{

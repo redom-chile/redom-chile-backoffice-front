@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { map } from 'rxjs';
 import { IconComponent, SkeletonComponent } from 'src/ui';
 import { InventoryService } from '../../../../data-access';
@@ -12,7 +13,7 @@ import { resultValue, toRemoteResult } from '../../../../shared';
  */
 @Component({
   selector: 'app-low-stock-alert',
-  imports: [IconComponent, SkeletonComponent],
+  imports: [IconComponent, SkeletonComponent, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (variant() === 'card') {
@@ -24,7 +25,12 @@ import { resultValue, toRemoteResult } from '../../../../shared';
       (click)="activate.emit()">
       <div class="flex items-center justify-between gap-2">
         <p class="text-muted-foreground text-sm">Stock bajo mínimo</p>
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg" [class]="$count() ? 'bg-red-500/15 text-red-600' : 'bg-primary/10 text-primary'">
+        <span
+          class="flex h-9 w-9 shrink-0 cursor-help items-center justify-center rounded-lg"
+          [class]="$count() ? 'bg-red-500/15 text-red-600' : 'bg-primary/10 text-primary'"
+          matTooltip="Ingredientes y productos con stock propio que tienen igual o menos stock que su stock mínimo en este local. Toca la tarjeta para verlos."
+          matTooltipPosition="above"
+          matTooltipClass="redom-tooltip">
           <app-icon class="h-5 w-5">{{ $count() ? 'warning' : 'inventory_2' }}</app-icon>
         </span>
       </div>

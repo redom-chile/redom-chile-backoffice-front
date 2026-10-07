@@ -69,7 +69,7 @@
             [ngClass]="themeService.theme().mode === item.value ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
             class="flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors"
             (click)="themeService.setMode(item.value)">
-            <app-icon class="text-base">{{ item.icon }}</app-icon>
+            <app-icon class="h-4 w-4">{{ item.icon }}</app-icon>
             {{ item.label }}
           </button>
           }
@@ -83,7 +83,7 @@
           class="glass-row text-muted-foreground hover:text-foreground mt-2 flex items-center gap-2 rounded-md px-3 py-2 text-xs">
           <span class="bg-primary size-4 shrink-0 rounded-full"></span>
           <span class="flex-1">Se cambia en Mi negocio</span>
-          <app-icon class="text-base">chevron_right</app-icon>
+          <app-icon class="h-4 w-4">chevron_right</app-icon>
         </a>
       </div>
       <div class="mx-4 my-2">

@@ -22,7 +22,6 @@ export function openProductModifiersModal(dialog: MatDialog, data: ProductModifi
     .open<ProductModifiersModalComponent, ProductModifiersModalData, CartItemConfig>(ProductModifiersModalComponent, {
       width: '520px',
       maxWidth: '95vw',
-      maxHeight: '92vh',
       autoFocus: false,
       data,
     })

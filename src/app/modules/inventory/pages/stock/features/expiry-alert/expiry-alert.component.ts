@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { forkJoin, map } from 'rxjs';
 import { IconComponent, SkeletonComponent } from 'src/ui';
@@ -20,7 +21,7 @@ function countItems(lots: readonly StockLotDto[]): number {
  */
 @Component({
   selector: 'app-expiry-alert',
-  imports: [RouterLink, IconComponent, SkeletonComponent],
+  imports: [RouterLink, IconComponent, SkeletonComponent, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let counts = $counts();
@@ -29,7 +30,15 @@ function countItems(lots: readonly StockLotDto[]): number {
     <div class="glass-tile-soft flex h-full w-full flex-col gap-2 rounded-2xl p-4 text-left">
       <div class="flex items-center justify-between gap-2">
         <p class="text-muted-foreground text-sm">Por vencer / Vencidos</p>
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg" [class]="$tone()">
+        <span
+          class="flex h-9 w-9 shrink-0 cursor-help items-center justify-center rounded-lg"
+          [class]="$tone()"
+          [matTooltip]="'Primer número: ítems con lotes que vencen en los próximos ' + $days() + ' días. Segundo: ítems con lotes ya vencidos que aún tienen stock (regístralos como merma).'"
+          matTooltipPosition="above"
+          matTooltipClass="redom-tooltip"
+          tabindex="0"
+          role="img"
+          aria-label="Qué muestra: por vencer y vencidos">
           <app-icon class="h-5 w-5">event_busy</app-icon>
         </span>
       </div>

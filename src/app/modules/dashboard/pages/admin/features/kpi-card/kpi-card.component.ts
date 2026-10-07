@@ -1,17 +1,28 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from 'src/ui';
 
 @Component({
   selector: 'app-kpi-card',
   standalone: true,
-  imports: [IconComponent, RouterLink],
+  imports: [IconComponent, RouterLink, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="glass-tile-soft flex h-full flex-col gap-2 rounded-2xl p-4">
       <div class="flex items-center justify-between gap-2">
         <p class="text-muted-foreground text-sm">{{ label() }}</p>
-        <span class="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
+        <!-- Explicación del indicador: mouse, teclado (Tab) o mantener presionado en el teléfono. -->
+        <span
+          class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          [class.cursor-help]="info()"
+          [matTooltip]="info()"
+          [matTooltipDisabled]="!info()"
+          matTooltipPosition="above"
+          matTooltipClass="redom-tooltip"
+          [attr.tabindex]="info() ? 0 : null"
+          [attr.role]="info() ? 'img' : null"
+          [attr.aria-label]="info() ? label() + ': ' + info() : null">
           <app-icon class="h-5 w-5">{{ icon() }}</app-icon>
         </span>
       </div>
@@ -41,6 +52,8 @@ export class KpiCardComponent {
   readonly previous = input<number | null>(null);
   readonly comparison = input('');
   readonly hint = input('');
+  // Qué muestra el indicador (tooltip del ícono).
+  readonly info = input('');
   readonly link = input<string | null>(null);
   readonly linkLabel = input('Ver');
 

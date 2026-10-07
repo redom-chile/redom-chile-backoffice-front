@@ -95,6 +95,14 @@ export class ButtonComponent {
     },
   };
 
+  // El ícono acompaña el tamaño del botón.
+  readonly iconSizeClasses: Record<ButtonProps['size'], string> = {
+    usmall: 'h-4 w-4',
+    small: 'h-4.5 w-4.5',
+    medium: 'h-5 w-5',
+    large: 'h-6 w-6',
+  };
+
   sizeClasses: Record<ButtonProps['size'], string> = {
     small: 'px-3 py-1 text-xs',
     medium: 'px-5 py-2 text-sm',

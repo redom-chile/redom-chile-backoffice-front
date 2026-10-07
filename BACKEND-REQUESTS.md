@@ -11,9 +11,11 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
+| 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -195,6 +197,52 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Códigos: `PREPARATION_WITHOUT_RECIPE`, `RECIPE_CYCLE`, `PURCHASE_ORDER_NOT_EDITABLE`, `PURCHASE_ORDER_INVALID_TRANSITION`, `LOT_ON_EXIT`.
 
 **Front mientras tanto:** revisa las recetas de los ingredientes de a 4 en paralelo; recorre los ingredientes para encontrar la preparación de un `variationId`; calcula el % recibido del detalle; las alertas de vencimiento piden los lotes completos; los errores se traducen por el texto en inglés.
+
+### 39. 🔴 Auth: el access token que entrega `refresh-token` siempre responde 401
+
+**Problema:**
+- El `AuthGuard` (`libs/auth/features/guards/src/lib/jwt-token.guard.ts`) exige que exista en Redis la clave `jwt:<code>:<token>`.
+- El login la registra (`session-tokens.service.ts`), pero `POST /auth/refresh-token` (`refresh-token-sql.service.ts`) firma el nuevo access token y **no** la registra. Solo guarda `refresh:<newRefreshToken>`.
+- Resultado: después de 2 h (cuando vence el primer token) toda llamada con el token renovado responde 401, aunque el refresh fue exitoso.
+- Además, el payload del token renovado no incluye `restaurantId` (el del login sí).
+
+**Se pide:**
+- En el refresh, guardar `jwt:<code>:<newAccessToken>` con el mismo TTL que en el login.
+- Incluir `restaurantId` en el payload del token renovado, igual que en el login.
+
+**Front mientras tanto:** si la petición reintentada con el token renovado vuelve a dar 401, el interceptor cierra la sesión, avisa "Tu sesión expiró" y lleva al inicio de sesión. Antes la app quedaba "logueada" con todas las llamadas fallando. Con esto, la sesión dura lo que el primer token (2 h) hasta que se corrija el backend.
+
+### 40. 🟢 Pagos: dividir la cuenta y pagar por producto (resuelta)
+
+**Problema:** `POST /payments` recibe solo `{ transactionId, amount, method, tipAmount?, amountTendered?, note? }`. Un pago no queda asociado a productos, así que no se puede dividir la cuenta por lo que consumió cada persona ni saber qué productos quedan por pagar.
+
+**Se pide:**
+- En `POST /payments`, un campo opcional `lines: [{ sellLineId, quantity }]` (línea del producto; sus modificadores la siguen):
+  - Si viene, el backend calcula el monto: Σ `quantity` × (precio del producto + sus modificadores por unidad), con el descuento del pedido repartido en proporción. `amount` se vuelve opcional o se valida contra ese cálculo.
+  - Validar que `quantity` no supere lo pendiente de pagar de la línea (400 con código, ej. `LINE_ALREADY_PAID`, con `details: { sellLineId, pendingQuantity }`).
+  - Se puede mezclar: pagos por producto y pagos por monto en el mismo pedido.
+- En `GET /orders/:id`, por cada línea: `paidQuantity` y `pendingAmount`, y en la cabecera seguir con `remaining`.
+- En `GET /payments?transactionId=`, por pago: las líneas que cubrió (`lines: [{ sellLineId, productName, quantity, amount }]`).
+- Al anular un pago (`PATCH /payments/:id/cancel`), liberar esas cantidades.
+- Definir qué pasa si se anulan productos de un pedido con pagos por producto (hoy un pedido con pagos no se puede anular).
+
+**Front cuando esté:** en el cobro, un modo "Dividir por productos": se marcan productos y cantidades (ej. 1 de 2 hamburguesas), se muestra el monto calculado y cada línea queda como pagada o pendiente. La precuenta podrá imprimirse por persona con sus productos.
+
+### 41. 🔵 Pagos por producto: ajustes y propina sugerida
+
+**Problema:**
+- La vista previa del front usa `pendingAmount × cantidad / pendingQuantity`, pero el backend (`payment-lines.service.ts`, `amountFor`) cobra `round(netAmount × cantidad / quantity)`. En pagos parciales de una misma línea pueden diferir algunos pesos; `netAmount` no se expone.
+- `GET /payments/all` no devuelve `lines`, así que la página de Pagos no muestra qué productos cubrió cada pago.
+- Pagar más que `remaining`, el efectivo que no cubre monto + propina y `amountTendered` en un medio que no es efectivo responden 400 sin código.
+- La propina sugerida (10 %) está fija en el front.
+
+**Se pide:**
+- En `GET /orders/:id`, por línea: `netUnitAmount` (o `netAmount`) para que la vista previa calce exacto; o un `POST /payments/preview` con `lines` que devuelva el monto.
+- `lines` en `GET /payments/all`.
+- Códigos: `PAYMENT_EXCEEDS_REMAINING` (`details: { remaining }`), `CASH_NOT_ENOUGH`, `TENDERED_ONLY_CASH`.
+- En la configuración del negocio: `suggestedTipPercent` (número, 0 = sin sugerencia).
+
+**Front mientras tanto:** muestra el total por productos como estimado y el monto real sale de la respuesta; la propina sugerida usa la constante `DEFAULT_TIP_PERCENT = 10`.
 
 ---
 
