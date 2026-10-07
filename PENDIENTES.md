@@ -114,10 +114,23 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Los errores de validación de Mi negocio se muestran genéricos; el skeleton de Mi negocio tiene la forma del diseño anterior.
 - Primeros pasos: si la consulta falla, toda la tarjeta queda "sin verificar"; `teamMembers` cuenta también usuarios desactivados; "Ocultar" es por navegador.
 
+## Caja y turnos (MVP 1)
+
+- [ ] E2E del prompt del backend (10 pasos): abrir con fondo, cobros, retiro, anulación, cierre ciego con faltante, dos cajas (`CASH_REGISTER_AMBIGUOUS`), devolución con la caja cerrada y apagar el módulo con cajas abiertas.
+- [ ] Revisar la impresión del reporte Z (solo rollo de 80 mm; sin A4 ni PDF) y la vista en celular y modo oscuro.
+- Fuera del POS (detalle del pedido) no se conoce la caja del equipo: un cobro con tarjeta o transferencia no envía `cashRegisterId` y el backend lo asigna a la única caja abierta del local.
+- Con tarjeta o transferencia, el POS solo envía la caja si sabe que está abierta (el backend exige turno a cualquier medio si se envía una caja cerrada, #43).
+- En modo terminal (`/terminal`), "Ver turno" sale del shell de la terminal; falta decidir si la terminal muestra caja.
+- El indicador de caja se refresca al volver a la ventana, tras cobros, aperturas y cierres; no es en tiempo real.
+- El panel del turno muestra los últimos 8 movimientos; el detalle completo está en "Ver turno".
+- Al anular un pago sin `registerId` en el error, el modal de apertura lista las cajas activas de todos los locales.
+- Sin exportar el historial de turnos (CSV).
+- Permisos (quién abre, cierra y hace movimientos): pendiente de la etapa de permisos. Hoy el detalle en vivo solo lo ve el dueño (`business.ownerId`), no otros administradores (#43).
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38, #41. Bloqueante: #39.
+- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43. Bloqueante: #39.

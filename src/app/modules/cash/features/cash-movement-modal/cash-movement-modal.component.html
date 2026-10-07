@@ -1,0 +1,49 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ isIn ? 'Ingresar efectivo' : 'Retirar efectivo' }}</h2>
+      <span class="text-muted-foreground truncate text-sm">{{ data.registerName }}</span>
+    </div>
+  </ng-template>
+
+  <div class="space-y-4 py-2">
+    <div>
+      <label for="movement-amount" class="text-foreground mb-1 block text-sm font-medium">Monto *</label>
+      <input
+        id="movement-amount"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        step="1"
+        [formControl]="amount"
+        class="glass-input h-11 w-full rounded-md px-3 text-lg tabular-nums"
+        [class.border-red-500]="amount.invalid && amount.touched" />
+    </div>
+
+    <div>
+      <label for="movement-reason" class="text-foreground mb-1 block text-sm font-medium">Motivo *</label>
+      <div class="mb-2 flex flex-wrap gap-2">
+        @for (option of reasons; track option) {
+        <button type="button" class="glass-row rounded-full px-3 py-1 text-xs" (click)="reason.setValue(option)">{{ option }}</button>
+        }
+      </div>
+      <textarea
+        id="movement-reason"
+        [formControl]="reason"
+        rows="2"
+        maxlength="255"
+        placeholder="Escribe o elige un motivo"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="reason.invalid && reason.touched"></textarea>
+    </div>
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" [disabled]="$isSaving()" (buttonClick)="cancel()">Cancelar</app-button>
+      <app-button type="button" full impact="bold" [tone]="isIn ? 'primary' : 'danger'" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="confirm()">
+        {{ isIn ? 'Ingresar' : 'Retirar' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

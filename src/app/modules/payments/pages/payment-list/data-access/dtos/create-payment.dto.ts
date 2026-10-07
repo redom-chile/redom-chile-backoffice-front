@@ -21,6 +21,8 @@ export type CreatePaymentDto = Readonly<{
   amount?: number;
   // Pago por productos (dividir la cuenta).
   lines?: PaymentLineInputDto[];
+  // Caja del dispositivo (con el módulo de caja activo). Sin ella, el backend usa la única caja abierta del local.
+  cashRegisterId?: number;
   method: PaymentMethod;
   tipAmount?: number;
   // Solo para efectivo: debe cubrir amount + tipAmount.
@@ -34,6 +36,8 @@ export type CreatePaymentResponseDto = Readonly<{
   // Monto cobrado (el calculado por el backend en pagos por productos).
   amount?: number;
   lines?: PaymentLineDto[];
+  // Turno de caja donde quedó el cobro (null fuera de caja).
+  cashSessionId?: number | null;
   changeAmount: number;
   paymentStatus: 'due' | 'partial' | 'paid';
   remaining: number;

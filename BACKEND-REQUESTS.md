@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
@@ -265,6 +265,24 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Prompt para el backend:** `docs/backend-prompts/onboarding-negocio.md` (incluye además `GET /business/:id/onboarding-status` y `businessName` / `locationsCount` en whoami).
 
 **Front mientras tanto:** crea el negocio, luego el local (y sector, mesas y productos si el dueño los elige) en llamadas separadas; completa los 5 pasos en segundo plano con `BusinessQuickSetupService` y activa el negocio; en Mi negocio solo se editan nombre, logo, moneda, zona horaria, RUT, IVA y "precios incluyen IVA".
+
+### 43. 🟡 Caja y turnos: ajustes del MVP 1
+
+**Problema:**
+- El prompt del front decía `page` y `limit` para `GET /cash/sessions`, pero el backend usa `perPage` (`limit` se descarta en silencio). El front usa `perPage`.
+- Si se envía `cashRegisterId` de una caja cerrada, `POST /payments` responde `CASH_SESSION_REQUIRED` también para tarjeta y transferencia, y `CASH_REGISTER_AMBIGUOUS` aplica a cualquier medio. El prompt decía que tarjeta y transferencia no necesitan caja.
+- `openingAmount` y los montos de retiros e ingresos no se redondean a los decimales de la moneda (en CLP se puede guardar 1000,5).
+- Los valores de billetes y monedas del cierre son libres (no hay lista por moneda).
+- El detalle en vivo de un turno abierto solo lo ve el dueño (`business.ownerId`); un administrador u otro rol de confianza no.
+- Abrir una caja desactivada responde 409 `CONFLICT` sin código de negocio, y en una apertura simultánea `details.sessionId` puede venir `null`.
+
+**Se pide:**
+- Que tarjeta y transferencia ignoren la caja cerrada (o la tomen fuera de turno) en vez de rechazar el cobro, o documentarlo.
+- Redondear `openingAmount` y los movimientos a `currencyPrecision`.
+- Permiso explícito para ver el detalle en vivo (para la etapa de permisos) en vez de solo el dueño.
+- Código `CASH_REGISTER_INACTIVE` y `sessionId` siempre presente en `CASH_SESSION_ALREADY_OPEN`.
+
+**Front mientras tanto:** pagina con `perPage`; con tarjeta o transferencia solo envía la caja si sabe que está abierta; los montos se ingresan en pesos enteros; los billetes y monedas son los de Chile.
 
 ---
 

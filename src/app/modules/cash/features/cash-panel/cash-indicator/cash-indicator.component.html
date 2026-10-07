@@ -1,0 +1,52 @@
+@if ($visible()) {
+@if (!context.$loaded()) {
+@if (context.$hasError()) {
+<div class="glass-row flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
+  <app-icon class="text-muted-foreground h-4 w-4">point_of_sale</app-icon>
+  <span class="text-muted-foreground">No se pudo cargar la caja.</span>
+  <button type="button" class="text-primary ml-auto font-medium hover:underline" (click)="context.refresh()">Reintentar</button>
+</div>
+}
+} @else if (!context.$activeRegisters().length) {
+<div class="flex items-center gap-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+  <app-icon class="h-4 w-4 shrink-0">point_of_sale</app-icon>
+  <span>Este local no tiene cajas activas. Actívalas en Configuración → Cajas.</span>
+</div>
+} @else if (!context.$register()) {
+<div class="flex flex-wrap items-center gap-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+  <app-icon class="h-4 w-4 shrink-0">point_of_sale</app-icon>
+  <span>Elige con qué caja trabaja este equipo.</span>
+  <button type="button" class="bg-primary ml-auto inline-flex h-9 items-center rounded-full px-4 text-sm font-medium text-white hover:opacity-90" (click)="changeRegister()">
+    Elegir caja
+  </button>
+</div>
+} @else if ($label(); as label) {
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+  <button
+    type="button"
+    class="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full bg-green-500/15 px-3 py-1.5 text-left text-sm text-green-800 hover:bg-green-500/25 dark:text-green-300"
+    (click)="openPanel()">
+    <span class="h-2 w-2 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
+    <span class="truncate">{{ label }}</span>
+    <app-icon class="h-4 w-4 shrink-0">chevron_right</app-icon>
+  </button>
+  @if ($canChange()) {
+  <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="changeRegister()">Cambiar caja</button>
+  }
+</div>
+} @else {
+<div class="flex flex-wrap items-center gap-2 rounded-lg bg-amber-500/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="status">
+  <app-icon class="h-5 w-5 shrink-0">lock</app-icon>
+  <span class="font-medium">{{ context.$register()!.name }}: caja cerrada</span>
+  <span class="hidden sm:inline">· Ábrela para cobrar en efectivo.</span>
+  <div class="ml-auto flex items-center gap-3">
+    @if ($canChange()) {
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="changeRegister()">Cambiar caja</button>
+    }
+    <button type="button" class="bg-primary inline-flex h-9 items-center gap-1 rounded-full px-4 text-sm font-medium text-white hover:opacity-90" (click)="openSession()">
+      <app-icon class="h-4 w-4">lock_open</app-icon>Abrir caja
+    </button>
+  </div>
+</div>
+}
+}

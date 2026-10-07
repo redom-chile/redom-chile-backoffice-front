@@ -47,6 +47,27 @@
         (changed)="$staffRequired.set($event)" />
     </div>
 
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Caja y turnos</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          Se abre la caja con un fondo, se cobra dentro del turno y se cierra con arqueo ciego y reporte Z.
+          Apagado, el POS cobra sin caja.
+        </p>
+        @if ($cashEnabled()) {
+        <p class="mt-1 flex flex-wrap gap-x-3 text-xs">
+          <a routerLink="/settings/registers" class="text-primary font-medium hover:underline">Configurar cajas</a>
+          <a routerLink="/cash" class="text-primary font-medium hover:underline">Ver turnos</a>
+        </p>
+        }
+      </div>
+      <app-toggle
+        aria-label="Caja y turnos"
+        [checked]="$cashEnabled()"
+        [disabled]="$isSaving()"
+        (changed)="$cashEnabled.set($event)" />
+    </div>
+
     <div class="p-4 sm:max-w-xs">
       <label for="business-tip" class="text-foreground mb-1 block text-sm font-medium">Propina sugerida (%)</label>
       <input

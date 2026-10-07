@@ -1,0 +1,91 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Abrir caja</h2>
+  </ng-template>
+
+  <div class="space-y-4 py-2">
+    @if (data.message) {
+    <div class="flex items-start gap-2 rounded-lg bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300">
+      <app-icon class="h-5 w-5 shrink-0">info</app-icon>
+      <p>{{ data.message }}</p>
+    </div>
+    }
+
+    @if ($loadError()) {
+    <div class="flex flex-col items-center gap-2 py-4 text-center">
+      <p class="text-muted-foreground text-sm">No se pudieron cargar las cajas.</p>
+      <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="load()">Reintentar</button>
+    </div>
+    } @else if ($registers() === null) {
+    <p class="text-muted-foreground py-4 text-center text-sm">Cargando cajas…</p>
+    } @else if (!$registers()!.length) {
+    <p class="text-muted-foreground py-4 text-center text-sm">
+      No hay cajas activas en este local. Créalas o actívalas en Configuración → Cajas.
+    </p>
+    } @else {
+    @if ($registers()!.length > 1) {
+    <div>
+      <label for="open-register" class="text-foreground mb-1 block text-sm font-medium">Caja</label>
+      <select
+        id="open-register"
+        class="glass-input h-11 w-full rounded-md px-3"
+        [value]="$selectedId()"
+        (change)="$selectedId.set(+$any($event.target).value)">
+        @for (register of $registers(); track register.id) {
+        <option [value]="register.id" [selected]="register.id === $selectedId()">
+          {{ register.name }}{{ register.openSession ? ' (abierta)' : '' }}
+        </option>
+        }
+      </select>
+    </div>
+    } @else {
+    <p class="text-foreground flex items-center gap-2 text-sm font-medium">
+      <app-icon class="text-primary h-5 w-5">point_of_sale</app-icon>{{ $selected()?.name }}
+    </p>
+    }
+
+    @if ($openLabel(); as label) {
+    <div class="flex items-start gap-2 rounded-lg bg-green-500/15 p-3 text-sm text-green-800 dark:text-green-300">
+      <app-icon class="h-5 w-5 shrink-0">lock_open</app-icon>
+      <p>{{ label }}. Puedes seguir trabajando con este turno.</p>
+    </div>
+    } @else {
+    <div>
+      <label for="open-amount" class="text-foreground mb-1 block text-sm font-medium">Fondo inicial</label>
+      <p class="text-muted-foreground mb-2 text-xs">Efectivo con que parte la caja (sencillo para dar vuelto).</p>
+      <input
+        id="open-amount"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="1"
+        [formControl]="amount"
+        class="glass-input h-11 w-full rounded-md px-3 text-lg tabular-nums"
+        (keydown.enter)="confirm()" />
+      <div class="mt-2 flex flex-wrap gap-2">
+        @for (value of quickAmounts; track value) {
+        <button type="button" class="glass-row rounded-full px-3 py-1 text-xs tabular-nums" (click)="setAmount(value)">
+          {{ value ? formatCurrency(value) : 'Sin fondo' }}
+        </button>
+        }
+      </div>
+    </div>
+    }
+    }
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" [disabled]="$isSaving()" (buttonClick)="cancel()">Cancelar</app-button>
+      <app-button
+        type="button"
+        full
+        impact="bold"
+        [disabled]="!$selected() || $isSaving()"
+        [isLoading]="$isSaving()"
+        (buttonClick)="confirm()">
+        {{ $selected()?.openSession ? 'Usar este turno' : 'Abrir caja' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

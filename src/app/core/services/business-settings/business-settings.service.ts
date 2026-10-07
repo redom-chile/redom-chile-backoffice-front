@@ -108,6 +108,8 @@ export class BusinessSettingsService {
   readonly $inventoryEnabled = computed(() => this.$inventory().inventoryEnabled);
   readonly $ingredientsEnabled = computed(() => this.$inventory().inventoryEnabled && this.$inventory().ingredientsEnabled);
 
+  // Caja y turnos activos (apagado: el POS cobra sin caja).
+  readonly $cashManagementEnabled = computed(() => !!this.#settings()?.cashManagementEnabled);
   readonly $posSettings = computed<ResolvedPosSettings>(() => parsePosSettings(this.#settings()?.posSettings));
   /** Propina sugerida (%): 0 = sin sugerencia; sin configuración cargada se usa el valor previo (10). */
   readonly $suggestedTipPercent = computed(() => {

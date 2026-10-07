@@ -37,6 +37,7 @@ import {
   setCartNote,
   toOrderProducts,
 } from 'src/app/modules/orders/pages/order-create/features';
+import { CashContextStore, CashIndicatorComponent } from 'src/app/modules/cash/features/cash-panel';
 import { PosSessionService, PosWaiter } from './data-access';
 import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent } from './features';
 
@@ -52,6 +53,7 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
     PosTablesPanelComponent,
     PosOrderPanelComponent,
     ProductPickerComponent,
+    CashIndicatorComponent,
   ],
   templateUrl: './pos-terminal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -75,6 +77,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(GetOrderByIdService);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
+  // Caja del equipo (solo con el módulo de caja activo).
+  private readonly cashContext = inject(CashContextStore);
 
   // Sin sucursales no se puede vender: se muestra cómo crear la primera (no aplica a la terminal, que tiene la suya).
   private readonly locationsService = inject(GetAllBusinessLocationsService);
@@ -172,6 +176,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.createService.reset();
     this.addLinesService.reset();
+    this.cashContext.clear();
   }
 
   // --- Mesero ---
@@ -220,6 +225,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   handleLocationChange(locationId: number) {
     if (this.$locationId() === locationId) return;
     this.$locationId.set(locationId);
+    this.cashContext.setLocation(locationId);
     this.tablesService.setParams(locationId);
     this.sectorsService.setParams({ locationId });
     this.selectCounter();

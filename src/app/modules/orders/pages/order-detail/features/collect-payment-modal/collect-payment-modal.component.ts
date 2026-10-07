@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
-import { ApiErrorCode } from 'src/app/core/utils';
+import { ApiError, ApiErrorCode } from 'src/app/core/utils';
+import { CashDeviceStore, CashService } from 'src/app/modules/cash/data-access';
+import { openCashSessionModal } from 'src/app/modules/cash/features/open-session-modal';
+import { CashContextStore, openRegisterPicker } from 'src/app/modules/cash/features/cash-panel';
 import {
   CreatePaymentDto,
   CreatePaymentService,
@@ -61,6 +64,12 @@ export class CollectPaymentModalComponent implements OnDestroy {
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
   private readonly businessSettings = inject(BusinessSettingsService);
+  private readonly dialog = inject(MatDialog);
+  private readonly cashService = inject(CashService);
+  private readonly cashDevice = inject(CashDeviceStore);
+  private readonly cashContext = inject(CashContextStore);
+  // Último pago enviado: se reintenta igual tras abrir la caja o elegir una.
+  private lastRequest: CreatePaymentDto | null = null;
 
   readonly methods = PAYMENT_METHODS;
   // Propina sugerida del negocio (10 si la configuración no llegó; 0 = sin sugerencia).
@@ -196,6 +205,8 @@ export class CollectPaymentModalComponent implements OnDestroy {
       this.$remaining.set(result.remaining);
       this.$lastChange.set(payment.change > 0 ? payment : null);
       this.paymentService.reset();
+      this.lastRequest = null;
+      if (this.businessSettings.$cashManagementEnabled()) this.cashContext.refresh();
       if (result.remaining > 0) {
         const change = payment.change > 0 ? ` · Vuelto ${formatCurrency(payment.change)}` : '';
         this.toast.show(
@@ -220,6 +231,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
       // El modal queda abierto (con el monto ingresado) para reintentar, p. ej. tras registrar stock.
       const error = this.paymentService.$error();
       if (!error) return;
+      if (untracked(() => this.handleCashError(error))) return;
       this.toast.show(getPaymentErrorMessage(error), 'error');
       if (!this.$byProducts()) return;
       const lineId = Number(error.details['sellLineId']);
@@ -371,7 +383,70 @@ export class CollectPaymentModalComponent implements OnDestroy {
         }
       : { ...base, amount: this.$amount() };
     this.$lastChange.set(null);
+    this.send({ ...dto, cashRegisterId: this.cashRegisterFor(method) });
+  }
+
+  private send(dto: CreatePaymentDto) {
+    this.lastRequest = dto;
     this.paymentService.create(dto);
+  }
+
+  // ---- Caja (solo con el módulo activo) ----
+
+  // Efectivo: la caja del equipo. Otros medios: solo si se sabe abierta (cerrada, el backend exigiría turno).
+  private cashRegisterFor(method: PaymentMethod): number | undefined {
+    if (!this.businessSettings.$cashManagementEnabled()) return undefined;
+    const locationId = this.$order().locationId;
+    const inContext = this.cashContext.$locationId() === locationId ? this.cashContext.$register() : null;
+    if (method !== 'cash') return inContext?.openSession ? inContext.id : undefined;
+    return inContext?.id ?? this.cashDevice.registerFor(locationId) ?? undefined;
+  }
+
+  /** true si el error es de caja y ya se atendió. */
+  private handleCashError(error: ApiError): boolean {
+    const request = this.lastRequest;
+    if (!request || !this.businessSettings.$cashManagementEnabled()) return false;
+    const locationId = this.$order().locationId;
+
+    if (error.code === ApiErrorCode.CASH_SESSION_REQUIRED) {
+      const registerId = Number(error.details['registerId']) || request.cashRegisterId || null;
+      this.toast.show('La caja está cerrada: ábrela para cobrar', 'warning');
+      openCashSessionModal(this.dialog, {
+        locationId,
+        registerId,
+        message: 'Para registrar este cobro la caja debe estar abierta. Ábrela y se cobrará de inmediato.',
+      }).subscribe((opened) => {
+        if (opened) this.send({ ...request, cashRegisterId: opened.registerId });
+      });
+      return true;
+    }
+
+    if (error.code === ApiErrorCode.CASH_REGISTER_AMBIGUOUS) {
+      const ids = Array.isArray(error.details['registerIds']) ? (error.details['registerIds'] as unknown[]).map(Number) : [];
+      this.cashService.getRegisters({ locationId }).subscribe({
+        next: (registers) => {
+          const options = registers.filter((register) => ids.includes(register.id) || (!ids.length && register.openSession));
+          openRegisterPicker(this.dialog, {
+            title: '¿Con qué caja cobras?',
+            message: 'Hay varias cajas abiertas en este local. Este equipo recordará la que elijas.',
+            registers: options,
+          }).subscribe((registerId) => {
+            if (!registerId) return;
+            this.cashDevice.select(locationId, registerId);
+            this.send({ ...request, cashRegisterId: registerId });
+          });
+        },
+        error: () => this.toast.show('Hay varias cajas abiertas y no se pudieron cargar. Intenta nuevamente.', 'error'),
+      });
+      return true;
+    }
+
+    // La caja guardada ya no sirve (borrada, desactivada o de otro local): se olvida para elegir otra.
+    if (request.cashRegisterId && /cash register (not found|is inactive)|belongs to another location/i.test(error.message)) {
+      this.cashDevice.select(locationId, null);
+      this.cashContext.refresh();
+    }
+    return false;
   }
 
   dismissChange() {

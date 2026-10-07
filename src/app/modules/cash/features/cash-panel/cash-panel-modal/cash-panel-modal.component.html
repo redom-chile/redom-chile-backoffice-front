@@ -1,0 +1,126 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div class="flex items-center justify-between gap-3">
+      <h2 class="flex items-center gap-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <app-icon class="text-primary h-6 w-6">point_of_sale</app-icon>{{ data.registerName }}
+      </h2>
+      <button type="button" class="text-muted-foreground hover:text-foreground flex h-9 w-9 items-center justify-center rounded-full" aria-label="Cerrar" (click)="close()">
+        <app-icon class="h-5 w-5">close</app-icon>
+      </button>
+    </div>
+  </ng-template>
+
+  @if ($loadError()) {
+  <div class="flex flex-col items-center gap-2 py-6 text-center">
+    <p class="text-muted-foreground text-sm">No se pudo cargar el turno.</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="load()">Reintentar</button>
+  </div>
+  } @else if ($session() === undefined) {
+  <p class="text-muted-foreground py-6 text-center text-sm">Cargando turno…</p>
+  } @else if ($session() === null) {
+  <div class="flex flex-col items-center gap-2 py-6 text-center">
+    <app-icon class="text-muted-foreground h-8 w-8">lock</app-icon>
+    <p class="text-foreground text-sm font-medium">Esta caja ya no tiene un turno abierto.</p>
+  </div>
+  } @else {
+  @let session = $session()!;
+  <div class="space-y-4 py-1">
+    <div class="grid grid-cols-2 gap-2">
+      <div class="glass-row rounded-lg p-3">
+        <p class="text-muted-foreground text-xs">Abierta por</p>
+        <p class="text-foreground truncate text-sm font-semibold">{{ session.openedByName ?? '—' }}</p>
+        <p class="text-muted-foreground text-xs">{{ formatSince(session.openedAt) }}</p>
+      </div>
+      <div class="glass-row rounded-lg p-3">
+        <p class="text-muted-foreground text-xs">Fondo inicial</p>
+        <p class="text-foreground text-sm font-semibold tabular-nums">{{ formatCurrency(session.openingAmount) }}</p>
+      </div>
+    </div>
+
+    @if (session.detailVisible && session.totals; as totals) {
+    <section class="space-y-2">
+      <h3 class="text-foreground text-sm font-semibold">En vivo</h3>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Ventas ({{ totals.salesCount }})</p>
+          <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.sales) }}</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Propinas</p>
+          <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.tips) }}</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Devoluciones ({{ totals.refundsCount }})</p>
+          <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.refunds) }}</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Ingresos</p>
+          <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.cashIn) }}</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Retiros</p>
+          <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.cashOut) }}</p>
+        </div>
+        @if (session.cashExpected !== null) {
+        <div class="bg-primary/10 text-primary rounded-lg p-2">
+          <p class="text-xs">Efectivo esperado</p>
+          <p class="font-bold tabular-nums">{{ formatCurrency(session.cashExpected) }}</p>
+        </div>
+        }
+      </div>
+
+      @if ($methods().length) {
+      <div class="glass-row divide-border/60 divide-y rounded-lg text-sm">
+        @for (method of $methods(); track method.method) {
+        <div class="flex items-center justify-between gap-2 px-3 py-2">
+          <span class="text-foreground">{{ methodLabels[method.method] }}</span>
+          <span class="text-muted-foreground tabular-nums">{{ formatCurrency(method.expected) }}</span>
+        </div>
+        }
+      </div>
+      }
+
+      @if ($movements().length) {
+      <h3 class="text-foreground pt-1 text-sm font-semibold">Últimos movimientos</h3>
+      <ul class="glass-row divide-border/60 divide-y rounded-lg text-sm">
+        @for (movement of $movements(); track movement.id) {
+        <li class="flex items-center justify-between gap-2 px-3 py-2">
+          <span class="min-w-0">
+            <span class="text-foreground block truncate">{{ movementLabels[movement.type] }} · {{ methodLabels[movement.method] }}</span>
+            @if (movement.reason) {
+            <span class="text-muted-foreground block truncate text-xs">{{ movement.reason }}</span>
+            }
+          </span>
+          <span class="shrink-0 tabular-nums" [class]="sign(movement.type) > 0 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
+            {{ sign(movement.type) > 0 ? '+' : '−' }}{{ formatCurrency(movement.amount) }}
+          </span>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+    } @else {
+    <div class="glass-row flex items-start gap-2 rounded-lg p-3 text-sm">
+      <app-icon class="text-muted-foreground h-5 w-5 shrink-0">visibility_off</app-icon>
+      <p class="text-muted-foreground">El detalle se ve al cerrar la caja.</p>
+    </div>
+    }
+
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" class="glass-row flex min-h-[52px] items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium" (click)="addMovement('cash_in')">
+        <app-icon class="h-5 w-5 text-green-600">add_circle</app-icon>Ingresar efectivo
+      </button>
+      <button type="button" class="glass-row flex min-h-[52px] items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium" (click)="addMovement('cash_out')">
+        <app-icon class="h-5 w-5 text-red-600">remove_circle</app-icon>Retirar efectivo
+      </button>
+    </div>
+  </div>
+  }
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" [disabled]="!$session()" (buttonClick)="viewSession()">Ver turno</app-button>
+      <app-button type="button" full impact="bold" tone="danger" [disabled]="!$session()" (buttonClick)="closeSession()">Cerrar caja</app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

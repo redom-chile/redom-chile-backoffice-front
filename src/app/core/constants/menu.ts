@@ -19,6 +19,7 @@ export class Menu {
             { label: 'Tomar pedido', route: '/pos' },
             { label: 'Pedidos', route: '/orders' },
             { label: 'Pagos', route: '/payments' },
+            { label: 'Cajas', route: '/cash' },
           ],
         },
         {
@@ -165,6 +166,7 @@ export class Menu {
             { label: 'Horarios', route: '/settings/schedules' },
             { label: 'Estaciones', route: '/settings/stations' },
             { label: 'Impresoras', route: '/settings/printers' },
+            { label: 'Cajas', route: '/settings/registers' },
             { label: 'Estación de impresión', route: '/settings/print-station' },
             { label: 'Terminal de salón', route: '/settings/terminal' },
           ],

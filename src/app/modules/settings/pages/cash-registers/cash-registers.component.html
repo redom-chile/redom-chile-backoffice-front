@@ -1,0 +1,100 @@
+<app-header-dashboard title="Cajas" subtitle="Los cajones de cada local. Cada local trae una Caja principal; agrega más si cobras en varios puntos (barra, salón).">
+  <app-button impact="bold" tone="primary" shape="rounded" size="medium" icon="add" [disabled]="!$locationOptions().length" (buttonClick)="create()">
+    <span class="hidden sm:inline">Agregar caja</span><span class="sm:hidden">Nueva</span>
+  </app-button>
+</app-header-dashboard>
+
+@if ($isModuleOff()) {
+<div class="mb-4 flex flex-col gap-3 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-4 sm:flex-row sm:items-center">
+  <app-icon class="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true">info</app-icon>
+  <p class="text-foreground min-w-0 flex-1 text-sm">
+    La caja está desactivada: actívala en Mi negocio → Punto de venta. Puedes dejar las cajas listas mientras tanto.
+  </p>
+  <a routerLink="/business" class="text-primary inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline">
+    Ir a Mi negocio
+    <app-icon class="h-4 w-4">arrow_forward</app-icon>
+  </a>
+</div>
+}
+
+<div class="mb-4 flex items-center gap-3">
+  <app-toggle aria-label="Incluir inactivas" [checked]="$includeInactive()" (changed)="$includeInactive.set($event)" />
+  <span class="text-foreground text-sm">Incluir inactivas</span>
+</div>
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las cajas</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="registers.reload()">Reintentar</app-button>
+</div>
+} @else if ($isFirstLoad()) {
+<div class="glass divide-y divide-[var(--border)] rounded-[1rem]">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="flex items-center gap-4 px-4 py-4">
+    <app-skeleton size="xs" style="width: 140px" />
+    <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+  </div>
+  }
+</div>
+} @else if (!$groups().length) {
+<div class="glass rounded-[1rem] px-4 py-12 text-center">
+  <p class="text-foreground font-medium">Sin cajas</p>
+  <p class="text-muted-foreground mt-1 text-sm">{{ $includeInactive() ? 'No hay cajas registradas.' : 'No hay cajas activas. Activa "Incluir inactivas" para verlas todas.' }}</p>
+</div>
+} @else {
+<div class="space-y-4" [class.opacity-60]="registers.isLoading()">
+  @for (group of $groups(); track group.locationId) {
+  <section class="glass overflow-hidden rounded-[1rem]">
+    <div class="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+      <h2 class="text-foreground flex items-center gap-2 font-semibold">
+        <app-icon class="text-muted-foreground h-5 w-5" aria-hidden="true">storefront</app-icon>
+        {{ group.locationName }}
+      </h2>
+      <button type="button" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="create(group.locationId)">
+        <app-icon class="h-4 w-4">add</app-icon>Caja
+      </button>
+    </div>
+    <ul class="divide-y divide-[var(--border)]">
+      @for (register of group.registers; track register.id) {
+      <li class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {{ register.name }}
+            @if (register.isActive) {
+            <span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">Activa</span>
+            } @else {
+            <span class="text-muted-foreground rounded-full bg-gray-500/15 px-2 py-0.5 text-xs font-semibold">Inactiva</span>
+            }
+          </p>
+          @if (register.openSession; as open) {
+          <a [routerLink]="['/cash/sessions', open.id]" class="text-primary mt-0.5 inline-flex items-center gap-1 text-xs font-medium hover:underline">
+            <app-icon class="h-4 w-4" aria-hidden="true">lock_open</app-icon>
+            Abierta por {{ open.openedByName ?? open.openedBy ?? 'alguien' }} desde las {{ formatTime(open.openedAt) }}
+          </a>
+          } @else {
+          <p class="text-muted-foreground mt-0.5 text-xs">Cerrada</p>
+          }
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <app-button impact="light" size="small" icon="edit" [disabled]="isBusy(register.id)" (buttonClick)="rename(register)">Renombrar</app-button>
+          @if (register.isActive) {
+          <app-button impact="light" tone="danger" size="small" [disabled]="isBusy(register.id)" [isLoading]="isBusy(register.id)" (buttonClick)="setActive(register, false)">
+            Desactivar
+          </app-button>
+          } @else {
+          <app-button impact="light" tone="primary" size="small" [disabled]="isBusy(register.id)" [isLoading]="isBusy(register.id)" (buttonClick)="setActive(register, true)">
+            Activar
+          </app-button>
+          }
+        </div>
+      </li>
+      }
+    </ul>
+  </section>
+  }
+</div>
+}

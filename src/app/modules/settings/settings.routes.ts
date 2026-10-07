@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from 'src/app/core';
-import { PrinterListComponent, PrintStationComponent, SchedulesComponent, StationListComponent, TerminalSetupComponent } from './pages';
+import { CashRegistersComponent, PrinterListComponent, PrintStationComponent, SchedulesComponent, StationListComponent, TerminalSetupComponent } from './pages';
 
 const routes: Routes = [
   {
@@ -14,6 +14,7 @@ const routes: Routes = [
       { path: 'print-station', component: PrintStationComponent },
       { path: 'schedules', component: SchedulesComponent },
       { path: 'terminal', component: TerminalSetupComponent },
+      { path: 'registers', component: CashRegistersComponent },
     ],
   },
 ];

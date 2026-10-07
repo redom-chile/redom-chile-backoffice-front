@@ -28,6 +28,8 @@ export type BusinessSettingsDto = Readonly<{
   posSettings?: PosSettings | null;
   // Propina sugerida en el cobro (0 = sin sugerencia).
   suggestedTipPercent?: number | null;
+  // Caja y turnos: con el módulo apagado el POS cobra sin caja.
+  cashManagementEnabled?: boolean;
 }>;
 
 /** Opciones del POS (PATCH parcial: solo cambian las que se envían). */
@@ -50,6 +52,7 @@ export type UpdateBusinessSettingsDto = Partial<
     currencyPrecision: number;
     posSettings: PosSettings;
     suggestedTipPercent: number;
+    cashManagementEnabled: boolean;
   }>
 >;
 

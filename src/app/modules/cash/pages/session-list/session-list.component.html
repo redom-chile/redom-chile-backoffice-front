@@ -1,0 +1,153 @@
+<app-header-dashboard title="Cajas" subtitle="Turnos de caja: quién abrió, cuánto se vendió y cómo cuadró el efectivo al cerrar." />
+
+@if ($isModuleOff()) {
+<div class="glass mb-4 flex flex-col gap-3 rounded-[1rem] p-4 sm:flex-row sm:items-center">
+  <app-icon class="text-primary h-6 w-6 shrink-0" aria-hidden="true">point_of_sale</app-icon>
+  <p class="text-muted-foreground min-w-0 flex-1 text-sm">
+    La caja está desactivada: el POS cobra sin turnos. Puedes seguir viendo el historial.
+  </p>
+  <a routerLink="/business" class="text-primary inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline">
+    Mi negocio → Punto de venta
+    <app-icon class="h-4 w-4">arrow_forward</app-icon>
+  </a>
+</div>
+}
+
+<app-cash-concepts />
+
+<app-cash-session-filters
+  [filters]="$query()"
+  [locations]="$locationOptions()"
+  [registers]="$registerOptions()"
+  [hasFilters]="$hasFilters()"
+  (filtersChange)="handleFiltersChange($event)"
+  (clear)="handleClearFilters()" />
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las cajas</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="sessions.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (sessions.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 120px" />
+      <app-skeleton size="xs" style="width: 140px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 140px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$sessions().length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin turnos</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay turnos que coincidan con los filtros.' : 'Todavía no se ha abierto ninguna caja. Los turnos se abren desde el POS.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Caja</th>
+          <th class="px-4 py-3">Apertura</th>
+          <th class="px-4 py-3">Cierre</th>
+          <th class="px-4 py-3 text-right">Ventas</th>
+          <th class="px-4 py-3 text-right">Esperado</th>
+          <th class="px-4 py-3 text-right">Contado</th>
+          <th class="px-4 py-3 text-right">Diferencia</th>
+          <th class="px-4 py-3"><span class="sr-only">Abrir</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (session of $sessions(); track session.id) {
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(session)">
+          <td class="px-4 py-3 text-sm">
+            <p class="text-foreground font-medium">{{ session.registerName }}</p>
+            <p class="text-muted-foreground text-xs">{{ session.locationName }}</p>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            <p class="text-foreground tabular-nums">{{ formatDateTime(session.openedAt) }}</p>
+            <p class="text-muted-foreground text-xs">{{ session.openedByName ?? '—' }}</p>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            @if (session.status === 'open') {
+            <span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">Abierta</span>
+            } @else {
+            <p class="text-foreground tabular-nums">{{ session.closedAt ? formatDateTime(session.closedAt) : '—' }}</p>
+            <p class="text-muted-foreground text-xs">{{ session.closedByName ?? '—' }}</p>
+            }
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(session.sales) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(session.cashExpected) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(session.cashCounted) }}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-right text-sm"><app-cash-difference [value]="session.cashDifference" [showLabel]="false" /></td>
+          <td class="px-4 py-3 text-right">
+            <a
+              [routerLink]="['/cash/sessions', session.id]"
+              [attr.aria-label]="'Ver turno ' + session.id"
+              class="text-muted-foreground hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-md"
+              (click)="$event.stopPropagation()">
+              <app-icon class="h-5 w-5">chevron_right</app-icon>
+            </a>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (session of $sessions(); track session.id) {
+    <li>
+      <a [routerLink]="['/cash/sessions', session.id]" class="glass-row flex flex-col gap-1 px-4 py-3">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-foreground truncate text-sm font-semibold">{{ session.registerName }}</p>
+            <p class="text-muted-foreground truncate text-xs">{{ session.locationName }}</p>
+          </div>
+          @if (session.status === 'open') {
+          <span class="shrink-0 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">Abierta</span>
+          } @else {
+          <app-cash-difference class="shrink-0 text-sm" [value]="session.cashDifference" />
+          }
+        </div>
+        <p class="text-muted-foreground text-xs">
+          Abrió {{ session.openedByName ?? '—' }} · {{ formatDateTime(session.openedAt) }}
+        </p>
+        @if (session.status === 'closed') {
+        <p class="text-muted-foreground text-xs">
+          Cerró {{ session.closedByName ?? '—' }} · {{ session.closedAt ? formatDateTime(session.closedAt) : '—' }}
+        </p>
+        }
+        <p class="text-muted-foreground text-xs tabular-nums">
+          Ventas <span class="text-foreground">{{ formatCurrency(session.sales) }}</span>
+          · Esperado <span class="text-foreground">{{ formatCurrency(session.cashExpected) }}</span>
+          · Contado <span class="text-foreground">{{ formatCurrency(session.cashCounted) }}</span>
+        </p>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalItems > 0 && !sessions.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}
