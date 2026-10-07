@@ -13,13 +13,28 @@
     @for (line of lines(); track line.key) {
     <li class="py-2">
       <div class="flex items-center gap-2">
-        <div class="min-w-0 flex-1">
-          <p class="text-foreground truncate text-sm font-medium">{{ line.name }}</p>
-          @if (line.note) {
-          <p class="truncate text-xs italic text-amber-600">“{{ line.note }}”</p>
-          } @else {
-          <p class="text-muted-foreground text-xs tabular-nums">{{ formatCurrency(line.unitPrice) }} c/u</p>
+        @let editable = line.modifierSets.length > 0;
+        <div
+          class="min-w-0 flex-1"
+          [class.cursor-pointer]="editable"
+          [attr.role]="editable ? 'button' : null"
+          [attr.tabindex]="editable ? 0 : null"
+          [attr.aria-label]="editable ? 'Editar opciones de ' + line.name : null"
+          (click)="editable && edit.emit(line.key)"
+          (keydown.enter)="editable && edit.emit(line.key)">
+          <p class="text-foreground flex items-center gap-1 text-sm font-medium">
+            <span class="truncate">{{ line.name }}</span>
+            @if (editable) {
+            <app-icon class="text-muted-foreground h-3.5 w-3.5 shrink-0">tune</app-icon>
+            }
+          </p>
+          @for (mod of line.modifiers; track mod.variationId) {
+          <p class="text-muted-foreground truncate text-xs">{{ modifierLabel(mod.name, mod.quantity) }}</p>
           }
+          @if (line.note) {
+          <p class="truncate text-xs italic text-amber-600 dark:text-amber-400">“{{ line.note }}”</p>
+          }
+          <p class="text-muted-foreground text-xs tabular-nums">{{ formatCurrency(line.unitPrice) }} c/u</p>
         </div>
         <div class="flex items-center gap-1">
           <button

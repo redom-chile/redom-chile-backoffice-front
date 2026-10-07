@@ -1,0 +1,108 @@
+@let selected = $selected(); @let selectedIds = $selectedIds(); @let search = $search(); @let busy = $isSaving() || $isLoadingLinked();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-foreground text-xl font-semibold">Productos con "{{ set.name }}"</h2>
+  </ng-template>
+
+  <div class="space-y-4">
+    <p class="text-muted-foreground text-sm">Al pedir estos productos se podrán elegir las opciones de este set.</p>
+
+    <div>
+      <p class="text-foreground mb-2 text-sm font-medium">Vinculados ({{ selected.length }})</p>
+      @if ($isLoadingLinked()) {
+      <div class="flex gap-2" aria-busy="true">
+        <app-skeleton size="xs" style="width: 110px" />
+        <app-skeleton size="xs" style="width: 90px" />
+      </div>
+      } @else {
+      <ul class="flex flex-wrap gap-2">
+        @for (product of selected; track product.id) {
+        <li class="bg-primary/10 text-primary inline-flex max-w-full items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm">
+          <span class="truncate">{{ product.name }}</span>
+          <button
+            type="button"
+            class="hover:bg-primary/20 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
+            [attr.aria-label]="'Quitar ' + product.name"
+            [disabled]="$isSaving()"
+            (click)="remove(product)">
+            <app-icon class="h-4 w-4">close</app-icon>
+          </button>
+        </li>
+        } @empty {
+        <li class="text-muted-foreground text-sm">Ningún producto vinculado.</li>
+        }
+      </ul>
+      }
+    </div>
+
+    <div>
+      <label for="modifier-products-search" class="text-foreground mb-1 block text-sm font-medium">Buscar productos</label>
+      <input
+        id="modifier-products-search"
+        type="search"
+        autocomplete="off"
+        placeholder="Ej: Hamburguesa"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [value]="$query()"
+        [disabled]="busy"
+        (input)="handleSearch($any($event.target).value)" />
+    </div>
+
+    <div class="max-h-[40vh] overflow-y-auto rounded-md border border-[var(--border)]">
+      @if (search.status === 'loading' && !search.products.length) {
+      <div class="space-y-2 p-3" aria-busy="true">
+        @for (row of [1, 2, 3, 4]; track row) {
+        <app-skeleton size="xs" />
+        }
+      </div>
+      } @else if (search.status === 'error') {
+      <div class="flex flex-col items-center gap-2 p-4 text-center">
+        <p class="text-muted-foreground text-sm">No se pudieron cargar los productos.</p>
+        <app-button type="button" size="small" impact="light" (buttonClick)="retrySearch()">Reintentar</app-button>
+      </div>
+      } @else {
+      <ul [class.opacity-60]="search.status === 'loading'">
+        @for (product of search.products; track product.id) {
+        @let isSelected = selectedIds.has(product.id);
+        <li>
+          <button
+            type="button"
+            role="checkbox"
+            [attr.aria-checked]="isSelected"
+            class="glass-row flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm disabled:opacity-50"
+            [disabled]="busy"
+            (click)="toggle(product)">
+            <span
+              class="flex h-5 w-5 shrink-0 items-center justify-center rounded border"
+              [class]="isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-[var(--border)]'">
+              @if (isSelected) {
+              <app-icon class="h-4 w-4">check</app-icon>
+              }
+            </span>
+            <span class="text-foreground min-w-0 flex-1 truncate">{{ product.name }}</span>
+          </button>
+        </li>
+        } @empty {
+        <li class="text-muted-foreground p-4 text-center text-sm">
+          {{ $query().trim() ? 'No hay productos con ese nombre.' : 'No hay productos a la venta.' }}
+        </li>
+        }
+      </ul>
+      @if (search.hasMore) {
+      <p class="text-muted-foreground border-t border-[var(--border)] p-2 text-center text-xs">
+        Se muestran los primeros resultados. Escribe para buscar otros.
+      </p>
+      }
+      }
+    </div>
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="busy" [isLoading]="$isSaving()" (buttonClick)="handleSave()">
+        Guardar
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

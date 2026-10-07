@@ -52,7 +52,14 @@
       </span>
       }
       <span class="text-foreground line-clamp-2 text-sm font-medium">{{ product.name }}</span>
-      <span class="text-primary text-sm font-semibold tabular-nums">{{ formatCurrency(price(product)) }}</span>
+      <span class="flex w-full items-center justify-between gap-1">
+        <span class="text-primary text-sm font-semibold tabular-nums">{{ formatCurrency(price(product)) }}</span>
+        @if (hasOptions(product)) {
+        <span class="text-muted-foreground inline-flex items-center gap-0.5 rounded-full border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium">
+          <app-icon class="h-3 w-3">tune</app-icon>Opciones
+        </span>
+        }
+      </span>
     </button>
     } @empty {
     @if (!loading()) {

@@ -1,0 +1,53 @@
+@let modifierSet = set();
+<article class="glass flex h-full flex-col gap-3 rounded-[1rem] p-4">
+  <header class="flex items-start gap-3">
+    <span class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+      <app-icon class="h-5 w-5">tune</app-icon>
+    </span>
+    <div class="min-w-0 flex-1">
+      <h3 class="text-foreground break-words font-semibold">{{ modifierSet.name }}</h3>
+      <p class="text-muted-foreground text-xs">
+        {{ modifierSet.variations.length }} {{ modifierSet.variations.length === 1 ? 'opción' : 'opciones' }}
+      </p>
+    </div>
+  </header>
+
+  <ul class="flex flex-wrap gap-2" aria-label="Opciones">
+    @for (option of modifierSet.variations; track option.id) {
+    <li class="bg-primary/10 text-foreground inline-flex max-w-full items-center gap-1 rounded-full px-3 py-1 text-sm">
+      <span class="truncate">{{ option.name }}</span>
+      <span class="shrink-0 font-semibold" [class.text-primary]="option.price > 0" [class.text-muted-foreground]="option.price <= 0">
+        {{ formatPrice(option.price) }}
+      </span>
+    </li>
+    } @empty {
+    <li class="text-muted-foreground text-sm">Sin opciones</li>
+    }
+  </ul>
+
+  <div class="flex items-start gap-2 text-sm">
+    <app-icon class="text-muted-foreground h-4 w-4 shrink-0">restaurant_menu</app-icon>
+    @if (modifierSet.modifierProducts.length) {
+    <p class="text-muted-foreground min-w-0 break-words">
+      <span class="text-foreground font-medium">
+        {{ modifierSet.modifierProducts.length }} {{ modifierSet.modifierProducts.length === 1 ? 'producto' : 'productos' }}:
+      </span>
+      {{ $productsLabel() }}
+    </p>
+    } @else {
+    <p class="text-muted-foreground">Sin productos vinculados. No aparecerá al pedir hasta que lo vincules.</p>
+    }
+  </div>
+
+  <footer class="mt-auto flex flex-wrap gap-2 border-t border-[var(--border)] pt-3">
+    <app-button type="button" size="small" impact="light" tone="primary" icon="edit" (buttonClick)="edit.emit(modifierSet)">
+      <span #buttonText>Editar</span>
+    </app-button>
+    <app-button type="button" size="small" impact="light" tone="primary" icon="link" (buttonClick)="products.emit(modifierSet)">
+      <span #buttonText>Productos</span>
+    </app-button>
+    <app-button type="button" size="small" impact="none" tone="danger" icon="delete" (buttonClick)="delete.emit(modifierSet)">
+      <span #buttonText>Eliminar</span>
+    </app-button>
+  </footer>
+</article>

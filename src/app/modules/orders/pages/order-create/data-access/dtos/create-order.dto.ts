@@ -1,11 +1,19 @@
 import { DiscountType } from '../../../order-detail/data-access';
 
+export type OrderModifierDto = Readonly<{
+  // Opción elegida (variación del set). El precio lo pone el backend.
+  variationId: number;
+  // Veces que se aplica por cada unidad del producto (1..10, por defecto 1).
+  quantity?: number;
+}>;
+
 export type OrderProductDto = Readonly<{
   productId: number;
   variationId: number;
   quantity: number;
   // Nota de este producto ("sin palta"): se imprime en la comanda de su estación y se ve en el KDS.
   note?: string;
+  modifiers?: OrderModifierDto[];
 }>;
 
 export type CreateOrderDto = Readonly<{

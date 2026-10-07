@@ -11,7 +11,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
 
@@ -115,6 +115,29 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** responder 409 con un código (ej. `UNIT_IN_USE`, con `details.products` y/o `details.subUnits`) cuando la unidad esté en uso.
 
 **Front mientras tanto:** la pantalla Unidades no deja eliminar una unidad base que tiene subunidades y el modal de confirmación avisa que se revise que ningún producto o ingrediente la use.
+
+### 34. 🟡 Sets de modificadores: editar opciones por id y poder eliminarlas
+
+**Problema:**
+- En `PUT /modifier-sets/:id`, `modifierNameEdit`/`modifierPriceEdit` son posicionales: el backend los aplica a las opciones existentes ordenadas por **id ASC** (`update-modifier-set-sql.service.ts`), pero `GET /modifier-sets` devuelve las opciones ordenadas por **nombre**. Si el cliente manda los arreglos en el orden en que los recibió, edita la opción equivocada (le pone el nombre y precio de otra).
+- Las ediciones solo se aplican si llegan los dos arreglos; si se manda menos opciones que las existentes, las demás quedan igual, sin forma de saber si fue a propósito.
+- No hay forma de eliminar una opción de un set: solo se edita o se agrega.
+- Los errores (`Modifier set not found`, `One or more products not found`) no traen código de negocio.
+
+**Se pide:**
+- Que la edición de opciones vaya por id, por ejemplo `options: [{ variationId?, name, price }]`: con `variationId` se edita, sin él se crea, y las opciones existentes que no vengan se eliminan (soft delete). Alternativa mínima: `deleteVariationIds: number[]`.
+- Mientras exista el formato actual, devolver las opciones en `GET /modifier-sets` ordenadas por id (o documentar el orden en Swagger).
+- Códigos `MODIFIER_SET_NOT_FOUND` y `PRODUCTS_NOT_FOUND`.
+
+**Front mientras tanto:** la pantalla Carta → Modificadores ordena las opciones existentes por id y siempre manda todas en `modifierNameEdit`/`modifierPriceEdit`; las nuevas van en `modifierName`/`modifierPrice`. Las opciones ya guardadas se pueden editar pero no eliminar (solo se pueden quitar filas nuevas sin guardar) y el modal lo avisa. Los errores se traducen por el mensaje en inglés.
+
+### 35. 🟡 Productos: `GET /products` devuelve los sets de modificadores
+
+**Problema:** sin `type`, `GET /products` solo excluye los ingredientes; los sets de modificadores (productos `type: 'modifier'`) salen en la lista de productos y también con `sellable=true` (POS). Como `type` acepta un solo valor, no hay forma de pedir "todo menos modifier".
+
+**Se pide:** excluir `modifier` por defecto, igual que `ingredient` (solo salen con `type=modifier`), o aceptar `excludeTypes`.
+
+**Front mientras tanto:** Carta → Productos y el POS filtran `type === 'modifier'` en la página recibida, así que una página puede mostrar menos filas que `perPage` y `totalItems` los incluye.
 
 ---
 

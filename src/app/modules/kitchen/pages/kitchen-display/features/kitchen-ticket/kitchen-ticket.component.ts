@@ -40,7 +40,8 @@ export class KitchenTicketComponent {
   });
   readonly $itemCount = computed(() => this.order().lineOrders.reduce((sum, line) => sum + line.quantity, 0));
 
-  variationLabel(name: string): string | null {
+  // null o "DUMMY": producto sin variaciones reales, no se muestra.
+  variationLabel(name: string | null): string | null {
     return name && name !== 'DUMMY' ? name : null;
   }
 }

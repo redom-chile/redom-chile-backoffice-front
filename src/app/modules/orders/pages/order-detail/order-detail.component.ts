@@ -12,7 +12,15 @@ import {
   PAYMENT_STATUS,
   StatusBadgeComponent,
 } from '../order-list/ui';
-import { GetOrderByIdService, MarkLineServedService, MarkOrderServedService, OrderDetailDto, OrderLineDto } from './data-access';
+import {
+  GetOrderByIdService,
+  MarkLineServedService,
+  MarkOrderServedService,
+  modifierLabel,
+  OrderDetailDto,
+  OrderLineDto,
+  orderVariationLabel,
+} from './data-access';
 import {
   CancelOrderModalComponent,
   CollectPaymentModalComponent,
@@ -149,11 +157,16 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       invoiceNo: order.invoiceNo,
       tableName: order.tableName,
       waiterName: order.waiterName,
-      lines: order.lines.map((line) => ({
-        name: line.productName,
-        quantity: line.quantity,
-        total: line.unitPriceIncTax * line.quantity,
-      })),
+      lines: order.lines.map((line) => {
+        const variation = orderVariationLabel(line.variationName);
+        return {
+          name: variation ? `${line.productName} (${variation})` : line.productName,
+          quantity: line.quantity,
+          // Incluye los modificadores.
+          total: line.lineTotal,
+          modifiers: (line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier)),
+        };
+      }),
       subtotal: order.totalBeforeTax,
       discount: order.totalBeforeTax - order.finalTotal,
       total: order.finalTotal,

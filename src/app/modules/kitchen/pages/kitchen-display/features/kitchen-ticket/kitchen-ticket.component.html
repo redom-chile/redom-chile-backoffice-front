@@ -41,6 +41,16 @@
         @if (variationLabel(line.variationName); as variation) {
         <p class="text-muted-foreground text-sm">{{ variation }}</p>
         }
+        @if (line.modifiers?.length) {
+        <!-- Modificadores: instrucciones de preparación, destacadas y distintas de la nota -->
+        <ul class="mt-1 space-y-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
+          @for (modifier of line.modifiers; track $index) {
+          <li class="text-primary flex items-start gap-1 text-base font-bold leading-snug">
+            <span aria-hidden="true">+</span><span class="min-w-0 break-words">{{ modifier }}</span>
+          </li>
+          }
+        </ul>
+        }
         @if (line.sellLineNote?.trim(); as note) {
         <p class="mt-1 inline-flex items-start gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
           <app-icon class="mt-0.5 h-4 w-4 shrink-0">priority_high</app-icon><span class="break-words">{{ note }}</span>

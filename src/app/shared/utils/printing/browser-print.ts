@@ -64,6 +64,8 @@ function ticketStyles(paperWidth: PaperWidth): string {
     .row { display: flex; justify-content: space-between; gap: 2mm; }
     .item { display: flex; gap: 2mm; margin: 1mm 0; font-size: 1.15em; }
     .qty { font-weight: bold; min-width: 8mm; }
+    .mod { margin-left: 10mm; font-weight: bold; }
+    .sub { margin-left: 4mm; font-size: 0.9em; }
     .note { font-style: italic; margin-left: 10mm; }
     .total { font-size: 1.3em; font-weight: bold; }
     .big { font-size: 1.4em; font-weight: bold; }

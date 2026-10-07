@@ -16,6 +16,10 @@ const routes: Routes = [
         path: 'categories',
         loadChildren: () => import('./pages/categories/categories.routes'),
       },
+      {
+        path: 'modifiers',
+        loadChildren: () => import('./pages/modifiers/modifiers.routes'),
+      },
     ],
   },
 ];

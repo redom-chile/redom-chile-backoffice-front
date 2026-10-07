@@ -73,7 +73,8 @@
         (increment)="handleIncrement($event)"
         (decrement)="handleDecrement($event)"
         (remove)="handleRemove($event)"
-        (noteChange)="handleNote($event)" />
+        (noteChange)="handleNote($event)"
+        (edit)="handleEdit($event)" />
 
       @if (mode === 'create') {
       <!-- Al agregar productos no hay nota general: cada producto lleva la suya -->

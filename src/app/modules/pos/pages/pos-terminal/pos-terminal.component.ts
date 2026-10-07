@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
+import { ApiError } from 'src/app/core/utils';
 import { ConfirmModalComponent, ConfirmModalData, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
@@ -19,13 +20,15 @@ import {
   CustomerDto,
   getOrderSaveErrorMessage,
   GetMenuProductsService,
+  isModifierNotAvailableError,
   OrderProductDto,
 } from 'src/app/modules/orders/pages/order-create/data-access';
 import {
-  addToCart,
+  addProductToCart,
   CartLine,
   CartNoteChange,
   changeCartQuantity,
+  editCartLine,
   ProductPickerComponent,
   quantitiesByProduct,
   removeFromCart,
@@ -119,12 +122,12 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.createService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, false), 'error');
+      if (error) this.handleSaveError(error, false);
     });
 
     effect(() => {
       const error = this.addLinesService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, true), 'error');
+      if (error) this.handleSaveError(error, true);
     });
   }
 
@@ -246,7 +249,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   }
 
   handleAdd(product: ProductDto) {
-    this.$cart.update((cart) => addToCart(cart, product));
+    addProductToCart(this.dialog, this.$cart, product);
+  }
+
+  handleEdit(key: string) {
+    editCartLine(this.dialog, this.$cart, key, this.$products());
   }
 
   handleIncrement(key: string) {
@@ -336,6 +343,13 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     this.$cart.set([]);
     this.$kitchenNote.set('');
     this.selectCounter();
+  }
+
+  // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
+  private handleSaveError(error: ApiError, adding: boolean) {
+    const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
+    this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
+    if (isModifierNotAvailableError(error)) this.menuService.reload();
   }
 
   private loadProducts() {

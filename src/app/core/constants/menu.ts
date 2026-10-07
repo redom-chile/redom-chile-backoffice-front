@@ -54,6 +54,7 @@ export class Menu {
           children: [
             { label: 'Productos', route: '/products' },
             { label: 'Categorías', route: '/products/categories' },
+            { label: 'Modificadores', route: '/products/modifiers' },
           ],
         },
         {

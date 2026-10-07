@@ -16,10 +16,23 @@
     <p class="text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wider">En la cuenta</p>
     <ul class="max-h-40 space-y-1 overflow-y-auto text-sm">
       @for (line of current.lines; track line.lineId) {
-      <li class="flex items-center justify-between gap-2">
-        <span class="text-foreground truncate">{{ line.quantity }}× {{ line.productName }}</span>
+      <li class="flex items-start justify-between gap-2">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground truncate">
+            {{ line.quantity }}× {{ line.productName }}
+            @if (variationLabel(line); as variation) {
+            <span class="text-muted-foreground">· {{ variation }}</span>
+            }
+          </p>
+          @for (mod of line.modifiers; track mod.variationId) {
+          <p class="text-muted-foreground truncate pl-4 text-xs">{{ lineModifierLabel(line, mod) }}</p>
+          }
+          @if (line.sellLineNote) {
+          <p class="truncate pl-4 text-xs italic text-amber-600 dark:text-amber-400">“{{ line.sellLineNote }}”</p>
+          }
+        </div>
         @if (current.isKitchenOrder) {
-        <app-status-badge [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
+        <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
         }
       </li>
       }
@@ -42,7 +55,8 @@
       (increment)="increment.emit($event)"
       (decrement)="decrement.emit($event)"
       (remove)="remove.emit($event)"
-      (noteChange)="noteChange.emit($event)" />
+      (noteChange)="noteChange.emit($event)"
+      (edit)="edit.emit($event)" />
   </div>
 
   <!-- Nota general solo al abrir la cuenta: al agregar productos, cada uno lleva su propia nota -->

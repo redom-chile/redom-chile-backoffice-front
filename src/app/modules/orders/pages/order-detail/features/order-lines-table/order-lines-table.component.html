@@ -23,6 +23,20 @@
             @if (variationLabel(line); as variation) {
             <p class="text-muted-foreground text-xs">{{ variation }}</p>
             }
+            @if (line.modifiers?.length) {
+            <ul class="mt-1 space-y-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
+              @for (modifier of line.modifiers; track modifier.lineId) {
+              <li class="text-foreground/80 flex items-baseline gap-2 text-sm">
+                <span class="min-w-0 break-words">+ {{ modifierLabel(line, modifier) }}</span>
+                @if (modifier.unitPriceIncTax > 0) {
+                <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
+                  {{ formatCurrency(modifier.unitPriceIncTax * modifier.quantity) }}
+                </span>
+                }
+              </li>
+              }
+            </ul>
+            }
             @if (line.sellLineNote) {
             <p class="mt-0.5 text-xs italic text-amber-600">“{{ line.sellLineNote }}”</p>
             }
@@ -32,7 +46,7 @@
             {{ formatCurrency(line.unitPriceIncTax) }}
           </td>
           <td class="text-foreground px-4 py-3 text-right font-medium tabular-nums">
-            {{ formatCurrency(line.unitPriceIncTax * line.quantity) }}
+            {{ formatCurrency(line.lineTotal) }}
           </td>
           @if (showKitchenStatus()) {
           <td class="px-4 py-3 text-center">

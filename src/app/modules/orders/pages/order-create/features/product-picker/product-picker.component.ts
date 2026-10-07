@@ -6,6 +6,7 @@ import { IconComponent, ProgressBarComponent } from 'src/ui';
 import { CategoryDto } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
+import { hasModifierSets, productPrice } from '../cart-line';
 
 @Component({
   selector: 'app-product-picker',
@@ -37,6 +38,10 @@ export class ProductPickerComponent implements OnInit {
   }
 
   price(product: ProductDto): number {
-    return product.variations[0]?.sellPriceIncTax ?? 0;
+    return productPrice(product);
+  }
+
+  hasOptions(product: ProductDto): boolean {
+    return hasModifierSets(product);
   }
 }

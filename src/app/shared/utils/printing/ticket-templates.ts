@@ -7,7 +7,14 @@ export type KitchenTicketData = Readonly<{
   waiterName: string | null;
   staffNote: string | null;
   createdAt: string | Date;
-  items: ReadonlyArray<{ productName: string | null; variationName: string | null; quantity: number | null; notes: string | null }>;
+  items: ReadonlyArray<{
+    productName: string | null;
+    variationName: string | null;
+    quantity: number | null;
+    notes: string | null;
+    // Modificadores ya formateados ("Extra queso", "2 x Sin hielo").
+    modifiers?: ReadonlyArray<string> | null;
+  }>;
 }>;
 
 export type BillTicketData = Readonly<{
@@ -15,7 +22,8 @@ export type BillTicketData = Readonly<{
   invoiceNo: string;
   tableName: string | null;
   waiterName: string | null;
-  lines: ReadonlyArray<{ name: string; quantity: number; total: number }>;
+  // total: producto + sus modificadores. modifiers: ya formateados, se imprimen bajo el producto.
+  lines: ReadonlyArray<{ name: string; quantity: number; total: number; modifiers?: ReadonlyArray<string> | null }>;
   subtotal: number;
   discount: number;
   total: number;
@@ -32,6 +40,9 @@ const dateTime = (date: Date) =>
   date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const money = (amount: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(amount);
+// Modificadores bajo el producto: en comanda destacados (mod), en precuenta discretos (sub).
+const modifierLines = (modifiers: ReadonlyArray<string> | null | undefined, cssClass: 'mod' | 'sub' = 'mod') =>
+  (modifiers ?? []).map((modifier) => `<div class="${cssClass}">+ ${escapeHtml(modifier)}</div>`).join('');
 const variation = (name: string | null) => (name && name !== 'DUMMY' ? ` (${escapeHtml(name)})` : '');
 
 // Comanda para cocina/bar: grande y sin precios.
@@ -39,6 +50,7 @@ export function kitchenTicketHtml(ticket: KitchenTicketData): string {
   const items = ticket.items
     .map(
       (item) => `<div class="item"><span class="qty">${item.quantity ?? 1}x</span><span>${escapeHtml(item.productName)}${variation(item.variationName)}</span></div>
+      ${modifierLines(item.modifiers)}
       ${item.notes ? `<div class="note">» ${escapeHtml(item.notes)}</div>` : ''}`,
     )
     .join('');
@@ -61,7 +73,10 @@ const brand = (heightMm: number) => `<div class="center" style="margin:1mm 0"><s
 
 export function billTicketHtml(bill: BillTicketData): string {
   const lines = bill.lines
-    .map((line) => `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>`)
+    .map(
+      (line) =>
+        `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>${modifierLines(line.modifiers, 'sub')}`,
+    )
     .join('');
   const tip = Math.round((bill.total * bill.suggestedTipPercent) / 100);
   return `

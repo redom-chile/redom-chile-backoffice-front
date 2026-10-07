@@ -37,7 +37,8 @@ export class GetMenuProductsService {
         return this.#httpClient
           .get<StandardizedPagination<ProductDto>>(`${ApiPathEnum.RESTAURANT}/products`, { params })
           .pipe(
-            map(({ data }) => data),
+            // Las opciones de modificadores llegan igual con sellable=true: no se venden solas.
+            map(({ data }) => data.filter((product) => product.type !== 'modifier')),
             tap(() => this.#isLoading$.next(false)),
             catchError((error: HttpErrorResponse) => {
               this.#error$.next(error.status);
@@ -50,7 +51,15 @@ export class GetMenuProductsService {
     { initialValue: [] as ProductDto[] },
   );
 
+  #lastFilters = { categoryId: null as number | null, name: '' };
+
   load(filters: { categoryId: number | null; name: string }) {
+    this.#lastFilters = filters;
     this.#filters$.next(filters);
+  }
+
+  // Vuelve a pedir la carta con los mismos filtros (p. ej. si cambiaron las opciones de un producto).
+  reload() {
+    this.#filters$.next(this.#lastFilters);
   }
 }

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { IconComponent } from 'src/ui';
 import { formatCurrency } from '../../../order-list/ui';
-import { CartLine, QUICK_NOTES } from '../cart-line';
+import { CartLine, modifierLabel, QUICK_NOTES } from '../cart-line';
 
 export type CartNoteChange = Readonly<{ key: string; note: string }>;
 
@@ -19,9 +19,12 @@ export class OrderTicketComponent {
   readonly decrement = output<string>();
   readonly remove = output<string>();
   readonly noteChange = output<CartNoteChange>();
+  // Tocar una línea con opciones reabre el modal para editarlas.
+  readonly edit = output<string>();
 
   readonly formatCurrency = formatCurrency;
   readonly quickNotes = QUICK_NOTES;
+  readonly modifierLabel = modifierLabel;
   // Línea cuya nota se está editando.
   readonly $editingKey = signal<string | null>(null);
   readonly $draft = signal('');

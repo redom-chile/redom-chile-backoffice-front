@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { ApiError } from 'src/app/core/utils';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
@@ -14,14 +16,16 @@ import {
   CustomerDto,
   getOrderSaveErrorMessage,
   GetMenuProductsService,
+  isModifierNotAvailableError,
   OrderProductDto,
 } from './data-access';
 import {
-  addToCart,
+  addProductToCart,
   CartLine,
   CartNoteChange,
   changeCartQuantity,
   CustomerSelectorComponent,
+  editCartLine,
   OrderTicketComponent,
   ProductPickerComponent,
   quantitiesByProduct,
@@ -52,6 +56,7 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
   private readonly menuService = inject(GetMenuProductsService);
@@ -117,12 +122,12 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.createService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, false), 'error');
+      if (error) this.handleSaveError(error, false);
     });
 
     effect(() => {
       const error = this.addLinesService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, true), 'error');
+      if (error) this.handleSaveError(error, true);
     });
 
     effect(() => {
@@ -172,7 +177,11 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   }
 
   handleAdd(product: ProductDto) {
-    this.$cart.update((cart) => addToCart(cart, product));
+    addProductToCart(this.dialog, this.$cart, product);
+  }
+
+  handleEdit(key: string) {
+    editCartLine(this.dialog, this.$cart, key, this.$products());
   }
 
   handleIncrement(key: string) {
@@ -215,6 +224,13 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
       isKitchenOrder: !!isKitchenOrder,
       staffNote: kitchenNote?.trim() || undefined,
     });
+  }
+
+  // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
+  private handleSaveError(error: ApiError, adding: boolean) {
+    const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
+    this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
+    if (isModifierNotAvailableError(error)) this.menuService.reload();
   }
 
   private loadProducts() {
