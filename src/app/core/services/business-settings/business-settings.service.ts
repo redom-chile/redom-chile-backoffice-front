@@ -47,8 +47,16 @@ export function parsePosSettings(raw: unknown): ResolvedPosSettings {
     stored = raw as Record<string, unknown>;
   }
   const flag = (camel: string, snake: string) => (stored[camel] ?? stored[snake]) === true;
-  const keys = ['tablesEnabled', 'tables_enabled', 'waiterEnabled', 'waiter_enabled', 'isServiceStaffRequired', 'is_service_staff_required'];
-  const configured = typeof stored['configured'] === 'boolean' ? stored['configured'] : keys.some((key) => key in stored);
+  const keys = [
+    'tablesEnabled',
+    'tables_enabled',
+    'waiterEnabled',
+    'waiter_enabled',
+    'isServiceStaffRequired',
+    'is_service_staff_required',
+  ];
+  const configured =
+    typeof stored['configured'] === 'boolean' ? stored['configured'] : keys.some((key) => key in stored);
   return {
     configured,
     tablesEnabled: flag('tablesEnabled', 'tables_enabled'),
@@ -96,7 +104,9 @@ export class BusinessSettingsService {
 
   // En modo soporte, el negocio del acceso (el SUPERADMIN no tiene negocio propio).
   readonly #support = inject(SupportModeService);
-  readonly $businessId = computed(() => this.#support.$businessId() ?? this.#whoami.$whoami()?.user.restaurantId ?? null);
+  readonly $businessId = computed(
+    () => this.#support.$businessId() ?? this.#whoami.$whoami()?.user.restaurantId ?? null,
+  );
   readonly $settings = this.#settings.asReadonly();
   readonly $isLoading = this.#isLoading.asReadonly();
   readonly $hasError = this.#hasError.asReadonly();
@@ -115,7 +125,9 @@ export class BusinessSettingsService {
     };
   });
   readonly $inventoryEnabled = computed(() => this.$inventory().inventoryEnabled);
-  readonly $ingredientsEnabled = computed(() => this.$inventory().inventoryEnabled && this.$inventory().ingredientsEnabled);
+  readonly $ingredientsEnabled = computed(
+    () => this.$inventory().inventoryEnabled && this.$inventory().ingredientsEnabled,
+  );
 
   // Caja y turnos activos (apagado: el POS cobra sin caja).
   readonly $cashManagementEnabled = computed(() => !!this.#settings()?.cashManagementEnabled);
@@ -125,13 +137,17 @@ export class BusinessSettingsService {
   /** Propina sugerida (%): 0 = sin sugerencia; sin configuración cargada se usa el valor previo (10). */
   readonly $suggestedTipPercent = computed(() => {
     const value = this.#settings()?.suggestedTipPercent;
-    return value === null || value === undefined || !Number.isFinite(Number(value)) ? FALLBACK_TIP_PERCENT : Number(value);
+    return value === null || value === undefined || !Number.isFinite(Number(value))
+      ? FALLBACK_TIP_PERCENT
+      : Number(value);
   });
   readonly $vatRate = computed(() => {
     const value = Number(this.#settings()?.vatRate ?? DEFAULT_VAT_RATE);
     return Number.isFinite(value) ? value : DEFAULT_VAT_RATE;
   });
-  readonly $sellPriceTax = computed<SellPriceTax>(() => (this.#settings()?.sellPriceTax === 'excludes' ? 'excludes' : 'includes'));
+  readonly $sellPriceTax = computed<SellPriceTax>(() =>
+    this.#settings()?.sellPriceTax === 'excludes' ? 'excludes' : 'includes',
+  );
   /** true cuando el precio del catálogo es neto y el IVA se suma al vender. */
   readonly $pricesExcludeVat = computed(() => this.$sellPriceTax() === 'excludes');
   readonly $currencyPrecision = computed(() => {
@@ -185,8 +201,8 @@ export class BusinessSettingsService {
   /** Guarda solo los campos cambiados y actualiza el estado local al confirmar. */
   updateInventory(changes: UpdateInventorySettingsDto): Observable<unknown> {
     const businessId = this.$businessId();
-    return this.#http.patch(`${ApiPathEnum.RESTAURANT}/business/${businessId}/settings`, changes).pipe(
-      tap(() => this.#settings.update((current) => (current ? { ...current, ...changes } : current))),
-    );
+    return this.#http
+      .patch(`${ApiPathEnum.RESTAURANT}/business/${businessId}/settings`, changes)
+      .pipe(tap(() => this.#settings.update((current) => (current ? { ...current, ...changes } : current))));
   }
 }

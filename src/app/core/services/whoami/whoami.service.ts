@@ -35,7 +35,10 @@ export const SUPERADMIN_HOME = '/platform/summary';
 
 /** Lo único que usa el SUPERADMIN: plataforma (suscripciones y planes), centro de ayuda y su perfil. */
 export const isSuperAdminUrl = (url: string | null | undefined) =>
-  !!url && ['/platform', '/help', '/profile'].some((prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`));
+  !!url &&
+  ['/platform', '/help', '/profile'].some(
+    (prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`),
+  );
 
 export function needsLocationStep(whoami: WhoamiDto): boolean | undefined {
   if (!isOwner(whoami)) return false;

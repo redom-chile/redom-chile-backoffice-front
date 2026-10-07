@@ -1,7 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { RouterLink } from '@angular/router';
-import { BusinessSettingsService, PosSettings, UpdateBusinessSettingsDto } from 'src/app/core/services/business-settings';
+import {
+  BusinessSettingsService,
+  PosSettings,
+  UpdateBusinessSettingsDto,
+} from 'src/app/core/services/business-settings';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
 import { ButtonComponent, CardComponent, ToastService, ToggleComponent } from 'src/ui';
 import { TIP_MODE_HINTS, TIP_MODE_LABELS, TipDistributionMode } from 'src/app/modules/finance/data-access';
@@ -37,7 +41,9 @@ export class BusinessPosSectionComponent {
   protected readonly $tipPercent = linkedSignal(() => String(this.#savedTip()));
   protected readonly $cashEnabled = linkedSignal(() => this.#settings.$cashManagementEnabled());
   // Sin valor guardado, el backend reparte "cada mesero lo suyo".
-  readonly #savedTipMode = computed<TipDistributionMode>(() => this.#settings.$settings()?.tipDistributionMode ?? 'individual');
+  readonly #savedTipMode = computed<TipDistributionMode>(
+    () => this.#settings.$settings()?.tipDistributionMode ?? 'individual',
+  );
   protected readonly $tipMode = linkedSignal(() => this.#savedTipMode());
   protected readonly tipModes = TIP_MODES;
   protected readonly tipModeLabels = TIP_MODE_LABELS;
@@ -71,7 +77,8 @@ export class BusinessPosSectionComponent {
   readonly #cashChanged = computed(() => this.$cashEnabled() !== this.#settings.$cashManagementEnabled());
   readonly #tipModeChanged = computed(() => this.$tipMode() !== this.#savedTipMode());
   protected readonly $hasChanges = computed(
-    () => Object.keys(this.#posChanges()).length > 0 || this.#tipChanged() || this.#cashChanged() || this.#tipModeChanged(),
+    () =>
+      Object.keys(this.#posChanges()).length > 0 || this.#tipChanged() || this.#cashChanged() || this.#tipModeChanged(),
   );
   protected readonly $isValid = computed(() => !this.$tipError());
   protected readonly $isSaving = signal(false);

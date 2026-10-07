@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { getPublicMenuErrorMessage, MenuMarketingService, PackDto } from 'src/app/modules/public-menu/data-access';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
-import { ProductModifierOptionDto, ProductModifierSetDto } from 'src/app/modules/products/pages/product-list/data-access';
+import {
+  ProductModifierOptionDto,
+  ProductModifierSetDto,
+} from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
 import {
   CartItemConfig,
@@ -37,7 +40,10 @@ export type ProductModifiersModalData = Readonly<{
 const MAX_PRODUCT_QUANTITY = 99;
 
 /** Abre el modal de opciones; emite la configuración elegida o undefined si se cancela. */
-export function openProductModifiersModal(dialog: MatDialog, data: ProductModifiersModalData): Observable<CartItemConfig | undefined> {
+export function openProductModifiersModal(
+  dialog: MatDialog,
+  data: ProductModifiersModalData,
+): Observable<CartItemConfig | undefined> {
   return dialog
     .open<ProductModifiersModalComponent, ProductModifiersModalData, CartItemConfig>(ProductModifiersModalComponent, {
       width: '520px',
@@ -84,7 +90,9 @@ export class ProductModifiersModalComponent {
   readonly $pack = signal<PackDto | null>(null);
   // Grupos con una sola opción y mínimo ≥ 1: van incluidos, no se eligen.
   readonly $fixedGroups = computed(() => (this.$pack()?.groups ?? []).filter((group) => this.isFixed(group)));
-  readonly $choiceGroups = computed(() => (this.$pack()?.groups ?? []).filter((group) => group.items.length > 0 && !this.isFixed(group)));
+  readonly $choiceGroups = computed(() =>
+    (this.$pack()?.groups ?? []).filter((group) => group.items.length > 0 && !this.isFixed(group)),
+  );
   // groupId → variationIds elegidos.
   readonly $packSelection = signal<Record<number, number[]>>({});
   readonly $packChoices = computed<CartPackChoice[]>(() => {
@@ -99,11 +107,15 @@ export class ProductModifiersModalComponent {
     return [
       ...this.$fixedGroups().flatMap((group) => group.items.map((item) => toChoice(group, item))),
       ...this.$choiceGroups().flatMap((group) =>
-        group.items.filter((item) => (selection[group.id] ?? []).includes(item.variationId)).map((item) => toChoice(group, item)),
+        group.items
+          .filter((item) => (selection[group.id] ?? []).includes(item.variationId))
+          .map((item) => toChoice(group, item)),
       ),
     ];
   });
-  readonly $packValid = computed(() => !!this.$pack() && this.$choiceGroups().every((group) => this.groupIsValid(group)));
+  readonly $packValid = computed(
+    () => !!this.$pack() && this.$choiceGroups().every((group) => this.groupIsValid(group)),
+  );
 
   // Opciones marcadas: variationId → veces por unidad. Solo se conservan las que el producto aún ofrece.
   readonly $selected = signal<Record<number, number>>(this.initialSelection());
@@ -115,12 +127,19 @@ export class ProductModifiersModalComponent {
     return this.sets.flatMap((set) =>
       set.options
         .filter((option) => selected[option.variationId])
-        .map((option) => ({ variationId: option.variationId, name: option.name, price: option.price, quantity: selected[option.variationId] })),
+        .map((option) => ({
+          variationId: option.variationId,
+          name: option.name,
+          price: option.price,
+          quantity: selected[option.variationId],
+        })),
     );
   });
   // Los precios del catálogo pueden ser netos: la estimación suma el IVA como el backend.
   readonly $pricing = cartPricing(inject(BusinessSettingsService));
-  readonly $unitPrice = computed(() => cartUnitPrice(this.$basePrice(), this.$modifiers(), this.$pricing(), packExtras(this.$packChoices())));
+  readonly $unitPrice = computed(() =>
+    cartUnitPrice(this.$basePrice(), this.$modifiers(), this.$pricing(), packExtras(this.$packChoices())),
+  );
   readonly $canConfirm = computed(() => !this.isPack || this.$packValid());
 
   constructor() {
@@ -236,7 +255,9 @@ export class ProductModifiersModalComponent {
     const initial = this.data.initial?.packChoices ?? [];
     return pack.groups.reduce<Record<number, number[]>>((acc, group) => {
       const offered = new Set(group.items.map((item) => item.variationId));
-      const kept = initial.filter((choice) => choice.groupId === group.id && offered.has(choice.variationId)).map((choice) => choice.variationId);
+      const kept = initial
+        .filter((choice) => choice.groupId === group.id && offered.has(choice.variationId))
+        .map((choice) => choice.variationId);
       const defaults = group.items.filter((item) => item.isDefault).map((item) => item.variationId);
       const chosen = (initial.length ? kept : defaults).slice(0, Math.max(0, group.maxChoices));
       return { ...acc, [group.id]: chosen };

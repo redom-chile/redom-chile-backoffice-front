@@ -7,7 +7,12 @@ import { BusinessSettingsService } from 'src/app/core/services/business-settings
 import { getUploadErrorMessage, FileUploadService, ImageSelection } from 'src/app/core/services/file-upload';
 import { ThemeService } from 'src/app/core/services/theme.service';
 import { ButtonComponent, CardComponent, IconComponent, ImagePickerComponent, ToastService } from 'src/ui';
-import { BusinessDto, FindMyBusinessesService, getBusinessErrorMessage, UpdateBusinessLogoService } from '../../data-access';
+import {
+  BusinessDto,
+  FindMyBusinessesService,
+  getBusinessErrorMessage,
+  UpdateBusinessLogoService,
+} from '../../data-access';
 
 const NAME_MAX_LENGTH = 191;
 

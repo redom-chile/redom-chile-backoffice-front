@@ -64,7 +64,9 @@ export class BusinessTaxSectionComponent {
   readonly #rutChanged = computed(() => this.#normalizedRut() !== this.#savedRut());
   readonly #vatRateChanged = computed(() => this.#vatRateValue() !== this.#savedVatRate());
   readonly #sellPriceTaxChanged = computed(() => this.#sellPriceTax() !== this.#savedSellPriceTax());
-  protected readonly $hasChanges = computed(() => this.#rutChanged() || this.#vatRateChanged() || this.#sellPriceTaxChanged());
+  protected readonly $hasChanges = computed(
+    () => this.#rutChanged() || this.#vatRateChanged() || this.#sellPriceTaxChanged(),
+  );
   protected readonly $isValid = computed(() => !this.$rutError() && !this.$vatRateError());
   protected readonly $isSaving = signal(false);
 
