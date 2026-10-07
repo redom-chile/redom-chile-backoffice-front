@@ -14,6 +14,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import {
+  FOOD_COST_LEVEL_CLASSES,
+  foodCostLevel,
   formatMoney,
   formatQuantity,
   formatUnitCost,
@@ -98,6 +100,18 @@ export class RecipeCardComponent {
     this.$units();
     return this.rows.controls.reduce((sum, row) => sum + (this.rowCost(row) ?? 0), 0);
   });
+
+  // Opciones de modificador sin precio: el backend manda null y no se muestra.
+  protected readonly $foodCostRounded = computed(() => Math.round((this.variation().foodCostPercent ?? 0) * 10) / 10);
+  protected readonly $foodCostClass = computed(() => FOOD_COST_LEVEL_CLASSES[foodCostLevel(this.variation().foodCostPercent)]);
+  // Preparaciones: el costo es por lote y rinde recipeYield unidades.
+  protected readonly $hasYield = computed(() => (this.variation().recipeYield ?? 0) > 0);
+  // Ingredientes guardados con costo 0 (nunca se registró una compra con costo).
+  protected readonly $missingCostItems = computed(() =>
+    this.variation()
+      .items.filter((item) => item.unitCost === 0)
+      .map((item) => item.ingredientName),
+  );
 
   constructor() {
     this.#unitsService.load();

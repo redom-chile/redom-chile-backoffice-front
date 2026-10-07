@@ -129,6 +129,10 @@ export class RecipeEditorComponent {
     });
   }
 
+  hasUnsavedChanges(): boolean {
+    return this.$hasUnsaved();
+  }
+
   onBeforeUnload(event: BeforeUnloadEvent) {
     if (this.$hasUnsaved()) event.preventDefault();
   }

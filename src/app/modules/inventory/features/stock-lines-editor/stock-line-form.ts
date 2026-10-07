@@ -17,6 +17,10 @@ export type StockLineForm = FormGroup<{
 
 export type StockLinesArray = FormArray<StockLineForm>;
 
+/** Texto extra bajo el ítem de una línea (ej. stock en el local de origen). warning lo destaca. */
+export type StockLineHint = Readonly<{ text: string; tone?: 'muted' | 'warning' }>;
+export type StockLineHintFn = (line: StockLineForm) => StockLineHint | null;
+
 /** Máximo de líneas por documento (backend: 1..200). */
 export const MAX_STOCK_LINES = 200;
 

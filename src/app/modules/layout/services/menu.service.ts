@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, OnDestroy, signal, Signal } from '@angular/core';
+import { computed, inject, Injectable, Injector, OnDestroy, signal, Signal, untracked } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Menu } from 'src/app/core/constants/menu';
@@ -6,6 +6,7 @@ import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
 import { environment } from 'src/environments/environment';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 
 @Injectable({
   providedIn: 'root',
@@ -18,12 +19,22 @@ export class MenuService implements OnDestroy {
   private _subscription = new Subscription();
   private _whoamiService = inject(WhoamiService);
   #businessSettings = inject(BusinessSettingsService);
+  #injector = inject(Injector);
+
+  // Los locales se piden recién cuando el inventario está activo (el servicio dispara la carga al crearse).
+  // Mientras no se conocen, lo que depende de varios locales queda oculto.
+  #hasManyLocations = computed(() => {
+    if (!this.#businessSettings.$inventoryEnabled()) return false;
+    const locationsService = untracked(() => this.#injector.get(GetAllBusinessLocationsService));
+    return (locationsService.$locations()?.length ?? 0) > 1;
+  });
 
   // Oculta lo que depende de una función apagada en la configuración del negocio (ej. Inventario).
   #featureMenu: Signal<MenuItem[]> = computed(() => {
     const enabled = {
       inventory: this.#businessSettings.$inventoryEnabled(),
       ingredients: this.#businessSettings.$ingredientsEnabled(),
+      multiLocation: this.#hasManyLocations(),
     };
     const isVisible = (item: SubMenuItem) => !item.feature || enabled[item.feature];
     return this._pagesMenu().map((group) => ({

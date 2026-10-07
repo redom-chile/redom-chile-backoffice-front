@@ -8,6 +8,8 @@ import {
   ADJUSTMENT_REASON_LABELS,
   DOCUMENT_TYPE_LABELS,
   formatMoney,
+  formatQuantity,
+  formatUnitCost,
   InventoryDocumentDto,
   InventoryDocumentFiltersDto,
   InventoryDocumentType,
@@ -21,6 +23,7 @@ import {
   formatDocumentDate,
   LoadErrorComponent,
   MovementsTableComponent,
+  productLabel,
   resultError,
   resultValue,
   toRemoteResult,
@@ -37,6 +40,8 @@ type DocumentHeader = Readonly<{
   reason: string | null;
   date: string;
   locationName: string;
+  // Solo transferencias.
+  toLocationName: string | null;
   supplierName: string | null;
   referenceNo: string | null;
   notes: string | null;
@@ -45,6 +50,36 @@ type DocumentHeader = Readonly<{
   createdAt: string | null;
   partial: boolean;
 }>;
+
+/** Una fila por ítem transferido: la salida del origen y la entrada al destino juntas. */
+export type TransferLine = Readonly<{
+  variationId: number;
+  label: string;
+  unitName: string | null;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  fromBalanceAfter: number | null;
+  toBalanceAfter: number | null;
+}>;
+
+const BACK_LINKS: Record<InventoryDocumentType, { link: string; label: string }> = {
+  purchase: { link: '/inventory/purchases', label: 'Compras' },
+  adjustment: { link: '/inventory/adjustments', label: 'Ajustes' },
+  count: { link: '/inventory/counts', label: 'Conteos' },
+  transfer: { link: '/inventory/transfers', label: 'Transferencias' },
+  production: { link: '/inventory/kardex', label: 'Kardex' },
+};
+
+/** Tipo del documento según sus movimientos (cuando no llega la cabecera). */
+function typeFromMovements(movements: readonly StockMovementDto[]): InventoryDocumentType {
+  const types = new Set(movements.map((movement) => movement.movementType));
+  if (types.has('transfer_out') || types.has('transfer_in')) return 'transfer';
+  if (types.has('count')) return 'count';
+  if (types.has('purchase')) return 'purchase';
+  if (types.has('production')) return 'production';
+  return 'adjustment';
+}
 
 function readStateDocument(id: number): InventoryDocumentDto | null {
   try {
@@ -61,11 +96,12 @@ function fromDocument(document: InventoryDocumentDto): DocumentHeader {
     reason: document.reason ? ADJUSTMENT_REASON_LABELS[document.reason] : null,
     date: formatDocumentDate(document.documentDate),
     locationName: document.locationName,
+    toLocationName: document.toLocationName ?? null,
     supplierName: document.supplierName,
     referenceNo: document.referenceNo,
     notes: document.notes,
     totalCost: document.totalCost,
-    createdBy: document.createdBy,
+    createdBy: document.createdByName || document.createdBy,
     createdAt: document.createdAt,
     partial: false,
   };
@@ -74,24 +110,58 @@ function fromDocument(document: InventoryDocumentDto): DocumentHeader {
 function fromMovements(movements: readonly StockMovementDto[]): DocumentHeader | null {
   const first = movements[0];
   if (!first) return null;
+  const type = typeFromMovements(movements);
+  const exit = movements.find((movement) => movement.movementType === 'transfer_out');
+  const entry = movements.find((movement) => movement.movementType === 'transfer_in');
+  // En transferencias el costo es el de lo que salió (la entrada vale lo mismo).
+  const costMovements = type === 'transfer' ? movements.filter((movement) => movement.movementType === 'transfer_out') : movements;
   return {
-    type: movements.some((movement) => movement.movementType === 'purchase') ? 'purchase' : 'adjustment',
+    type,
     reason: null,
     date: formatDateTimeFull(first.createdAt),
-    locationName: first.locationName,
+    locationName: type === 'transfer' ? (exit?.locationName ?? '—') : first.locationName,
+    toLocationName: type === 'transfer' ? (entry?.locationName ?? '—') : null,
     supplierName: null,
     referenceNo: null,
     notes: first.notes,
-    totalCost: movements.reduce((total, movement) => total + Math.abs(movement.totalCost), 0),
-    createdBy: first.createdBy,
+    totalCost: costMovements.reduce((total, movement) => total + Math.abs(movement.totalCost), 0),
+    createdBy: first.createdByName || first.createdBy,
     createdAt: first.createdAt,
     partial: true,
   };
 }
 
+/** Junta la salida y la entrada de cada ítem (los movimientos de una transferencia vienen de a pares). */
+function toTransferLines(movements: readonly StockMovementDto[]): TransferLine[] {
+  const lines = new Map<number, TransferLine>();
+  for (const movement of movements) {
+    if (movement.movementType !== 'transfer_out' && movement.movementType !== 'transfer_in') continue;
+    const isExit = movement.movementType === 'transfer_out';
+    const current = lines.get(movement.variationId);
+    const base: TransferLine = current ?? {
+      variationId: movement.variationId,
+      label: productLabel(movement.productName, movement.variationName),
+      unitName: movement.unitName,
+      quantity: Math.abs(movement.quantity),
+      unitCost: movement.unitCost,
+      totalCost: Math.abs(movement.totalCost),
+      fromBalanceAfter: null,
+      toBalanceAfter: null,
+    };
+    lines.set(movement.variationId, {
+      ...base,
+      // El costo manda la salida (costo promedio del origen).
+      ...(isExit ? { quantity: Math.abs(movement.quantity), unitCost: movement.unitCost, totalCost: Math.abs(movement.totalCost) } : {}),
+      ...(isExit ? { fromBalanceAfter: movement.balanceAfter } : { toBalanceAfter: movement.balanceAfter }),
+    });
+  }
+  return [...lines.values()];
+}
+
 /**
- * Detalle de una compra o ajuste. No hay GET de un documento: las líneas son los movimientos con ese
- * documentId y la cabecera llega por el state de navegación o se busca en la lista de documentos.
+ * Detalle de un documento (compra, ajuste, conteo o transferencia). No hay GET de un documento: las líneas
+ * son los movimientos con ese documentId y la cabecera llega por el state de navegación o se busca en la
+ * lista de documentos. Una transferencia muestra una fila por ítem (salida del origen + entrada al destino).
  */
 @Component({
   selector: 'app-document-detail',
@@ -107,6 +177,8 @@ export class DocumentDetailComponent {
   readonly typeLabels = DOCUMENT_TYPE_LABELS;
   readonly formatMoney = formatMoney;
   readonly formatDateTime = formatDateTimeFull;
+  readonly formatQuantity = formatQuantity;
+  readonly formatUnitCost = formatUnitCost;
 
   readonly $id = toSignal(this.#route.paramMap.pipe(map((params) => Number(params.get('id')))), {
     initialValue: Number(this.#route.snapshot.paramMap.get('id')),
@@ -131,7 +203,8 @@ export class DocumentDetailComponent {
       if (this.$stateDocument()) return undefined;
       const first = this.$lines()[0];
       if (!first) return undefined;
-      const type: InventoryDocumentType = this.$lines().some((line) => line.movementType === 'purchase') ? 'purchase' : 'adjustment';
+      const type = typeFromMovements(this.$lines());
+      // En transferencias el filtro de local incluye origen y destino, así que sirve cualquiera de los dos.
       return { id: this.$id(), filters: { type, locationId: first.locationId } as InventoryDocumentFiltersDto };
     },
     stream: ({ params }) => this.#findDocument(params.id, params.filters, 1).pipe(catchError(() => of(null))),
@@ -142,13 +215,21 @@ export class DocumentDetailComponent {
     const document = this.$stateDocument() ?? this.#searchedDocument.value() ?? null;
     return document ? fromDocument(document) : fromMovements(this.$lines());
   });
-  readonly $backLink = computed(() => {
+  readonly #back = computed(() => {
     const type = this.$header()?.type;
-    return type === 'purchase' ? '/inventory/purchases' : type === 'adjustment' ? '/inventory/adjustments' : '/inventory';
+    return type ? BACK_LINKS[type] : { link: '/inventory', label: 'Inventario' };
   });
-  readonly $backLabel = computed(() => {
+  readonly $backLink = computed(() => this.#back().link);
+  readonly $backLabel = computed(() => this.#back().label);
+
+  readonly $transferLines = computed(() => (this.$header()?.type === 'transfer' ? toTransferLines(this.$lines()) : []));
+  /** Conteo: + sobrante / − faltante, valorizado (el total del documento suma ambos en positivo). */
+  readonly $netDifference = computed(() =>
+    this.$lines().reduce((total, line) => total + Math.sign(line.quantity) * Math.abs(line.totalCost), 0),
+  );
+  readonly $totalLabel = computed(() => {
     const type = this.$header()?.type;
-    return type === 'purchase' ? 'Compras' : type === 'adjustment' ? 'Ajustes' : 'Inventario';
+    return type === 'count' ? 'Valor ajustado' : type === 'transfer' ? 'Costo total' : 'Total';
   });
   readonly $hasMoreLines = computed(() => (this.$page()?.pagination.totalItems ?? 0) > LINES_PER_PAGE);
 

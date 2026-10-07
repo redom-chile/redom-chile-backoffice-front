@@ -4,7 +4,14 @@ import { Observable } from 'rxjs';
 import { StandardizedPagination } from 'src/app/core/standarized-response';
 import { ApiPathEnum } from 'src/environments';
 import {
+  ConsumptionFiltersDto,
+  ConsumptionReportDto,
+  CountResultDto,
   CreateAdjustmentDto,
+  CreateCountDto,
+  CreateTransferDto,
+  FoodCostFiltersDto,
+  FoodCostItemDto,
   CreatePurchaseDto,
   InventoryDocumentDto,
   InventoryDocumentFiltersDto,
@@ -13,6 +20,7 @@ import {
   StockItemDto,
   StockMovementDto,
   StockMovementFiltersDto,
+  TransferResultDto,
 } from './dtos';
 
 const BASE = `${ApiPathEnum.RESTAURANT}/inventory`;
@@ -59,5 +67,21 @@ export class InventoryService {
 
   createAdjustment(dto: CreateAdjustmentDto): Observable<InventoryDocumentResultDto> {
     return this.#http.post<InventoryDocumentResultDto>(`${BASE}/adjustments`, dto);
+  }
+
+  getFoodCost(filters: FoodCostFiltersDto = {}): Observable<FoodCostItemDto[]> {
+    return this.#http.get<FoodCostItemDto[]>(`${BASE}/food-cost`, { params: toHttpParams(filters) });
+  }
+
+  createCount(dto: CreateCountDto): Observable<CountResultDto> {
+    return this.#http.post<CountResultDto>(`${BASE}/counts`, dto);
+  }
+
+  createTransfer(dto: CreateTransferDto): Observable<TransferResultDto> {
+    return this.#http.post<TransferResultDto>(`${BASE}/transfers`, dto);
+  }
+
+  getConsumption(filters: ConsumptionFiltersDto): Observable<ConsumptionReportDto> {
+    return this.#http.get<ConsumptionReportDto>(`${BASE}/consumption`, { params: toHttpParams(filters) });
   }
 }

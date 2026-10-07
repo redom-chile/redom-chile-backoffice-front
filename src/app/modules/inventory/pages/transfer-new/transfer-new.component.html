@@ -1,0 +1,226 @@
+<div>
+  <app-header-dashboard title="Nueva transferencia" subtitle="Envía stock de un local a otro.">
+    <a
+      routerLink="/inventory/transfers"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Volver a transferencias</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if ($isDisabled()) {
+  <app-inventory-disabled />
+  } @else if ($isLoading()) {
+  <div class="space-y-4">
+    <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-2">
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <app-skeleton size="2xl" />
+    </div>
+  </div>
+  } @else if (locationStore.$hasError() && $locations().length === 0) {
+  <div class="glass rounded-[1rem] px-6 py-10 text-center">
+    <p class="text-foreground font-semibold">No se pudieron cargar los locales</p>
+    <button type="button" class="text-primary mt-2 text-sm font-medium hover:underline" (click)="locationStore.reload()">Reintentar</button>
+  </div>
+  } @else if ($needsMoreLocations()) {
+  <div class="glass rounded-[1rem] px-6 py-10 text-center">
+    <app-icon class="text-primary mx-auto h-8 w-8" aria-hidden="true">storefront</app-icon>
+    <p class="text-foreground mt-2 font-semibold">Necesitas al menos dos locales</p>
+    <p class="text-muted-foreground mx-auto mt-1 max-w-md text-sm">
+      Las transferencias mueven stock de un local a otro. Crea otra sucursal en Negocio → Sucursales para empezar a transferir.
+    </p>
+    <a routerLink="/business/location" class="text-primary mt-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline">
+      Ir a Sucursales
+      <app-icon class="h-4 w-4">arrow_forward</app-icon>
+    </a>
+  </div>
+  } @else if ($summary(); as summary) {
+  <!-- Resumen de la transferencia registrada -->
+  <section class="glass rounded-[1rem] p-4 sm:p-5">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex items-start gap-3">
+        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500/15 text-green-700 dark:text-green-400">
+          <app-icon class="h-6 w-6">check</app-icon>
+        </span>
+        <div>
+          <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Documento #{{ summary.documentId }}</p>
+          <h2 class="text-foreground text-lg font-semibold">Transferencia registrada</h2>
+          <p class="text-muted-foreground text-sm">{{ summary.fromName }} → {{ summary.toName }}</p>
+        </div>
+      </div>
+      <div class="sm:text-right">
+        <p class="text-muted-foreground text-xs">Costo total</p>
+        <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatMoney(summary.totalCost) }}</p>
+      </div>
+    </div>
+
+    <!-- Escritorio -->
+    <div class="mt-4 hidden overflow-x-auto md:block">
+      <table class="min-w-full">
+        <thead>
+          <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+            <th class="px-3 py-2">Ítem</th>
+            <th class="px-3 py-2 text-right">Cantidad</th>
+            <th class="px-3 py-2 text-right">Costo unit.</th>
+            <th class="px-3 py-2 text-right">Saldo en {{ summary.fromName }}</th>
+            <th class="px-3 py-2 text-right">Saldo en {{ summary.toName }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of summary.lines; track $index) {
+          <tr class="border-b border-[var(--border)] last:border-0">
+            <td class="text-foreground px-3 py-2 text-sm font-medium">{{ line.label }}</td>
+            <td class="text-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatQuantity(line.quantity, line.unitName) }}</td>
+            <td class="text-muted-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatUnitCost(line.unitCost) }}</td>
+            <td class="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums" [class.text-red-600]="line.fromBalanceAfter < 0">
+              {{ formatQuantity(line.fromBalanceAfter, line.unitName) }}
+            </td>
+            <td class="text-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatQuantity(line.toBalanceAfter, line.unitName) }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Móvil -->
+    <ul class="mt-4 divide-y divide-[var(--border)] md:hidden">
+      @for (line of summary.lines; track $index) {
+      <li class="py-2">
+        <div class="flex items-start justify-between gap-3">
+          <p class="text-foreground min-w-0 truncate text-sm font-medium">{{ line.label }}</p>
+          <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatQuantity(line.quantity, line.unitName) }}</span>
+        </div>
+        <p class="text-muted-foreground text-xs">Costo {{ formatUnitCost(line.unitCost) }}</p>
+        <p class="text-muted-foreground text-xs">
+          Saldo {{ summary.fromName }}: <span [class.text-red-600]="line.fromBalanceAfter < 0">{{ formatQuantity(line.fromBalanceAfter, line.unitName) }}</span>
+          · {{ summary.toName }}: {{ formatQuantity(line.toBalanceAfter, line.unitName) }}
+        </p>
+      </li>
+      }
+    </ul>
+    <p class="text-muted-foreground mt-2 text-xs">Cantidades y saldos en la unidad base de cada ítem.</p>
+
+    <div class="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold"
+        (click)="startAnother()">
+        Nueva transferencia
+      </button>
+      <app-button impact="bold" tone="primary" icon="description" (buttonClick)="openDocument(summary.documentId)">Ver documento</app-button>
+    </div>
+  </section>
+  } @else {
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="space-y-4">
+    <!-- Datos de la transferencia -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos de la transferencia</h2>
+      @let sameLocation = form.hasError('sameLocation');
+      <div class="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div>
+          <label for="transfer-from" class="mb-1 block text-sm font-medium">Origen *</label>
+          <select
+            id="transfer-from"
+            formControlName="fromLocationId"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="sameLocation">
+            @for (location of $locations(); track location.id) {
+            <option [ngValue]="location.id">{{ location.name }}</option>
+            }
+          </select>
+        </div>
+        <button
+          type="button"
+          class="glass-input text-primary inline-flex h-10 items-center justify-center gap-1 self-end rounded-md px-3 text-sm font-medium"
+          title="Intercambiar origen y destino"
+          aria-label="Intercambiar origen y destino"
+          [disabled]="$isSaving()"
+          (click)="swapLocations()">
+          <app-icon class="h-5 w-5 rotate-90 sm:rotate-0">swap_horiz</app-icon>
+          <span class="sm:hidden">Intercambiar</span>
+        </button>
+        <div>
+          <label for="transfer-to" class="mb-1 block text-sm font-medium">Destino *</label>
+          <select
+            id="transfer-to"
+            formControlName="toLocationId"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="sameLocation">
+            @for (location of $locations(); track location.id) {
+            <option [ngValue]="location.id">{{ location.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      @if (sameLocation) {
+      <p class="text-destructive mt-1 text-xs">El origen y el destino deben ser locales distintos.</p>
+      }
+
+      <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="transfer-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+          <input
+            id="transfer-date"
+            type="date"
+            formControlName="documentDate"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)" />
+          @if (form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)) {
+          <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="transfer-notes" class="mb-1 block text-sm font-medium">Notas</label>
+          <textarea
+            id="transfer-notes"
+            rows="2"
+            maxlength="1000"
+            formControlName="notes"
+            placeholder="Opcional (ej. reposición del fin de semana)"
+            class="glass-input w-full rounded-md px-3 py-2"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ítems -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-1 font-semibold">Ítems a transferir</h2>
+      <p class="text-muted-foreground mb-3 text-xs">
+        Salen de {{ locationName($fromLocationId()) }} a su costo promedio y entran al destino a ese mismo costo (se recalcula el
+        promedio del destino). Solo ingredientes y productos con "Stock propio".
+      </p>
+      @if (!$allowNegativeStock()) {
+      <div class="mb-3 flex items-start gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-xs text-yellow-800 dark:text-yellow-300">
+        <app-icon class="h-4 w-4 shrink-0">info</app-icon>
+        <span>El origen no puede quedar con stock bajo cero ("Permitir stock negativo" está desactivado).</span>
+      </div>
+      }
+      <app-stock-lines-editor
+        [lines]="form.controls.lines"
+        costMode="none"
+        quantityMode="positive"
+        [showErrors]="$submitted()"
+        [preselectVariationId]="$preselectVariationId()"
+        [lineHint]="lineHint" />
+    </section>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        routerLink="/inventory/transfers"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
+        Cancelar
+      </a>
+      <app-button type="submit" impact="bold" tone="primary" icon="swap_horiz" [disabled]="$isSaving()">
+        {{ $isSaving() ? 'Guardando…' : 'Registrar transferencia' }}
+      </app-button>
+    </div>
+  </form>
+  }
+</div>

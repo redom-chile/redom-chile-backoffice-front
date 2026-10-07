@@ -1,0 +1,246 @@
+<div>
+  <app-header-dashboard title="Nuevo conteo" subtitle="Cuenta lo que hay físicamente en el local; el stock de cada ítem contado queda igual a lo contado.">
+    <a
+      routerLink="/inventory/counts"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Volver a conteos</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if ($isDisabled()) {
+  <app-inventory-disabled />
+  } @else if ($success(); as success) {
+  <app-count-summary
+    [result]="success.result"
+    [items]="success.items"
+    [locationName]="success.locationName"
+    [documentDate]="success.documentDate"
+    (newCount)="handleNewCount()" />
+  } @else if ($isLoading()) {
+  <div class="space-y-4">
+    <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-3">
+      <app-skeleton size="md" />
+      <app-skeleton size="md" />
+      <app-skeleton size="md" />
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <app-skeleton size="2xl" />
+    </div>
+  </div>
+  } @else {
+  <div class="space-y-4">
+    <!-- Datos -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos del conteo</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <span class="mb-1 block text-sm font-medium">Local *</span>
+          <app-location-select [disabled]="$isSaving() || $hasCounted()" />
+          @if ($hasCounted()) {
+          <p class="text-muted-foreground mt-1 text-xs">
+            Para cambiar de local,
+            <button type="button" class="text-primary font-medium hover:underline" [disabled]="$isSaving()" (click)="handleClearCounts()">vacía lo contado</button>.
+          </p>
+          }
+        </div>
+
+        <div>
+          <label for="count-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+          <input
+            id="count-date"
+            type="date"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [value]="$documentDate()"
+            [disabled]="$isSaving()"
+            [class.border-red-500]="$submitted() && !$documentDate()"
+            (change)="$documentDate.set($any($event.target).value)" />
+          @if ($submitted() && !$documentDate()) {
+          <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="count-notes" class="mb-1 block text-sm font-medium">Notas</label>
+          <textarea
+            id="count-notes"
+            rows="2"
+            [attr.maxlength]="notesMax"
+            placeholder="Opcional. Ej: conteo mensual de bodega"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [value]="$notes()"
+            [disabled]="$isSaving()"
+            (input)="$notes.set($any($event.target).value)"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Planilla -->
+    <section class="glass rounded-[1rem] p-4">
+      <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="text-foreground font-semibold">Planilla de conteo</h2>
+          <p class="text-muted-foreground text-xs">Ingresa lo que contaste. Deja vacío lo que no contaste; 0 significa que no queda nada.</p>
+        </div>
+        <p class="text-foreground shrink-0 text-sm font-semibold tabular-nums" aria-live="polite">
+          {{ $countedCount() }} de {{ $items().length }} contados
+        </p>
+      </div>
+
+      <div class="mb-3 flex items-start gap-2 rounded-lg bg-blue-500/10 px-3 py-2 text-xs text-blue-800 dark:text-blue-300">
+        <app-icon class="h-4 w-4 shrink-0">info</app-icon>
+        <span>
+          Los ítems sin contar no cambian. Si hay ventas mientras cuentas, la diferencia se calcula contra el stock al momento de
+          confirmar.
+        </span>
+      </div>
+
+      <!-- Filtros -->
+      <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <label class="relative sm:w-64">
+          <span class="sr-only">Buscar ítem</span>
+          <app-icon class="text-muted-foreground pointer-events-none absolute left-2 top-1/2 h-5 w-5 -translate-y-1/2">search</app-icon>
+          <input
+            type="search"
+            placeholder="Buscar por nombre o SKU"
+            class="glass-input w-full rounded-md py-2 pl-9 pr-3"
+            [value]="$search()"
+            (input)="$search.set($any($event.target).value)" />
+        </label>
+        @if ($ingredientsEnabled()) {
+        <select aria-label="Tipo de ítem" class="glass-input rounded-md px-3 py-2 sm:w-44" (change)="handleKindChange($event)">
+          <option value="all" [selected]="$kind() === 'all'">Todos</option>
+          <option value="ingredient" [selected]="$kind() === 'ingredient'">Ingredientes</option>
+          <option value="product" [selected]="$kind() === 'product'">Productos</option>
+        </select>
+        }
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class="h-4 w-4" [checked]="$onlyCounted()" (change)="$onlyCounted.set($any($event.target).checked)" />
+          Solo contados
+        </label>
+        @if ($hasFilters()) {
+        <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-auto" (click)="handleClearFilters()">
+          Limpiar filtros
+        </button>
+        }
+      </div>
+
+      <label class="border-border/60 mb-3 flex items-start gap-3 rounded-lg border p-3">
+        <input type="checkbox" class="mt-0.5 h-4 w-4" [checked]="$showSystem()" (change)="$showSystem.set($any($event.target).checked)" />
+        <span class="text-sm">
+          <span class="text-foreground font-medium">Mostrar stock del sistema</span>
+          <span class="text-muted-foreground block text-xs">
+            Recomendado dejarlo apagado (conteo ciego): quien cuenta no se guía por lo que dice el sistema y el resultado es más fiel.
+          </span>
+        </span>
+      </label>
+
+      @if (sheet.isLoading()) {
+      <div class="space-y-2">
+        <app-skeleton size="md" />
+        <app-skeleton size="md" />
+        <app-skeleton size="md" />
+      </div>
+      } @else if ($sheetError(); as error) {
+      <app-inventory-load-error [error]="error" title="No se pudo cargar la planilla" (retry)="sheet.reload()" />
+      } @else if ($items().length === 0) {
+      <div class="py-10 text-center">
+        <p class="text-foreground font-medium">No hay ítems para contar</p>
+        <p class="text-muted-foreground mt-1 text-sm">Solo se cuentan ingredientes y productos con stock propio.</p>
+      </div>
+      } @else if ($visibleRows().length === 0) {
+      <div class="py-10 text-center">
+        <p class="text-foreground font-medium">Sin resultados</p>
+        <button type="button" class="text-primary mt-2 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+      </div>
+      } @else {
+      @let showSystem = $showSystem();
+      <ul class="divide-y divide-[var(--border)]">
+        @for (row of $visibleRows(); track row.item.variationId) {
+        @let item = row.item;
+        @let error = rowError(row);
+        <li class="flex flex-col gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground truncate text-sm font-medium" [title]="item.label">{{ item.label }}</p>
+            <p class="text-muted-foreground text-xs">
+              @if (item.sku) {<span class="font-mono">{{ item.sku }}</span> · }{{ item.isIngredient ? 'Ingrediente' : 'Producto' }}
+              @if (showSystem) {
+              · Sistema: <span class="tabular-nums">{{ formatQuantity(item.systemQuantity, item.baseUnitName) }}</span>
+              }
+            </p>
+          </div>
+
+          <div class="flex items-start gap-2 sm:w-auto">
+            @if (item.units.length > 1) {
+            <select
+              class="glass-input w-32 rounded-md px-2 py-2 text-sm"
+              [attr.aria-label]="'Unidad de ' + item.label"
+              [disabled]="$isSaving()"
+              (change)="handleUnitChange(item.variationId, $event)">
+              @for (unit of item.units; track unit.id) {
+              <option [value]="unit.id" [selected]="unit.id === row.unit?.id">{{ unitLabel(unit) }}</option>
+              }
+            </select>
+            } @else if (item.baseUnitName) {
+            <span class="text-muted-foreground w-32 px-2 py-2 text-sm">{{ item.baseUnitName }}</span>
+            }
+            <div class="flex-1 sm:w-32 sm:flex-none">
+              <input
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="Sin contar"
+                class="glass-input w-full rounded-md px-3 py-2 text-right tabular-nums"
+                [attr.aria-label]="'Cantidad contada de ' + item.label"
+                [attr.aria-invalid]="!!error"
+                [class.border-red-500]="!!error"
+                [value]="row.raw"
+                [disabled]="$isSaving()"
+                (input)="handleCountInput(item.variationId, $event)" />
+            </div>
+          </div>
+
+          @if (showSystem) {
+          <p class="text-right text-sm font-semibold tabular-nums sm:w-28" [class]="differenceClass(row.difference)">
+            @if (row.difference === null) {
+            <span class="text-muted-foreground font-normal">—</span>
+            } @else if (row.difference === 0) {
+            Sin diferencia
+            } @else {
+            {{ formatSignedQuantity(row.difference, item.baseUnitName) }}
+            }
+          </p>
+          }
+
+          @if (error) {
+          <p class="text-destructive basis-full text-xs sm:text-right">{{ error }}</p>
+          }
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+      @if ($hasCounted()) {
+      <button
+        type="button"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold sm:mr-auto"
+        [disabled]="$isSaving()"
+        (click)="handleClearCounts()">
+        Vaciar conteo
+      </button>
+      }
+      <a
+        routerLink="/inventory/counts"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
+        Cancelar
+      </a>
+      <app-button type="button" impact="bold" tone="primary" icon="fact_check" [disabled]="$isSaving() || sheet.isLoading()" (buttonClick)="handleSubmit()">
+        {{ $isSaving() ? 'Registrando…' : 'Confirmar conteo (' + $countedCount() + ')' }}
+      </app-button>
+    </div>
+  </div>
+  }
+</div>

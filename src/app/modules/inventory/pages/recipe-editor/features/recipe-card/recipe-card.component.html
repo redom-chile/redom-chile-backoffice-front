@@ -26,20 +26,39 @@
       <p class="text-muted-foreground">Costo estimado</p>
       <p class="text-foreground font-semibold">{{ formatMoney($estimatedCost()) }}</p>
       } @else {
-      <p class="text-muted-foreground">Costo de la receta</p>
-      <p class="text-foreground font-semibold">
+      <p class="text-muted-foreground">{{ $hasYield() ? 'Costo del lote' : 'Costo de la receta' }}</p>
+      <p class="text-foreground flex flex-wrap items-center justify-end gap-1 font-semibold">
         {{ formatMoney(current.recipeCost ?? 0) }}
         @if (current.foodCostPercent !== null && current.foodCostPercent !== undefined) {
         <span
-          class="bg-primary/10 text-primary ml-1 rounded-full px-2 py-0.5 text-xs font-medium"
-          title="Costo de la receta / precio neto (sin IVA)">
-          {{ formatQuantity(current.foodCostPercent) }} % del precio
+          class="rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums"
+          [class]="$foodCostClass()"
+          title="Food cost: costo de la receta ÷ precio sin IVA × 100">
+          {{ formatQuantity($foodCostRounded()) }} % del precio
         </span>
         }
       </p>
+      @if ($hasYield()) {
+      <p class="text-muted-foreground text-xs">
+        Rinde {{ formatQuantity(current.recipeYield) }}
+        @if (current.costPerUnit !== null && current.costPerUnit !== undefined) { · {{ formatUnitCost(current.costPerUnit) }} por unidad }
+      </p>
+      } @else if (current.costPerUnit !== null && current.costPerUnit !== undefined) {
+      <p class="text-muted-foreground text-xs">{{ formatUnitCost(current.costPerUnit) }} por unidad</p>
+      }
       }
     </div>
   </header>
+
+  @if (!dirty && $missingCostItems().length) {
+  <p class="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+    <app-icon class="mt-px h-4 w-4 shrink-0" aria-hidden="true">warning</app-icon>
+    <span>
+      <strong>Costo incompleto:</strong> {{ $missingCostItems().join(', ') }}
+      {{ $missingCostItems().length === 1 ? 'no tiene' : 'no tienen' }} costo (falta registrar una compra con costo). El costo y el % quedan subestimados.
+    </span>
+  </p>
+  }
 
   @if ($copySources().length && !modifier) {
   <div class="mt-3">
@@ -92,6 +111,7 @@
           <p class="text-muted-foreground text-xs">
             {{ item.kind === 'ingredient' ? 'Ingrediente' : 'Producto' }}
             @if (rowUnitCost(row); as unitCost) { · {{ formatUnitCost(unitCost) }}@if (baseUnitName(row); as unit) { / {{ unit }} } }
+            @else if (rowUnitCost(row) === 0) { · <span class="text-amber-700 dark:text-amber-400" title="Falta registrar una compra con costo">sin costo</span> }
           </p>
           @if (consumption(row); as text) {
           <p class="mt-0.5 text-xs" [class]="subtract ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'">{{ text }} por unidad vendida</p>

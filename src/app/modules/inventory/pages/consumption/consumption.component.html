@@ -1,0 +1,144 @@
+<app-header-dashboard
+  title="Consumo teórico vs real"
+  subtitle="Compara lo que las ventas debieron consumir según las recetas con lo que realmente salió del stock. Cantidades en la unidad base." />
+
+@if ($isDisabled()) {
+<app-inventory-disabled />
+} @else if ($hasNoLocations()) {
+<app-empty-state icon="storefront" title="Aún no tienes locales" description="El consumo se calcula por local. Crea tu primer local para empezar a usar el inventario.">
+  <a routerLink="/business/location" class="text-primary text-sm font-medium hover:underline">Ir a locales</a>
+</app-empty-state>
+} @else {
+@let q = $query();
+<!-- Filtros -->
+<div class="mb-4 flex flex-col gap-3">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+    <label class="flex items-center gap-2 text-sm">
+      <app-icon class="text-muted-foreground h-5 w-5" aria-hidden="true">storefront</app-icon>
+      <select aria-label="Local" class="glass-input w-full rounded-md px-3 py-2 sm:w-56" [disabled]="locationStore.$locations().length === 0" (change)="onLocation($event)">
+        @if (locationStore.$isLoading() && locationStore.$locations().length === 0) {
+        <option>Cargando locales…</option>
+        }
+        @for (location of locationStore.$locations(); track location.id) {
+        <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+        }
+      </select>
+    </label>
+
+    <div role="group" aria-label="Período" class="glass flex max-w-full gap-1 overflow-x-auto rounded-lg p-1">
+      @for (option of rangeOptions; track option.value) {
+      <button
+        type="button"
+        class="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition"
+        [class]="q.range === option.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'"
+        [attr.aria-pressed]="q.range === option.value"
+        (click)="onRange(option.value)">
+        {{ option.label }}
+      </button>
+      }
+    </div>
+
+    <app-consumption-product-filter
+      [label]="$productLabel()"
+      [includeIngredients]="$ingredientsEnabled()"
+      (selected)="onProduct($event)"
+      (clear)="removeProduct()" />
+
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-auto" (click)="clearFilters()">Limpiar</button>
+    }
+  </div>
+
+  @if (q.range === 'custom') {
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-muted-foreground w-12 sm:w-auto">Desde</span>
+      <input type="date" aria-label="Desde" class="glass-input flex-1 rounded-md px-3 py-2" [value]="q.from ?? ''" [max]="q.to ?? ''" (change)="onDate('from', $event)" />
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-muted-foreground w-12 sm:w-auto">Hasta</span>
+      <input type="date" aria-label="Hasta" class="glass-input flex-1 rounded-md px-3 py-2" [value]="q.to ?? ''" [min]="q.from ?? ''" (change)="onDate('to', $event)" />
+    </label>
+  </div>
+  }
+
+  @if ($report(); as report) {
+  <p class="text-muted-foreground text-sm">
+    Período: <span class="text-foreground font-medium">{{ formatDocumentDate(report.dateFrom) }}</span> al
+    <span class="text-foreground font-medium">{{ formatDocumentDate(report.dateTo) }}</span>
+    <span class="hidden sm:inline"> · según la fecha en que se registró cada movimiento</span>
+  </p>
+  }
+</div>
+
+@if ($error(); as error) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar el consumo</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" shape="rounded" (buttonClick)="report.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="mb-4">
+  <app-consumption-summary [totals]="$report()?.totals ?? null" [loading]="$isLoading()" />
+</div>
+
+@if (!$isLoading() && $hasNoCount()) {
+<div role="status" class="mb-4 flex flex-col gap-3 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex items-start gap-3">
+    <app-icon class="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true">warning</app-icon>
+    <div>
+      <p class="text-foreground text-sm font-semibold">No hay conteos en el período</p>
+      <p class="text-muted-foreground text-sm">
+        La variación solo aparece completa si se hizo un conteo en el período. Sin conteo, solo refleja las mermas registradas.
+      </p>
+    </div>
+  </div>
+  <a
+    routerLink="/inventory/counts/new"
+    [queryParams]="{ locationId: $locationId() ?? undefined }"
+    class="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
+    <app-icon class="h-5 w-5">fact_check</app-icon>
+    Hacer un conteo
+  </a>
+</div>
+} @else {
+<p class="text-muted-foreground mb-4 flex items-start gap-2 text-sm">
+  <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">info</app-icon>
+  <span>
+    La variación solo aparece completa si se hizo un conteo en el período.
+    <a routerLink="/inventory/counts/new" [queryParams]="{ locationId: $locationId() ?? undefined }" class="text-primary font-medium hover:underline">Hacer un conteo</a>
+  </span>
+</p>
+}
+
+<div class="mb-4">
+  <app-consumption-help />
+</div>
+
+@if ($isEmpty()) {
+<app-empty-state
+  icon="query_stats"
+  title="Sin movimientos en el período"
+  description="No hubo ventas, compras, ajustes ni conteos en este local entre esas fechas. Prueba con otro período o local.">
+  @if ($hasFilters()) {
+  <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="clearFilters()">Limpiar filtros</button>
+  }
+</app-empty-state>
+} @else {
+@if ($locationId(); as locationId) {
+<app-consumption-table
+  [items]="$items()"
+  [loading]="$isLoading()"
+  [sort]="$sort()"
+  [locationId]="locationId"
+  [dateFrom]="$report()?.dateFrom ?? null"
+  [dateTo]="$report()?.dateTo ?? null"
+  (sortChange)="onSort($event)"
+  (sortSelect)="$sort.set($event)" />
+}
+}
+}
+}

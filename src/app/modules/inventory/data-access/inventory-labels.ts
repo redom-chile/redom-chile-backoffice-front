@@ -6,8 +6,8 @@ export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   sale_reversal: 'Anulación de venta',
   adjustment: 'Ajuste',
   waste: 'Merma',
-  transfer_in: 'Transferencia',
-  transfer_out: 'Transferencia',
+  transfer_in: 'Transferencia (entrada)',
+  transfer_out: 'Transferencia (salida)',
   count: 'Conteo',
   production: 'Producción',
 };
@@ -26,7 +26,17 @@ export const MOVEMENT_TYPE_OPTIONS: ReadonlyArray<{ value: StockMovementType; la
 export const DOCUMENT_TYPE_LABELS: Record<InventoryDocumentType, string> = {
   purchase: 'Compra',
   adjustment: 'Ajuste',
+  count: 'Conteo',
+  transfer: 'Transferencia',
+  production: 'Producción',
 };
+
+export const DOCUMENT_TYPE_OPTIONS: ReadonlyArray<{ value: InventoryDocumentType; label: string }> = [
+  { value: 'purchase', label: 'Compra' },
+  { value: 'adjustment', label: 'Ajuste' },
+  { value: 'count', label: 'Conteo' },
+  { value: 'transfer', label: 'Transferencia' },
+];
 
 export type AdjustmentReasonOption = Readonly<{
   value: AdjustmentReason;

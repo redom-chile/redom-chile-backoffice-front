@@ -1,5 +1,6 @@
 export * from './dtos';
 export * from './inventory-error-message';
+export * from './food-cost-level';
 export * from './inventory-format';
 export * from './inventory-labels';
 export * from './inventory-location.store';

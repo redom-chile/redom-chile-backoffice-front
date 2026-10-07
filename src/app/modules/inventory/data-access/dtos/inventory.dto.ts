@@ -13,7 +13,7 @@ export type StockMovementType =
   | 'count'
   | 'production';
 
-export type InventoryDocumentType = 'purchase' | 'adjustment';
+export type InventoryDocumentType = 'purchase' | 'adjustment' | 'count' | 'transfer' | 'production';
 
 export type AdjustmentReason = 'waste' | 'internal_use' | 'count_correction' | 'initial_stock' | 'other';
 
@@ -106,6 +106,9 @@ export type InventoryDocumentDto = Readonly<{
   reason: AdjustmentReason | null;
   locationId: number;
   locationName: string;
+  // Solo transferencias: destino (el filtro locationId incluye las que salen y las que llegan).
+  toLocationId?: number | null;
+  toLocationName?: string | null;
   supplierId: number | null;
   supplierName: string | null;
   referenceNo: string | null;
@@ -113,8 +116,10 @@ export type InventoryDocumentDto = Readonly<{
   documentDate: string;
   notes: string | null;
   totalCost: number;
+  // Cuenta movimientos: en transferencias es 2 × líneas; en conteos, solo las líneas con diferencia.
   linesCount: number;
   createdBy: string | null;
+  createdByName?: string | null;
   createdAt: string;
 }>;
 

@@ -16,6 +16,10 @@ const TRANSLATIONS: ReadonlyArray<[RegExp, (match: RegExpMatchArray) => string]>
   [/Unit (\d+) not found/i, () => 'La unidad elegida ya no existe.'],
   [/Unit "(.+?)" does not allow decimals \(product (.+)\)/i, (m) => `La unidad "${m[1]}" no permite decimales (${m[2]}).`],
   [/Unit "(.+?)" is not a sub unit of the unit of product (.+)/i, (m) => `"${m[1]}" no es una subunidad de la unidad de ${m[2]}.`],
+  // Transferencias
+  [/The origin and the destination must be different locations/i, () => 'El origen y el destino deben ser locales distintos.'],
+  [/An item is repeated in the transfer/i, () => 'Hay un ítem repetido en la transferencia: suma sus cantidades en una sola línea.'],
+  [/Location not found/i, () => 'Uno de los locales ya no existe. Recarga la página.'],
   [/Adjustment quantities cannot be 0/i, () => 'Las cantidades no pueden ser 0.'],
   [/For "(.+?)" enter the quantity as a positive number/i, () => 'Para este motivo ingresa la cantidad en positivo.'],
   [/A cost can only be set for stock that is added/i, () => 'El costo solo se puede indicar en líneas que suman stock.'],

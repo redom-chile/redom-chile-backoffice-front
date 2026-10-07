@@ -127,7 +127,15 @@
     @if ($isModifier()) {
     <p><strong>Quita ingrediente:</strong> para opciones como "Sin cebolla", devuelve lo que el plato iba a consumir. El consumo neto nunca baja de 0.</p>
     }
-    <p>Los costos usan el costo promedio de cada ingrediente; el % del precio se calcula sobre el precio sin IVA.</p>
+    <p>
+      <strong>Costo:</strong> cada fila es cantidad × (1 + merma %) × costo promedio ponderado del ingrediente en el local elegido
+      ("Promedio del negocio" promedia los locales según su stock). El costo de la receta es la suma de las filas.
+    </p>
+    <p>
+      <strong>Food cost %:</strong> costo de la receta ÷ precio sin IVA × 100@if ($isModifier()) { (por opción; sin precio no se calcula)}.
+      Como referencia, se apunta a 25–35 %. Compáralo entre platos en
+      <a routerLink="/inventory/food-cost" class="text-primary font-medium hover:underline">Food cost</a>.
+    </p>
   </div>
   }
   }

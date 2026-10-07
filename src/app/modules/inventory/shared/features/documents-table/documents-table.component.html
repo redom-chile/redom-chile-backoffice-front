@@ -1,4 +1,5 @@
-@let isPurchase = type() === 'purchase';
+@let listType = type();
+@let headers = $headers();
 <div class="glass overflow-hidden rounded-[1rem]">
   @if (loading()) {
   <!-- Skeleton -->
@@ -14,7 +15,7 @@
   </div>
   } @else if (documents().length === 0) {
   <div class="px-4 py-12 text-center">
-    <p class="text-foreground font-medium">{{ isPurchase ? 'Sin compras' : 'Sin ajustes' }}</p>
+    <p class="text-foreground font-medium">{{ $emptyTitle() }}</p>
     <p class="text-muted-foreground mt-1 text-sm">
       {{ hasFilters() ? 'No hay documentos que coincidan con los filtros.' : 'Todavía no hay documentos registrados.' }}
     </p>
@@ -29,16 +30,21 @@
       <thead>
         <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
           <th class="px-4 py-3">Fecha</th>
-          <th class="px-4 py-3">Local</th>
-          @if (isPurchase) {
+          @if (!listType) {
+          <th class="px-4 py-3">Tipo</th>
+          }
+          <th class="px-4 py-3">{{ headers.location }}</th>
+          @if (listType === 'purchase') {
           <th class="px-4 py-3">Proveedor</th>
           <th class="px-4 py-3">N° factura</th>
-          } @else {
+          } @else if (listType === 'adjustment') {
           <th class="px-4 py-3">Motivo</th>
           <th class="px-4 py-3">Notas</th>
+          } @else {
+          <th class="px-4 py-3">Notas</th>
           }
-          <th class="px-4 py-3 text-right">Líneas</th>
-          <th class="px-4 py-3 text-right">Total</th>
+          <th class="px-4 py-3 text-right">{{ headers.lines }}</th>
+          <th class="px-4 py-3 text-right">{{ headers.total }}</th>
           <th class="hidden px-4 py-3 lg:table-cell">Creado por</th>
           <th class="px-4 py-3"><span class="sr-only">Abrir</span></th>
         </tr>
@@ -47,19 +53,30 @@
         @for (document of documents(); track document.id) {
         <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(document)">
           <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDate(document.documentDate) }}</td>
-          <td class="text-foreground px-4 py-3 text-sm">{{ document.locationName }}</td>
-          @if (isPurchase) {
+          @if (!listType) {
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
+            {{ typeLabels[document.type] ?? document.type }}@if (document.reason) { · {{ reasonLabels[document.reason] }} }
+          </td>
+          }
+          <td class="text-foreground px-4 py-3 text-sm">{{ locationLabel(document) }}</td>
+          @if (listType === 'purchase') {
           <td class="text-foreground px-4 py-3 text-sm">{{ document.supplierName ?? '—' }}</td>
           <td class="text-muted-foreground px-4 py-3 font-mono text-sm">{{ document.referenceNo ?? '—' }}</td>
-          } @else {
+          } @else if (listType === 'adjustment') {
           <td class="text-foreground px-4 py-3 text-sm">{{ document.reason ? reasonLabels[document.reason] : '—' }}</td>
           <td class="text-muted-foreground px-4 py-3 text-sm">
             <p class="max-w-[16rem] truncate" [title]="document.notes ?? ''">{{ document.notes ?? '—' }}</p>
           </td>
+          } @else {
+          <td class="text-muted-foreground px-4 py-3 text-sm">
+            <p class="max-w-[16rem] truncate" [title]="document.notes ?? ''">{{ document.notes ?? '—' }}</p>
+          </td>
           }
-          <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">{{ document.linesCount }}</td>
+          <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">
+            {{ listType ? itemsCount(document) : itemsLabel(document) }}
+          </td>
           <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</td>
-          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ document.createdBy ?? '—' }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ userLabel(document) }}</td>
           <td class="px-4 py-3 text-right">
             <a
               [routerLink]="['/inventory/documents', document.id]"
@@ -83,13 +100,16 @@
       <a [routerLink]="['/inventory/documents', document.id]" [state]="{ document }" class="glass-row flex items-start gap-3 px-4 py-3">
         <div class="min-w-0 flex-1">
           <p class="text-foreground truncate text-sm font-semibold">
-            {{ isPurchase ? (document.supplierName ?? 'Sin proveedor') : (document.reason ? reasonLabels[document.reason] : 'Ajuste') }}
+            @if (!listType && document.type !== 'count') { {{ typeLabels[document.type] }} · }{{ title(document) }}
           </p>
           <p class="text-muted-foreground truncate text-xs">
-            {{ formatDate(document.documentDate) }} · {{ document.locationName }}
-            @if (isPurchase && document.referenceNo) { · N° {{ document.referenceNo }} }
+            {{ formatDate(document.documentDate) }}@if (document.type !== 'transfer') { · {{ document.locationName }} }
+            @if (document.type === 'purchase' && document.referenceNo) { · N° {{ document.referenceNo }} }
           </p>
-          <p class="text-muted-foreground text-xs">{{ document.linesCount }} {{ document.linesCount === 1 ? 'línea' : 'líneas' }}</p>
+          @if (document.notes && document.type !== 'purchase') {
+          <p class="text-muted-foreground truncate text-xs">{{ document.notes }}</p>
+          }
+          <p class="text-muted-foreground text-xs">{{ itemsLabel(document) }}</p>
         </div>
         <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</span>
       </a>

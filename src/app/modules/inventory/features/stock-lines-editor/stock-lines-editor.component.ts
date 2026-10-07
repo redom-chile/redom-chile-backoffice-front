@@ -29,6 +29,7 @@ import {
   MAX_STOCK_LINES,
   StockLineCostMode,
   StockLineForm,
+  StockLineHintFn,
   StockLineQuantityMode,
   StockLinesArray,
 } from './stock-line-form';
@@ -69,6 +70,8 @@ export class StockLinesEditorComponent {
   readonly showErrors = input(false);
   /** Precarga una línea con esta variación (ej. ?variationId= desde el stock). */
   readonly preselectVariationId = input<number | null>(null);
+  /** Texto opcional bajo cada ítem (ej. stock disponible en el origen de una transferencia). */
+  readonly lineHint = input<StockLineHintFn | null>(null);
 
   protected readonly kindLabels = KIND_LABELS;
   protected readonly formatMoney = formatMoney;

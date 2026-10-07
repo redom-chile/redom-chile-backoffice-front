@@ -11,7 +11,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
 
@@ -154,6 +154,26 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Filtro `stockMode` en `GET /products` y, si es posible, un `hasRecipe` (o un endpoint con los platos sin receta).
 
 **Front mientras tanto:** detecta el 409 por el prefijo `Not enough stock for:` y muestra los nombres en español; el aviso de platos sin receta se calcula en la pestaña Inventario del negocio revisando hasta 500 productos.
+
+### 37. 🟡 Costeo y control: detalle de conteos/transferencias, filtros y códigos
+
+**Problema:**
+- No existen `GET /inventory/counts/:id` ni `GET /inventory/transfers/:id`: el detalle se arma con `GET /inventory/movements?documentId=` (máx. 100 por página) y en conteos las líneas sin diferencia no generan movimiento, así que no se puede ver qué se contó.
+- `linesCount` en `GET /inventory/documents` cuenta movimientos: en transferencias es el doble de las líneas y en conteos solo las líneas con diferencia.
+- `GET /inventory/stock` no filtra por `variationId` (para mostrar el stock del origen en una transferencia) y `perPage` máx. 100 obliga a paginar la hoja de conteo.
+- `GET /inventory/consumption` no indica si hubo un conteo en el período: un conteo que cuadró exacto no se distingue de no haber contado.
+- `GET /inventory/food-cost` filtra `categoryId` exacto, sin subcategorías.
+- Ningún error de conteos, transferencias, food cost o consumo trae código de negocio (repetidos, mismo origen y destino, falta de stock, unidad inválida, fechas).
+
+**Se pide:**
+- `GET /inventory/documents/:id` con cabecera y líneas (incluidas las de conteo sin diferencia), o guardar las líneas del conteo.
+- `linesCount` = líneas del documento.
+- Filtro `variationId` (o `variationIds`) en `GET /inventory/stock`.
+- En consumo, `countsInPeriod` o `lastCountDate` por ítem.
+- `categoryId` que incluya subcategorías en food cost.
+- Códigos: `ITEM_REPEATED`, `SAME_LOCATION`, `NOT_ENOUGH_STOCK` (ver #36), `INVALID_UNIT`, `INVALID_DATE_RANGE`.
+
+**Front mientras tanto:** el detalle de conteos y transferencias se arma con los movimientos (hasta 100); la lista divide `linesCount` por 2 en transferencias y muestra "N con diferencia" en conteos; la hoja de conteo pagina de a 100; el stock del origen se busca por SKU; los errores se traducen por el texto en inglés.
 
 ---
 

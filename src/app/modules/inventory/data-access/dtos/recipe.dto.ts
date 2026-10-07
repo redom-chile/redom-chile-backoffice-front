@@ -27,6 +27,8 @@ export type RecipeVariationDto = Readonly<{
   sellPriceIncTax: number | null;
   items: RecipeItemDto[];
   recipeCost?: number;
+  recipeYield?: number | null;
+  costPerUnit?: number | null;
   // Costo / precio neto sin IVA × 100; null si no tiene precio.
   foodCostPercent?: number | null;
 }>;
@@ -39,6 +41,8 @@ export type ProductRecipesDto = Readonly<{
   stockMode: string;
   // stockMode 'recipe' o set de modificadores.
   canHaveRecipe: boolean;
+  recipeKind?: 'sale' | 'production';
+  // null = promedio del negocio.
   locationId?: number | null;
   variations: RecipeVariationDto[];
 }>;

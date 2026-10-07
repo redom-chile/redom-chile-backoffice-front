@@ -1,16 +1,21 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { ADJUSTMENT_REASONS, AdjustmentReason } from '../../../data-access';
+import { ADJUSTMENT_REASONS, AdjustmentReason, DOCUMENT_TYPE_OPTIONS, InventoryDocumentType } from '../../../data-access';
 
 export type DocumentFilters = Readonly<{
   locationId: number | null;
   reason: AdjustmentReason | null;
   from: string | null;
   to: string | null;
+  // Solo en listas con documentos de varios tipos (showType).
+  type?: InventoryDocumentType | null;
 }>;
 
 export type DocumentFilterLocation = Readonly<{ id: number; name: string }>;
 
-/** Filtros de compras y ajustes: local (opcional), motivo (solo ajustes) y rango de fechas del documento. */
+/**
+ * Filtros de documentos: local (opcional; en transferencias incluye origen y destino), tipo (opcional),
+ * motivo (solo ajustes) y rango de fechas del documento.
+ */
 @Component({
   selector: 'app-documents-filters',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +28,15 @@ export type DocumentFilterLocation = Readonly<{ id: number; name: string }>;
         <option [value]="location.id" [selected]="f.locationId === location.id">{{ location.name }}</option>
         }
       </select>
+
+      @if (showType()) {
+      <select aria-label="Filtrar por tipo" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onType($event)">
+        <option value="" [selected]="!f.type">Todos los tipos</option>
+        @for (type of types; track type.value) {
+        <option [value]="type.value" [selected]="f.type === type.value">{{ type.label }}</option>
+        }
+      </select>
+      }
 
       @if (showReason()) {
       <select aria-label="Filtrar por motivo" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onReason($event)">
@@ -52,15 +66,22 @@ export class DocumentsFiltersComponent {
   readonly filters = input.required<DocumentFilters>();
   readonly locations = input<readonly DocumentFilterLocation[]>([]);
   readonly showReason = input(false);
+  readonly showType = input(false);
   readonly hasFilters = input(false);
   readonly filtersChange = output<Partial<DocumentFilters>>();
   readonly clear = output<void>();
 
   readonly reasons = ADJUSTMENT_REASONS;
+  readonly types = DOCUMENT_TYPE_OPTIONS;
 
   onLocation(event: Event) {
     const value = Number((event.target as HTMLSelectElement).value);
     this.filtersChange.emit({ locationId: value > 0 ? value : null });
+  }
+
+  onType(event: Event) {
+    const value = (event.target as HTMLSelectElement).value as InventoryDocumentType | '';
+    this.filtersChange.emit({ type: value || null });
   }
 
   onReason(event: Event) {
