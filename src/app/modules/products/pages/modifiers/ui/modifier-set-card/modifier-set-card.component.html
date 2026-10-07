@@ -46,6 +46,11 @@
     <app-button type="button" size="small" impact="light" tone="primary" icon="link" (buttonClick)="products.emit(modifierSet)">
       <span #buttonText>Productos</span>
     </app-button>
+    @if (showRecipes()) {
+    <app-button type="button" size="small" impact="light" tone="primary" icon="menu_book" (buttonClick)="recipes.emit(modifierSet)">
+      <span #buttonText>Recetas</span>
+    </app-button>
+    }
     <app-button type="button" size="small" impact="none" tone="danger" icon="delete" (buttonClick)="delete.emit(modifierSet)">
       <span #buttonText>Eliminar</span>
     </app-button>

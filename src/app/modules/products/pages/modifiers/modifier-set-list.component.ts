@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import {
   ButtonComponent,
   ConfirmModalComponent,
@@ -29,6 +31,8 @@ export class ModifierSetListComponent implements OnInit {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #service = inject(ModifierSetsService);
+  readonly #router = inject(Router);
+  readonly $ingredientsEnabled = inject(BusinessSettingsService).$ingredientsEnabled;
 
   readonly $sets = this.#service.$sets;
   readonly $isLoading = this.#service.$isLoading;
@@ -67,6 +71,10 @@ export class ModifierSetListComponent implements OnInit {
       })
       .afterClosed()
       .subscribe((result) => this.#showResult(result));
+  }
+
+  handleRecipes(set: ModifierSetDto) {
+    this.#router.navigate(['/inventory/recipes', set.id]);
   }
 
   handleDelete(set: ModifierSetDto) {

@@ -75,6 +75,15 @@
           </td>
           <td class="px-4 py-3">
             <div class="flex justify-end gap-1">
+              @if (showRecipe() && product.stockMode === 'recipe') {
+              <a
+                [routerLink]="['/inventory/recipes', product.id]"
+                title="Receta"
+                [attr.aria-label]="'Receta de ' + product.name"
+                class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--muted)]/30">
+                <app-icon class="h-5 w-5">menu_book</app-icon>
+              </a>
+              }
               <button
                 type="button"
                 title="Editar"

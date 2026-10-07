@@ -1,6 +1,13 @@
 import { HttpStatusCode } from '@angular/common/http';
+import { ApiError } from 'src/app/core/utils';
+import { isNotEnoughStockError, notEnoughStockMessage } from 'src/app/core/utils/stock-error';
 
-export function getPaymentErrorMessage(status: HttpStatusCode | undefined): string {
+/** Acepta el error normalizado (`readApiError`) o solo el status HTTP. */
+export function getPaymentErrorMessage(error: ApiError | HttpStatusCode | undefined): string {
+  // El pago que deja el pedido pagado descuenta stock (on_payment) y puede responder 409 por falta de stock.
+  if (typeof error === 'object' && isNotEnoughStockError(error)) return notEnoughStockMessage(error);
+  const status = typeof error === 'object' ? error.status : error;
+
   switch (status) {
     case HttpStatusCode.BadRequest:
       return 'Revisa los montos: el pago no puede superar el saldo y el efectivo debe cubrir el monto más la propina.';

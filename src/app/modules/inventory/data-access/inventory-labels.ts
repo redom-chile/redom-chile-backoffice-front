@@ -3,7 +3,7 @@ import { AdjustmentReason, InventoryDocumentType, StockMovementType } from './dt
 export const MOVEMENT_TYPE_LABELS: Record<StockMovementType, string> = {
   purchase: 'Compra',
   sale: 'Venta',
-  sale_reversal: 'Reversa de venta',
+  sale_reversal: 'Anulación de venta',
   adjustment: 'Ajuste',
   waste: 'Merma',
   transfer_in: 'Transferencia',
@@ -18,7 +18,7 @@ export const MOVEMENT_TYPE_OPTIONS: ReadonlyArray<{ value: StockMovementType; la
   { value: 'waste', label: 'Merma' },
   { value: 'count', label: 'Conteo' },
   { value: 'sale', label: 'Venta' },
-  { value: 'sale_reversal', label: 'Reversa de venta' },
+  { value: 'sale_reversal', label: 'Anulación de venta' },
   { value: 'transfer_in', label: 'Transferencia (entrada)' },
   { value: 'transfer_out', label: 'Transferencia (salida)' },
 ];
@@ -53,7 +53,7 @@ export const ADJUSTMENT_REASON_LABELS: Record<AdjustmentReason, string> = Object
 export const STOCK_MODE_OPTIONS = [
   { value: 'none', label: 'Sin control', hint: 'No controla stock (servicio, propina).' },
   { value: 'direct', label: 'Stock propio', hint: 'El producto tiene stock propio (bebida en lata, cerveza).' },
-  { value: 'recipe', label: 'Por receta', hint: 'Descuenta ingredientes según su receta (plato). Las recetas llegan pronto.' },
+  { value: 'recipe', label: 'Por receta', hint: 'Descuenta los ingredientes de su receta (plato).' },
 ] as const;
 
 export type StockMode = (typeof STOCK_MODE_OPTIONS)[number]['value'];

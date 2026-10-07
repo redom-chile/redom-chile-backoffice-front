@@ -19,6 +19,13 @@ const TRANSLATIONS: ReadonlyArray<[RegExp, (match: RegExpMatchArray) => string]>
   [/Adjustment quantities cannot be 0/i, () => 'Las cantidades no pueden ser 0.'],
   [/For "(.+?)" enter the quantity as a positive number/i, () => 'Para este motivo ingresa la cantidad en positivo.'],
   [/A cost can only be set for stock that is added/i, () => 'El costo solo se puede indicar en líneas que suman stock.'],
+  // Recetas
+  [/Only dishes \(stockMode "recipe"\) and modifier options have a recipe; (.+?) has stockMode/i, (m) => `Solo los platos "Por receta" y las opciones de modificador tienen receta; ${m[1]} no es "Por receta".`],
+  [/An ingredient is repeated in the recipe/i, () => 'Hay un ingrediente repetido en la receta: suma sus cantidades en una sola fila.'],
+  [/A product cannot consume itself/i, () => 'Un producto no puede ser ingrediente de sí mismo.'],
+  [/Negative quantities are only allowed in modifier options/i, () => 'Solo las opciones de modificador pueden quitar ingredientes (cantidad negativa).'],
+  [/Variation not found/i, () => 'La variación ya no existe. Recarga la página.'],
+  [/Product not found/i, () => 'El producto no existe o fue eliminado.'],
   [/Business not found/i, () => 'No se encontró el negocio.'],
 ];
 

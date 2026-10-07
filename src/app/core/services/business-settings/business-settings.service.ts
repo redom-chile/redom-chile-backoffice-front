@@ -9,7 +9,7 @@ const DEFAULT_INVENTORY: InventorySettings = {
   inventoryEnabled: false,
   deductStockOnSale: false,
   ingredientsEnabled: false,
-  stockDeductionMoment: 'on_payment',
+  stockDeductionMoment: 'on_order',
   allowNegativeStock: true,
 };
 

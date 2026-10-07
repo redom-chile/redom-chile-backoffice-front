@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { HttpStatusCode } from '@angular/common/http';
 import { ButtonComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { getOrderErrorMessage, GetServiceStaffService } from '../order-list/data-access';
 import {
   formatDateTime,
@@ -68,6 +69,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private readonly paymentsService = inject(GetOrderPaymentsService);
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
+  private readonly businessSettings = inject(BusinessSettingsService);
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly orderStatus = ORDER_STATUS;
@@ -254,11 +256,19 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private handleModalResult(result: OrderModalResult | undefined) {
     const messages: Partial<Record<OrderModalResult, string>> = {
       updated: 'Pedido actualizado',
-      'cancelled-order': 'Pedido cancelado',
+      'cancelled-order': this.stockReturnedOnCancel()
+        ? 'Pedido cancelado. El stock se devolvió al inventario.'
+        : 'Pedido cancelado',
     };
     const message = result ? messages[result] : undefined;
     if (!message) return;
     this.toast.show(message, 'success');
     this.handleRetry();
+  }
+
+  // Con descuento al pedir, cancelar devuelve el stock (lo ya preparado queda como merma).
+  private stockReturnedOnCancel(): boolean {
+    const inventory = this.businessSettings.$inventory();
+    return inventory.inventoryEnabled && inventory.deductStockOnSale && inventory.stockDeductionMoment === 'on_order';
   }
 }

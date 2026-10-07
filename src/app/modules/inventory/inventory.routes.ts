@@ -9,6 +9,8 @@ import {
   KardexComponent,
   PurchaseListComponent,
   PurchaseNewComponent,
+  RecipeEditorComponent,
+  RecipesComponent,
   StockComponent,
   UnitsComponent,
 } from './pages';
@@ -31,6 +33,10 @@ const routes: Routes = [
       { path: 'kardex', component: KardexComponent },
       { path: 'documents/:id', component: DocumentDetailComponent },
       { path: 'ingredients', component: IngredientsComponent },
+      // Query param opcional: tab=opciones (sets de modificadores).
+      { path: 'recipes', component: RecipesComponent, pathMatch: 'full' },
+      // productId de un plato o de un set de modificadores.
+      { path: 'recipes/:productId', component: RecipeEditorComponent },
       { path: 'units', component: UnitsComponent },
     ],
   },

@@ -1,5 +1,6 @@
 import { HttpStatusCode } from '@angular/common/http';
 import { ApiError, ApiErrorCode } from 'src/app/core/utils';
+import { isNotEnoughStockError, notEnoughStockMessage } from 'src/app/core/utils/stock-error';
 import { getOrderErrorMessage } from '../../order-list/data-access';
 
 // "Product X is not for sale" (400 sin código propio).
@@ -12,7 +13,8 @@ export function isModifierNotAvailableError(error: ApiError): boolean {
 
 /**
  * Mensaje al crear un pedido o agregar productos. POST /orders/:id/lines responde 409 sin
- * código propio (code CONFLICT) cuando la cuenta ya se cerró o se canceló.
+ * código propio (code CONFLICT) cuando la cuenta ya se cerró o se canceló; el 409 por falta de
+ * stock (negocio sin stock negativo) se distingue por el mensaje y se revisa antes.
  * `productName` resuelve el nombre del producto del carrito que indica `details.productId`.
  */
 export function getOrderSaveErrorMessage(
@@ -20,6 +22,8 @@ export function getOrderSaveErrorMessage(
   adding: boolean,
   productName?: (productId: number) => string | undefined,
 ): string {
+  if (isNotEnoughStockError(error)) return notEnoughStockMessage(error);
+
   const notOpen =
     error.code === ApiErrorCode.ORDER_NOT_OPEN || (adding && error.status === HttpStatusCode.Conflict);
   if (notOpen) return 'La cuenta ya no está abierta: no se le pueden agregar productos.';

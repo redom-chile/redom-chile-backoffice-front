@@ -49,6 +49,8 @@
       [class.opacity-50]="$deletingId() === modifierSet.id"
       (edit)="handleEdit($event)"
       (products)="handleProducts($event)"
+      [showRecipes]="$ingredientsEnabled()"
+      (recipes)="handleRecipes($event)"
       (delete)="handleDelete($event)" />
     }
   </div>

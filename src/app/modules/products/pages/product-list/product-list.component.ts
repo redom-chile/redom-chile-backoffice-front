@@ -56,7 +56,9 @@ export class ProductListComponent implements OnInit {
   protected readonly refreshExpiredImages = throttledRefresh(() => this.getAllService.retry());
   private readonly getAllCategoriesService = inject(GetAllCategoriesService);
 
-  readonly $inventoryEnabled = inject(BusinessSettingsService).$inventoryEnabled;
+  readonly #settings = inject(BusinessSettingsService);
+  readonly $inventoryEnabled = this.#settings.$inventoryEnabled;
+  readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
 
   private readonly filtersComponent = viewChild(FiltersProductTableComponent);
 

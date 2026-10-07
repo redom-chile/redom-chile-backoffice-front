@@ -17,6 +17,9 @@ export class ModifierSetCardComponent {
   readonly edit = output<ModifierSetDto>();
   readonly products = output<ModifierSetDto>();
   readonly delete = output<ModifierSetDto>();
+  // Qué ingredientes suma o quita cada opción (solo con ingredientes y recetas activos).
+  readonly showRecipes = input(false);
+  readonly recipes = output<ModifierSetDto>();
 
   readonly formatPrice = formatModifierPrice;
 

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { IconComponent, ImageThumbComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { STOCK_MODE_LABELS } from 'src/app/modules/inventory/data-access';
@@ -7,7 +8,7 @@ import { ProductDto } from '../../data-access';
 @Component({
   selector: 'app-products-table',
   standalone: true,
-  imports: [IconComponent, SkeletonComponent, PaginationTableComponent, ImageThumbComponent],
+  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent, ImageThumbComponent],
   templateUrl: './products-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -19,6 +20,8 @@ export class ProductsTableComponent {
   readonly hasFilters = input(false);
   // Muestra el control de stock (solo con el inventario activo).
   readonly showStockMode = input(false);
+  // Acceso a la receta de los platos "Por receta" (inventario + ingredientes activos).
+  readonly showRecipe = input(false);
   readonly stockModeLabels = STOCK_MODE_LABELS;
 
   readonly edit = output<ProductDto>();

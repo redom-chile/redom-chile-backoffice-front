@@ -11,7 +11,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
 
@@ -138,6 +138,22 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** excluir `modifier` por defecto, igual que `ingredient` (solo salen con `type=modifier`), o aceptar `excludeTypes`.
 
 **Front mientras tanto:** Carta → Productos y el POS filtran `type === 'modifier'` en la página recibida, así que una página puede mostrar menos filas que `perPage` y `totalItems` los incluye.
+
+### 36. 🟡 Inventario por venta: código para falta de stock y anulación de pagos
+
+**Problema:**
+- La falta de stock (`InventoryService.applyMovements`) responde 409 con código genérico `CONFLICT` y sin `details`: `Not enough stock for: Queso mozzarella (negative stock is not allowed)`. El front tiene que reconocerlo por el texto y sacar los nombres con una regex. Puede salir en `POST /orders`, `POST /orders/:id/lines`, `POST /payments` y `PATCH /orders/:id`.
+- Anular un pago (`PATCH /payments/:id/cancel`) no devuelve el stock descontado con `on_payment`; solo `PATCH /orders/:id/cancel` llama a `reverseOrderStock`, y un pedido con pagos no se puede anular.
+- `GET /inventory/movements` no filtra por `transactionId`, así que no se pueden ver los movimientos de un pedido desde su detalle.
+- `GET /products` no filtra por `stockMode`: para listar platos con receta o saber cuáles no tienen receta, el front recorre hasta 5 páginas de productos y pide `GET /inventory/recipes` de cada uno.
+
+**Se pide:**
+- Código `NOT_ENOUGH_STOCK` con `details: { items: [{ productId, variationId, name, required, available }] }`.
+- Definir qué pasa con el stock al anular un pago de un pedido ya descontado (devolverlo o dejarlo explícito).
+- Filtro `transactionId` en `GET /inventory/movements`.
+- Filtro `stockMode` en `GET /products` y, si es posible, un `hasRecipe` (o un endpoint con los platos sin receta).
+
+**Front mientras tanto:** detecta el 409 por el prefijo `Not enough stock for:` y muestra los nombres en español; el aviso de platos sin receta se calcula en la pestaña Inventario del negocio revisando hasta 500 productos.
 
 ---
 

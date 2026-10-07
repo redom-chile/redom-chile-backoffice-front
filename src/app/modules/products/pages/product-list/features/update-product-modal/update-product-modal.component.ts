@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { FormBuilder } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { Router } from '@angular/router';
+import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { UnitsService } from 'src/app/modules/inventory/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
@@ -13,7 +14,7 @@ import { ProductModalResult } from '../product-modal-result';
 @Component({
   selector: 'app-update-product-modal',
   standalone: true,
-  imports: [ButtonComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent],
+  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent],
   templateUrl: './update-product-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +38,9 @@ export class UpdateProductModalComponent implements OnDestroy {
   // Subiendo la imagen o guardando el producto.
   readonly $isLoading = computed(() => this.#isSaving() || !!this.updateService.$isLoading());
   #image: ImageSelection = { kind: 'keep' };
+  readonly #router = inject(Router);
+  // La receta se arma sobre lo guardado: solo si el producto ya es "Por receta".
+  readonly $canConfigureRecipe = computed(() => this.product.stockMode === 'recipe' && this.$ingredientsEnabled());
 
   constructor() {
     if (this.$inventoryEnabled()) this.#units.load();
@@ -82,6 +86,11 @@ export class UpdateProductModalComponent implements OnDestroy {
     } finally {
       this.#isSaving.set(false);
     }
+  }
+
+  handleConfigureRecipe() {
+    this.dialogRef.close('cancelled');
+    this.#router.navigate(['/inventory/recipes', this.product.id]);
   }
 
   handleCancel() {

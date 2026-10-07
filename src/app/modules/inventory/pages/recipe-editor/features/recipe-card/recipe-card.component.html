@@ -1,0 +1,238 @@
+@let current = variation();
+@let dirty = $isDirty();
+@let modifier = isModifier();
+@let grid = 'lg:grid-cols-[minmax(0,1fr)_9rem_9rem_6.5rem_7rem_2.5rem]';
+<section class="glass rounded-[1rem] p-4" [attr.aria-label]="'Receta de ' + $title()">
+  <!-- Encabezado -->
+  <header class="flex flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h2 class="text-foreground flex flex-wrap items-center gap-2 font-semibold">
+        <span class="break-words">{{ $title() }}</span>
+        @if (dirty) {
+        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>Sin guardar
+        </span>
+        }
+      </h2>
+      <p class="text-muted-foreground text-sm">
+        @if (current.sellPriceIncTax !== null) { Precio {{ formatMoney(current.sellPriceIncTax) }} · }
+        {{ rows.length }} {{ rows.length === 1 ? 'ingrediente' : 'ingredientes' }}
+      </p>
+    </div>
+
+    <!-- Costo -->
+    <div class="text-right text-sm">
+      @if (dirty) {
+      <p class="text-muted-foreground">Costo estimado</p>
+      <p class="text-foreground font-semibold">{{ formatMoney($estimatedCost()) }}</p>
+      } @else {
+      <p class="text-muted-foreground">Costo de la receta</p>
+      <p class="text-foreground font-semibold">
+        {{ formatMoney(current.recipeCost ?? 0) }}
+        @if (current.foodCostPercent !== null && current.foodCostPercent !== undefined) {
+        <span
+          class="bg-primary/10 text-primary ml-1 rounded-full px-2 py-0.5 text-xs font-medium"
+          title="Costo de la receta / precio neto (sin IVA)">
+          {{ formatQuantity(current.foodCostPercent) }} % del precio
+        </span>
+        }
+      </p>
+      }
+    </div>
+  </header>
+
+  @if ($copySources().length && !modifier) {
+  <div class="mt-3">
+    <label class="sr-only" [for]="'copy-' + current.variationId">Copiar receta de otra variación</label>
+    <select
+      [id]="'copy-' + current.variationId"
+      class="glass-input w-full rounded-md px-3 py-2 text-sm sm:w-auto"
+      [disabled]="$isSaving()"
+      (change)="copyFrom($event)">
+      <option value="">Copiar receta de…</option>
+      @for (source of $copySources(); track source.variationId) {
+      <option [value]="source.variationId" [disabled]="!source.items.length">
+        {{ source.variationName ?? productName() }} ({{ source.items.length ? source.items.length + ' ingr.' : 'sin receta' }})
+      </option>
+      }
+    </select>
+  </div>
+  }
+
+  <!-- Filas -->
+  <div class="mt-4 space-y-3 lg:space-y-0">
+    @if (rows.length) {
+    <div class="text-muted-foreground hidden gap-3 px-3 pb-2 text-xs font-medium uppercase lg:grid" [class]="grid">
+      <span>Ingrediente</span>
+      <span>Cantidad</span>
+      <span>Unidad</span>
+      <span>Merma %</span>
+      <span class="text-right">Costo</span>
+      <span class="sr-only">Quitar</span>
+    </div>
+    }
+
+    @for (row of rows.controls; track row; let i = $index) {
+    @let item = row.controls.item.value;
+    @let units = unitOptions(row);
+    @let touched = isTouched(row);
+    @let qtyError = touched ? quantityError(row) : null;
+    @let rowWasteError = touched ? wasteError(row) : null;
+    @let subtract = row.controls.subtract.value;
+    @let cost = rowCost(row);
+    @let uid = current.variationId + '-' + i;
+    <div
+      [formGroup]="row"
+      class="border-border/60 grid grid-cols-2 gap-3 rounded-lg border p-3 lg:items-start lg:rounded-none lg:border-0 lg:border-b"
+      [class]="grid">
+      <!-- Ingrediente -->
+      <div class="col-span-2 flex items-start justify-between gap-2 lg:col-span-1 lg:pt-2">
+        <div class="min-w-0">
+          <p class="text-foreground break-words text-sm font-medium">{{ item.label }}</p>
+          <p class="text-muted-foreground text-xs">
+            {{ item.kind === 'ingredient' ? 'Ingrediente' : 'Producto' }}
+            @if (rowUnitCost(row); as unitCost) { · {{ formatUnitCost(unitCost) }}@if (baseUnitName(row); as unit) { / {{ unit }} } }
+          </p>
+          @if (consumption(row); as text) {
+          <p class="mt-0.5 text-xs" [class]="subtract ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'">{{ text }} por unidad vendida</p>
+          }
+        </div>
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-destructive inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md lg:hidden"
+          [attr.aria-label]="'Quitar ' + item.label"
+          (click)="remove(i)">
+          <app-icon class="h-5 w-5">delete</app-icon>
+        </button>
+      </div>
+
+      <!-- Cantidad -->
+      <div>
+        <label [for]="'qty-' + uid" class="text-muted-foreground mb-1 block text-xs lg:hidden">Cantidad</label>
+        <div class="flex items-center gap-1">
+          @if (modifier && subtract) {
+          <span class="text-destructive w-3 shrink-0 text-center font-semibold" aria-hidden="true">−</span>
+          }
+          <input
+            [id]="'qty-' + uid"
+            type="number"
+            min="0"
+            step="any"
+            inputmode="decimal"
+            placeholder="0"
+            formControlName="quantity"
+            class="glass-input w-full min-w-0 rounded-md px-3 py-2"
+            [class.border-red-500]="qtyError"
+            [attr.aria-invalid]="!!qtyError"
+            (blur)="row.markAsTouched()" />
+        </div>
+        @if (modifier) {
+        <label class="mt-1 flex cursor-pointer items-center gap-1.5 text-xs">
+          <input type="checkbox" formControlName="subtract" class="accent-[var(--primary)]" />
+          Quita ingrediente
+        </label>
+        }
+        @if (qtyError) {
+        <p class="text-destructive mt-1 text-xs">{{ qtyError }}</p>
+        }
+      </div>
+
+      <!-- Unidad -->
+      <div>
+        <label [for]="'unit-' + uid" class="text-muted-foreground mb-1 block text-xs lg:hidden">Unidad</label>
+        @if (units.length) {
+        <select [id]="'unit-' + uid" formControlName="unitId" class="glass-input w-full rounded-md px-3 py-2">
+          @for (unit of units; track unit.id) {
+          <option [ngValue]="unit.id">{{ unit.actualName }} ({{ unit.shortName }})</option>
+          }
+        </select>
+        @if (baseEquivalent(row); as equivalent) {
+        <p class="text-muted-foreground mt-1 text-xs">{{ equivalent }}</p>
+        }
+        } @else {
+        <select [id]="'unit-' + uid" disabled class="glass-input w-full rounded-md px-3 py-2">
+          <option>{{ baseUnitName(row) ?? 'Unidad base' }}</option>
+        </select>
+        }
+      </div>
+
+      <!-- Merma -->
+      <div>
+        <label [for]="'waste-' + uid" class="text-muted-foreground mb-1 block text-xs lg:hidden">Merma %</label>
+        <input
+          [id]="'waste-' + uid"
+          type="number"
+          min="0"
+          max="99.99"
+          step="any"
+          inputmode="decimal"
+          placeholder="0"
+          formControlName="wastePercent"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="rowWasteError"
+          [attr.aria-invalid]="!!rowWasteError"
+          (blur)="row.markAsTouched()" />
+        @if (rowWasteError) {
+        <p class="text-destructive mt-1 text-xs">{{ rowWasteError }}</p>
+        }
+      </div>
+
+      <!-- Costo -->
+      <div class="lg:pt-2 lg:text-right">
+        <span class="text-muted-foreground mb-1 block text-xs lg:hidden">Costo</span>
+        <span class="text-foreground text-sm font-medium" [title]="cost === null ? 'Sin costo conocido: guarda la receta para calcularlo' : ''">
+          {{ cost === null ? '—' : formatMoney(cost) }}
+        </span>
+      </div>
+
+      <!-- Quitar (escritorio) -->
+      <div class="hidden justify-end lg:flex">
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-destructive inline-flex h-10 w-10 items-center justify-center rounded-md"
+          [attr.aria-label]="'Quitar ' + item.label"
+          title="Quitar"
+          (click)="remove(i)">
+          <app-icon class="h-5 w-5">delete</app-icon>
+        </button>
+      </div>
+    </div>
+    } @empty {
+    <div class="border-border text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+      @if (modifier) {
+      Esta opción no consume ni quita ingredientes. Agrega uno si debe mover stock.
+      } @else {
+      Sin ingredientes: al venderlo no se descuenta nada. Agrega el primero con el buscador.
+      }
+    </div>
+    }
+  </div>
+
+  <!-- Agregar -->
+  <div class="mt-4">
+    <app-recipe-ingredient-search
+      [inputId]="'add-ingredient-' + current.variationId"
+      [excludeProductId]="productId()"
+      [addedVariationIds]="$addedIds()"
+      [disabled]="$isSaving()"
+      (selected)="addIngredient($event)" />
+  </div>
+
+  <!-- Acciones -->
+  <footer class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] pt-3">
+    <app-button type="button" impact="light" tone="primary" size="small" [disabled]="!dirty || $isSaving()" (buttonClick)="discard()">
+      Descartar cambios
+    </app-button>
+    <app-button
+      type="button"
+      impact="bold"
+      tone="primary"
+      size="small"
+      icon="save"
+      [disabled]="!dirty || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar
+    </app-button>
+  </footer>
+</section>

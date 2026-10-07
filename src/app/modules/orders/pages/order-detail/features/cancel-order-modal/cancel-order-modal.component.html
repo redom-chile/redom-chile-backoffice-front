@@ -13,6 +13,9 @@
         {{ order.tableName ? 'de ' + order.tableName : '' }} por {{ formatCurrency(order.finalTotal) }}?
       </p>
       <p class="text-muted-foreground mt-1 text-sm">El pedido quedará registrado como cancelado y la mesa se liberará. Esta acción no se puede deshacer.</p>
+      @if ($returnsStock()) {
+        <p class="text-muted-foreground mt-1 text-sm">Se devolverá el stock descontado; lo ya preparado se registrará como merma.</p>
+      }
     </div>
   </div>
 

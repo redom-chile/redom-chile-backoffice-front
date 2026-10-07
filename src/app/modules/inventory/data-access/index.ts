@@ -4,6 +4,7 @@ export * from './inventory-format';
 export * from './inventory-labels';
 export * from './inventory-location.store';
 export * from './inventory.service';
+export * from './recipes.service';
 export * from './stockable-items.service';
 export * from './suppliers.service';
 export * from './units.service';

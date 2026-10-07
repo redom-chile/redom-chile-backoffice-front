@@ -89,8 +89,8 @@
           <div>
             <p class="text-foreground text-sm font-semibold">Descontar stock al vender</p>
             <p class="text-muted-foreground mt-0.5 text-xs">
-              Las ventas descontarán el stock del local donde se venden. En esta etapa la venta aún no descuenta stock
-              (llega en una próxima versión), pero ya puedes dejarlo configurado.
+              Cada venta descuenta stock del local donde se vende: los productos con stock propio descuentan una unidad
+              por unidad vendida y los platos por receta descuentan sus ingredientes.
             </p>
           </div>
           <app-toggle
@@ -112,16 +112,55 @@
             <option [value]="option.value" [selected]="option.value === view.stockDeductionMoment">{{ option.label }}</option>
             }
           </select>
-          <span class="text-muted-foreground text-xs">Aplica a pedidos nuevos.</span>
         </div>
+        <p class="text-muted-foreground mt-1.5 text-xs">
+          {{ $momentHint() }} Cada línea del pedido descuenta una sola vez: si cambias esta opción, lo ya descontado no se
+          vuelve a descontar.
+        </p>
         }
+
+        <details class="group mt-3 rounded-lg border border-dashed border-[var(--border)]">
+          <summary class="text-primary flex cursor-pointer select-none items-center gap-1 px-3 py-2 text-xs font-medium [&::-webkit-details-marker]:hidden">
+            <app-icon class="h-4 w-4 transition-transform group-open:rotate-90">chevron_right</app-icon>
+            ¿Cómo se descuenta el stock?
+          </summary>
+          <ul class="text-muted-foreground list-disc space-y-1.5 px-3 pb-3 pl-8 text-xs">
+            <li>
+              <span class="text-foreground font-medium">Stock propio:</span> descuenta 1 unidad del mismo producto por cada unidad
+              vendida (ej. una lata de bebida).
+            </li>
+            <li>
+              <span class="text-foreground font-medium">Por receta:</span> descuenta los ingredientes de su receta (requiere
+              "Ingredientes y recetas"). Un plato sin receta no descuenta nada.
+            </li>
+            <li><span class="text-foreground font-medium">Sin control:</span> no descuenta nada (servicios, propinas).</li>
+            <li>
+              <span class="text-foreground font-medium">Modificadores:</span> sus opciones también pueden tener receta. "Extra
+              queso" suma ingredientes (+30 g) y "Sin cebolla" resta lo que el plato iba a consumir (−20 g). Nunca se descuenta
+              menos de 0 de un ingrediente.
+            </li>
+            <li>
+              <span class="text-foreground font-medium">Merma de la receta:</span> el % de merma se suma a la cantidad. Ej. 150 g
+              con 10 % descuenta 165 g.
+            </li>
+            <li>
+              <span class="text-foreground font-medium">Pedido anulado:</span> el stock vuelve al inventario ("Anulación de venta").
+              Lo que ya se preparó o sirvió no vuelve: queda registrado como merma.
+            </li>
+            <li>
+              <span class="text-foreground font-medium">Sin stock suficiente:</span> si no se permite stock negativo, la venta (o el
+              pago, si descuentas al pagar) se rechaza.
+            </li>
+          </ul>
+        </details>
       </div>
 
       <div class="flex items-start justify-between gap-4 p-4">
         <div>
           <p class="text-foreground text-sm font-semibold">Permitir stock negativo</p>
           <p class="text-muted-foreground mt-0.5 text-xs">
-            Si está apagado, no se podrán registrar salidas que dejen el stock bajo cero.
+            Si está apagado, no se podrán registrar salidas que dejen el stock bajo cero: un pedido (o un pago, si descuentas
+            al pagar) sin stock suficiente se rechaza.
           </p>
         </div>
         <app-toggle
@@ -132,6 +171,46 @@
       </div>
     </div>
   </app-card>
+
+  @if (recipeCheck.isLoading()) {
+  <p class="text-muted-foreground flex items-center gap-2 px-1 text-xs" aria-live="polite">
+    <app-icon class="h-4 w-4 animate-spin">progress_activity</app-icon>
+    Revisando recetas…
+  </p>
+  } @else if ($recipeIssues().length > 0) {
+  <div class="rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-4" role="status">
+    <div class="flex items-start gap-3">
+      <app-icon class="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400">warning</app-icon>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
+          @if ($recipeIssues().length === 1) {
+          1 plato por receta no descontará ingredientes completos
+          } @else {
+          {{ $recipeIssues().length }} platos por receta no descontarán ingredientes completos
+          }
+        </p>
+        <p class="mt-0.5 text-xs text-amber-800/80 dark:text-amber-200/80">
+          Al venderlos solo se descuenta lo que tenga receta. Completa sus recetas para que el stock cuadre.
+        </p>
+        <ul class="mt-2 space-y-1 text-sm">
+          @for (issue of $recipeIssuesShown(); track issue.productId) {
+          <li class="flex flex-wrap items-center gap-x-2">
+            <a [routerLink]="['/inventory/recipes', issue.productId]" class="text-foreground font-medium hover:underline">{{ issue.name }}</a>
+            <span class="text-xs text-amber-700 dark:text-amber-400">{{ issue.status === 'empty' ? 'sin receta' : 'receta incompleta' }}</span>
+          </li>
+          }
+        </ul>
+        @if ($recipeIssuesMore() > 0) {
+        <p class="mt-1 text-xs text-amber-800/80 dark:text-amber-200/80">y {{ $recipeIssuesMore() }} más</p>
+        }
+        <a routerLink="/inventory/recipes" class="text-primary mt-2 inline-block text-sm font-medium hover:underline">Ir a recetas</a>
+      </div>
+    </div>
+  </div>
+  }
+  @if (!recipeCheck.isLoading() && $recipeCheckNote(); as note) {
+  <p class="text-muted-foreground px-1 text-xs">{{ note }}</p>
+  }
 
   @if (view.inventoryEnabled && !$justEnabled()) {
   <p class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs">

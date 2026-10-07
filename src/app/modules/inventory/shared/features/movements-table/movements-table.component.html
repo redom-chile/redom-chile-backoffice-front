@@ -54,7 +54,13 @@
             <p class="text-muted-foreground text-xs">{{ variation }}</p>
             }
           </td>
-          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ typeLabels[movement.movementType] ?? movement.movementType }}</td>
+          <td class="px-4 py-3 text-sm">
+            <p class="text-foreground whitespace-nowrap">{{ typeLabels[movement.movementType] ?? movement.movementType }}</p>
+            @if (highlightNotes(movement)) {
+            <!-- Con pantalla ancha ya se ve la columna Notas -->
+            <p class="max-w-[12rem] text-xs text-amber-700 dark:text-amber-400 xl:hidden" [title]="movement.notes ?? ''">{{ movement.notes }}</p>
+            }
+          </td>
           <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums" [class]="quantityTone(movement.quantity)">
             {{ formatSignedQuantity(movement.quantity, movement.unitName) }}
           </td>
@@ -68,15 +74,20 @@
             @if (movement.documentId) {
             <a [routerLink]="['/inventory/documents', movement.documentId]" class="text-primary font-medium hover:underline">#{{ movement.documentId }}</a>
             } @else if (movement.transactionId) {
-            <a [routerLink]="['/orders', movement.transactionId]" class="text-muted-foreground hover:text-primary">Pedido #{{ movement.transactionId }}</a>
+            <a [routerLink]="['/orders', movement.transactionId]" class="text-primary font-medium hover:underline">{{ orderLabel(movement) }}</a>
             } @else {
             <span class="text-muted-foreground">—</span>
             }
           </td>
           }
-          <td class="text-muted-foreground hidden px-4 py-3 text-sm xl:table-cell">{{ movement.createdBy ?? '—' }}</td>
-          <td class="text-muted-foreground hidden px-4 py-3 text-sm xl:table-cell">
-            <p class="max-w-[14rem] truncate" [title]="movement.notes ?? ''">{{ movement.notes ?? '—' }}</p>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm xl:table-cell">{{ userLabel(movement) ?? '—' }}</td>
+          <td class="hidden px-4 py-3 text-sm xl:table-cell">
+            <p
+              class="max-w-[14rem] truncate"
+              [class]="notesTone(movement)"
+              [title]="movement.notes ?? ''">
+              {{ movement.notes ?? '—' }}
+            </p>
           </td>
         </tr>
         }
@@ -109,13 +120,17 @@
         <span [class.text-red-600]="movement.balanceAfter < 0">Saldo {{ formatQuantity(movement.balanceAfter, movement.unitName) }}</span>
         @if (showDocument() && movement.documentId) {
         <a [routerLink]="['/inventory/documents', movement.documentId]" class="text-primary font-medium">Documento #{{ movement.documentId }}</a>
+        } @else if (showDocument() && movement.transactionId) {
+        <a [routerLink]="['/orders', movement.transactionId]" class="text-primary font-medium">{{ orderLabel(movement) }}</a>
         }
-        @if (movement.createdBy) {
-        <span>{{ movement.createdBy }}</span>
+        @if (userLabel(movement); as user) {
+        <span>{{ user }}</span>
         }
       </div>
       @if (movement.notes) {
-      <p class="text-muted-foreground mt-1 text-xs italic">{{ movement.notes }}</p>
+      <p class="mt-1 text-xs italic" [class]="notesTone(movement)">
+        {{ movement.notes }}
+      </p>
       }
     </li>
     }

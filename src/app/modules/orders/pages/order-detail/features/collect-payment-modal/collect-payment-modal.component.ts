@@ -101,8 +101,9 @@ export class CollectPaymentModalComponent implements OnDestroy {
     });
 
     effect(() => {
-      const status = this.paymentService.$error();
-      if (status) this.toast.show(getPaymentErrorMessage(status), 'error');
+      // El modal queda abierto (con el monto ingresado) para reintentar, p. ej. tras registrar stock.
+      const error = this.paymentService.$error();
+      if (error) this.toast.show(getPaymentErrorMessage(error), 'error');
     });
   }
 

@@ -41,6 +41,7 @@
     [categoryNames]="$categoryNames()"
     [hasFilters]="$hasFilters()"
     [showStockMode]="$inventoryEnabled()"
+    [showRecipe]="$ingredientsEnabled()"
     (edit)="handleUpdate($event)"
     (delete)="handleDelete($event)"
     (pageChange)="handlePageChange($event)"

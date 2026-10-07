@@ -70,7 +70,7 @@ export type StockMovementDto = Readonly<{
   productId: number;
   productName: string;
   variationId: number;
-  variationName: string;
+  variationName: string | null;
   unitName: string | null;
   movementType: StockMovementType;
   /** Con signo: + entrada, − salida (unidad base). */
@@ -79,9 +79,13 @@ export type StockMovementDto = Readonly<{
   totalCost: number;
   balanceAfter: number;
   documentId: number | null;
+  // Pedido que generó el movimiento (venta, anulación o merma por anulación).
   transactionId: number | null;
+  // Número del pedido ("FAC-00000012").
+  invoiceNo?: string | null;
   notes: string | null;
   createdBy: string | null;
+  createdByName?: string | null;
 }>;
 
 // ---------- Documentos: GET /inventory/documents ----------

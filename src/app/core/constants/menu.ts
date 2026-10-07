@@ -68,6 +68,7 @@ export class Menu {
             { label: 'Ajustes', route: '/inventory/adjustments' },
             { label: 'Kardex', route: '/inventory/kardex' },
             { label: 'Ingredientes', route: '/inventory/ingredients', feature: 'ingredients' },
+            { label: 'Recetas', route: '/inventory/recipes', feature: 'ingredients' },
             { label: 'Unidades', route: '/inventory/units' },
           ],
         },
