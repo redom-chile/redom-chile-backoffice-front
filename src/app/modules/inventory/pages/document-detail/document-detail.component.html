@@ -64,6 +64,16 @@
       <dt class="text-muted-foreground text-xs">N° factura</dt>
       <dd class="text-foreground font-mono">{{ header.referenceNo ?? '—' }}</dd>
     </div>
+    @if (header.purchaseOrderId) {
+    <div>
+      <dt class="text-muted-foreground text-xs">Recepción de</dt>
+      <dd>
+        <a [routerLink]="['/inventory/purchase-orders', header.purchaseOrderId]" class="text-primary inline-flex items-center gap-1 font-medium hover:underline">
+          <app-icon class="h-4 w-4">receipt_long</app-icon>Orden de compra #{{ header.purchaseOrderId }}
+        </a>
+      </dd>
+    </div>
+    }
     }
     <div>
       <dt class="text-muted-foreground text-xs">Creado por</dt>
@@ -100,7 +110,7 @@
 @let headerType = $header()?.type;
 <div class="mb-2 flex items-center justify-between gap-3">
   <h2 class="text-foreground font-semibold">
-    {{ headerType === 'count' ? 'Líneas con diferencia' : headerType === 'transfer' ? 'Ítems transferidos' : 'Líneas' }}
+    {{ headerType === 'count' ? 'Líneas con diferencia' : headerType === 'transfer' ? 'Ítems transferidos' : headerType === 'production' ? 'Movimientos' : 'Líneas' }}
   </h2>
   <a [routerLink]="['/inventory/kardex']" [queryParams]="{ documentId: $id() }" class="text-primary text-sm font-medium hover:underline">Ver en kardex</a>
 </div>
@@ -174,6 +184,24 @@
   }
 </div>
 <p class="text-muted-foreground mt-2 text-xs">Cantidades y saldos en la unidad base. Cada ítem sale del origen y entra al destino al mismo costo.</p>
+} @else if (headerType === 'production') {
+<h3 class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wider">Producido</h3>
+<app-movements-table
+  [movements]="$producedLines()"
+  [loading]="movements.isLoading()"
+  [showLocation]="false"
+  [showDocument]="false"
+  emptyText="Sin entrada de la preparación." />
+<h3 class="text-muted-foreground mt-4 mb-2 text-xs font-medium uppercase tracking-wider">Insumos consumidos</h3>
+<app-movements-table
+  [movements]="$consumedLines()"
+  [loading]="movements.isLoading()"
+  [showLocation]="false"
+  [showDocument]="false"
+  emptyText="No se consumieron insumos." />
+<p class="text-muted-foreground mt-2 text-xs">
+  Los insumos salen a su costo promedio (primero lo que vence antes) y la preparación entra al costo de lo consumido.
+</p>
 } @else {
 <app-movements-table
   [movements]="$lines()"

@@ -3,7 +3,9 @@ import { RouterLink } from '@angular/router';
 import { PaginationMeta } from 'src/app/core/standarized-response';
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatMoney, formatQuantity, formatUnitCost, StockItemDto } from '../../../../data-access';
-import { variationLabel } from '../../../../shared';
+import { daysUntil, DEFAULT_EXPIRY_DAYS, expiryDistanceLabel, formatShortDate, variationLabel, wasteLinkParams } from '../../../../shared';
+
+type ExpiryBadge = Readonly<{ text: string; title: string; tone: string }>;
 
 /** Stock por producto en el local elegido. En móvil se muestran tarjetas. */
 @Component({
@@ -33,6 +35,36 @@ export class StockTableComponent {
   unitCost(item: StockItemDto): string {
     const cost = formatUnitCost(item.avgCost);
     return item.unitName ? `${cost} / ${item.unitName}` : cost;
+  }
+
+  /** "Vence el 09/10": ámbar si vence dentro de 7 días, rojo si ya pasó. */
+  expiryBadge(item: StockItemDto): ExpiryBadge | null {
+    if (!item.nextExpiryDate) return null;
+    const days = daysUntil(item.nextExpiryDate);
+    const tone =
+      days !== null && days < 0
+        ? 'bg-red-500/15 text-red-700 dark:text-red-400'
+        : days !== null && days <= DEFAULT_EXPIRY_DAYS
+          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+          : 'bg-muted text-muted-foreground';
+    const prefix = days !== null && days < 0 ? 'Venció el' : 'Vence el';
+    return {
+      text: `${prefix} ${formatShortDate(item.nextExpiryDate)}`,
+      title: `Lote que vence antes: ${expiryDistanceLabel(days)}`,
+      tone,
+    };
+  }
+
+  expiredQuantity(item: StockItemDto): number {
+    return Number(item.expiredQuantity ?? 0);
+  }
+
+  wasteParams(item: StockItemDto) {
+    return wasteLinkParams(item.variationId, this.locationId());
+  }
+
+  lotsParams(item: StockItemDto) {
+    return { variationId: item.variationId, locationId: this.locationId() ?? undefined };
   }
 
   linkParams(item: StockItemDto) {

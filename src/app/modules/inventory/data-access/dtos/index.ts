@@ -4,3 +4,4 @@ export * from './supplier.dto';
 export * from './unit.dto';
 export * from './recipe.dto';
 export * from './inventory-control.dto';
+export * from './inventory-supply.dto';

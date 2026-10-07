@@ -7,7 +7,7 @@ import { EmptyStateComponent, HeaderDashboardComponent, IconComponent } from 'sr
 import { InventoryLocationStore, InventoryService, isInventoryDisabledError, StockFiltersDto, StockKind } from '../../data-access';
 import { InventoryDisabledComponent, LocationSelectComponent } from '../../ui';
 import { LoadErrorComponent, readOption, readPage, resultError, resultValue, toRemoteResult } from '../../shared';
-import { LowStockAlertComponent, StockTableComponent } from './features';
+import { ExpiryAlertComponent, LowStockAlertComponent, StockTableComponent } from './features';
 import { StockFilters, StockFiltersComponent } from './ui';
 
 const PER_PAGE = 25;
@@ -39,6 +39,7 @@ function toQuery(params: ParamMap): StockQuery {
     LocationSelectComponent,
     LoadErrorComponent,
     LowStockAlertComponent,
+    ExpiryAlertComponent,
     StockFiltersComponent,
     StockTableComponent,
   ],

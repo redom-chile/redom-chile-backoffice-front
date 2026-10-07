@@ -43,10 +43,13 @@
     <app-kpi-card label="Cancelados" icon="block" [value]="'' + m.orders.cancelled" hint="Pedidos cancelados en el período" />
   </div>
 
-  <!-- Inventario: alerta de stock bajo mínimo (solo si el inventario está activo) -->
-  @if ($inventoryEnabled() && $inventoryLocationId()) {
+  <!-- Inventario: stock bajo mínimo y lotes por vencer / vencidos (solo si el inventario está activo) -->
+  @if ($inventoryEnabled()) {
   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    @if ($inventoryLocationId()) {
     <app-low-stock-alert variant="card" [locationId]="$inventoryLocationId()" [hint]="$inventoryLocationHint()" (activate)="handleLowStock()" />
+    }
+    <app-expiry-alert variant="card" [allLocations]="true" />
   </div>
   }
 

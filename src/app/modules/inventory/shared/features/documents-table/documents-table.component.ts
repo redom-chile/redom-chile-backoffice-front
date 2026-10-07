@@ -80,6 +80,8 @@ export class DocumentsTableComponent {
         return { location: 'Origen → Destino', lines: 'Ítems', total: 'Costo total' };
       case 'count':
         return { location: 'Local', lines: 'Con diferencia', total: 'Valor ajustado' };
+      case 'production':
+        return { location: 'Local', lines: 'Movimientos', total: 'Costo total' };
       default:
         return { location: 'Local', lines: 'Líneas', total: 'Total' };
     }
@@ -94,9 +96,16 @@ export class DocumentsTableComponent {
         return document.reason ? this.reasonLabels[document.reason] : 'Ajuste';
       case 'transfer':
         return documentLocationLabel(document);
+      case 'production':
+        return document.notes || 'Producción';
       default:
         return this.typeLabels[document.type] ?? document.type;
     }
+  }
+
+  /** Sin tipo fijo el título ya dice qué es en conteos y producciones. */
+  showTypePrefix(document: InventoryDocumentDto): boolean {
+    return !this.type() && document.type !== 'count' && document.type !== 'production';
   }
 
   userLabel(document: InventoryDocumentDto): string {

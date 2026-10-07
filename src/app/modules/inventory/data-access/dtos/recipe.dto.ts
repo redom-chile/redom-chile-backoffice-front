@@ -59,10 +59,19 @@ export type RecipeItemInputDto = Readonly<{
 }>;
 
 /** Reemplaza la receta completa; items [] la borra. Máx. 100 ítems. */
-export type UpdateRecipeDto = Readonly<{ items: RecipeItemInputDto[] }>;
+export type UpdateRecipeDto = Readonly<{
+  items: RecipeItemInputDto[];
+  // Preparaciones: cuánto produce una tanda (obligatorio si hay ítems). Se ignora en platos y opciones.
+  yieldQuantity?: number | null;
+  // Por defecto, la unidad de la preparación.
+  yieldUnitId?: number | null;
+}>;
 
 export type UpdateRecipeResponseDto = Readonly<{
   productId: number;
   variationId: number;
+  recipeKind?: 'sale' | 'production';
+  // Unidades base por tanda (null en platos).
+  recipeYield?: number | null;
   items: RecipeItemDto[];
 }>;

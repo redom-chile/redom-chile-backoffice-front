@@ -11,7 +11,8 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - [ ] Fase 2 · Modificadores: E2E desde la UI (plan de pruebas, pestaña "Fase 2 · Modificadores").
 - [ ] Fase 3 · Recetas: E2E desde la UI (pestaña "Fase 3 · Recetas"). Requiere el backend con las rutas `/inventory/recipes`.
 - [ ] Fase 4 · Costeo y control: E2E desde la UI (pestaña "Fase 4 · Costeo").
-- [ ] Revisión visual en celular y modo oscuro de lo hecho en las fases 2, 3 y 4 (no se vio en navegador).
+- [ ] Fase 5 · Preparaciones, órdenes de compra y lotes: E2E desde la UI (pestaña "Fase 5 · Preparaciones y lotes").
+- [ ] Revisión visual en celular y modo oscuro de lo hecho en las fases 2 a 5 (no se vio en navegador).
 - [ ] Comanda y precuenta en impresora térmica real de 58 mm con modificadores.
 
 ## Inventario
@@ -65,10 +66,30 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
   - "Mes anterior" y "Últimos 7 días" se calculan con la fecha del navegador, no con la zona del negocio.
   - El filtro de ítem no encuentra platos con receta y trae solo 20 resultados por búsqueda.
 
+## Preparaciones, órdenes de compra y lotes (fase 5)
+
+- **Preparaciones y producción:**
+  - El buscador de preparaciones pide `GET /inventory/recipes` por cada resultado para saber si tiene receta de producción (#38).
+  - Abrir "Nueva producción" solo con `variationId` recorre todos los ingredientes para encontrar el producto (#38).
+  - El stock de cada insumo en el consumo estimado se busca por nombre, una consulta por insumo.
+  - El costo estimado usa el costo promedio; el real puede variar porque la salida consume primero los lotes que vencen antes.
+  - El vencimiento no se compara con la fecha de producción.
+  - La lista de producciones no filtra por preparación y su columna "Líneas" cuenta producido + consumido.
+- **Órdenes de compra:**
+  - Al editar, los ítems se reconocen en un catálogo de 100 por tipo; si no aparece, se muestra como "Producto" sin SKU (solo visual).
+  - Cada línea exige costo (puede ser 0) aunque el backend lo trata como opcional.
+  - El % recibido del detalle se calcula en el front (el detalle no trae `receivedPercent`).
+  - El filtro de proveedor carga los primeros 100.
+- **Lotes y vencimientos:**
+  - Las alertas cuentan ítems, no lotes, y hacen dos consultas sin paginar a `GET /inventory/lots`.
+  - La pantalla de lotes no tiene búsqueda por texto (solo filtra por ítem con `variationId`).
+  - El badge de vencimiento del stock calcula los días con la zona del navegador; el umbral ámbar es fijo en 7 días.
+  - El detalle de una producción no muestra los lotes consumidos (los movimientos no traen lote).
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#37.
+- Solicitudes al backend con workaround: #15, #16, #28–#38.

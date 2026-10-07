@@ -9,6 +9,7 @@ import {
   CountResultDto,
   CreateAdjustmentDto,
   CreateCountDto,
+  CreateProductionDto,
   CreateTransferDto,
   FoodCostFiltersDto,
   FoodCostItemDto,
@@ -20,6 +21,9 @@ import {
   StockItemDto,
   StockMovementDto,
   StockMovementFiltersDto,
+  ProductionResultDto,
+  StockLotDto,
+  StockLotFiltersDto,
   TransferResultDto,
 } from './dtos';
 
@@ -83,5 +87,14 @@ export class InventoryService {
 
   getConsumption(filters: ConsumptionFiltersDto): Observable<ConsumptionReportDto> {
     return this.#http.get<ConsumptionReportDto>(`${BASE}/consumption`, { params: toHttpParams(filters) });
+  }
+
+  createProduction(dto: CreateProductionDto): Observable<ProductionResultDto> {
+    return this.#http.post<ProductionResultDto>(`${BASE}/productions`, dto);
+  }
+
+  /** Lotes con saldo, el que vence antes primero (sin paginar). */
+  getLots(filters: StockLotFiltersDto = {}): Observable<StockLotDto[]> {
+    return this.#http.get<StockLotDto[]>(`${BASE}/lots`, { params: toHttpParams(filters) });
   }
 }

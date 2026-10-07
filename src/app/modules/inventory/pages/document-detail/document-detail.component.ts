@@ -48,6 +48,8 @@ type DocumentHeader = Readonly<{
   totalCost: number;
   createdBy: string | null;
   createdAt: string | null;
+  // Compras que vienen de una orden de compra.
+  purchaseOrderId: number | null;
   partial: boolean;
 }>;
 
@@ -68,7 +70,7 @@ const BACK_LINKS: Record<InventoryDocumentType, { link: string; label: string }>
   adjustment: { link: '/inventory/adjustments', label: 'Ajustes' },
   count: { link: '/inventory/counts', label: 'Conteos' },
   transfer: { link: '/inventory/transfers', label: 'Transferencias' },
-  production: { link: '/inventory/kardex', label: 'Kardex' },
+  production: { link: '/inventory/productions', label: 'Producción' },
 };
 
 /** Tipo del documento según sus movimientos (cuando no llega la cabecera). */
@@ -103,6 +105,7 @@ function fromDocument(document: InventoryDocumentDto): DocumentHeader {
     totalCost: document.totalCost,
     createdBy: document.createdByName || document.createdBy,
     createdAt: document.createdAt,
+    purchaseOrderId: document.purchaseOrderId ?? null,
     partial: false,
   };
 }
@@ -113,8 +116,13 @@ function fromMovements(movements: readonly StockMovementDto[]): DocumentHeader |
   const type = typeFromMovements(movements);
   const exit = movements.find((movement) => movement.movementType === 'transfer_out');
   const entry = movements.find((movement) => movement.movementType === 'transfer_in');
-  // En transferencias el costo es el de lo que salió (la entrada vale lo mismo).
-  const costMovements = type === 'transfer' ? movements.filter((movement) => movement.movementType === 'transfer_out') : movements;
+  // En transferencias el costo es el de lo que salió (la entrada vale lo mismo); en producciones, lo producido.
+  const costMovements =
+    type === 'transfer'
+      ? movements.filter((movement) => movement.movementType === 'transfer_out')
+      : type === 'production'
+        ? movements.filter((movement) => movement.quantity > 0)
+        : movements;
   return {
     type,
     reason: null,
@@ -127,6 +135,7 @@ function fromMovements(movements: readonly StockMovementDto[]): DocumentHeader |
     totalCost: costMovements.reduce((total, movement) => total + Math.abs(movement.totalCost), 0),
     createdBy: first.createdByName || first.createdBy,
     createdAt: first.createdAt,
+    purchaseOrderId: null,
     partial: true,
   };
 }
@@ -159,7 +168,7 @@ function toTransferLines(movements: readonly StockMovementDto[]): TransferLine[]
 }
 
 /**
- * Detalle de un documento (compra, ajuste, conteo o transferencia). No hay GET de un documento: las líneas
+ * Detalle de un documento (compra, ajuste, conteo, transferencia o producción). No hay GET de un documento: las líneas
  * son los movimientos con ese documentId y la cabecera llega por el state de navegación o se busca en la
  * lista de documentos. Una transferencia muestra una fila por ítem (salida del origen + entrada al destino).
  */
@@ -222,6 +231,13 @@ export class DocumentDetailComponent {
   readonly $backLink = computed(() => this.#back().link);
   readonly $backLabel = computed(() => this.#back().label);
 
+  // Producción: la entrada de la preparación y las salidas de sus insumos.
+  readonly $producedLines = computed(() =>
+    this.$header()?.type === 'production' ? this.$lines().filter((line) => line.quantity > 0) : [],
+  );
+  readonly $consumedLines = computed(() =>
+    this.$header()?.type === 'production' ? this.$lines().filter((line) => line.quantity <= 0) : [],
+  );
   readonly $transferLines = computed(() => (this.$header()?.type === 'transfer' ? toTransferLines(this.$lines()) : []));
   /** Conteo: + sobrante / − faltante, valorizado (el total del documento suma ambos en positivo). */
   readonly $netDifference = computed(() =>
@@ -229,7 +245,7 @@ export class DocumentDetailComponent {
   );
   readonly $totalLabel = computed(() => {
     const type = this.$header()?.type;
-    return type === 'count' ? 'Valor ajustado' : type === 'transfer' ? 'Costo total' : 'Total';
+    return type === 'count' ? 'Valor ajustado' : type === 'transfer' || type === 'production' ? 'Costo total' : 'Total';
   });
   readonly $hasMoreLines = computed(() => (this.$page()?.pagination.totalItems ?? 0) > LINES_PER_PAGE);
 

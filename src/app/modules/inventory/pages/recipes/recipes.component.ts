@@ -1,20 +1,23 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, debounceTime, map, mergeMap, of, Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, mergeMap, of, Subject } from 'rxjs';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ModifierSetDto, ModifierSetsService } from 'src/app/modules/products/pages/modifiers/data-access';
-import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent } from 'src/ui';
+import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { RecipesService } from '../../data-access';
-import { LoadErrorComponent } from '../../shared';
+import { LoadErrorComponent, resultError, resultValue, toRemoteResult } from '../../shared';
 import { InventoryDisabledComponent } from '../../ui';
 import { RecipeProduct, RecipeProductsService, RecipeStatus, toRecipeStatus } from './data-access';
 import { RecipeStatusBadgeComponent } from './ui';
 
-export type RecipesTab = 'platos' | 'opciones';
+export type RecipesTab = 'platos' | 'opciones' | 'preparaciones';
+
+const TABS: readonly RecipesTab[] = ['platos', 'opciones', 'preparaciones'];
 
 const PAGE_SIZE = 20;
+const PREPARATIONS_PER_PAGE = 20;
 // Recetas que se consultan en paralelo para calcular el estado de las filas visibles.
 const STATUS_CONCURRENCY = 4;
 
@@ -22,7 +25,7 @@ function normalize(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
-/** Inventario → Recetas: platos "Por receta" y sets de modificadores, con el estado de su receta. */
+/** Inventario → Recetas: platos "Por receta", sets de modificadores y preparaciones, con el estado de su receta. */
 @Component({
   selector: 'app-recipes',
   imports: [
@@ -36,6 +39,7 @@ function normalize(text: string): string {
     InventoryDisabledComponent,
     LoadErrorComponent,
     RecipeStatusBadgeComponent,
+    PaginationTableComponent,
   ],
   templateUrl: './recipes.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,7 +59,9 @@ export class RecipesComponent {
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
 
   readonly $tab = toSignal(
-    this.#route.queryParamMap.pipe(map((params): RecipesTab => (params.get('tab') === 'opciones' ? 'opciones' : 'platos'))),
+    this.#route.queryParamMap.pipe(
+      map((params): RecipesTab => (TABS as readonly string[]).includes(params.get('tab') ?? '') ? (params.get('tab') as RecipesTab) : 'platos'),
+    ),
     { initialValue: 'platos' as RecipesTab },
   );
   readonly search = new FormControl('', { nonNullable: true });
@@ -87,6 +93,22 @@ export class RecipesComponent {
     );
   });
 
+  // Preparaciones: ingredientes paginados y buscados por nombre en el backend.
+  readonly $preparationsPage = signal(1);
+  readonly $preparationsName = toSignal(this.search.valueChanges.pipe(debounceTime(300), map((value) => value.trim()), distinctUntilChanged()), {
+    initialValue: '',
+  });
+  readonly preparations = rxResource({
+    params: () =>
+      this.$ingredientsEnabled() && this.$tab() === 'preparaciones'
+        ? { page: this.$preparationsPage(), name: this.$preparationsName() }
+        : undefined,
+    stream: ({ params }) => this.#products.listIngredients(params.page, PREPARATIONS_PER_PAGE, params.name).pipe(toRemoteResult()),
+  });
+  readonly $preparationsResult = computed(() => resultValue(this.preparations.value()));
+  readonly $preparationsError = computed(() => resultError(this.preparations.value()));
+  readonly $preparationRows = computed(() => this.$preparationsResult()?.data ?? []);
+
   // Estado de receta por productId (el id del set también es un productId).
   readonly $statuses = signal<Readonly<Record<number, RecipeStatus>>>({});
   readonly #statusQueue$ = new Subject<number>();
@@ -117,11 +139,20 @@ export class RecipesComponent {
 
     // Solo se revisan las filas visibles de la pestaña actual.
     effect(() => {
-      const ids = this.$tab() === 'platos' ? this.$visibleDishes().map((dish) => dish.id) : this.$filteredSets().map((set) => set.id);
+      const tab = this.$tab();
+      const ids =
+        tab === 'platos'
+          ? this.$visibleDishes().map((dish) => dish.id)
+          : tab === 'opciones'
+            ? this.$filteredSets().map((set) => set.id)
+            : this.$preparationRows().map((ingredient) => ingredient.id);
       untracked(() => this.#queueStatuses(ids));
     });
 
-    this.search.valueChanges.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => this.$visibleCount.set(PAGE_SIZE));
+    this.search.valueChanges.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
+      this.$visibleCount.set(PAGE_SIZE);
+      this.$preparationsPage.set(1);
+    });
   }
 
   loadDishes() {
@@ -146,6 +177,10 @@ export class RecipesComponent {
 
   setTab(tab: RecipesTab) {
     this.#router.navigate([], { relativeTo: this.#route, queryParams: { tab: tab === 'platos' ? null : tab }, queryParamsHandling: 'merge' });
+  }
+
+  setPreparationsPage(page: number) {
+    this.$preparationsPage.set(page);
   }
 
   showMore() {

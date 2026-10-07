@@ -45,6 +45,10 @@ export type StockItemDto = Readonly<{
   stockValue: number;
   alertQuantity: number;
   isLowStock: boolean;
+  // Vencimiento más próximo de sus lotes con saldo (puede estar en el pasado).
+  nextExpiryDate?: string | null;
+  // Cantidad en lotes vencidos (unidad base).
+  expiredQuantity?: number;
 }>;
 
 // ---------- Kardex: GET /inventory/movements ----------
@@ -120,6 +124,8 @@ export type InventoryDocumentDto = Readonly<{
   linesCount: number;
   createdBy: string | null;
   createdByName?: string | null;
+  // Compras que vienen de una orden de compra.
+  purchaseOrderId?: number | null;
   createdAt: string;
 }>;
 
@@ -131,6 +137,8 @@ export type CreatePurchaseLineDto = Readonly<{
   unitId?: number | null;
   /** Costo neto por la unidad elegida, >= 0. */
   unitCost: number;
+  lotNumber?: string | null;
+  expiryDate?: string | null;
 }>;
 
 export type CreatePurchaseDto = Readonly<{
@@ -164,6 +172,9 @@ export type CreateAdjustmentLineDto = Readonly<{
   unitId?: number | null;
   /** Solo en líneas que suman stock. */
   unitCost?: number | null;
+  /** Lote y vencimiento: solo en líneas que suman stock (400 en salidas). */
+  lotNumber?: string | null;
+  expiryDate?: string | null;
 }>;
 
 export type CreateAdjustmentDto = Readonly<{

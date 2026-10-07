@@ -20,16 +20,20 @@ import {
   formatQuantity,
   StockableItem,
   StockableItemsService,
+  todayIsoDate,
   UnitDto,
   unitMultiplier,
   UnitsService,
   unitsForProduct,
 } from '../../data-access';
 import {
+  lotApplies,
+  MAX_LOT_NUMBER_LENGTH,
   MAX_STOCK_LINES,
   StockLineCostMode,
   StockLineForm,
   StockLineHintFn,
+  StockLineLotMode,
   StockLineQuantityMode,
   StockLinesArray,
 } from './stock-line-form';
@@ -39,6 +43,15 @@ const KIND_LABELS: Record<StockableItem['kind'], string> = { ingredient: 'Ingred
 // Grilla de escritorio: ítem · cantidad · unidad · [costo · subtotal] · quitar.
 const GRID_WITH_COST = 'sm:grid-cols-[minmax(0,1fr)_8rem_9rem_8.5rem_7rem_2.5rem]';
 const GRID_WITHOUT_COST = 'sm:grid-cols-[minmax(0,1fr)_8rem_9rem_2.5rem]';
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidIsoDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
 
 function decimalsOf(value: number): number {
   const [, decimals = ''] = String(value).split('.');
@@ -72,9 +85,15 @@ export class StockLinesEditorComponent {
   readonly preselectVariationId = input<number | null>(null);
   /** Texto opcional bajo cada ítem (ej. stock disponible en el origen de una transferencia). */
   readonly lineHint = input<StockLineHintFn | null>(null);
+  /** Lote y vencimiento por línea (compras, stock inicial, correcciones que suman). */
+  readonly lotMode = input<StockLineLotMode>('none');
 
   protected readonly kindLabels = KIND_LABELS;
   protected readonly formatMoney = formatMoney;
+  protected readonly maxLotLength = MAX_LOT_NUMBER_LENGTH;
+
+  // Líneas con el bloque de lote abierto (también se abre solo si ya tiene datos).
+  protected readonly $lotOpen = signal<ReadonlySet<StockLineForm>>(new Set());
 
   protected readonly $units = computed(() => this.#unitsService.$units() ?? []);
   protected readonly $showCost = computed(() => this.costMode() !== 'none');
@@ -121,6 +140,7 @@ export class StockLinesEditorComponent {
     effect(() => {
       this.quantityMode();
       this.costMode();
+      this.lotMode();
       this.$units();
       untracked(() => {
         this.lines().controls.forEach((line) => line.updateValueAndValidity());
@@ -202,7 +222,15 @@ export class StockLinesEditorComponent {
   }
 
   remove(index: number) {
+    const line = this.lines().at(index);
     this.lines().removeAt(index);
+    if (this.$lotOpen().has(line)) {
+      this.$lotOpen.update((open) => {
+        const next = new Set(open);
+        next.delete(line);
+        return next;
+      });
+    }
   }
 
   // ---------- Línea ----------
@@ -230,6 +258,40 @@ export class StockLinesEditorComponent {
   costApplies(line: StockLineForm): boolean {
     if (this.costMode() === 'none') return false;
     return this.quantityMode() === 'positive' || Number(line.controls.quantity.value) > 0;
+  }
+
+  // ---------- Lote ----------
+
+  lotApplies(line: StockLineForm): boolean {
+    return lotApplies(line, this.lotMode());
+  }
+
+  isLotOpen(line: StockLineForm): boolean {
+    const { lotNumber, expiryDate } = line.getRawValue();
+    return this.$lotOpen().has(line) || !!lotNumber?.trim() || !!expiryDate;
+  }
+
+  toggleLot(line: StockLineForm) {
+    this.$lotOpen.update((open) => {
+      const next = new Set(open);
+      if (next.has(line)) next.delete(line);
+      else next.add(line);
+      return next;
+    });
+  }
+
+  lotError(line: StockLineForm): string | null {
+    const errors = line.errors ?? {};
+    if (errors['lotNumberLength']) return `El lote admite hasta ${MAX_LOT_NUMBER_LENGTH} caracteres.`;
+    if (errors['expiryDateInvalid']) return 'La fecha de vencimiento no es válida.';
+    return null;
+  }
+
+  /** Aviso (no bloquea): se puede registrar stock ya vencido, pero conviene revisarlo. */
+  expiryWarning(line: StockLineForm): string | null {
+    const expiry = line.controls.expiryDate.value;
+    if (!expiry || !isValidIsoDate(expiry)) return null;
+    return expiry < todayIsoDate() ? 'Esta fecha ya pasó: el lote quedará como vencido.' : null;
   }
 
   subtotal(line: StockLineForm): number | null {
@@ -288,6 +350,8 @@ export class StockLinesEditorComponent {
         quantity: new FormControl<number | null>(null),
         unitId: new FormControl<number | null>(item.unitId),
         unitCost: new FormControl<number | null>(suggested ?? null),
+        lotNumber: new FormControl('', { nonNullable: true }),
+        expiryDate: new FormControl('', { nonNullable: true }),
       },
       { validators: (group) => this.#validateLine(group as StockLineForm) },
     );
@@ -316,6 +380,13 @@ export class StockLinesEditorComponent {
       const hasCost = unitCost !== null && unitCost !== undefined && Number.isFinite(Number(unitCost));
       if (!hasCost && this.costMode() === 'required') errors['costRequired'] = true;
       else if (hasCost && unitCost! < 0) errors['costNegative'] = true;
+    }
+
+    // El lote solo se valida si aplica (si no, no se envía).
+    if (lotApplies(line, this.lotMode())) {
+      const { lotNumber, expiryDate } = line.getRawValue();
+      if ((lotNumber ?? '').trim().length > MAX_LOT_NUMBER_LENGTH) errors['lotNumberLength'] = true;
+      if (expiryDate && !isValidIsoDate(expiryDate)) errors['expiryDateInvalid'] = true;
     }
 
     return Object.keys(errors).length ? errors : null;

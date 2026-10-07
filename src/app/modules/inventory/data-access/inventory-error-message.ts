@@ -23,6 +23,8 @@ const TRANSLATIONS: ReadonlyArray<[RegExp, (match: RegExpMatchArray) => string]>
   [/Adjustment quantities cannot be 0/i, () => 'Las cantidades no pueden ser 0.'],
   [/For "(.+?)" enter the quantity as a positive number/i, () => 'Para este motivo ingresa la cantidad en positivo.'],
   [/A cost can only be set for stock that is added/i, () => 'El costo solo se puede indicar en líneas que suman stock.'],
+  // Lotes
+  [/A lot or expiry date can only be set for stock that is added/i, () => 'El lote y el vencimiento solo se indican en líneas que suman stock (las salidas usan primero lo que vence antes).'],
   // Recetas
   [/Only dishes \(stockMode "recipe"\) and modifier options have a recipe; (.+?) has stockMode/i, (m) => `Solo los platos "Por receta" y las opciones de modificador tienen receta; ${m[1]} no es "Por receta".`],
   [/An ingredient is repeated in the recipe/i, () => 'Hay un ingrediente repetido en la receta: suma sus cantidades en una sola fila.'],

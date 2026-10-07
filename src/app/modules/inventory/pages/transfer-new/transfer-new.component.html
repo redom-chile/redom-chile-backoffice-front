@@ -75,7 +75,12 @@
         <tbody>
           @for (line of summary.lines; track $index) {
           <tr class="border-b border-[var(--border)] last:border-0">
-            <td class="text-foreground px-3 py-2 text-sm font-medium">{{ line.label }}</td>
+            <td class="text-foreground px-3 py-2 text-sm font-medium">
+              {{ line.label }}
+              @for (lot of line.lots; track $index) {
+              <p class="text-muted-foreground text-xs font-normal">{{ lot }}</p>
+              }
+            </td>
             <td class="text-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatQuantity(line.quantity, line.unitName) }}</td>
             <td class="text-muted-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatUnitCost(line.unitCost) }}</td>
             <td class="whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums" [class.text-red-600]="line.fromBalanceAfter < 0">
@@ -97,6 +102,9 @@
           <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatQuantity(line.quantity, line.unitName) }}</span>
         </div>
         <p class="text-muted-foreground text-xs">Costo {{ formatUnitCost(line.unitCost) }}</p>
+        @for (lot of line.lots; track $index) {
+        <p class="text-muted-foreground text-xs">{{ lot }}</p>
+        }
         <p class="text-muted-foreground text-xs">
           Saldo {{ summary.fromName }}: <span [class.text-red-600]="line.fromBalanceAfter < 0">{{ formatQuantity(line.fromBalanceAfter, line.unitName) }}</span>
           · {{ summary.toName }}: {{ formatQuantity(line.toBalanceAfter, line.unitName) }}
@@ -104,7 +112,7 @@
       </li>
       }
     </ul>
-    <p class="text-muted-foreground mt-2 text-xs">Cantidades y saldos en la unidad base de cada ítem.</p>
+    <p class="text-muted-foreground mt-2 text-xs">Cantidades y saldos en la unidad base de cada ítem. Los lotes salen del origen por orden de vencimiento (FEFO) y llegan al destino con su número y fecha.</p>
 
     <div class="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <button

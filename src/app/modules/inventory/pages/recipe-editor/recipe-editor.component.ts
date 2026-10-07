@@ -13,9 +13,13 @@ import {
 } from '../../data-access';
 import { LoadErrorComponent } from '../../shared';
 import { InventoryDisabledComponent } from '../../ui';
+import { RecipeProductService } from './data-access';
 import { RecipeCardComponent } from './features';
 
-/** Editor de recetas de un plato (una por variación) o de un set de modificadores (una por opción). */
+/**
+ * Editor de recetas de un plato (una por variación), de un set de modificadores (una por opción)
+ * o de una preparación (ingrediente con receta por tanda + rinde).
+ */
 @Component({
   selector: 'app-recipe-editor',
   imports: [
@@ -36,6 +40,7 @@ import { RecipeCardComponent } from './features';
 export class RecipeEditorComponent {
   readonly #route = inject(ActivatedRoute);
   readonly #recipes = inject(RecipesService);
+  readonly #products = inject(RecipeProductService);
   readonly #settings = inject(BusinessSettingsService);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
@@ -58,10 +63,19 @@ export class RecipeEditorComponent {
   readonly $locationId = signal<number | null>(null);
   readonly #dirty = signal<ReadonlySet<number>>(new Set());
   #request: Subscription | null = null;
+  #unitRequest: Subscription | null = null;
+  // Unidad de la preparación (para el rinde).
+  readonly $productUnitId = signal<number | null>(null);
 
   readonly $isModifier = computed(() => this.$data()?.productType === 'modifier');
+  readonly $isProduction = computed(() => this.$data()?.recipeKind === 'production');
   readonly $hasUnsaved = computed(() => this.#dirty().size > 0);
-  readonly $backLink = computed(() => ({ tab: this.$isModifier() ? 'opciones' : null }));
+  readonly $backLink = computed(() => ({ tab: this.$isModifier() ? 'opciones' : this.$isProduction() ? 'preparaciones' : null }));
+  readonly $subtitle = computed(() => {
+    if (this.$isModifier()) return 'Qué agrega o quita cada opción del set al venderse.';
+    if (this.$isProduction()) return 'Qué ingredientes consume una tanda de la preparación y cuánto rinde.';
+    return 'Qué ingredientes descuenta cada unidad vendida.';
+  });
   // Costo por unidad base de todos los ingredientes que ya aparecen en alguna receta del producto.
   readonly $unitCosts = computed(() => {
     const costs = new Map<number, number>();
@@ -79,7 +93,15 @@ export class RecipeEditorComponent {
       if (!this.$ingredientsEnabled() || !Number.isInteger(productId) || productId <= 0) return;
       untracked(() => this.load());
     });
-    this.#destroyRef.onDestroy(() => this.#request?.unsubscribe());
+    // Preparación: se pide su unidad una vez por producto.
+    effect(() => {
+      const productId = this.$isProduction() ? this.$data()?.productId : null;
+      untracked(() => this.#loadProductUnit(productId ?? null));
+    });
+    this.#destroyRef.onDestroy(() => {
+      this.#request?.unsubscribe();
+      this.#unitRequest?.unsubscribe();
+    });
   }
 
   load() {
@@ -135,6 +157,23 @@ export class RecipeEditorComponent {
 
   onBeforeUnload(event: BeforeUnloadEvent) {
     if (this.$hasUnsaved()) event.preventDefault();
+  }
+
+  #loadedUnitFor: number | null = null;
+
+  #loadProductUnit(productId: number | null) {
+    if (!productId || productId === this.#loadedUnitFor) return;
+    this.#loadedUnitFor = productId;
+    this.#unitRequest?.unsubscribe();
+    this.$productUnitId.set(null);
+    this.#unitRequest = this.#products.getUnitId(productId).subscribe({
+      next: (unitId) => this.$productUnitId.set(unitId),
+      error: () => {
+        // Sin la unidad el rinde se guarda en la unidad de la preparación igual (sin subunidades).
+        this.#loadedUnitFor = null;
+        this.#toast.show('No se pudo cargar la unidad de la preparación.', 'warning');
+      },
+    });
   }
 
   #fetch(apply: (data: ProductRecipesDto) => void, quiet = false) {

@@ -210,6 +210,61 @@
           <app-icon class="h-5 w-5">delete</app-icon>
         </button>
       </div>
+
+      @if (lotApplies(line)) {
+      <!-- Lote y vencimiento (opcionales) -->
+      @let lotOpen = isLotOpen(line);
+      @let lineLotError = touched ? lotError(line) : null;
+      <div class="col-span-2 sm:col-span-full">
+        @if (lotOpen) {
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,14rem)_11rem_minmax(0,1fr)] sm:items-start">
+          <div>
+            <label [for]="'lot-' + i" class="text-muted-foreground mb-1 block text-xs">Lote (opcional)</label>
+            <input
+              [id]="'lot-' + i"
+              type="text"
+              autocomplete="off"
+              [attr.maxlength]="maxLotLength"
+              placeholder="Ej: L2410"
+              formControlName="lotNumber"
+              class="glass-input w-full rounded-md px-3 py-2"
+              (blur)="line.markAsTouched()" />
+          </div>
+          <div>
+            <label [for]="'expiry-' + i" class="text-muted-foreground mb-1 block text-xs">Vence (opcional)</label>
+            <input
+              [id]="'expiry-' + i"
+              type="date"
+              formControlName="expiryDate"
+              class="glass-input w-full rounded-md px-3 py-2"
+              [class.border-red-500]="lineLotError"
+              [attr.aria-invalid]="!!lineLotError"
+              (blur)="line.markAsTouched()" />
+          </div>
+          <div class="sm:pt-6">
+            @if (lineLotError) {
+            <p class="text-destructive text-xs">{{ lineLotError }}</p>
+            } @else if (expiryWarning(line); as warning) {
+            <p class="text-xs text-amber-700 dark:text-amber-400">{{ warning }}</p>
+            }
+            @if (!line.controls.lotNumber.value && !line.controls.expiryDate.value) {
+            <button type="button" class="text-muted-foreground hover:text-foreground text-xs font-medium" (click)="toggleLot(line)">
+              Ocultar lote
+            </button>
+            }
+          </div>
+        </div>
+        } @else {
+        <button
+          type="button"
+          class="text-primary inline-flex items-center gap-1 text-xs font-medium hover:underline"
+          [attr.aria-label]="'Agregar lote y vencimiento a ' + item.label"
+          (click)="toggleLot(line)">
+          <app-icon class="h-4 w-4">add</app-icon>Lote / vencimiento
+        </button>
+        }
+      </div>
+      }
     </div>
     }
   </div>
@@ -230,6 +285,12 @@
   <div class="text-muted-foreground space-y-1 text-xs">
     @if (signed) {
     <p><strong>+ suma / − resta:</strong> ingresa la diferencia con signo (ej. −3 si faltan 3). Usa ± para cambiar el signo.</p>
+    }
+    @if (lotMode() !== 'none') {
+    <p>
+      <strong>Lote y vencimiento</strong> son opcionales. Las salidas (ventas, mermas, transferencias) descuentan primero
+      lo que vence antes.
+    </p>
     }
     <p>
       Las cantidades se guardan en la unidad base del producto; si compras en kg y el producto está en g, el sistema

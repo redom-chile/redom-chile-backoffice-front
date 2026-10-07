@@ -11,7 +11,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
 
@@ -174,6 +174,27 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Códigos: `ITEM_REPEATED`, `SAME_LOCATION`, `NOT_ENOUGH_STOCK` (ver #36), `INVALID_UNIT`, `INVALID_DATE_RANGE`.
 
 **Front mientras tanto:** el detalle de conteos y transferencias se arma con los movimientos (hasta 100); la lista divide `linesCount` por 2 en transferencias y muestra "N con diferencia" en conteos; la hoja de conteo pagina de a 100; el stock del origen se busca por SKU; los errores se traducen por el texto en inglés.
+
+### 38. 🟡 Preparaciones, órdenes de compra y lotes
+
+**Problema:**
+- No hay forma de listar solo las preparaciones (ingredientes con receta de producción): el front pide `GET /inventory/recipes` por cada ingrediente para saberlo.
+- No existe un endpoint que, dado un `variationId`, devuelva su producto; abrir una producción desde un enlace con solo la variación obliga a recorrer todos los ingredientes.
+- El detalle de una orden de compra no trae `receivedPercent` (el listado sí).
+- `GET /inventory/lots` no está paginado ni tiene búsqueda por texto; las alertas cuentan lotes trayendo el arreglo completo.
+- Los movimientos (`GET /inventory/movements`) no indican de qué lote salió cada cantidad.
+- `PUT /inventory/purchase-orders/:id` y la recepción de una orden en borrador: se acepta recibir una orden `draft`; confirmar si es intencional.
+- Ningún error de producción, órdenes de compra o lotes trae código de negocio.
+
+**Se pide:**
+- Filtro `hasProductionRecipe=true` (o `recipeKind=production`) en `GET /products?type=ingredient`, con `recipeYield`.
+- `GET /products/variations/:variationId` (o `variationId` como filtro de `GET /products`).
+- `receivedPercent` en el detalle de la orden.
+- Paginación, búsqueda y un `GET /inventory/lots/summary` con `{ expiring, expired }` por local.
+- `lotId`/`lotNumber` en los movimientos.
+- Códigos: `PREPARATION_WITHOUT_RECIPE`, `RECIPE_CYCLE`, `PURCHASE_ORDER_NOT_EDITABLE`, `PURCHASE_ORDER_INVALID_TRANSITION`, `LOT_ON_EXIT`.
+
+**Front mientras tanto:** revisa las recetas de los ingredientes de a 4 en paralelo; recorre los ingredientes para encontrar la preparación de un `variationId`; calcula el % recibido del detalle; las alertas de vencimiento piden los lotes completos; los errores se traducen por el texto en inglés.
 
 ---
 

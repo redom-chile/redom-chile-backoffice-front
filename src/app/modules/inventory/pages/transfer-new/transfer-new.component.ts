@@ -28,6 +28,7 @@ import {
   toAdjustmentLines,
 } from '../../features';
 import { InventoryDisabledComponent } from '../../ui';
+import { formatDocumentDate } from '../../shared';
 
 function positiveId(value: string | null): number | null {
   const id = Number(value);
@@ -50,6 +51,8 @@ type SummaryLine = Readonly<{
   unitCost: number;
   fromBalanceAfter: number;
   toBalanceAfter: number;
+  // Lotes que viajaron: "L-123 · vence 09-10-2026 · 2 kg".
+  lots: string[];
 }>;
 
 type TransferSummary = Readonly<{
@@ -297,6 +300,13 @@ export class TransferNewComponent implements OnInit {
         unitCost: line.unitCost,
         fromBalanceAfter: line.fromBalanceAfter,
         toBalanceAfter: line.toBalanceAfter,
+        lots: (line.lots ?? []).map((lot) =>
+          [
+            lot.lotNumber ? `Lote ${lot.lotNumber}` : 'Sin número',
+            lot.expiryDate ? `vence ${formatDocumentDate(lot.expiryDate)}` : 'sin vencimiento',
+            formatQuantity(lot.quantity, labels.get(line.variationId)?.unitName),
+          ].join(' · '),
+        ),
       })),
     };
   }

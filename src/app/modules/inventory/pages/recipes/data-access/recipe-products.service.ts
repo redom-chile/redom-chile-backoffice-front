@@ -9,7 +9,7 @@ const PER_PAGE = 100;
 // Tope de páginas por si el catálogo es muy grande (10.000 productos).
 const MAX_PAGES = 100;
 
-/** Plato con control "Por receta" (lo necesario para el listado de recetas). */
+/** Plato con control "Por receta" o ingrediente (lo necesario para el listado de recetas). */
 export type RecipeProduct = Readonly<{
   id: number;
   name: string;
@@ -42,6 +42,13 @@ export class RecipeProductsService {
       reduce((all, products) => [...all, ...products], [] as RecipeProduct[]),
       map((products) => products.sort((a, b) => a.name.localeCompare(b.name, 'es'))),
     );
+  }
+
+  /** Ingredientes (posibles preparaciones), paginados y buscados por nombre en el backend. */
+  listIngredients(page: number, perPage: number, name?: string): Observable<StandardizedPagination<RecipeProduct>> {
+    return this.#http.get<StandardizedPagination<RecipeProduct>>(`${ApiPathEnum.RESTAURANT}/products`, {
+      params: toHttpParams({ page, perPage, type: 'ingredient', name: name || undefined }),
+    });
   }
 
   #page(page: number): Observable<StandardizedPagination<RecipeProduct>> {

@@ -104,9 +104,9 @@
       <h2 class="text-foreground mb-1 font-semibold">Ítems</h2>
       <p class="text-muted-foreground mb-3 text-xs">
         @switch (reason?.direction) {
-        @case ('exit') { Ingresa la cantidad en positivo; se descuenta del stock. }
-        @case ('entry') { Ingresa la cantidad que suma. El costo es opcional y fija el costo promedio. }
-        @case ('signed') { + suma / − resta. El costo es opcional y solo aplica a las líneas que suman. }
+        @case ('exit') { Ingresa la cantidad en positivo; se descuenta del stock, primero lo que vence antes (vencidos incluidos). }
+        @case ('entry') { Ingresa la cantidad que suma. El costo es opcional y fija el costo promedio; el lote y el vencimiento también son opcionales. }
+        @case ('signed') { + suma / − resta. El costo, el lote y el vencimiento son opcionales y solo aplican a las líneas que suman; lo que resta sale de lo que vence antes. }
         @default { Elige un motivo para saber si las cantidades suman o restan. }
         }
       </p>
@@ -122,6 +122,7 @@
         [lines]="form.controls.lines"
         [costMode]="mode.cost"
         [quantityMode]="mode.quantity"
+        [lotMode]="mode.lot"
         [showErrors]="$submitted()"
         [preselectVariationId]="preselectVariationId" />
     </section>

@@ -10,6 +10,12 @@ import {
   CountNewComponent,
   DocumentDetailComponent,
   FoodCostComponent,
+  LotsComponent,
+  ProductionListComponent,
+  ProductionNewComponent,
+  PurchaseOrderDetailComponent,
+  PurchaseOrderFormComponent,
+  PurchaseOrderListComponent,
   IngredientsComponent,
   KardexComponent,
   PurchaseListComponent,
@@ -33,6 +39,11 @@ const routes: Routes = [
       { path: 'purchases', component: PurchaseListComponent, pathMatch: 'full' },
       // Query params opcionales: variationId (precarga una línea) y locationId.
       { path: 'purchases/new', component: PurchaseNewComponent },
+      // Query params opcionales: status, locationId, supplierId, from, to, page.
+      { path: 'purchase-orders', component: PurchaseOrderListComponent, pathMatch: 'full' },
+      { path: 'purchase-orders/new', component: PurchaseOrderFormComponent, canDeactivate: [unsavedChangesGuard] },
+      { path: 'purchase-orders/:id/edit', component: PurchaseOrderFormComponent, canDeactivate: [unsavedChangesGuard] },
+      { path: 'purchase-orders/:id', component: PurchaseOrderDetailComponent },
       { path: 'adjustments', component: AdjustmentListComponent, pathMatch: 'full' },
       // Query params opcionales: variationId, reason (ej. initial_stock) y locationId.
       { path: 'adjustments/new', component: AdjustmentNewComponent },
@@ -50,6 +61,11 @@ const routes: Routes = [
       { path: 'recipes', component: RecipesComponent, pathMatch: 'full' },
       // productId de un plato o de un set de modificadores.
       { path: 'recipes/:productId', component: RecipeEditorComponent, canDeactivate: [unsavedChangesGuard] },
+      { path: 'productions', component: ProductionListComponent, pathMatch: 'full' },
+      // Query params opcionales: productId, variationId, locationId.
+      { path: 'productions/new', component: ProductionNewComponent, canDeactivate: [unsavedChangesGuard] },
+      // Query params opcionales: locationId, status, days, variationId.
+      { path: 'lots', component: LotsComponent },
       // Query params opcionales: locationId, search, categoryId, avisos, orden.
       { path: 'food-cost', component: FoodCostComponent },
       // Query params opcionales: locationId, range, from, to, productId.

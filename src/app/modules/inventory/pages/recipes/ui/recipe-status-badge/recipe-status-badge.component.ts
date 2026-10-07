@@ -10,7 +10,7 @@ const TONES: Record<Badge['tone'], string> = {
   error: 'bg-red-500/15 text-red-600 dark:text-red-400',
 };
 
-/** "Con receta" / "Sin receta" de un plato, o cuántas opciones de un set tienen receta. */
+/** "Con receta" / "Sin receta" de un plato o preparación, o cuántas opciones de un set tienen receta. */
 @Component({
   selector: 'app-recipe-status-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,6 +25,8 @@ export class RecipeStatusBadgeComponent {
   readonly status = input<RecipeStatus | undefined>(undefined);
   // Set de modificadores: que una opción no tenga receta es normal ("Punto de cocción").
   readonly isModifier = input(false);
+  // Ingrediente: sin receta es lo normal (se compra); con receta es una preparación.
+  readonly isPreparation = input(false);
 
   protected readonly tones = TONES;
 
@@ -37,6 +39,7 @@ export class RecipeStatusBadgeComponent {
       if (!withRecipe) return { label: 'Ninguna opción con receta', tone: 'muted' };
       return { label: `${withRecipe} de ${total} ${total === 1 ? 'opción' : 'opciones'} con receta`, tone: 'ok' };
     }
+    if (this.isPreparation() && !withRecipe) return { label: 'Sin receta', tone: 'muted' };
     if (total > 0 && withRecipe === total) return { label: 'Con receta', tone: 'ok' };
     if (!withRecipe) return { label: 'Sin receta', tone: 'warn' };
     return { label: `Receta en ${withRecipe} de ${total}`, tone: 'warn' };

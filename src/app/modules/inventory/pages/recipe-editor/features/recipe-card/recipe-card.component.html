@@ -1,6 +1,8 @@
 @let current = variation();
 @let dirty = $isDirty();
 @let modifier = isModifier();
+@let production = isProduction();
+@let unitName = $productUnitName();
 @let grid = 'lg:grid-cols-[minmax(0,1fr)_9rem_9rem_6.5rem_7rem_2.5rem]';
 <section class="glass rounded-[1rem] p-4" [attr.aria-label]="'Receta de ' + $title()">
   <!-- Encabezado -->
@@ -15,18 +17,38 @@
         }
       </h2>
       <p class="text-muted-foreground text-sm">
-        @if (current.sellPriceIncTax !== null) { Precio {{ formatMoney(current.sellPriceIncTax) }} · }
+        @if (current.sellPriceIncTax !== null && !production) { Precio {{ formatMoney(current.sellPriceIncTax) }} · }
         {{ rows.length }} {{ rows.length === 1 ? 'ingrediente' : 'ingredientes' }}
       </p>
     </div>
 
     <!-- Costo -->
     <div class="text-right text-sm">
+      @if (production) {
+      <!-- Preparación: costo de una tanda y por unidad de la preparación -->
       @if (dirty) {
+      <p class="text-muted-foreground">Costo estimado de la tanda</p>
+      <p class="text-foreground font-semibold">{{ formatMoney($estimatedCost()) }}</p>
+      @if ($estimatedCostPerUnit(); as perUnit) {
+      <p class="text-muted-foreground text-xs">≈ {{ formatUnitCost(perUnit) }} por {{ unitName ?? 'unidad' }}</p>
+      }
+      } @else {
+      <p class="text-muted-foreground">Costo de la tanda</p>
+      <p class="text-foreground font-semibold">{{ formatMoney(current.recipeCost ?? 0) }}</p>
+      @if (current.recipeYield) {
+      <p class="text-muted-foreground text-xs">Rinde {{ formatQuantity(current.recipeYield, unitName) }}</p>
+      }
+      @if (current.costPerUnit !== null && current.costPerUnit !== undefined) {
+      <p class="text-muted-foreground text-xs">
+        Costo por {{ unitName ?? 'unidad' }}: <span class="text-foreground font-medium">{{ formatUnitCost(current.costPerUnit) }}</span>
+      </p>
+      }
+      }
+      } @else if (dirty) {
       <p class="text-muted-foreground">Costo estimado</p>
       <p class="text-foreground font-semibold">{{ formatMoney($estimatedCost()) }}</p>
       } @else {
-      <p class="text-muted-foreground">{{ $hasYield() ? 'Costo del lote' : 'Costo de la receta' }}</p>
+      <p class="text-muted-foreground">Costo de la receta</p>
       <p class="text-foreground flex flex-wrap items-center justify-end gap-1 font-semibold">
         {{ formatMoney(current.recipeCost ?? 0) }}
         @if (current.foodCostPercent !== null && current.foodCostPercent !== undefined) {
@@ -38,14 +60,6 @@
         </span>
         }
       </p>
-      @if ($hasYield()) {
-      <p class="text-muted-foreground text-xs">
-        Rinde {{ formatQuantity(current.recipeYield) }}
-        @if (current.costPerUnit !== null && current.costPerUnit !== undefined) { · {{ formatUnitCost(current.costPerUnit) }} por unidad }
-      </p>
-      } @else if (current.costPerUnit !== null && current.costPerUnit !== undefined) {
-      <p class="text-muted-foreground text-xs">{{ formatUnitCost(current.costPerUnit) }} por unidad</p>
-      }
       }
     </div>
   </header>
@@ -75,6 +89,47 @@
       </option>
       }
     </select>
+  </div>
+  }
+
+  @if (production) {
+  <!-- Rinde de la tanda -->
+  @let yieldErr = $yieldError();
+  <div class="border-border/60 mt-4 rounded-lg border p-3">
+    <label [for]="'yield-' + current.variationId" class="text-foreground block text-sm font-medium">
+      Rinde{{ rows.length ? ' *' : '' }}
+      <span class="text-muted-foreground font-normal">· cuánto produce una tanda de esta receta</span>
+    </label>
+    <div class="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
+      <input
+        [id]="'yield-' + current.variationId"
+        type="number"
+        min="0"
+        step="any"
+        inputmode="decimal"
+        placeholder="Ej: 2"
+        [formControl]="yieldQuantity"
+        class="glass-input w-full min-w-0 rounded-md px-3 py-2"
+        [class.border-red-500]="yieldErr"
+        [attr.aria-invalid]="!!yieldErr"
+        (blur)="onYieldBlur()" />
+      @if ($yieldUnits().length) {
+      <select aria-label="Unidad del rinde" [formControl]="yieldUnitId" class="glass-input w-full rounded-md px-3 py-2">
+        @for (unit of $yieldUnits(); track unit.id) {
+        <option [ngValue]="unit.id">{{ unit.actualName }} ({{ unit.shortName }})</option>
+        }
+      </select>
+      } @else {
+      <select aria-label="Unidad del rinde" disabled class="glass-input w-full rounded-md px-3 py-2">
+        <option>{{ unitName ?? 'Unidad de la preparación' }}</option>
+      </select>
+      }
+    </div>
+    @if (yieldErr) {
+    <p class="text-destructive mt-1 text-xs">{{ yieldErr }}</p>
+    } @else if ($yieldEquivalent(); as equivalent) {
+    <p class="text-muted-foreground mt-1 text-xs">{{ equivalent }}</p>
+    }
   </div>
   }
 
@@ -114,7 +169,7 @@
             @else if (rowUnitCost(row) === 0) { · <span class="text-amber-700 dark:text-amber-400" title="Falta registrar una compra con costo">sin costo</span> }
           </p>
           @if (consumption(row); as text) {
-          <p class="mt-0.5 text-xs" [class]="subtract ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'">{{ text }} por unidad vendida</p>
+          <p class="mt-0.5 text-xs" [class]="subtract ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'">{{ text }} {{ production ? 'por tanda' : 'por unidad vendida' }}</p>
           }
         </div>
         <button
@@ -221,6 +276,8 @@
     <div class="border-border text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center text-sm">
       @if (modifier) {
       Esta opción no consume ni quita ingredientes. Agrega uno si debe mover stock.
+      } @else if (production) {
+      Sin ingredientes: no se puede producir. Agrega lo que consume una tanda con el buscador.
       } @else {
       Sin ingredientes: al venderlo no se descuenta nada. Agrega el primero con el buscador.
       }
@@ -240,6 +297,15 @@
 
   <!-- Acciones -->
   <footer class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] pt-3">
+    @if ($canProduce()) {
+    <a
+      routerLink="/inventory/productions/new"
+      [queryParams]="{ productId: productId(), variationId: current.variationId, locationId: locationId() }"
+      class="border-border/60 text-foreground hover:bg-muted/40 mr-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold">
+      <app-icon class="h-4 w-4">soup_kitchen</app-icon>
+      Producir
+    </a>
+    }
     <app-button type="button" impact="light" tone="primary" size="small" [disabled]="!dirty || $isSaving()" (buttonClick)="discard()">
       Descartar cambios
     </app-button>

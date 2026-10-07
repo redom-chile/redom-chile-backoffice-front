@@ -18,6 +18,7 @@ import {
 import {
   createStockLinesArray,
   StockLineCostMode,
+  StockLineLotMode,
   StockLineQuantityMode,
   StockLinesEditorComponent,
   toAdjustmentLines,
@@ -33,10 +34,14 @@ function toReason(value: string | null): AdjustmentReason | null {
   return ADJUSTMENT_REASONS.find((reason) => reason.value === value)?.value ?? null;
 }
 
-const LINE_MODES: Record<AdjustmentReasonOption['direction'], { quantity: StockLineQuantityMode; cost: StockLineCostMode }> = {
-  exit: { quantity: 'positive', cost: 'none' },
-  entry: { quantity: 'positive', cost: 'optional' },
-  signed: { quantity: 'signed', cost: 'optional' },
+// El lote solo aplica a lo que suma: stock inicial siempre, correcciones solo en líneas +.
+const LINE_MODES: Record<
+  AdjustmentReasonOption['direction'],
+  { quantity: StockLineQuantityMode; cost: StockLineCostMode; lot: StockLineLotMode }
+> = {
+  exit: { quantity: 'positive', cost: 'none', lot: 'none' },
+  entry: { quantity: 'positive', cost: 'optional', lot: 'entry' },
+  signed: { quantity: 'signed', cost: 'optional', lot: 'signed' },
 };
 
 /** Nuevo ajuste: merma, consumo interno, stock inicial o corrección. Query params: variationId, reason, locationId. */
@@ -154,7 +159,7 @@ export class AdjustmentNewComponent implements OnInit {
         reason,
         ...(value.documentDate ? { documentDate: value.documentDate } : {}),
         ...(notes ? { notes } : {}),
-        lines: toAdjustmentLines(this.form.controls.lines, this.$lineMode().cost),
+        lines: toAdjustmentLines(this.form.controls.lines, this.$lineMode().cost, this.$lineMode().lot),
       })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({

@@ -11,7 +11,8 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormArray, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import {
   FOOD_COST_LEVEL_CLASSES,
@@ -19,7 +20,6 @@ import {
   formatMoney,
   formatQuantity,
   formatUnitCost,
-  getInventoryErrorMessage,
   RecipesService,
   RecipeVariationDto,
   StockableItem,
@@ -30,6 +30,7 @@ import {
 import {
   baseQuantity,
   createRecipeRow,
+  getRecipeErrorMessage,
   MAX_RECIPE_ITEMS,
   quantityError,
   RecipeRowForm,
@@ -38,6 +39,8 @@ import {
   savedItemsSignature,
   toRecipeItems,
   wasteError,
+  yieldError,
+  yieldInProductUnits,
 } from '../../data-access';
 import { RecipeIngredientSearchComponent } from '../ingredient-search';
 
@@ -47,7 +50,7 @@ import { RecipeIngredientSearchComponent } from '../ingredient-search';
  */
 @Component({
   selector: 'app-recipe-card',
-  imports: [ReactiveFormsModule, ButtonComponent, IconComponent, RecipeIngredientSearchComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, IconComponent, RecipeIngredientSearchComponent],
   templateUrl: './recipe-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -65,11 +68,20 @@ export class RecipeCardComponent {
   readonly siblings = input<readonly RecipeVariationDto[]>([]);
   // Costo por unidad base de cada ingrediente conocido (variationId → costo).
   readonly unitCosts = input<ReadonlyMap<number, number>>(new Map());
+  // Preparación (ingrediente con receta de producción): receta por tanda + rinde.
+  readonly isProduction = input(false);
+  // Unidad de la preparación (para el rinde); null mientras carga o si no tiene.
+  readonly productUnitId = input<number | null>(null);
+  // Local elegido para los costos (se pasa a "Producir").
+  readonly locationId = input<number | null>(null);
 
   readonly saved = output<number>();
   readonly dirtyChange = output<boolean>();
 
   protected readonly rows = new FormArray<RecipeRowForm>([]);
+  // Rinde de una tanda (solo preparaciones). null en la unidad = unidad de la preparación.
+  protected readonly yieldQuantity = new FormControl<number | null>(null);
+  protected readonly yieldUnitId = new FormControl<number | null>(null);
   protected readonly formatMoney = formatMoney;
   protected readonly formatUnitCost = formatUnitCost;
   protected readonly formatQuantity = formatQuantity;
@@ -86,8 +98,33 @@ export class RecipeCardComponent {
   protected readonly $title = computed(() => this.variation().variationName ?? this.productName());
   protected readonly $isDirty = computed(() => {
     this.#version();
-    return recipeSignature(this.rows) !== this.#baseline();
+    return this.#signature() !== this.#baseline();
   });
+  protected readonly $productUnit = computed(() => this.$units().find((unit) => unit.id === this.productUnitId()) ?? null);
+  protected readonly $productUnitName = computed(() => this.$productUnit()?.shortName ?? null);
+  protected readonly $yieldUnits = computed(() => unitsForProduct(this.$units(), this.productUnitId()));
+  // Rinde del formulario en la unidad de la preparación.
+  protected readonly $yieldBase = computed(() => {
+    this.#version();
+    return this.#yieldBase();
+  });
+  protected readonly $yieldEquivalent = computed(() => {
+    this.#version();
+    const unit = this.#yieldUnit();
+    const base = this.#yieldBase();
+    if (!unit || unit.id === this.productUnitId() || base === null) return null;
+    return `= ${formatQuantity(base, this.$productUnitName())}`;
+  });
+  protected readonly $yieldError = computed(() => {
+    this.#version();
+    if (!this.isProduction()) return null;
+    if (!this.$showErrors() && !this.yieldQuantity.touched) return null;
+    return yieldError(this.yieldQuantity.value, this.rows.length > 0);
+  });
+  // Lo guardado alcanza para producir.
+  protected readonly $canProduce = computed(
+    () => this.isProduction() && !this.$isDirty() && this.variation().items.length > 0 && (this.variation().recipeYield ?? 0) > 0,
+  );
   protected readonly $addedIds = computed(() => {
     this.#version();
     return this.rows.controls.map((row) => row.controls.item.value.variationId);
@@ -104,8 +141,11 @@ export class RecipeCardComponent {
   // Opciones de modificador sin precio: el backend manda null y no se muestra.
   protected readonly $foodCostRounded = computed(() => Math.round((this.variation().foodCostPercent ?? 0) * 10) / 10);
   protected readonly $foodCostClass = computed(() => FOOD_COST_LEVEL_CLASSES[foodCostLevel(this.variation().foodCostPercent)]);
-  // Preparaciones: el costo es por lote y rinde recipeYield unidades.
-  protected readonly $hasYield = computed(() => (this.variation().recipeYield ?? 0) > 0);
+  // Preparaciones: costo estimado por unidad de la preparación mientras se edita.
+  protected readonly $estimatedCostPerUnit = computed(() => {
+    const base = this.$yieldBase();
+    return base && base > 0 ? this.$estimatedCost() / base : null;
+  });
   // Ingredientes guardados con costo 0 (nunca se registró una compra con costo).
   protected readonly $missingCostItems = computed(() =>
     this.variation()
@@ -117,17 +157,25 @@ export class RecipeCardComponent {
     this.#unitsService.load();
     const destroyRef = inject(DestroyRef);
     this.rows.valueChanges.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => this.#version.update((v) => v + 1));
+    this.yieldQuantity.valueChanges.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => this.#version.update((v) => v + 1));
+    this.yieldUnitId.valueChanges.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => this.#version.update((v) => v + 1));
 
     // Se rehace el formulario solo si cambió lo guardado (no cuando solo cambian los costos).
     effect(() => {
       const variation = this.variation();
-      const key = savedItemsSignature(variation.items);
+      const key = savedItemsSignature(variation.items, variation.recipeYield ?? null);
       if (key === this.#savedKey) return;
       this.#savedKey = key;
       untracked(() => this.#resetFrom(variation));
     });
 
     effect(() => this.dirtyChange.emit(this.$isDirty()));
+
+    // La unidad de la preparación llega después (GET /products/:id): por defecto, el rinde va en esa unidad.
+    effect(() => {
+      const unitId = this.productUnitId();
+      if (unitId && this.yieldUnitId.value === null) untracked(() => this.yieldUnitId.setValue(unitId));
+    });
   }
 
   // ---------- Filas ----------
@@ -155,9 +203,18 @@ export class RecipeCardComponent {
     if (!source) return;
     this.rows.clear();
     source.items.forEach((item) => this.rows.push(rowFromRecipeItem(item)));
+    if (this.isProduction() && source.recipeYield) {
+      this.yieldQuantity.setValue(Number(source.recipeYield));
+      this.yieldUnitId.setValue(this.productUnitId());
+    }
     this.$showErrors.set(false);
     const name = source.variationName ?? this.productName();
     this.#toast.show(`Receta copiada de "${name}". Revisa y guarda los cambios.`, 'success');
+  }
+
+  protected onYieldBlur() {
+    this.yieldQuantity.markAsTouched();
+    this.#version.update((v) => v + 1);
   }
 
   protected discard() {
@@ -218,6 +275,14 @@ export class RecipeCardComponent {
       this.#toast.show('Revisa las cantidades y mermas marcadas.', 'warning');
       return;
     }
+    const production = this.isProduction() && this.rows.length > 0;
+    if (production && yieldError(this.yieldQuantity.value, true)) {
+      this.$showErrors.set(true);
+      this.yieldQuantity.markAsTouched();
+      this.#version.update((v) => v + 1);
+      this.#toast.show('Indica cuánto rinde una tanda de la preparación.', 'warning');
+      return;
+    }
     const variationIds = this.rows.controls.map((row) => row.controls.item.value.variationId);
     if (new Set(variationIds).size !== variationIds.length) {
       this.#toast.show('Hay un ingrediente repetido: suma sus cantidades en una sola fila.', 'warning');
@@ -225,13 +290,23 @@ export class RecipeCardComponent {
     }
 
     this.$isSaving.set(true);
-    const signature = recipeSignature(this.rows);
-    this.#recipes.update(this.variation().variationId, { items: toRecipeItems(this.rows) }).subscribe({
+    const signature = this.#signature();
+    const yieldUnitId = this.yieldUnitId.value;
+    const dto = {
+      items: toRecipeItems(this.rows),
+      ...(production
+        ? {
+            yieldQuantity: Number(this.yieldQuantity.value),
+            ...(yieldUnitId && yieldUnitId !== this.productUnitId() ? { yieldUnitId } : {}),
+          }
+        : {}),
+    };
+    this.#recipes.update(this.variation().variationId, dto).subscribe({
       next: (response) => {
         this.$isSaving.set(false);
         this.$showErrors.set(false);
         // Lo guardado pasa a ser la referencia; la recarga con costos no rehace el formulario.
-        this.#savedKey = savedItemsSignature(response.items);
+        this.#savedKey = savedItemsSignature(response.items, response.recipeYield ?? null);
         this.#baseline.set(signature);
         this.#toast.show(
           response.items.length ? `Receta de "${this.$title()}" guardada` : `Receta de "${this.$title()}" eliminada`,
@@ -241,7 +316,7 @@ export class RecipeCardComponent {
       },
       error: (error) => {
         this.$isSaving.set(false);
-        this.#toast.show(getInventoryErrorMessage(error, 'No se pudo guardar la receta.'), 'error');
+        this.#toast.show(getRecipeErrorMessage(error), 'error');
       },
     });
   }
@@ -252,9 +327,28 @@ export class RecipeCardComponent {
     this.rows.clear({ emitEvent: false });
     variation.items.forEach((item) => this.rows.push(rowFromRecipeItem(item), { emitEvent: false }));
     this.rows.markAsUntouched();
+    // El rinde guardado viene en la unidad de la preparación.
+    this.yieldQuantity.setValue(variation.recipeYield ? Number(variation.recipeYield) : null, { emitEvent: false });
+    this.yieldUnitId.setValue(this.productUnitId(), { emitEvent: false });
+    this.yieldQuantity.markAsUntouched();
     this.$showErrors.set(false);
-    this.#baseline.set(recipeSignature(this.rows));
+    this.#baseline.set(this.#signature());
     this.#version.update((v) => v + 1);
+  }
+
+  /** Ítems + rinde (en la unidad de la preparación, así 1 l y 1000 ml no cuentan como cambio). */
+  #signature(): string {
+    const rows = recipeSignature(this.rows);
+    return this.isProduction() ? `${rows}|${this.#yieldBase()}` : rows;
+  }
+
+  #yieldUnit(): UnitDto | null {
+    const id = this.yieldUnitId.value ?? this.productUnitId();
+    return id ? (this.$units().find((unit) => unit.id === id) ?? null) : null;
+  }
+
+  #yieldBase(): number | null {
+    return yieldInProductUnits(this.yieldQuantity.value, this.#yieldUnit(), this.productUnitId());
   }
 
   #unit(row: RecipeRowForm): UnitDto | null {

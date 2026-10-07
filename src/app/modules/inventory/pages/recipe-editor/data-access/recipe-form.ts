@@ -121,7 +121,29 @@ export function recipeSignature(rows: RecipeRowsArray): string {
   );
 }
 
-/** Firma de los ítems guardados (para no pisar el formulario si solo cambiaron los costos). */
-export function savedItemsSignature(items: readonly RecipeItemDto[]): string {
-  return JSON.stringify(items.map((item) => [item.ingredientVariationId, item.quantity, item.unitId, item.wastePercent]));
+/** Firma de lo guardado (ítems y rinde) para no pisar el formulario si solo cambiaron los costos. */
+export function savedItemsSignature(items: readonly RecipeItemDto[], recipeYield: number | null = null): string {
+  return JSON.stringify([
+    items.map((item) => [item.ingredientVariationId, item.quantity, item.unitId, item.wastePercent]),
+    recipeYield === null ? null : Number(recipeYield),
+  ]);
+}
+
+// ---------- Rinde de una preparación (cuánto produce una tanda) ----------
+
+/** Rinde en la unidad de la preparación (null si aún no es un número). */
+export function yieldInProductUnits(quantity: number | null, unit: UnitDto | null, productUnitId: number | null): number | null {
+  if (quantity === null || quantity === undefined || !Number.isFinite(Number(quantity))) return null;
+  const multiplier = unit && unit.id !== productUnitId ? unitMultiplier(unit) : 1;
+  return Math.round(Number(quantity) * multiplier * 10000) / 10000;
+}
+
+/** Obligatorio solo si la receta tiene ingredientes; > 0 y máx. 4 decimales. */
+export function yieldError(quantity: number | null, required: boolean): string | null {
+  if (quantity === null || quantity === undefined || !Number.isFinite(Number(quantity))) {
+    return required ? 'Indica cuánto rinde una tanda.' : null;
+  }
+  if (quantity <= 0) return 'El rinde debe ser mayor a 0.';
+  if (decimalsOf(quantity) > 4) return 'Máximo 4 decimales.';
+  return null;
 }

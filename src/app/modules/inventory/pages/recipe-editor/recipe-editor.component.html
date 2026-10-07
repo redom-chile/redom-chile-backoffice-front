@@ -2,7 +2,7 @@
 <div class="space-y-4">
   <app-header-dashboard
     [title]="data?.productName ?? 'Receta'"
-    [subtitle]="$isModifier() ? 'Qué agrega o quita cada opción del set al venderse.' : 'Qué ingredientes descuenta cada unidad vendida.'">
+    [subtitle]="$subtitle()">
     <a
       routerLink="/inventory/recipes"
       [queryParams]="$backLink()"
@@ -58,12 +58,19 @@
   <!-- Resumen -->
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div class="flex flex-wrap items-center gap-2">
+      @if ($isProduction()) {
+      <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+        <app-icon class="h-3.5 w-3.5">soup_kitchen</app-icon>
+        Preparación
+      </span>
+      } @else {
       <span
         class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
         [class]="$isModifier() ? 'bg-primary/15 text-primary' : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'">
         <app-icon class="h-3.5 w-3.5">{{ $isModifier() ? 'tune' : 'restaurant' }}</app-icon>
         {{ $isModifier() ? 'Set de modificadores' : 'Plato' }}
       </span>
+      }
       @if ($hasUnsaved()) {
       <span class="text-xs text-amber-700 dark:text-amber-400">Tienes cambios sin guardar.</span>
       }
@@ -115,12 +122,36 @@
       [variation]="variation"
       [siblings]="data.variations"
       [unitCosts]="$unitCosts()"
+      [isProduction]="$isProduction()"
+      [productUnitId]="$productUnitId()"
+      [locationId]="$locationId()"
       (saved)="onSaved($event)"
       (dirtyChange)="onDirtyChange(variation.variationId, $event)" />
     }
   </div>
 
   <!-- Ayuda -->
+  @if ($isProduction()) {
+  <div class="text-muted-foreground space-y-1 text-xs">
+    <p>
+      Una <strong>preparación</strong> es un ingrediente que se elabora en el local (salsas, masas, caldos). Su receta es
+      <strong>por tanda</strong> y el <strong>rinde</strong> indica cuánto produce esa tanda.
+    </p>
+    <p>
+      Al vender, los platos descuentan la preparación (no sus ingredientes). Para tener stock de la preparación hay que
+      <a routerLink="/inventory/productions" class="text-primary font-medium hover:underline">producirla</a>.
+    </p>
+    <p>
+      <strong>Producir</strong> consume los ingredientes en proporción: producir 1 l con una receta que rinde 2 l usa media tanda.
+      La preparación entra al stock con el costo de lo consumido.
+    </p>
+    <p>Las cantidades se guardan en la unidad base de cada ingrediente. <strong>Merma %:</strong> lo que se pierde al preparar.</p>
+    <p>
+      <strong>Costo por unidad:</strong> costo de la tanda ÷ rinde, con el costo promedio de los ingredientes en el local elegido.
+    </p>
+    <p>Una preparación puede usar otras preparaciones, pero no puede contenerse a sí misma a través de otra.</p>
+  </div>
+  } @else {
   <div class="text-muted-foreground space-y-1 text-xs">
     <p>Las cantidades son por <strong>una unidad vendida</strong> y se guardan en la unidad base del ingrediente (si eliges kg y el ingrediente está en g, el sistema convierte).</p>
     <p><strong>Merma %:</strong> lo que se pierde al preparar. 150 g de carne con 10 % de merma descuentan 165 g.</p>
@@ -137,6 +168,7 @@
       <a routerLink="/inventory/food-cost" class="text-primary font-medium hover:underline">Food cost</a>.
     </p>
   </div>
+  }
   }
   }
 </div>

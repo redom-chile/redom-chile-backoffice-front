@@ -65,6 +65,7 @@ export class Menu {
           children: [
             { label: 'Stock', route: '/inventory' },
             { label: 'Compras', route: '/inventory/purchases' },
+            { label: 'Órdenes de compra', route: '/inventory/purchase-orders' },
             { label: 'Ajustes', route: '/inventory/adjustments' },
             { label: 'Conteos', route: '/inventory/counts' },
             // Solo si el negocio tiene más de un local.
@@ -72,6 +73,8 @@ export class Menu {
             { label: 'Kardex', route: '/inventory/kardex' },
             { label: 'Ingredientes', route: '/inventory/ingredients', feature: 'ingredients' },
             { label: 'Recetas', route: '/inventory/recipes', feature: 'ingredients' },
+            { label: 'Producción', route: '/inventory/productions', feature: 'ingredients' },
+            { label: 'Lotes', route: '/inventory/lots' },
             { label: 'Food cost', route: '/inventory/food-cost' },
             { label: 'Consumo', route: '/inventory/consumption' },
             { label: 'Unidades', route: '/inventory/units' },

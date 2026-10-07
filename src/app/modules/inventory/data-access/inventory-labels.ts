@@ -36,6 +36,7 @@ export const DOCUMENT_TYPE_OPTIONS: ReadonlyArray<{ value: InventoryDocumentType
   { value: 'adjustment', label: 'Ajuste' },
   { value: 'count', label: 'Conteo' },
   { value: 'transfer', label: 'Transferencia' },
+  { value: 'production', label: 'Producción' },
 ];
 
 export type AdjustmentReasonOption = Readonly<{

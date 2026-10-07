@@ -95,6 +95,8 @@ export type TransferResultDto = Readonly<{
     unitCost: number;
     fromBalanceAfter: number;
     toBalanceAfter: number;
+    // Lotes que viajaron (FEFO desde el origen).
+    lots?: ReadonlyArray<{ lotNumber: string | null; expiryDate: string | null; quantity: number }>;
   }>;
 }>;
 

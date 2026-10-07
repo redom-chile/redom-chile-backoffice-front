@@ -9,7 +9,7 @@ import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { paymentMethodLabel } from 'src/app/modules/payments/pages/payment-list/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
-import { LowStockAlertComponent } from 'src/app/modules/inventory/pages/stock/features';
+import { ExpiryAlertComponent, LowStockAlertComponent } from 'src/app/modules/inventory/pages/stock/features';
 import { GetDashboardMetricsService } from './data-access';
 import { KpiCardComponent, RecentOrdersCardComponent, TopProductsCardComponent } from './features';
 import {
@@ -60,6 +60,7 @@ function toQuery(params: ParamMap): DashboardQuery {
     SalesByDayChartComponent,
     BreakdownChartComponent,
     LowStockAlertComponent,
+    ExpiryAlertComponent,
   ],
   templateUrl: './admin.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
