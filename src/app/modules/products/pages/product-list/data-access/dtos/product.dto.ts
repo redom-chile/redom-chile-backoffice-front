@@ -12,12 +12,20 @@ export type ProductVariationDto = Readonly<{
   isActive: boolean;
 }>;
 
+/** none: sin control · direct: stock propio · recipe: descuenta ingredientes por receta. */
+export type ProductStockMode = 'none' | 'direct' | 'recipe';
+
 export type ProductDto = Readonly<{
   id: number;
   name: string;
   businessId: number;
+  // 'ingredient' para ingredientes (GET /products sin type ya no los devuelve).
   type: string | null;
+  stockMode?: ProductStockMode;
+  // Unidad base del stock (obligatoria en ingredientes, opcional en productos con stock propio).
   unitId: number | null;
+  // Stock mínimo en la unidad base.
+  alertQuantity?: number | null;
   brandId: number | null;
   categoryId: number | null;
   subCategoryId: number | null;

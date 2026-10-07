@@ -1,0 +1,96 @@
+<a [routerLink]="$backLink()" class="text-muted-foreground hover:text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  {{ $backLabel() }}
+</a>
+
+@if (!$isValidId()) {
+<div class="glass rounded-[1rem] px-6 py-12 text-center">
+  <p class="text-foreground font-semibold">Documento no válido</p>
+  <a routerLink="/inventory" class="text-primary mt-2 inline-block text-sm font-medium hover:underline">Volver al inventario</a>
+</div>
+} @else if ($isDisabled()) {
+<app-inventory-disabled />
+} @else if ($error(); as error) {
+<app-inventory-load-error [error]="error" title="Error al cargar el documento" (retry)="movements.reload()" />
+} @else {
+<!-- Cabecera -->
+<section class="glass mb-4 rounded-[1rem] p-4 sm:p-5">
+  @if ($header(); as header) {
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Documento #{{ $id() }}</p>
+      <h1 class="text-foreground text-xl font-semibold">
+        {{ typeLabels[header.type] }}@if (header.reason) { · {{ header.reason }} }
+      </h1>
+    </div>
+    <div class="sm:text-right">
+      <p class="text-muted-foreground text-xs">Total</p>
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatMoney(header.totalCost) }}</p>
+    </div>
+  </div>
+
+  <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <dt class="text-muted-foreground text-xs">{{ header.partial ? 'Registrado' : 'Fecha del documento' }}</dt>
+      <dd class="text-foreground">{{ header.date }}</dd>
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">Local</dt>
+      <dd class="text-foreground">{{ header.locationName }}</dd>
+    </div>
+    @if (header.type === 'purchase') {
+    <div>
+      <dt class="text-muted-foreground text-xs">Proveedor</dt>
+      <dd class="text-foreground">{{ header.supplierName ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">N° factura</dt>
+      <dd class="text-foreground font-mono">{{ header.referenceNo ?? '—' }}</dd>
+    </div>
+    }
+    <div>
+      <dt class="text-muted-foreground text-xs">Creado por</dt>
+      <dd class="text-foreground">
+        {{ header.createdBy ?? '—' }}
+        @if (!header.partial && header.createdAt) {
+        <span class="text-muted-foreground text-xs">· {{ formatDateTime(header.createdAt) }}</span>
+        }
+      </dd>
+    </div>
+    @if (header.notes) {
+    <div class="sm:col-span-2 lg:col-span-3">
+      <dt class="text-muted-foreground text-xs">Notas</dt>
+      <dd class="text-foreground whitespace-pre-line">{{ header.notes }}</dd>
+    </div>
+    }
+  </dl>
+
+  @if (header.partial && !$isHeaderLoading()) {
+  <p class="text-muted-foreground mt-3 text-xs">No encontramos todos los datos de la cabecera; se muestran los que vienen en los movimientos.</p>
+  }
+  } @else if ($isHeaderLoading()) {
+  <div class="space-y-3">
+    <app-skeleton size="xs" style="width: 120px" />
+    <app-skeleton size="sm" style="width: 220px" />
+    <app-skeleton size="xs" style="width: 60%" />
+  </div>
+  } @else {
+  <p class="text-foreground font-semibold">Documento #{{ $id() }}</p>
+  <p class="text-muted-foreground text-sm">Este documento no tiene movimientos o ya no existe.</p>
+  }
+</section>
+
+<div class="mb-2 flex items-center justify-between gap-3">
+  <h2 class="text-foreground font-semibold">Líneas</h2>
+  <a [routerLink]="['/inventory/kardex']" [queryParams]="{ documentId: $id() }" class="text-primary text-sm font-medium hover:underline">Ver en kardex</a>
+</div>
+<app-movements-table
+  [movements]="$lines()"
+  [loading]="movements.isLoading()"
+  [showLocation]="false"
+  [showDocument]="false"
+  emptyText="Este documento no tiene líneas." />
+@if ($hasMoreLines()) {
+<p class="text-muted-foreground mt-2 text-xs">Se muestran las primeras 100 líneas. Revisa el resto en el kardex.</p>
+}
+}

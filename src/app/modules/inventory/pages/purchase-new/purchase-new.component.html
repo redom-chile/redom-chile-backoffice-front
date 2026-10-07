@@ -1,0 +1,121 @@
+<div>
+  <app-header-dashboard title="Nueva compra" subtitle="Registra lo que compraste: suma stock y actualiza el costo promedio.">
+    <a
+      routerLink="/inventory/purchases"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Volver a compras</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if ($isDisabled()) {
+  <app-inventory-disabled />
+  } @else if ($isLoading()) {
+  <div class="space-y-4">
+    <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-2">
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <app-skeleton size="2xl" />
+    </div>
+  </div>
+  } @else {
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="space-y-4">
+    <!-- Datos de la compra -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos de la compra</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <span class="mb-1 block text-sm font-medium">Local *</span>
+          <app-location-select [disabled]="$isSaving()" />
+        </div>
+
+        <div>
+          <label for="purchase-supplier" class="mb-1 block text-sm font-medium">Proveedor</label>
+          <div class="flex gap-2">
+            <select id="purchase-supplier" formControlName="supplierId" class="glass-input w-full min-w-0 rounded-md px-3 py-2">
+              <option [ngValue]="null">{{ $suppliersFailed() ? 'No se pudieron cargar' : 'Sin proveedor' }}</option>
+              @for (supplier of $suppliers(); track supplier.id) {
+              <option [ngValue]="supplier.id">{{ supplierLabel(supplier) }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+              title="Nuevo proveedor"
+              (click)="handleNewSupplier()">
+              <app-icon class="h-5 w-5">add</app-icon>
+              <span class="hidden sm:inline">Nuevo proveedor</span>
+            </button>
+          </div>
+          @if ($suppliersFailed()) {
+          <button type="button" class="text-primary mt-1 text-xs font-medium" (click)="loadSuppliers()">Reintentar cargar proveedores</button>
+          }
+        </div>
+
+        <div>
+          <label for="purchase-reference" class="mb-1 block text-sm font-medium">N° de factura</label>
+          <input
+            id="purchase-reference"
+            type="text"
+            maxlength="100"
+            formControlName="referenceNo"
+            placeholder="Opcional"
+            class="glass-input w-full rounded-md px-3 py-2" />
+        </div>
+
+        <div>
+          <label for="purchase-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+          <input
+            id="purchase-date"
+            type="date"
+            formControlName="documentDate"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)" />
+          @if (form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)) {
+          <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="purchase-notes" class="mb-1 block text-sm font-medium">Notas</label>
+          <textarea
+            id="purchase-notes"
+            rows="2"
+            maxlength="1000"
+            formControlName="notes"
+            placeholder="Opcional"
+            class="glass-input w-full rounded-md px-3 py-2"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ítems -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-1 font-semibold">Ítems comprados</h2>
+      <p class="text-muted-foreground mb-3 text-xs">Costo unitario neto (sin IVA) por la unidad elegida.</p>
+      <app-stock-lines-editor
+        [lines]="form.controls.lines"
+        costMode="required"
+        quantityMode="positive"
+        [showErrors]="$submitted()"
+        [preselectVariationId]="preselectVariationId" />
+    </section>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        routerLink="/inventory/purchases"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
+        Cancelar
+      </a>
+      <app-button type="submit" impact="bold" tone="primary" icon="save" [disabled]="$isSaving()">
+        {{ $isSaving() ? 'Guardando…' : 'Registrar compra' }}
+      </app-button>
+    </div>
+  </form>
+  }
+</div>

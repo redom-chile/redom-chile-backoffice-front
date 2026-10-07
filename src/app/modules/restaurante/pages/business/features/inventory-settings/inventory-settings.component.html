@@ -1,0 +1,147 @@
+@if (!$isLoaded() && $hasError()) {
+<app-card>
+  <div class="flex flex-col items-center gap-4 py-12 text-center">
+    <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+    <div>
+      <h2 class="text-foreground text-lg font-semibold">No se pudo cargar la configuración de inventario</h2>
+      <p class="text-muted-foreground mt-1 text-sm">Revisa tu conexión e intenta nuevamente.</p>
+    </div>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retry()">Reintentar</app-button>
+  </div>
+</app-card>
+} @else if (!$isLoaded()) {
+<app-card>
+  <div class="space-y-1" aria-busy="true" aria-label="Cargando configuración de inventario">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <div class="flex items-center justify-between gap-4 border-b border-dashed border-[var(--border)] p-4 last:border-0">
+      <div class="w-full max-w-md space-y-2">
+        <app-skeleton size="xs" style="width: 180px" />
+        <app-skeleton size="xs" />
+      </div>
+      <app-skeleton size="sm" style="width: 44px" />
+    </div>
+    }
+  </div>
+</app-card>
+} @else {
+@let view = $view();
+<div class="space-y-4">
+  @if ($justEnabled() && view.inventoryEnabled) {
+  <div class="glass grid gap-3 rounded-[1rem] p-4 sm:grid-cols-2">
+    <a
+      routerLink="/inventory/adjustments/new"
+      [queryParams]="{ reason: 'initial_stock' }"
+      class="glass-row flex items-start gap-3 rounded-lg p-3 transition-colors">
+      <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+        <app-icon class="h-5 w-5">inventory</app-icon>
+      </span>
+      <span>
+        <span class="text-foreground block text-sm font-semibold">Carga tu stock inicial</span>
+        <span class="text-muted-foreground block text-xs">Registra lo que tienes hoy en cada local para partir con el stock y el costo correctos.</span>
+      </span>
+    </a>
+    <a routerLink="/inventory/units" class="glass-row flex items-start gap-3 rounded-lg p-3 transition-colors">
+      <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+        <app-icon class="h-5 w-5">straighten</app-icon>
+      </span>
+      <span>
+        <span class="text-foreground block text-sm font-semibold">Crea tus unidades</span>
+        <span class="text-muted-foreground block text-xs">Gramo, kilogramo, litro, unidad… para medir lo que compras y gastas.</span>
+      </span>
+    </a>
+  </div>
+  }
+
+  <app-card>
+    <div class="border-border flex items-start justify-between gap-4 border-b border-dashed p-4">
+      <div>
+        <p class="text-foreground text-sm font-semibold">Activar inventario</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          Controla el stock de tus productos e insumos. Cada local tiene su propio stock y su costo promedio ponderado,
+          que se recalcula con cada compra.
+        </p>
+      </div>
+      <app-toggle
+        aria-label="Activar inventario"
+        [checked]="view.inventoryEnabled"
+        [disabled]="$isSaving()"
+        (changed)="toggle('inventoryEnabled', $event)" />
+    </div>
+
+    <div class="divide-y divide-dashed divide-[var(--border)]" [class.opacity-50]="!view.inventoryEnabled">
+      <div class="flex items-start justify-between gap-4 p-4">
+        <div>
+          <p class="text-foreground text-sm font-semibold">Trabajar con ingredientes y recetas</p>
+          <p class="text-muted-foreground mt-0.5 text-xs">
+            Permite crear ingredientes (insumos que tienen stock pero no se venden) y productos que descuentan stock
+            según su receta. Las cantidades se guardan en la unidad base (ej. gramos) y puedes usar subunidades (ej. kilogramos).
+          </p>
+        </div>
+        <app-toggle
+          aria-label="Trabajar con ingredientes y recetas"
+          [checked]="view.ingredientsEnabled"
+          [disabled]="$isSaving() || !view.inventoryEnabled"
+          (changed)="toggle('ingredientsEnabled', $event)" />
+      </div>
+
+      <div class="p-4">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-foreground text-sm font-semibold">Descontar stock al vender</p>
+            <p class="text-muted-foreground mt-0.5 text-xs">
+              Las ventas descontarán el stock del local donde se venden. En esta etapa la venta aún no descuenta stock
+              (llega en una próxima versión), pero ya puedes dejarlo configurado.
+            </p>
+          </div>
+          <app-toggle
+            aria-label="Descontar stock al vender"
+            [checked]="view.deductStockOnSale"
+            [disabled]="$isSaving() || !view.inventoryEnabled"
+            (changed)="toggle('deductStockOnSale', $event)" />
+        </div>
+
+        @if (view.deductStockOnSale) {
+        <div class="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <label for="stock-deduction-moment" class="text-foreground text-sm font-medium">¿Cuándo?</label>
+          <select
+            id="stock-deduction-moment"
+            class="glass-input rounded-md px-3 py-2 text-sm sm:w-64"
+            [disabled]="$isSaving() || !view.inventoryEnabled"
+            (change)="changeMoment($event)">
+            @for (option of deductionMoments; track option.value) {
+            <option [value]="option.value" [selected]="option.value === view.stockDeductionMoment">{{ option.label }}</option>
+            }
+          </select>
+          <span class="text-muted-foreground text-xs">Aplica a pedidos nuevos.</span>
+        </div>
+        }
+      </div>
+
+      <div class="flex items-start justify-between gap-4 p-4">
+        <div>
+          <p class="text-foreground text-sm font-semibold">Permitir stock negativo</p>
+          <p class="text-muted-foreground mt-0.5 text-xs">
+            Si está apagado, no se podrán registrar salidas que dejen el stock bajo cero.
+          </p>
+        </div>
+        <app-toggle
+          aria-label="Permitir stock negativo"
+          [checked]="view.allowNegativeStock"
+          [disabled]="$isSaving() || !view.inventoryEnabled"
+          (changed)="toggle('allowNegativeStock', $event)" />
+      </div>
+    </div>
+  </app-card>
+
+  @if (view.inventoryEnabled && !$justEnabled()) {
+  <p class="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs">
+    <span>Atajos:</span>
+    <a routerLink="/inventory" class="text-primary font-medium hover:underline">Ver stock</a>
+    <a routerLink="/inventory/units" class="text-primary font-medium hover:underline">Unidades</a>
+    @if (view.ingredientsEnabled) {
+    <a routerLink="/inventory/ingredients" class="text-primary font-medium hover:underline">Ingredientes</a>
+    }
+  </p>
+  }
+</div>
+}

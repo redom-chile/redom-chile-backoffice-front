@@ -9,6 +9,9 @@
     [currentImageUrl]="product.imageUrl"
     [uploading]="$isUploading()"
     [uploadProgress]="$uploadProgress()"
+    [inventoryEnabled]="$inventoryEnabled()"
+    [ingredientsEnabled]="$ingredientsEnabled()"
+    [units]="$units()"
     (imageChange)="onImageChange($event)" [autoSuggestSku]="false" />
 
   <ng-template app-slot="footer">

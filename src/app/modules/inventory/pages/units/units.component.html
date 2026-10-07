@@ -1,0 +1,55 @@
+<div class="space-y-4">
+  <app-header-dashboard title="Unidades" subtitle="Cómo mides lo que compras y gastas. El stock se guarda en la unidad base.">
+    @if ($inventoryEnabled() && $units()?.length) {
+    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">
+      Nueva unidad
+    </app-button>
+    }
+  </app-header-dashboard>
+
+  @if ($settingsLoaded() && !$inventoryEnabled()) {
+  <app-inventory-disabled />
+  } @else if ($hasError()) {
+  <div class="flex flex-col items-center gap-4 py-16 text-center">
+    <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+    <p class="text-foreground font-semibold">No se pudieron cargar las unidades</p>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="handleRetry()">Reintentar</app-button>
+  </div>
+  } @else if ($isLoading() || !$settingsLoaded()) {
+  <div class="space-y-3" aria-busy="true">
+    @for (row of [1, 2, 3]; track row) {
+    <div class="glass space-y-2 rounded-[1rem] p-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" style="width: 120px" />
+    </div>
+    }
+  </div>
+  } @else if ($isEmpty()) {
+  <app-empty-state
+    icon="straighten"
+    title="Aún no tienes unidades"
+    description="Te sugerimos empezar con Gramo, Kilogramo, Mililitro, Litro y Unidad. Kilogramo y Litro quedan como subunidades (1 kg = 1000 g; 1 l = 1000 ml).">
+    <div class="flex flex-wrap justify-center gap-2">
+      <app-button
+        impact="bold"
+        tone="primary"
+        shape="rounded"
+        icon="auto_awesome"
+        [disabled]="$isCreatingSuggested()"
+        [isLoading]="$isCreatingSuggested()"
+        (buttonClick)="createSuggested()">
+        Crear unidades sugeridas
+      </app-button>
+      <app-button impact="light" tone="primary" shape="rounded" icon="add" [disabled]="$isCreatingSuggested()" (buttonClick)="handleCreate()">
+        Crear una a una
+      </app-button>
+    </div>
+  </app-empty-state>
+  } @else {
+  <p class="text-muted-foreground text-xs">
+    Cada cantidad se guarda en su unidad base y puedes comprar o ajustar usando sus subunidades.
+    Ej: Kilogramo = 1000 Gramo; Caja = 12 Unidad.
+  </p>
+  <app-units-list [units]="$units() ?? []" (edit)="handleEdit($event)" (delete)="handleDelete($event)" />
+  }
+</div>

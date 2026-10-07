@@ -1,0 +1,78 @@
+<div class="glass overflow-hidden rounded-[1rem]">
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Ingrediente</th>
+          <th class="hidden px-4 py-3 md:table-cell">SKU</th>
+          <th class="px-4 py-3">Unidad</th>
+          <th class="hidden px-4 py-3 text-right sm:table-cell">Stock mínimo</th>
+          <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+        @for (row of skeletonRows; track row) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td class="px-4 py-3"><app-skeleton size="xs" style="width: 160px" /></td>
+          <td class="hidden px-4 py-3 md:table-cell"><app-skeleton size="xs" style="width: 90px" /></td>
+          <td class="px-4 py-3"><app-skeleton size="xs" style="width: 90px" /></td>
+          <td class="hidden px-4 py-3 sm:table-cell"><div class="flex justify-end"><app-skeleton size="xs" style="width: 60px" /></div></td>
+          <td class="px-4 py-3"><div class="flex justify-end"><app-skeleton size="xs" style="width: 72px" /></div></td>
+        </tr>
+        }
+        } @else {
+        @for (ingredient of ingredients(); track ingredient.id) {
+        <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0">
+          <td class="px-4 py-3">
+            <p class="text-foreground font-medium">{{ ingredient.name }}</p>
+            <p class="text-muted-foreground font-mono text-xs md:hidden">{{ ingredient.sku }}</p>
+            <p class="text-muted-foreground text-xs sm:hidden">Mínimo: {{ minimum(ingredient) }}</p>
+          </td>
+          <td class="text-muted-foreground hidden px-4 py-3 font-mono text-xs md:table-cell">{{ ingredient.sku }}</td>
+          <td class="text-muted-foreground px-4 py-3 text-sm">{{ unitName(ingredient) }}</td>
+          <td class="text-foreground hidden whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums sm:table-cell">{{ minimum(ingredient) }}</td>
+          <td class="px-4 py-3">
+            <div class="flex justify-end gap-1">
+              <a
+                routerLink="/inventory"
+                [queryParams]="{ search: ingredient.name }"
+                title="Ver stock"
+                [attr.aria-label]="'Ver stock de ' + ingredient.name"
+                class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--muted)]/30">
+                <app-icon class="h-5 w-5">inventory_2</app-icon>
+              </a>
+              <button
+                type="button"
+                title="Editar"
+                [attr.aria-label]="'Editar ' + ingredient.name"
+                class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-[var(--muted)]/30"
+                (click)="edit.emit(ingredient)">
+                <app-icon class="h-5 w-5">edit</app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center">
+            <p class="text-foreground font-medium">{{ searching() ? 'No hay ingredientes con ese nombre' : 'Sin ingredientes' }}</p>
+            @if (searching()) {
+            <p class="text-muted-foreground mt-1 text-sm">Prueba con otra búsqueda.</p>
+            }
+          </td>
+        </tr>
+        }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (pagination(); as pagination) {
+  @if (pagination.totalItems > 0) {
+  <div class="border-t border-[var(--border)]">
+    <app-pagination-table [pagination]="pagination" (pageChange)="pageChange.emit($event)" />
+  </div>
+  }
+  }
+</div>

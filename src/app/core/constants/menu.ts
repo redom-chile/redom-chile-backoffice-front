@@ -57,6 +57,20 @@ export class Menu {
           ],
         },
         {
+          icon: 'inventory',
+          label: 'Inventario',
+          route: '/inventory',
+          feature: 'inventory',
+          children: [
+            { label: 'Stock', route: '/inventory' },
+            { label: 'Compras', route: '/inventory/purchases' },
+            { label: 'Ajustes', route: '/inventory/adjustments' },
+            { label: 'Kardex', route: '/inventory/kardex' },
+            { label: 'Ingredientes', route: '/inventory/ingredients', feature: 'ingredients' },
+            { label: 'Unidades', route: '/inventory/units' },
+          ],
+        },
+        {
           icon: 'factory',
           label: 'Negocio',
           route: '/business',

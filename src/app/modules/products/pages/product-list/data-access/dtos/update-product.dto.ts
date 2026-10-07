@@ -1,3 +1,5 @@
+import { ProductStockMode } from './product.dto';
+
 export type UpdateProductVariationDto = Readonly<{
   // Sin id, el backend crea la variación; con id, la actualiza.
   id?: number;
@@ -10,6 +12,11 @@ export type UpdateProductVariationDto = Readonly<{
 export type UpdateProductDto = Readonly<{
   name?: string;
   sku?: string;
+  type?: 'ingredient';
+  stockMode?: ProductStockMode;
+  // null = quitar la unidad.
+  unitId?: number | null;
+  alertQuantity?: number;
   categoryId?: number;
   subCategoryId?: number;
   taxType?: 'inclusive' | 'exclusive';

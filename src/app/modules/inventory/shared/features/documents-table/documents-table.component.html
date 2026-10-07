@@ -1,0 +1,106 @@
+@let isPurchase = type() === 'purchase';
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (loading()) {
+  <!-- Skeleton -->
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 90px" />
+      <app-skeleton size="xs" style="width: 140px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 160px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (documents().length === 0) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">{{ isPurchase ? 'Sin compras' : 'Sin ajustes' }}</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ hasFilters() ? 'No hay documentos que coincidan con los filtros.' : 'Todavía no hay documentos registrados.' }}
+    </p>
+    @if (hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters.emit()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Fecha</th>
+          <th class="px-4 py-3">Local</th>
+          @if (isPurchase) {
+          <th class="px-4 py-3">Proveedor</th>
+          <th class="px-4 py-3">N° factura</th>
+          } @else {
+          <th class="px-4 py-3">Motivo</th>
+          <th class="px-4 py-3">Notas</th>
+          }
+          <th class="px-4 py-3 text-right">Líneas</th>
+          <th class="px-4 py-3 text-right">Total</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Creado por</th>
+          <th class="px-4 py-3"><span class="sr-only">Abrir</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (document of documents(); track document.id) {
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(document)">
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDate(document.documentDate) }}</td>
+          <td class="text-foreground px-4 py-3 text-sm">{{ document.locationName }}</td>
+          @if (isPurchase) {
+          <td class="text-foreground px-4 py-3 text-sm">{{ document.supplierName ?? '—' }}</td>
+          <td class="text-muted-foreground px-4 py-3 font-mono text-sm">{{ document.referenceNo ?? '—' }}</td>
+          } @else {
+          <td class="text-foreground px-4 py-3 text-sm">{{ document.reason ? reasonLabels[document.reason] : '—' }}</td>
+          <td class="text-muted-foreground px-4 py-3 text-sm">
+            <p class="max-w-[16rem] truncate" [title]="document.notes ?? ''">{{ document.notes ?? '—' }}</p>
+          </td>
+          }
+          <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">{{ document.linesCount }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ document.createdBy ?? '—' }}</td>
+          <td class="px-4 py-3 text-right">
+            <a
+              [routerLink]="['/inventory/documents', document.id]"
+              [state]="{ document }"
+              [attr.aria-label]="'Ver documento ' + document.id"
+              class="text-muted-foreground hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-md"
+              (click)="$event.stopPropagation()">
+              <app-icon class="h-5 w-5">chevron_right</app-icon>
+            </a>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (document of documents(); track document.id) {
+    <li>
+      <a [routerLink]="['/inventory/documents', document.id]" [state]="{ document }" class="glass-row flex items-start gap-3 px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground truncate text-sm font-semibold">
+            {{ isPurchase ? (document.supplierName ?? 'Sin proveedor') : (document.reason ? reasonLabels[document.reason] : 'Ajuste') }}
+          </p>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ formatDate(document.documentDate) }} · {{ document.locationName }}
+            @if (isPurchase && document.referenceNo) { · N° {{ document.referenceNo }} }
+          </p>
+          <p class="text-muted-foreground text-xs">{{ document.linesCount }} {{ document.linesCount === 1 ? 'línea' : 'líneas' }}</p>
+        </div>
+        <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</span>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+
+  @if (pagination(); as meta) { @if (meta.totalItems > 0 && !loading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="pageChange.emit($event)" />
+  </div>
+  } }
+</div>

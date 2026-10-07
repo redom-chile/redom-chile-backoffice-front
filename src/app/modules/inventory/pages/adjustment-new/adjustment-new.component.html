@@ -1,0 +1,141 @@
+<div>
+  <app-header-dashboard title="Nuevo ajuste" subtitle="Registra mermas, consumo interno, stock inicial o correcciones por conteo.">
+    <a
+      routerLink="/inventory/adjustments"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Volver a ajustes</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if ($isDisabled()) {
+  <app-inventory-disabled />
+  } @else if ($isLoading()) {
+  <div class="space-y-4">
+    <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-3">
+      <app-skeleton size="md" />
+      <app-skeleton size="md" />
+      <app-skeleton size="md" />
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <app-skeleton size="2xl" />
+    </div>
+  </div>
+  } @else {
+  @let reason = $reason();
+  @let mode = $lineMode();
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="space-y-4">
+    <!-- Motivo -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold" id="adjustment-reason-title">Motivo *</h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-labelledby="adjustment-reason-title">
+        @for (option of reasons; track option.value) {
+        @let selected = reason?.value === option.value;
+        <label
+          class="has-[:focus-visible]:ring-primary flex cursor-pointer flex-col gap-1 rounded-lg border p-3 transition has-[:focus-visible]:ring-2"
+          [class]="selected ? 'border-primary bg-primary/10' : 'border-border/60 hover:bg-muted/20'">
+          <input type="radio" class="sr-only" formControlName="reason" [value]="option.value" />
+          <span class="text-foreground flex items-center justify-between gap-2 text-sm font-semibold">
+            {{ option.label }}
+            <span
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
+              [class]="
+                option.direction === 'exit'
+                  ? 'bg-red-500/15 text-red-700 dark:text-red-400'
+                  : option.direction === 'entry'
+                    ? 'bg-green-500/15 text-green-700 dark:text-green-400'
+                    : 'bg-violet-500/15 text-violet-700 dark:text-violet-400'
+              ">
+              {{ option.direction === 'exit' ? 'Resta' : option.direction === 'entry' ? 'Suma' : '+ / −' }}
+            </span>
+          </span>
+          <span class="text-muted-foreground text-xs">{{ option.hint }}</span>
+        </label>
+        }
+      </div>
+      @if ($submitted() && !reason) {
+      <p class="text-destructive mt-2 text-xs">Elige el motivo del ajuste.</p>
+      }
+    </section>
+
+    <!-- Datos -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos del ajuste</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <span class="mb-1 block text-sm font-medium">Local *</span>
+          <app-location-select [disabled]="$isSaving()" />
+        </div>
+
+        <div>
+          <label for="adjustment-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+          <input
+            id="adjustment-date"
+            type="date"
+            formControlName="documentDate"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)" />
+          @if (form.controls.documentDate.invalid && ($submitted() || form.controls.documentDate.touched)) {
+          <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="adjustment-notes" class="mb-1 block text-sm font-medium">Notas{{ $notesRequired() ? ' *' : '' }}</label>
+          <textarea
+            id="adjustment-notes"
+            rows="2"
+            maxlength="1000"
+            formControlName="notes"
+            [placeholder]="$notesRequired() ? 'Obligatorio. Ej: se venció el lote del lunes' : 'Opcional'"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="notesInvalid()"
+            [attr.aria-invalid]="notesInvalid()"></textarea>
+          @if (notesInvalid()) {
+          <p class="text-destructive mt-1 text-xs">Para "{{ reason?.label }}" explica el motivo en la nota.</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Ítems -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-1 font-semibold">Ítems</h2>
+      <p class="text-muted-foreground mb-3 text-xs">
+        @switch (reason?.direction) {
+        @case ('exit') { Ingresa la cantidad en positivo; se descuenta del stock. }
+        @case ('entry') { Ingresa la cantidad que suma. El costo es opcional y fija el costo promedio. }
+        @case ('signed') { + suma / − resta. El costo es opcional y solo aplica a las líneas que suman. }
+        @default { Elige un motivo para saber si las cantidades suman o restan. }
+        }
+      </p>
+
+      @if (!$allowNegativeStock() && reason?.direction !== 'entry') {
+      <div class="mb-3 flex items-start gap-2 rounded-lg bg-yellow-500/10 px-3 py-2 text-xs text-yellow-800 dark:text-yellow-300">
+        <app-icon class="h-4 w-4 shrink-0">info</app-icon>
+        <span>Las salidas no pueden dejar el stock bajo cero ("Permitir stock negativo" está desactivado).</span>
+      </div>
+      }
+
+      <app-stock-lines-editor
+        [lines]="form.controls.lines"
+        [costMode]="mode.cost"
+        [quantityMode]="mode.quantity"
+        [showErrors]="$submitted()"
+        [preselectVariationId]="preselectVariationId" />
+    </section>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        routerLink="/inventory/adjustments"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
+        Cancelar
+      </a>
+      <app-button type="submit" impact="bold" tone="primary" icon="save" [disabled]="$isSaving()">
+        {{ $isSaving() ? 'Guardando…' : 'Registrar ajuste' }}
+      </app-button>
+    </div>
+  </form>
+  }
+</div>

@@ -5,6 +5,7 @@ import { Menu } from 'src/app/core/constants/menu';
 import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
 import { environment } from 'src/environments/environment';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 
 @Injectable({
   providedIn: 'root',
@@ -16,10 +17,28 @@ export class MenuService implements OnDestroy {
   private _pagesMenu = signal<MenuItem[]>([]);
   private _subscription = new Subscription();
   private _whoamiService = inject(WhoamiService);
+  #businessSettings = inject(BusinessSettingsService);
+
+  // Oculta lo que depende de una función apagada en la configuración del negocio (ej. Inventario).
+  #featureMenu: Signal<MenuItem[]> = computed(() => {
+    const enabled = {
+      inventory: this.#businessSettings.$inventoryEnabled(),
+      ingredients: this.#businessSettings.$ingredientsEnabled(),
+    };
+    const isVisible = (item: SubMenuItem) => !item.feature || enabled[item.feature];
+    return this._pagesMenu().map((group) => ({
+      ...group,
+      items: group.items.filter(isVisible).map((item) => {
+        if (!item.children?.some((child) => !isVisible(child))) return item;
+        // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
+        return Object.assign(Object.create(item) as SubMenuItem, { children: item.children.filter(isVisible) });
+      }),
+    }));
+  });
 
   #filteredPagesMenu: Signal<MenuItem[]> = computed(() => {
     const permissions = this._whoamiService.$permissionsSet();
-    const menus = this._pagesMenu();
+    const menus = this.#featureMenu();
     // Con los permisos apagados (environment.enforcePermissions) se muestra el menú completo.
     if (!environment.enforcePermissions) return menus;
 

@@ -41,7 +41,18 @@
                 (expired)="imageExpired.emit()" />
               <div class="min-w-0">
                 <p class="text-foreground truncate font-medium">{{ product.name }}</p>
-                <p class="text-muted-foreground font-mono text-xs">{{ product.sku }}</p>
+                <p class="text-muted-foreground flex flex-wrap items-center gap-x-2 font-mono text-xs">
+                  {{ product.sku }}
+                  @if (showStockMode() && product.stockMode && product.stockMode !== 'none') {
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-sans text-[11px] font-medium"
+                    [class]="product.stockMode === 'direct' ? 'bg-blue-500/15 text-blue-600' : 'bg-purple-500/15 text-purple-600'"
+                    [title]="'Control de stock: ' + stockModeLabels[product.stockMode]">
+                    <app-icon class="h-3 w-3">{{ product.stockMode === 'direct' ? 'inventory_2' : 'menu_book' }}</app-icon>
+                    {{ stockModeLabels[product.stockMode] }}
+                  </span>
+                  }
+                </p>
                 <p class="text-muted-foreground text-xs md:hidden">{{ categoryLabel(product) }}</p>
               </div>
             </div>

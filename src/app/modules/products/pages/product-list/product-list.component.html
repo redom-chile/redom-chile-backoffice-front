@@ -40,6 +40,7 @@
     [pagination]="$pagination()"
     [categoryNames]="$categoryNames()"
     [hasFilters]="$hasFilters()"
+    [showStockMode]="$inventoryEnabled()"
     (edit)="handleUpdate($event)"
     (delete)="handleDelete($event)"
     (pageChange)="handlePageChange($event)"

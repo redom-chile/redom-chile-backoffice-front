@@ -4,6 +4,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { map } from 'rxjs';
 import { throttledRefresh } from 'src/app/core/services/file-upload';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
 import { CategoryDto, GetAllCategoriesService } from '../categories/data-access';
 import { GetAllProductsService, getProductErrorMessage, ProductDto } from './data-access';
@@ -54,6 +55,8 @@ export class ProductListComponent implements OnInit {
   // Las URLs de imagen vencen en 1 hora: se vuelve a pedir la lista.
   protected readonly refreshExpiredImages = throttledRefresh(() => this.getAllService.retry());
   private readonly getAllCategoriesService = inject(GetAllCategoriesService);
+
+  readonly $inventoryEnabled = inject(BusinessSettingsService).$inventoryEnabled;
 
   private readonly filtersComponent = viewChild(FiltersProductTableComponent);
 

@@ -1,0 +1,68 @@
+<app-header-dashboard
+  title="Inventario"
+  subtitle="Cada local tiene su propio stock y costo promedio ponderado. Las cantidades se muestran en la unidad base de cada producto.">
+  @if (!$isDisabled()) {
+  <a
+    routerLink="/inventory/purchases/new"
+    [queryParams]="{ locationId: locationStore.$locationId() ?? undefined }"
+    class="bg-primary text-primary-foreground inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
+    <app-icon class="h-5 w-5">add_shopping_cart</app-icon>
+    <span class="hidden sm:inline">Nueva compra</span>
+  </a>
+  <a
+    routerLink="/inventory/adjustments/new"
+    [queryParams]="{ locationId: locationStore.$locationId() ?? undefined }"
+    class="bg-primary/20 text-primary hover:bg-primary/30 inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition">
+    <app-icon class="h-5 w-5">tune</app-icon>
+    <span class="hidden sm:inline">Nuevo ajuste</span>
+  </a>
+  }
+</app-header-dashboard>
+
+@if ($isDisabled()) {
+<app-inventory-disabled />
+} @else if ($hasNoLocations()) {
+<app-empty-state icon="storefront" title="Aún no tienes locales" description="El stock se lleva por local. Crea tu primer local para empezar a usar el inventario.">
+  <a routerLink="/business/location" class="text-primary text-sm font-medium hover:underline">Ir a locales</a>
+</app-empty-state>
+} @else {
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <app-location-select />
+  <app-low-stock-alert [locationId]="locationStore.$locationId()" [active]="$query().lowStock" (activate)="handleLowStockAlert()" />
+</div>
+
+@if ($error(); as error) {
+<app-inventory-load-error [error]="error" title="Error al cargar el stock" (retry)="stock.reload()" />
+} @else if ($isEmpty()) {
+<app-empty-state
+  icon="inventory_2"
+  title="Todavía no hay productos con stock"
+  description="Aquí aparecen los ingredientes y los productos con control &quot;Stock propio&quot;. Créalos y luego registra una compra o el stock inicial.">
+  <div class="flex flex-wrap justify-center gap-3">
+    @if ($ingredientsEnabled()) {
+    <a routerLink="/inventory/ingredients" class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">egg</app-icon>
+      Ingredientes
+    </a>
+    }
+    <a routerLink="/products" class="bg-primary/20 text-primary hover:bg-primary/30 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition">
+      <app-icon class="h-5 w-5">restaurant_menu</app-icon>
+      Productos
+    </a>
+  </div>
+</app-empty-state>
+} @else {
+<div class="mb-4">
+  <app-stock-filters [filters]="$query()" [hasFilters]="$hasFilters()" (filtersChange)="handleFiltersChange($event)" (clear)="handleClearFilters()" />
+</div>
+
+<app-stock-table
+  [items]="$page()?.data ?? []"
+  [locationId]="locationStore.$locationId()"
+  [loading]="$isLoading()"
+  [pagination]="$page()?.pagination ?? null"
+  [hasFilters]="$hasFilters()"
+  (pageChange)="handlePageChange($event)"
+  (clearFilters)="handleClearFilters()" />
+}
+}

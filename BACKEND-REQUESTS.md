@@ -11,7 +11,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27 |
 
@@ -74,6 +74,47 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** mapear `themeColor` en la entidad del negocio; aceptarlo en `PATCH /business/:id/settings` (valores permitidos: `base`, `red`, `orange`, `yellow`, `green`, `blue`, `violet`; `null` vuelve al predeterminado) y devolverlo en `GET /business/:id/settings` y en `GET /business/my-businesses`.
 
 **Front mientras tanto:** "Mi negocio" permite elegir el color y ya envía `themeColor` en el PATCH (hoy el backend lo descarta en silencio). El color se guarda además en el navegador (`redom.brand-color.<restaurantId>`), así que por ahora solo se ve en el equipo donde se eligió.
+
+### 31. 🟡 Inventario: errores sin código de negocio y mensajes en inglés
+
+**Problema:** los errores de inventario (`libs/restaurant/shared/src/lib/inventory.service.ts`, `adjustment-rules.ts`, `update-business-settings`) llegan solo con el código genérico del status y un texto en inglés. Para mostrar la pantalla "Activar inventario" o un mensaje claro, el front tiene que reconocer el texto.
+
+**Se pide:** códigos estables, con `details` cuando aplique:
+- `INVENTORY_DISABLED` (409);
+- `INSUFFICIENT_STOCK` (409), con `details.products` como lista de nombres o `variationId`;
+- `INGREDIENTS_DISABLED`;
+- `INGREDIENT_UNIT_REQUIRED`;
+- `INGREDIENT_RECIPE_NOT_ALLOWED`;
+- `PRODUCT_NOT_STOCKED`, para productos sin `stockMode` `direct`;
+- `UNIT_NOT_SUB_UNIT`;
+- `UNIT_DECIMALS_NOT_ALLOWED`;
+- `ADJUSTMENT_QUANTITY_SIGN`;
+- `ADJUSTMENT_COST_ON_EXIT`;
+- `INVENTORY_SETTINGS_REQUIRE_INVENTORY`.
+
+**Front mientras tanto:** `getInventoryErrorMessage` (`src/app/modules/inventory/data-access/inventory-error-message.ts`) reconoce el texto en inglés y lo traduce al español. Si el texto cambia, se muestra tal cual.
+
+### 32. 🟡 Inventario: detalle de un documento y total valorizado por local
+
+**Problema:**
+- No existe `GET /inventory/documents/:id`, y `GET /inventory/documents` no filtra por `id`. Al abrir el detalle de una compra o un ajuste por URL directa, el front no tiene cómo pedir la cabecera: tipo, motivo, proveedor, N° de factura, notas y total.
+- `GET /inventory/stock` es paginado y no trae el valor total del inventario del local; solo se puede sumar la página visible.
+
+**Se pide:**
+- `GET /inventory/documents/:id`, que devuelva la cabecera (los mismos campos de la lista) y, si es posible, sus líneas.
+- En `GET /inventory/stock`, un `summary` con `{ totalValue, itemsCount, lowStockCount }` del local, sin importar la página.
+
+**Front mientras tanto:**
+- **Detalle:** toma la cabecera del estado de navegación cuando se llega desde la lista. Si no está, la busca en `/inventory/documents` (hasta 5 páginas). Si tampoco aparece, la arma con los movimientos y lo indica en pantalla.
+- **Stock:** el total se muestra como "Valor del inventario (esta página)", y "bajo mínimo" sale de `lowStock=true&perPage=1`.
+
+### 33. 🟡 Unidades: eliminar una unidad en uso
+
+**Problema:** `DELETE /units/:id` (`delete-unit-sql.service.ts`) hace soft delete sin revisar si la usan productos/ingredientes (`products.unit_id`) o si es la unidad base de otras (`units.base_unit_id`). Después, compras y ajustes de esos productos fallan con `Unit X not found` (`inventory.service.ts`, `unitFactor`).
+
+**Se pide:** responder 409 con un código (ej. `UNIT_IN_USE`, con `details.products` y/o `details.subUnits`) cuando la unidad esté en uso.
+
+**Front mientras tanto:** la pantalla Unidades no deja eliminar una unidad base que tiene subunidades y el modal de confirmación avisa que se revise que ningún producto o ingrediente la use.
 
 ---
 

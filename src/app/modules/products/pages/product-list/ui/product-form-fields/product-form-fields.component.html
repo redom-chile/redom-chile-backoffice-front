@@ -99,6 +99,67 @@
       [ngClass]="{ 'border-red-500': isInvalid('preparationTimeInMinutes') }" />
   </div>
 
+  @if (inventoryEnabled()) {
+  <fieldset class="sm:col-span-2">
+    <legend class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Control de stock</legend>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      @for (option of stockModeOptions; track option.value) {
+      @let disabled = isStockModeDisabled(option.value);
+      <label
+        class="flex gap-2 rounded-md border px-3 py-2"
+        [ngClass]="{
+          'border-primary bg-primary/5': $stockMode() === option.value,
+          'border-gray-300 dark:border-gray-600': $stockMode() !== option.value,
+          'cursor-pointer': !disabled,
+          'cursor-not-allowed opacity-50': disabled
+        }">
+        <input type="radio" formControlName="stockMode" [value]="option.value" [attr.disabled]="disabled ? '' : null" class="mt-1 accent-[var(--primary)]" />
+        <span>
+          <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+          <span class="block text-xs text-gray-500 dark:text-gray-400">
+            {{ option.hint }}
+            @if (option.value === 'recipe' && !ingredientsEnabled()) {
+            Requiere activar "Trabajar con ingredientes y recetas" en
+            <a routerLink="/business" [queryParams]="{ tab: 'inventario' }" target="_blank" class="text-primary underline">Mi negocio</a>.
+            }
+          </span>
+        </span>
+      </label>
+      }
+    </div>
+  </fieldset>
+
+  @if ($stockMode() === 'direct') {
+  <div>
+    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Unidad de stock</label>
+    <select formControlName="unitId" [class]="inputClass">
+      <option [ngValue]="null">Unidad (por defecto)</option>
+      @for (unit of $baseUnits(); track unit.id) {
+      <option [ngValue]="unit.id">{{ unitLabel(unit) }}</option>
+      }
+    </select>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      Opcional. Elige una si lo compras en otra medida (ej. litros).
+      <a routerLink="/inventory/units" target="_blank" class="text-primary underline">Administrar unidades</a>
+    </p>
+  </div>
+
+  <div>
+    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Stock mínimo</label>
+    <input
+      type="number"
+      formControlName="alertQuantity"
+      min="0"
+      step="any"
+      inputmode="decimal"
+      placeholder="Opcional"
+      [class]="inputClass"
+      [ngClass]="{ 'border-red-500': isInvalid('alertQuantity') }" />
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">En la unidad de stock. Sirve para detectar cuándo reponer.</p>
+  </div>
+  }
+  }
+
   <label class="flex cursor-pointer items-center justify-between gap-4 rounded-md border border-gray-300 px-3 py-3 dark:border-gray-600 sm:col-span-2">
     <span>
       <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Disponible para la venta</span>

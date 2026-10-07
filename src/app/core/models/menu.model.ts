@@ -14,4 +14,6 @@ export interface SubMenuItem {
   active?: boolean;
   children?: Array<SubMenuItem>;
   permission?: string;
+  /** Solo se muestra si la función está activa en la configuración del negocio. */
+  feature?: 'inventory' | 'ingredients';
 }

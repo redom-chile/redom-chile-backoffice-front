@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { IconComponent, ImageThumbComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
+import { STOCK_MODE_LABELS } from 'src/app/modules/inventory/data-access';
 import { ProductDto } from '../../data-access';
 
 @Component({
@@ -16,6 +17,9 @@ export class ProductsTableComponent {
   readonly pagination = input<PaginationMeta | null>(null);
   readonly categoryNames = input<Record<number, string>>({});
   readonly hasFilters = input(false);
+  // Muestra el control de stock (solo con el inventario activo).
+  readonly showStockMode = input(false);
+  readonly stockModeLabels = STOCK_MODE_LABELS;
 
   readonly edit = output<ProductDto>();
   readonly delete = output<ProductDto>();

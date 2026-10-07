@@ -1,0 +1,135 @@
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (loading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 90px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 90px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (items().length === 0) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin resultados</p>
+    <p class="text-muted-foreground mt-1 text-sm">No hay productos que coincidan con los filtros.</p>
+    @if (hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters.emit()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Producto</th>
+          <th class="px-4 py-3 text-right">Stock</th>
+          <th class="px-4 py-3 text-right">Costo promedio</th>
+          <th class="px-4 py-3 text-right">Valor</th>
+          <th class="px-4 py-3 text-right"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.variationId) {
+        @let negative = item.qtyAvailable < 0;
+        <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0" [style.background-color]="negative ? 'color-mix(in srgb, #ef4444 7%, transparent)' : null">
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-foreground text-sm font-medium">{{ item.productName }}</span>
+              @if (variationLabel(item.variationName); as variation) {
+              <span class="text-muted-foreground text-sm">· {{ variation }}</span>
+              }
+              @if (item.isLowStock) {
+              <span class="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600">
+                <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>Bajo mínimo
+              </span>
+              }
+            </div>
+            <p class="text-muted-foreground font-mono text-xs">{{ item.sku }}</p>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+            <span class="text-sm font-semibold" [class.text-red-600]="negative || item.isLowStock" [class.text-foreground]="!negative && !item.isLowStock">
+              {{ formatQuantity(item.qtyAvailable, item.unitName) }}
+            </span>
+            @if (item.alertQuantity > 0) {
+            <p class="text-muted-foreground text-xs">Mín. {{ formatQuantity(item.alertQuantity, item.unitName) }}</p>
+            }
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ unitCost(item) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatMoney(item.stockValue) }}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-right">
+            <div class="inline-flex items-center gap-1">
+              <a routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" title="Registrar compra" [attr.aria-label]="'Comprar ' + item.productName"
+                class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium">
+                <app-icon class="h-4 w-4">add_shopping_cart</app-icon><span class="hidden lg:inline">Comprar</span>
+              </a>
+              <a routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" title="Ajustar stock" [attr.aria-label]="'Ajustar ' + item.productName"
+                class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium">
+                <app-icon class="h-4 w-4">tune</app-icon><span class="hidden lg:inline">Ajustar</span>
+              </a>
+              <a routerLink="/inventory/kardex" [queryParams]="linkParams(item)" title="Ver kardex" [attr.aria-label]="'Ver kardex de ' + item.productName"
+                class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium">
+                <app-icon class="h-4 w-4">history</app-icon><span class="hidden lg:inline">Kardex</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (item of items(); track item.variationId) {
+    @let negative = item.qtyAvailable < 0;
+    <li class="px-4 py-3" [style.background-color]="negative ? 'color-mix(in srgb, #ef4444 7%, transparent)' : null">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-foreground truncate text-sm font-semibold">
+            {{ item.productName }}@if (variationLabel(item.variationName); as variation) { · {{ variation }} }
+          </p>
+          <p class="text-muted-foreground font-mono text-xs">{{ item.sku }}</p>
+          @if (item.isLowStock) {
+          <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600">
+            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>Bajo mínimo
+          </span>
+          }
+        </div>
+        <div class="text-right">
+          <p class="whitespace-nowrap text-sm font-semibold tabular-nums" [class.text-red-600]="negative || item.isLowStock" [class.text-foreground]="!negative && !item.isLowStock">
+            {{ formatQuantity(item.qtyAvailable, item.unitName) }}
+          </p>
+          <p class="text-muted-foreground whitespace-nowrap text-xs tabular-nums">{{ formatMoney(item.stockValue) }}</p>
+        </div>
+      </div>
+      <p class="text-muted-foreground mt-1 text-xs">Costo promedio {{ unitCost(item) }}</p>
+      <div class="mt-2 flex gap-2">
+        <a routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
+          <app-icon class="h-4 w-4">add_shopping_cart</app-icon>Comprar
+        </a>
+        <a routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
+          <app-icon class="h-4 w-4">tune</app-icon>Ajustar
+        </a>
+        <a routerLink="/inventory/kardex" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
+          <app-icon class="h-4 w-4">history</app-icon>Kardex
+        </a>
+      </div>
+    </li>
+    }
+  </ul>
+
+  <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 text-sm">
+    <span class="text-muted-foreground">Valor del inventario (esta página)</span>
+    <span class="text-foreground font-bold tabular-nums">{{ formatMoney($pageValue()) }}</span>
+  </div>
+  }
+
+  @if (pagination(); as meta) { @if (meta.totalItems > 0 && !loading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="pageChange.emit($event)" />
+  </div>
+  } }
+</div>

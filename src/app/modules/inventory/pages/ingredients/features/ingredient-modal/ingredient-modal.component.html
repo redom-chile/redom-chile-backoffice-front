@@ -1,0 +1,113 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-foreground text-xl font-semibold">{{ isEdit ? 'Editar ingrediente' : 'Nuevo ingrediente' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" (ngSubmit)="handleSubmit()">
+    <p class="text-muted-foreground text-xs sm:col-span-2">
+      Un ingrediente tiene stock pero no se vende ni aparece en la carta ni en el POS.
+    </p>
+
+    <div class="sm:col-span-2">
+      <label for="ingredient-name" class="text-foreground mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="ingredient-name"
+        type="text"
+        formControlName="name"
+        placeholder="Ej: Harina, Tomate, Aceite"
+        [class]="inputClass"
+        [ngClass]="{ 'border-red-500': isInvalid('name') }" />
+    </div>
+
+    <div>
+      <label for="ingredient-sku" class="text-foreground mb-1 block text-sm font-medium">SKU *</label>
+      <div class="flex gap-2">
+        <input
+          id="ingredient-sku"
+          type="text"
+          formControlName="sku"
+          maxlength="30"
+          placeholder="Se sugiere según el nombre"
+          [class]="inputClass + ' font-mono uppercase'"
+          [ngClass]="{ 'border-red-500': isInvalid('sku') }" />
+        <button
+          type="button"
+          title="Sugerir otro SKU"
+          aria-label="Sugerir otro SKU"
+          class="glass-row inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+          (click)="regenerateSku()">
+          <app-icon class="h-5 w-5">autorenew</app-icon>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <label for="ingredient-unit" class="text-foreground mb-1 block text-sm font-medium">Unidad *</label>
+      @if (!$unitsLoading() && !$baseUnits().length) {
+      <p class="rounded-md border border-dashed border-[var(--border)] px-3 py-2 text-sm">
+        <span class="text-muted-foreground">Aún no tienes unidades.</span>
+        <a routerLink="/inventory/units" class="text-primary ml-1 font-medium underline">Crear unidad</a>
+      </p>
+      } @else {
+      <select id="ingredient-unit" formControlName="unitId" [class]="inputClass" [ngClass]="{ 'border-red-500': isInvalid('unitId') }">
+        <option [ngValue]="null" disabled>{{ $unitsLoading() ? 'Cargando unidades…' : 'Elige una unidad' }}</option>
+        @for (unit of $baseUnits(); track unit.id) {
+        <option [ngValue]="unit.id">{{ unitLabel(unit) }}</option>
+        }
+      </select>
+      }
+      @if (isInvalid('unitId')) {
+      <p class="mt-1 text-xs text-red-600">Elige la unidad en que mides este ingrediente (ej. gramo, mililitro, unidad).</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">
+        Usa la unidad más chica (ej. gramo). Al comprar podrás usar sus subunidades (ej. kilogramo).
+        @if ($baseUnits().length) {
+        <a routerLink="/inventory/units" class="text-primary underline">Administrar unidades</a>
+        }
+      </p>
+      }
+      @if (isEdit) {
+      <p class="text-muted-foreground mt-1 text-xs">Cambiar la unidad no convierte el stock ya registrado.</p>
+      }
+    </div>
+
+    <div>
+      <label for="ingredient-alert" class="text-foreground mb-1 block text-sm font-medium">Stock mínimo</label>
+      <div class="relative">
+        <input
+          id="ingredient-alert"
+          type="number"
+          formControlName="alertQuantity"
+          min="0"
+          step="any"
+          inputmode="decimal"
+          placeholder="Opcional"
+          [class]="inputClass + ($selectedUnit() ? ' pr-12' : '')"
+          [ngClass]="{ 'border-red-500': isInvalid('alertQuantity') }" />
+        @if ($selectedUnit(); as unit) {
+        <span class="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm">{{ unit.shortName }}</span>
+        }
+      </div>
+      <p class="text-muted-foreground mt-1 text-xs">En la unidad base. Sirve para detectar cuándo reponer.</p>
+    </div>
+
+    <div>
+      <label for="ingredient-category" class="text-foreground mb-1 block text-sm font-medium">Categoría</label>
+      <select id="ingredient-category" formControlName="categoryId" [class]="inputClass">
+        <option [ngValue]="null">Sin categoría</option>
+        @for (category of $categories(); track category.id) {
+        <option [ngValue]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ isEdit ? 'Guardar cambios' : 'Crear ingrediente' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>
