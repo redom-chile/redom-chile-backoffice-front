@@ -39,6 +39,8 @@ export type PosSettings = Readonly<{
   tablesEnabled?: boolean;
   waiterEnabled?: boolean;
   isServiceStaffRequired?: boolean;
+  // Solo del front: false si el negocio nunca guardó estas opciones (no se envía al backend).
+  configured?: boolean;
 }>;
 
 /** PATCH /business/:id/settings con los datos generales (todos opcionales). */

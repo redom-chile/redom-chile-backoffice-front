@@ -1,0 +1,764 @@
+[
+  {
+    "category": "caja-y-turnos",
+    "title": "¿Cómo abro la caja y registro retiros o ingresos de efectivo?",
+    "slug": "como-abrir-la-caja-y-registrar-movimientos",
+    "summary": "Abre el turno desde el POS con un fondo inicial y registra ingresos o retiros de efectivo desde el panel del turno.",
+    "module": "cash",
+    "routes": [
+      "/pos"
+    ],
+    "tags": [
+      "abrir caja",
+      "fondo inicial",
+      "retiro",
+      "ingreso",
+      "turno"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "La caja se abre desde el POS con el botón **Abrir caja**, indicando el fondo inicial. Los retiros e ingresos de efectivo se registran desde el panel del turno.\n\nSolo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.\n\n## Abrir la caja\n\n1. Ve a **POS → Tomar pedido**.\n2. Arriba verás el aviso *\"Caja principal: caja cerrada\"*. Toca **Abrir caja**.\n3. Si el local tiene varias cajas, elige la **Caja**.\n4. Escribe el **Fondo inicial**: el efectivo con que parte la caja (sencillo para dar vuelto). También puedes usar los atajos *Sin fondo*, $20.000, $50.000 o $100.000.\n5. Toca **Abrir caja**.\n\nVerás el mensaje *\"Caja principal abierta\"* y el indicador cambia a verde, por ejemplo: *Caja principal · abierta por Ana desde las 09:00*.\n\nSi la caja ya tenía un turno abierto, el botón dice **Usar este turno** y sigues trabajando con él.\n\n## Ver el turno en curso\n\nToca el indicador verde para abrir el panel del turno. Ahí ves quién abrió, el fondo inicial y, si eres el dueño, los totales *En vivo* (ventas, propinas, devoluciones, ingresos, retiros, efectivo esperado) y los *Últimos movimientos*. Si no, verás *\"El detalle se ve al cerrar la caja\"* (arqueo ciego).\n\n## Registrar un ingreso o retiro\n\n1. Abre el panel del turno.\n2. Toca **Ingresar efectivo** o **Retirar efectivo**.\n3. Escribe el **Monto** (ej: $50.000).\n4. Elige o escribe el **Motivo**. Sugerencias: *Sencillo para vuelto*, *Reposición de fondo*, *Retiro a caja fuerte*, *Depósito bancario*, *Pago a proveedor*.\n5. Toca **Ingresar** o **Retirar**.\n\n## Errores comunes\n\n- **\"Este local no tiene cajas activas. Actívalas en Configuración → Cajas.\"**: crea o activa una caja para el local.\n- **\"El fondo inicial no puede ser negativo\"**: ingresa 0 o un monto positivo.\n- **\"Ingresa un monto mayor a cero\"** o **\"Indica el motivo\"**: ambos campos son obligatorios en un movimiento.\n- **\"El turno ya se cerró.\"**: otro equipo cerró la caja. Ábrela de nuevo."
+  },
+  {
+    "category": "caja-y-turnos",
+    "title": "¿Cómo activo la caja y configuro mis cajas?",
+    "slug": "como-activar-la-caja-y-configurar-cajas",
+    "summary": "Enciende Caja y turnos en Mi negocio y crea, renombra o desactiva las cajas de cada local.",
+    "module": "cash",
+    "routes": [
+      "/business",
+      "/settings/registers"
+    ],
+    "tags": [
+      "caja",
+      "turnos",
+      "activar caja",
+      "cajas",
+      "configuracion"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "La caja se activa con el switch **Caja y turnos** en la sección *Punto de venta* de Mi negocio. Después puedes ajustar las cajas de cada local en **Configuración → Cajas**.\n\n## Activar Caja y turnos\n\n1. Entra a **Negocio → Mi negocio**.\n2. Baja hasta la sección **Punto de venta**.\n3. Enciende **Caja y turnos** y toca **Guardar**.\n\nCon la caja activa, abres la caja con un fondo, cobras dentro del turno y la cierras con arqueo ciego y reporte Z. Si la dejas apagada, el POS cobra sin caja.\n\nAl activarla aparecen dos accesos directos: **Configurar cajas** y **Ver turnos**.\n\n## Configurar tus cajas\n\nCada local trae una *Caja principal*. Agrega más si cobras en varios puntos (por ejemplo, barra y salón).\n\n1. Ve a **Configuración → Cajas**.\n2. Toca **Agregar caja** (o **+ Caja** junto al nombre del local).\n3. Elige el **Local** y escribe el **Nombre** (ej: *Caja barra*).\n4. Toca **Crear caja**.\n\nEn la lista de cada local puedes:\n\n- **Renombrar** una caja.\n- **Desactivar** una caja que ya no usas, o **Activar** una inactiva. Para verlas todas, enciende **Incluir inactivas**.\n- Ver si está *Abierta por* alguien (con enlace al turno) o *Cerrada*.\n\nPuedes dejar las cajas listas aunque la caja esté apagada: verás el aviso \"La caja está desactivada: actívala en Mi negocio → Punto de venta\".\n\n## Errores comunes\n\n- **\"Cierra las cajas abiertas primero\"** al apagar *Caja y turnos*: hay turnos abiertos. Ciérralos desde el POS y vuelve a guardar.\n- **\"Cierra el turno abierto de esta caja antes de desactivarla.\"**: no puedes desactivar una caja con turno abierto. Ciérrala primero.\n- **\"Elige el local de la caja\"**: al crear una caja, el local es obligatorio."
+  },
+  {
+    "category": "caja-y-turnos",
+    "title": "¿Cómo cierro la caja?",
+    "slug": "como-cerrar-la-caja",
+    "summary": "Cierre ciego contando billetes y monedas desde el panel del turno; al cerrar ves el reporte Z con faltante o sobrante.",
+    "module": "cash",
+    "routes": [
+      "/pos",
+      "/cash/sessions/:id"
+    ],
+    "tags": [
+      "cerrar caja",
+      "arqueo",
+      "arqueo ciego",
+      "reporte z",
+      "faltante",
+      "sobrante"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "La caja se cierra desde el POS: abres el panel del turno, cuentas el efectivo por billetes y monedas y confirmas. Al terminar ves el reporte Z con la diferencia.\n\nSolo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.\n\n## Pasos\n\n1. En **POS → Tomar pedido**, toca el indicador verde de la caja.\n2. En el panel del turno, toca **Cerrar caja**.\n3. En **Efectivo**, indica cuántos billetes y monedas hay de cada valor ($20.000, $10.000, $5.000, $2.000, $1.000, $500, $100, $50 y $10). Usa **+** y **−** o escribe la cantidad. El *Total efectivo contado* se suma solo.\n4. En **Otros medios (opcional)**, anota los totales de Débito, Crédito, Transferencia u Otro según el cierre del POS de Transbank o la cartola. Si no los tienes, déjalos vacíos.\n5. Si quieres, agrega **Notas** del cierre.\n6. Toca **Cerrar caja** y confirma en el mensaje *¿Cerrar Caja principal?*.\n\n## Arqueo ciego\n\nCuentas lo que hay en la caja sin ver lo que el sistema espera. Así el conteo es honesto. Una vez cerrada, el conteo no se puede modificar.\n\n## Después de cerrar\n\nSe abre el reporte Z del turno. En **Efectivo en caja** ves *Esperado*, *Contado* y *Diferencia*:\n\n- **Cuadrada**: el conteo coincide.\n- **Faltante** (en rojo): hay menos efectivo del esperado.\n- **Sobrante** (en verde): hay más efectivo del esperado.\n\nToca **Imprimir reporte Z** para tener la copia en papel.\n\n## Errores comunes\n\n- **\"No contaste efectivo: se cerrará con $0 en caja\"**: aparece si no ingresaste billetes ni monedas. Toca **Volver** y cuenta.\n- **\"Las notas no pueden superar los 1.000 caracteres\"**: acorta las notas.\n- **\"El turno ya se cerró.\"**: otro equipo cerró esta caja antes que tú.\n- **\"No se pudo abrir la impresión\"**: revisa que el navegador permita abrir la ventana de impresión."
+  },
+  {
+    "category": "caja-y-turnos",
+    "title": "¿Dónde veo el historial de turnos y el reporte Z?",
+    "slug": "historial-de-turnos-y-reporte-z",
+    "summary": "En POS → Turnos de caja ves todos los turnos con sus diferencias y, al entrar a uno, su reporte Z para revisar o imprimir.",
+    "module": "cash",
+    "routes": [
+      "/cash",
+      "/cash/sessions/:id"
+    ],
+    "tags": [
+      "historial",
+      "turnos",
+      "reporte z",
+      "imprimir",
+      "diferencia"
+    ],
+    "position": 5,
+    "isPublished": true,
+    "body": "El historial está en **POS → Turnos de caja**. Ahí ves cada turno con sus ventas y su diferencia, y al tocarlo se abre su reporte Z.\n\n## Ver el historial\n\n1. Entra a **POS → Turnos de caja**.\n2. Filtra por local, caja, estado (*Abierta* o *Cerrada*) y fechas **Desde** / **Hasta**. Usa **Limpiar filtros** para volver a ver todo.\n\nCada fila muestra la caja, quién abrió y cerró, **Ventas**, **Esperado**, **Contado** y **Diferencia** (*Cuadrada*, faltante en rojo o sobrante en verde).\n\nSi tienes dudas sobre los conceptos, abre **¿Cómo funciona la caja?** en la misma pantalla.\n\n## Ver el reporte Z de un turno\n\nToca un turno para ver:\n\n- **Cabecera**: caja, local, quién abrió y cerró, fondo inicial y notas.\n- **Totales**: fondo inicial, ventas, propinas, devoluciones, ingresos y retiros. Si corresponde, también gastos pagados, propinas pagadas y sus anulaciones.\n- **Efectivo en caja**: esperado, contado y diferencia.\n- **Por medio de pago**: ventas, propinas, devoluciones, esperado, contado y diferencia. En efectivo puedes desplegar **Billetes y monedas**.\n- **Movimientos**: hora, tipo, medio, monto, propina, motivo, boleta y usuario.\n\nToca **Imprimir reporte Z** para imprimirlo.\n\n## Turnos abiertos\n\nSi el turno sigue abierto, verás *\"Este turno sigue abierto. Se cierra desde el POS\"*. Solo el dueño ve los montos en vivo; el resto ve *\"El detalle se ve al cerrar\"* (arqueo ciego).\n\nUn turno cerrado no cambia nunca. Si se anula un pago de un turno cerrado, la devolución sale del turno abierto en esa caja.\n\n## Errores comunes\n\n- **\"Sin turnos\"**: todavía no se ha abierto ninguna caja. Los turnos se abren desde el POS.\n- **\"No encontramos ese turno\"**: el enlace no es válido. Vuelve a **Cajas**.\n- **\"No se pudo abrir la impresión\"**: permite ventanas emergentes en el navegador."
+  },
+  {
+    "category": "caja-y-turnos",
+    "title": "¿Qué hago si tengo varias cajas abiertas o la caja está cerrada al cobrar?",
+    "slug": "varias-cajas-abiertas-o-caja-cerrada-al-cobrar",
+    "summary": "Cómo elegir la caja de cada equipo y qué pasa cuando cobras, pagas o anulas en efectivo con la caja cerrada.",
+    "module": "cash",
+    "routes": [
+      "/pos",
+      "/orders",
+      "/payments",
+      "/finance/expenses",
+      "/finance/payables"
+    ],
+    "tags": [
+      "caja cerrada",
+      "varias cajas",
+      "elegir caja",
+      "cobro",
+      "efectivo"
+    ],
+    "position": 4,
+    "isPublished": true,
+    "body": "Si la caja está cerrada, Redom te pide abrirla y luego completa la operación. Si hay varias cajas abiertas, te pide elegir con cuál trabajar y este equipo la recuerda.\n\nSolo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.\n\n## La caja de cada equipo\n\nCuando un local tiene más de una caja activa, cada equipo (computador o tablet) trabaja con una:\n\n1. En **POS → Tomar pedido**, Redom te pregunta *\"Elige la caja de este equipo\"*. También puedes tocar **Elegir caja** o **Cambiar caja**.\n2. Elige la caja y toca **Usar esta caja**.\n\nLos cobros de este equipo quedan en esa caja. La elección se guarda en este navegador.\n\n## La caja está cerrada al cobrar\n\nSi cobras con la caja cerrada, verás *\"La caja está cerrada: ábrela para cobrar\"* y se abre la ventana **Abrir caja**. Ingresa el fondo inicial y toca **Abrir caja**: el cobro se registra de inmediato.\n\nLo mismo pasa al pagar un gasto, una cuenta por pagar o propinas en efectivo, y al anular un pago en efectivo: el dinero sale o vuelve a la caja, por eso debe estar abierta.\n\n## Hay varias cajas abiertas\n\nSi el sistema no sabe de qué caja sale o entra el efectivo, verás *\"¿Con qué caja cobras?\"* (o *\"¿De qué caja sale el efectivo?\"* en gastos y pagos). Elige la caja y toca **Usar esta caja**. La operación se reintenta sola y el equipo recuerda tu elección.\n\n## Errores comunes\n\n- **\"Este local no tiene cajas activas. Actívalas en Configuración → Cajas.\"**: crea o activa una caja.\n- **\"La caja está desactivada. Actívala en Configuración → Cajas.\"**: la caja guardada en este equipo se desactivó. Elige otra.\n- **\"La caja elegida es de otro local que el pedido.\"**: cambia la caja del equipo a una del local correcto.\n- **\"La caja no está activada. Actívala en Mi negocio → Punto de venta.\"**: el módulo de caja está apagado."
+  },
+  {
+    "category": "carta-y-productos",
+    "title": "¿Cómo creo modificadores (agregados, sin cebolla) y los vinculo a productos?",
+    "slug": "como-crear-modificadores",
+    "summary": "Crea un set de modificadores con sus opciones y precios en Carta → Modificadores, y vincúlalo a los productos que lo ofrecen.",
+    "module": "products",
+    "routes": [
+      "/products/modifiers"
+    ],
+    "tags": [
+      "modificadores",
+      "agregados",
+      "extras",
+      "opciones",
+      "set",
+      "vincular productos"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "Los modificadores se crean como **sets** de opciones en **Carta → Modificadores**. Luego vinculas cada set a los productos donde se puede elegir.\n\n## Crear un set\n\n1. Ve a **Carta → Modificadores** y toca **Crear set**.\n2. Escribe el **Nombre del set**, por ejemplo *Agregados* o *Punto de la carne*.\n3. En **Opciones**, toca **Agregar opción** por cada alternativa y completa:\n   - **Nombre**, por ejemplo *Extra queso* o *Sin cebolla*.\n   - **Precio ($)**: es el valor con IVA que se suma al producto. Debe ser un número entero. Usa 0 si no tiene costo.\n4. Toca **Crear set**.\n\nPor ejemplo: *Agregados*, con *Extra queso* a $800, *Palta* a $1.000 y *Sin cebolla* a $0.\n\n## Vincular el set a productos\n\nUn set sin productos no aparece al tomar pedidos.\n\n1. En la tarjeta del set, toca **Productos**.\n2. Busca los productos y márcalos. Los productos marcados aparecen en *Vinculados*. Para quitar uno, toca la **x**.\n3. Toca **Guardar**.\n\nLa tarjeta muestra cuántos productos tiene vinculados. Desde ese momento, esos productos muestran la etiqueta **Opciones** en el POS.\n\n## Editar o eliminar\n\n- **Editar**: cambia el nombre del set, el nombre o precio de las opciones, o agrega opciones nuevas. Por ahora, las opciones ya guardadas no se pueden eliminar.\n- **Eliminar**: borra el set y deja de ofrecerse en los productos vinculados.\n- **Recetas**: aparece solo si trabajas con ingredientes y recetas. Sirve para que una opción descuente o sume ingredientes.\n\n## Errores comunes\n\n- **\"Agrega al menos una opción\"**: el set necesita una opción como mínimo.\n- **\"Completa el nombre del set y el nombre y precio de cada opción\"**: revisa los campos vacíos o los precios inválidos.\n- **\"Hay opciones con el mismo nombre\"**: cada opción del set debe tener un nombre distinto.\n- **\"Uno o más productos ya no existen…\"**: cierra el modal, actualiza la lista y vuelve a vincular los productos."
+  },
+  {
+    "category": "carta-y-productos",
+    "title": "¿Cómo creo un producto y sus categorías?",
+    "slug": "como-crear-un-producto-y-sus-categorias",
+    "summary": "Crea categorías y subcategorías en Carta → Categorías, y luego tus productos con precio, imagen y disponibilidad en Carta → Productos.",
+    "module": "products",
+    "routes": [
+      "/products",
+      "/products/categories"
+    ],
+    "tags": [
+      "producto",
+      "categoria",
+      "subcategoria",
+      "precio",
+      "carta",
+      "sku",
+      "stock"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Primero crea tus categorías en **Carta → Categorías** y luego crea tus productos en **Carta → Productos** con **Crear producto**.\n\n## Crear una categoría o subcategoría\n\n1. Ve a **Carta → Categorías** y toca **Crear categoría**.\n2. Escribe el **Nombre**, que debe tener al menos 2 letras. El *Código corto* (por ejemplo, BEB), la *Descripción* y la *Imagen* son opcionales.\n3. Para crear una subcategoría, elige su **Categoría padre**. Si es una categoría principal, deja *Ninguna*.\n4. Toca **Crear Categoría**.\n\nEn la lista, las subcategorías aparecen indentadas bajo su categoría. En el POS, al tocar una categoría aparecen sus subcategorías.\n\n## Crear un producto\n\n1. Ve a **Carta → Productos** y toca **Crear producto**.\n2. Completa los campos obligatorios:\n   - **Nombre**, por ejemplo *Hamburguesa clásica*.\n   - **SKU**: se sugiere uno según el nombre. Toca el ícono de flechas para sugerir otro.\n   - **Precio**: si tus precios incluyen IVA, la etiqueta dice *Precio (IVA incluido)*. Si no, dice *Precio neto (se suma IVA al vender)*.\n3. Elige la **Categoría** y, si corresponde, la **Subcategoría**.\n4. Opcionalmente, agrega una *Descripción*, una *Imagen del producto* y el *Tiempo de preparación (min)*.\n5. Deja activado **Disponible para la venta**. Si lo desactivas, el producto no aparece en el POS ni en la carta.\n6. Toca **Crear producto**.\n\nPara editar o eliminar un producto, usa los íconos de lápiz o basurero en su fila. Con el buscador y el filtro de categoría encuentras productos rápidamente.\n\n## Control de stock\n\nEl campo **Control de stock** aparece solo si activaste el inventario en **Negocio → Mi negocio → Inventario**. Tiene tres opciones:\n\n- *Sin control*: no descuenta stock.\n- *Stock propio*: el producto tiene su propio stock, como una bebida en lata. Puedes indicar la *Unidad de stock* y el *Stock mínimo*.\n- *Por receta*: descuenta los ingredientes de la receta. Requiere activar *Trabajar con ingredientes y recetas*.\n\n## Errores comunes\n\n- **\"Completa los campos obligatorios\"**: falta el nombre, el SKU o el precio.\n- **\"Ya existe un producto con ese SKU…\"**: cambia el SKU o sugiere otro.\n- **\"Ya existe una categoría con esos datos o tiene elementos asociados.\"**: usa otro nombre o, si estás eliminando una categoría, revisa qué productos o subcategorías tiene asociados."
+  },
+  {
+    "category": "configuracion",
+    "title": "¿Cómo configuro las comisiones de los medios de pago y veo la plata por llegar?",
+    "slug": "comisiones-medios-de-pago-y-plata-por-llegar",
+    "summary": "Ingresa la comisión y los días de abono de débito, crédito, transferencia u otro, y revisa cuánto llega al banco y cuándo.",
+    "module": "settings",
+    "routes": [
+      "/settings/payment-methods",
+      "/finance/settlements"
+    ],
+    "tags": [
+      "comisiones",
+      "medios de pago",
+      "transbank",
+      "abono",
+      "plata por llegar"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Las comisiones se configuran en **Configuración → Medios de pago**. Con esos datos, **Finanzas → Plata por llegar** estima cuánto recibes y cuándo llega al banco.\n\n## Configurar un medio de pago\n\n1. Entra a **Configuración → Medios de pago**. Verás una tarjeta por medio (Débito, Crédito, Transferencia, Otro). Las que dicen *Sin configurar* aún no tienen datos.\n2. Completa:\n   - **% comisión**: lo que cobra el banco o la máquina (0 si no cobra).\n   - **Monto fijo por transacción**: se cobra por cada pago (0 si no aplica).\n   - **+ IVA**: enciéndelo si la comisión lleva IVA.\n   - **Días hasta el abono**: cuántos días tarda en llegar la plata (0 = el mismo día, máximo 90).\n   - **Solo días hábiles (lunes a viernes)**: enciéndelo si el abono cuenta solo días hábiles.\n3. Revisa el ejemplo de la tarjeta: *Cobro de… → comisión…, recibes…*.\n4. Toca **Guardar**.\n\n¿Qué valores pongo? Revisa tu contrato o la cartola de tu proveedor de pagos. Como referencia: débito ~1,5 % + IVA con abono en 1 día hábil; crédito ~2,95 % + IVA con abono en 2 días hábiles. La comisión se calcula sobre el monto cobrado con la propina incluida.\n\nEl efectivo no tiene comisión ni abono: queda en la caja.\n\n## Ver la plata por llegar\n\n1. Entra a **Finanzas → Plata por llegar** (o toca **Comisiones** para volver a la configuración).\n2. Filtra por fechas, medio y local. Sin fechas, ves los últimos 30 días.\n3. Revisa las tarjetas **Cobrado (bruto)**, **Comisiones**, **Neto**, **Por llegar** (abono después de hoy) y **Ya abonado**.\n4. Más abajo ves el detalle **Por medio de pago** y **Por fecha de abono**.\n\nNo incluye efectivo ni pagos anulados. Es una estimación: los días hábiles no consideran feriados y lo que manda es la cartola.\n\n## Errores comunes\n\n- **\"Ingresa el porcentaje (0 si no cobra).\"** o **\"Ingresa el monto (0 si no cobra).\"**: el campo no puede quedar vacío.\n- **\"Debe estar entre 0 y 100.\"** / **\"Máximo 4 decimales.\"**: corrige el porcentaje.\n- **\"Debe estar entre 0 y 90.\"**: los días de abono van de 0 a 90.\n- **\"Sin pagos con tarjeta ni transferencia\"**: no hay cobros con esos medios en el período."
+  },
+  {
+    "category": "configuracion",
+    "title": "¿Cómo configuro la propina sugerida y el reparto de propinas?",
+    "slug": "propina-sugerida-y-reparto-de-propinas",
+    "summary": "Define el porcentaje de propina que se propone al cobrar y el modo de reparto por defecto en Mi negocio → Punto de venta.",
+    "module": "settings",
+    "routes": [
+      "/business",
+      "/finance/tips/new"
+    ],
+    "tags": [
+      "propina sugerida",
+      "reparto de propinas",
+      "punto de venta",
+      "porcentaje"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "La propina sugerida y el reparto de propinas se configuran en la sección **Punto de venta** de Mi negocio.\n\n## Propina sugerida\n\n1. Entra a **Negocio → Mi negocio**.\n2. Baja hasta la sección **Punto de venta**.\n3. En **Propina sugerida (%)**, escribe el porcentaje, por ejemplo 10.\n4. Toca **Guardar**. Verás *\"Punto de venta actualizado\"*.\n\nEse porcentaje se propone al cobrar y en la precuenta. Si pones 0, no se sugiere propina.\n\n## Reparto de propinas\n\nEn la misma sección, elige el modo en **Reparto de propinas**:\n\n- **Cada mesero lo suyo**: cada mesero recibe las propinas de sus pedidos; las de pedidos sin mesero se reparten en partes iguales. Es el modo que se usa si no eliges otro.\n- **Partes iguales**: todas las propinas juntas, en partes iguales entre los participantes.\n- **Por puntos**: todas las propinas juntas, según los puntos de cada uno (ej: mesero 2, ayudante 1).\n\nToca **Guardar**.\n\nEste es el modo por defecto. Cada vez que liquidas en **Finanzas → Propinas → Liquidar propinas** viene marcado, pero puedes cambiarlo para esa liquidación.\n\nPara que haya propinas por mesero, conviene tener encendido **Uso meseros** en la misma sección, así cada pedido queda con su mesero.\n\nSi cambias algo y te arrepientes, toca **Descartar** antes de guardar.\n\n## Errores comunes\n\n- **\"Ingresa un porcentaje (0 = sin sugerencia).\"**: el campo quedó vacío.\n- **\"Debe estar entre 0 y 100.\"**: corrige el porcentaje.\n- **\"Máximo 2 decimales.\"**: usa, por ejemplo, 10 o 12,5.\n- **\"No se pudo cargar la configuración del negocio\"**: revisa tu conexión y toca **Reintentar**."
+  },
+  {
+    "category": "finanzas",
+    "title": "¿Cómo registro un gasto?",
+    "slug": "como-registrar-un-gasto",
+    "summary": "Registra arriendo, servicios o sueldos con su documento, IVA sugerido, adjunto, vencimiento y, si quieres, el pago al tiro.",
+    "module": "finance",
+    "routes": [
+      "/finance/expenses",
+      "/finance/expenses/new"
+    ],
+    "tags": [
+      "gasto",
+      "factura",
+      "iva",
+      "adjunto",
+      "vencimiento",
+      "pagado ahora"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Los gastos se registran en **Finanzas → Gastos → Nuevo gasto**. Un gasto es toda salida de plata que no es compra de inventario: arriendo, luz, sueldos, publicidad o reparaciones.\n\n## Pasos\n\n1. Entra a **Finanzas → Gastos** y toca **Nuevo gasto**.\n2. Completa la **Descripción** (ej: *Cuenta de luz septiembre*), el **Local** y la **Categoría**. Si falta una categoría, toca **Nueva**.\n3. Si quieres, elige el **Proveedor** o créalo con **Nuevo proveedor**.\n4. Escribe el **Monto total (con IVA)**, por ejemplo $119.000.\n5. Elige el **Documento**: *Factura*, *Boleta* o *Sin documento*.\n   - Con **Factura**, el campo **IVA (crédito fiscal)** se calcula solo desde el monto (en el ejemplo, $19.000) y ves el **Neto**. Corrígelo si la factura dice otro valor.\n   - Con boleta o sin documento, todo el monto es gasto.\n6. Si tienes documento, anota el **N° de documento** (opcional).\n7. En **Adjunto**, toca **Adjuntar foto o PDF (máx. 10 MB)**. Acepta JPG, PNG, WEBP o PDF.\n8. Indica la **Fecha** y, si quieres, el **Vencimiento**. Si lo dejas vacío, se calcula con las condiciones de pago del proveedor (o es el mismo día).\n9. Toca **Registrar gasto**.\n\n## Pagado ahora\n\nSi ya pagaste, enciende **Pagado ahora**, elige el **Medio de pago** y, si quieres, una **Referencia** (ej: N° de transferencia). Se registra el pago del total junto con el gasto. Si no lo enciendes, el gasto queda pendiente en **Cuentas por pagar**.\n\nSi pagas en **Efectivo** y usas *Caja y turnos*, el dinero sale de la caja abierta del local.\n\n## Errores comunes\n\n- **\"Revisa los campos marcados\"**: faltan descripción, local, categoría, monto o fecha.\n- **\"El IVA no puede ser mayor que el monto\"**: corrige el IVA.\n- **\"El vencimiento no puede ser anterior a la fecha del gasto\"**: ajusta las fechas.\n- **\"Espera a que termine de subir el documento\"**: el adjunto aún se está subiendo.\n- **\"Formato no permitido. Usa JPG, PNG, WEBP o PDF.\"**: cambia el tipo de archivo.\n- **\"La caja está cerrada: ábrela para continuar\"**: al pagar en efectivo, abre la caja en la ventana que aparece y el gasto se guarda."
+  },
+  {
+    "category": "finanzas",
+    "title": "¿Cómo veo y pago mis cuentas por pagar?",
+    "slug": "como-ver-y-pagar-cuentas-por-pagar",
+    "summary": "Revisa lo que debes a proveedores, filtra por vencimiento y registra pagos totales o parciales, incluso de compras.",
+    "module": "finance",
+    "routes": [
+      "/finance/payables",
+      "/finance/expenses/:id",
+      "/finance/purchases/:id"
+    ],
+    "tags": [
+      "cuentas por pagar",
+      "pago parcial",
+      "vencidas",
+      "proveedores",
+      "anular pago"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "En **Finanzas → Cuentas por pagar** ves los gastos y compras con saldo pendiente. Desde ahí registras pagos completos o parciales.\n\n## Lo que ves\n\nArriba hay tres tarjetas:\n\n- **Total por pagar**: saldo y cantidad de cuentas.\n- **Vencido**: lo que ya pasó su fecha de vencimiento.\n- **Vence en 7 días**: lo que vence pronto, sin contar lo vencido.\n\nFiltra con **Todas**, **Esta semana** o **Vencidas**; por tipo (**Gastos y compras**, **Gastos**, **Compras**); y por proveedor o local.\n\n## Registrar un pago\n\n1. Toca **Pagar** en la cuenta.\n2. Revisa el **Saldo pendiente** y escribe el **Monto**. Usa **Pagar todo** para el saldo completo.\n   - Si pagas menos, verás *\"Pago parcial: quedará un saldo de…\"*. La cuenta pasa a estado *Parcial*.\n3. Elige el **Medio de pago**.\n4. Indica **Fecha y hora** y, si quieres, **Referencia** (N° de transferencia, cheque) y **Nota**.\n5. Toca **Registrar pago**.\n\nCuando una cuenta se paga completa, sale de esta lista.\n\n## Compras de inventario\n\nLas compras a proveedores también aparecen aquí con la etiqueta *Compra*. Al tocarla ves sus pagos, puedes **Pagar** o abrir **Ver compra**. Las compras registradas antes de activar las cuentas por pagar quedaron como pagadas y no aparecen.\n\n## Anular un pago\n\n1. Toca la cuenta para ver su detalle.\n2. En **Pagos**, toca **Anular** en el pago.\n3. Elige o escribe el **Motivo** y toca **Anular pago**.\n\nEl monto vuelve al saldo por pagar. Si el pago salió de la caja (etiqueta *De la caja*), el efectivo vuelve a ella y la caja debe estar abierta.\n\n## Errores comunes\n\n- **\"El monto no puede superar el saldo\"**: paga como máximo lo que se debe.\n- **\"La fecha del pago no puede ser futura\"**: corrige la fecha.\n- **\"El saldo cambió: ahora es…\"**: alguien registró otro pago. Revisa el monto.\n- **\"La caja está cerrada: ábrela para continuar\"**: para pagar o anular en efectivo, abre la caja en la ventana que aparece."
+  },
+  {
+    "category": "finanzas",
+    "title": "¿Cómo creo gastos recurrentes (arriendo, sueldos)?",
+    "slug": "gastos-recurrentes-y-categorias",
+    "summary": "Programa gastos que se repiten cada mes o semana para que se generen solos como pendientes, y ordena tus categorías de gasto.",
+    "module": "finance",
+    "routes": [
+      "/finance/recurring",
+      "/finance/categories"
+    ],
+    "tags": [
+      "gastos recurrentes",
+      "arriendo",
+      "sueldos",
+      "categorias de gasto",
+      "mensual",
+      "semanal"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "Los gastos que se repiten se crean en **Finanzas → Gastos recurrentes**. En cada fecha se generan solos como gastos pendientes en tus cuentas por pagar.\n\n## Crear un gasto recurrente\n\n1. Entra a **Finanzas → Gastos recurrentes** y toca **Nuevo recurrente**.\n2. Completa **Descripción** (ej: *Arriendo local*), **Local**, **Categoría** y, si quieres, **Proveedor**.\n3. Escribe el **Monto (con IVA)**, por ejemplo $800.000, y el **Documento**. Con factura se sugiere el **IVA (crédito fiscal)** y ves el neto.\n4. Elige la **Frecuencia**: *Mensual* o *Semanal*.\n5. Indica el **Día del mes** o el **Día de la semana**. En meses más cortos se usa el último día.\n6. Elige el **Inicio** y, si quieres, el **Término**. Sin término, sigue hasta que lo pauses.\n7. En **Días para pagar**, indica cuántos días después vence (0 = el mismo día, máx. 365).\n8. Revisa el resumen (ej: *Cada mes el día 5*) y toca **Crear**.\n\nSi el inicio es anterior a hoy, al guardar se crean como pendientes los gastos de las fechas que ya pasaron.\n\n## Editar, pausar o reanudar\n\n- Toca el lápiz para **Editar**. Los cambios aplican a los próximos gastos; los ya generados no cambian.\n- Toca **Pausar** para detenerlo o **Reanudar** para seguir. Para ver los pausados, marca **Incluir pausados**.\n\n## Categorías de gasto\n\nLas categorías te ayudan a saber en qué se va la plata.\n\n1. Entra a **Finanzas → Categorías de gasto**.\n2. Toca **Nueva categoría**, escribe el **Nombre** (ej: *Publicidad*) y guarda.\n3. Usa el lápiz para **Renombrar** una categoría, o toca **Desactivar** / **Activar**. Una categoría inactiva no se ofrece en gastos nuevos. Marca **Incluir inactivas** para verlas.\n\n## Errores comunes\n\n- **\"La fecha de término no puede ser anterior al inicio\"**: corrige las fechas.\n- **\"El IVA no puede ser mayor que el monto\"**: ajusta el IVA.\n- **\"Ya existe una categoría con ese nombre.\"**: usa otro nombre o activa la existente.\n- **\"Ingresa el nombre de la categoría\"**: el nombre es obligatorio."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo activo el inventario y qué significa cada opción?",
+    "slug": "como-activar-el-inventario",
+    "summary": "Activa el inventario en Mi negocio, pestaña Inventario, y elige si trabajas con recetas, cuándo se descuenta el stock y si permites stock negativo.",
+    "module": "inventory",
+    "routes": [
+      "/business",
+      "/inventory"
+    ],
+    "tags": [
+      "activar inventario",
+      "configuracion",
+      "descontar stock",
+      "stock negativo",
+      "recetas"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "El inventario se activa en **Negocio → Mi negocio**, pestaña **Inventario**, con el interruptor *Activar inventario*. Ahí mismo eliges cómo se descuenta el stock.\n\n## Activarlo\n\n1. Ve a **Negocio → Mi negocio** y abre la pestaña **Inventario**.\n2. Enciende **Activar inventario**. Verás el mensaje *\"Inventario activado\"* y aparece el menú **Inventario**.\n3. Te aparecerán dos atajos: **Carga tu stock inicial** y **Crea tus unidades**. Es buena idea hacer ambos antes de vender.\n\nCada local tiene su propio stock y su costo promedio ponderado, que se recalcula con cada compra.\n\n## Qué hace cada opción\n\n- **Trabajar con ingredientes y recetas**: permite crear ingredientes (insumos con stock que no se venden) y platos que descuentan stock según su receta. Activa los menús *Ingredientes*, *Recetas* y *Producción*.\n- **Descontar stock al vender**: cada venta descuenta stock del local donde se vende. Los productos con *Stock propio* descuentan 1 unidad por unidad vendida, y los platos *Por receta* descuentan sus ingredientes. Un plato sin receta no descuenta nada.\n- **¿Cuándo?** (aparece al activar lo anterior):\n  - *Al ingresar el pedido*: descuenta apenas el producto entra al pedido, también al agregar productos a un pedido abierto.\n  - *Al pagar*: descuenta cuando el pedido queda pagado por completo.\n  Cada línea del pedido descuenta una sola vez: si cambias esta opción, lo ya descontado no se vuelve a descontar.\n- **Permitir stock negativo**: si está apagado, no se pueden registrar salidas que dejen el stock bajo cero. Un pedido (o el pago, si descuentas al pagar) sin stock suficiente se rechaza.\n\nSi anulas un pedido, el stock vuelve como *Anulación de venta*.\n\n## Aviso de recetas incompletas\n\nSi tienes platos *Por receta* sin receta o con receta incompleta, verás el aviso *\"X platos por receta no descontarán ingredientes completos\"*, con un enlace a cada plato. Toca **Ir a recetas** para completarlas.\n\n## Desactivarlo\n\nAl apagar *Activar inventario* se pide confirmar: se oculta el menú Inventario y se apagan *Descontar stock al vender* e *Ingredientes y recetas*. El stock y los movimientos registrados no se borran.\n\n## Errores comunes\n\n- **\"No hay stock suficiente de: …\"** al vender: registra una compra o un ajuste, o activa *Permitir stock negativo*.\n- **\"Primero activa el inventario.\"**: las demás opciones solo se pueden encender con el inventario activo.\n- **\"El inventario no está activado\"** al entrar a una pantalla de Inventario: toca **Activar inventario** y te lleva a esta pestaña."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo controlo lotes y vencimientos?",
+    "slug": "como-controlar-lotes-y-vencimientos",
+    "summary": "Anota lote y vencimiento al comprar o producir, revisa lo que está por vencer en Inventario, Lotes, y registra la merma de lo vencido.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/lots",
+      "/inventory"
+    ],
+    "tags": [
+      "lotes",
+      "vencimiento",
+      "fefo",
+      "por vencer",
+      "vencidos",
+      "merma"
+    ],
+    "position": 9,
+    "isPublished": true,
+    "body": "Anota el lote y la fecha de vencimiento al registrar una compra, un stock inicial o una producción. Después revisa en **Inventario → Lotes** lo que está por vencer o vencido.\n\n## Anotar el lote\n\nEn cada línea de una compra o de un ajuste que suma stock, toca **Lote / vencimiento** y completa:\n\n- **Lote (opcional)**: ej. L2410.\n- **Vence (opcional)**: la fecha de vencimiento.\n\nEn una recepción de orden de compra están los campos **Lote** y **Vencimiento**, y en una producción, **N° de lote** y **Vence**.\n\n## Cómo se descuenta (FEFO)\n\nLas salidas (ventas, mermas, transferencias y producciones) descuentan primero los lotes vencidos y luego los que vencen antes.\n\n## Pantalla de lotes\n\n1. Ve a **Inventario → Lotes**.\n2. Elige el estado: **Activos**, **Por vencer** o **Vencidos**.\n3. Ajusta **Por vencer en** (3, 7, 15 o 30 días) y el local.\n\nPor cada lote ves: Ítem, Lote, Vence, Estado (*Vigente*, *Por vencer*, *Vencido* o *Sin vencimiento*), cantidad Inicial / Actual, Costo, Valor y Local. Solo aparecen los lotes con saldo.\n\nEl costo de cada lote es solo una referencia: el stock y los consumos se valorizan al costo promedio del ítem en el local.\n\n## Avisos en el stock\n\nEn **Inventario → Stock** verás el aviso *Por vencer / Vencidos* con dos números: ítems con lotes que vencen en los próximos días y ítems con lotes ya vencidos que aún tienen stock. Toca **Ver por vencer** o **Ver vencidos**.\n\n## Registrar la merma de lo vencido\n\nEn un lote vencido toca **Registrar merma**. Se abre un ajuste con motivo *Merma* ya cargado; escribe la nota y toca **Registrar ajuste**. Como las salidas consumen primero lo vencido, la merma descuenta esos lotes.\n\n## Errores comunes\n\n- **\"Esta fecha ya pasó: el lote quedará como vencido.\"**: revisa la fecha antes de guardar.\n- **\"La fecha de vencimiento no es válida.\"**: corrige la fecha.\n- **\"El lote y el vencimiento solo se indican en líneas que suman stock\"**: en salidas no se elige lote; se usa primero lo que vence antes.\n- **\"Aún no hay lotes con saldo\"**: anota lote y vencimiento en tu próxima compra o stock inicial."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo creo unidades e ingredientes?",
+    "slug": "como-crear-unidades-e-ingredientes",
+    "summary": "Crea las unidades de medida (con sus subunidades) y luego los ingredientes que compras y usas en cocina, con su stock mínimo.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/units",
+      "/inventory/ingredients"
+    ],
+    "tags": [
+      "unidades",
+      "subunidades",
+      "ingredientes",
+      "insumos",
+      "stock minimo",
+      "sku"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "Primero crea tus unidades en **Inventario → Unidades** y después tus insumos en **Inventario → Ingredientes**. El stock siempre se guarda en la unidad base (ej. gramos) y puedes comprar o ajustar en sus subunidades (ej. kilos).\n\n## Unidades\n\n1. Ve a **Inventario → Unidades**.\n2. Si aún no tienes unidades, toca **Crear unidades sugeridas**: se crean Gramo, Kilogramo, Mililitro, Litro y Unidad. Kilogramo y Litro quedan como subunidades (1 kg = 1000 g; 1 l = 1000 ml).\n3. Para otra unidad, toca **Nueva unidad** (o **Crear una a una**) y completa:\n   - **Nombre** y **Abreviatura** (ej. Caja, cj).\n   - **Permite decimales**: actívalo para kilos o litros; apágalo para lo que se cuenta entero.\n   - **Es subunidad de**: elige la unidad base, o *Ninguna* si es una base.\n   - **Equivale a**: cuántas unidades base tiene (ej. 1 Caja = 12 Unidad).\n4. Toca **Crear unidad**.\n\nPara eliminar una unidad base, primero elimina sus subunidades.\n\n## Ingredientes\n\nSolo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario.\n\nUn ingrediente tiene stock pero no se vende ni aparece en la carta ni en el POS (harina, tomate, aceite).\n\n1. Ve a **Inventario → Ingredientes** y toca **Nuevo ingrediente**.\n2. Completa:\n   - **Nombre**.\n   - **SKU**: se sugiere según el nombre; el botón de flechas propone otro.\n   - **Unidad**: usa la más chica (ej. gramo). Al comprar podrás usar sus subunidades.\n   - **Stock mínimo** (opcional): en la unidad base. Sirve para detectar cuándo reponer.\n   - **Categoría** (opcional).\n3. Toca **Crear ingrediente**.\n\nCambiar la unidad de un ingrediente después no convierte el stock ya registrado.\n\nLas bebidas y otros productos que vendes tal cual no son ingredientes: créalos en **Carta → Productos** con *Control de stock* en *Stock propio*.\n\n## Errores comunes\n\n- **\"Completa nombre y abreviatura\"**: ambos son obligatorios.\n- **\"Indica a cuánto equivale en la unidad base (mayor a 0)\"**: completa *Equivale a* en una subunidad.\n- **\"Elige la unidad del ingrediente\"**: si dice *Aún no tienes unidades*, toca **Crear unidad**.\n- **\"Los ingredientes no están activados\"**: toca **Ir a la configuración** y activa *Trabajar con ingredientes y recetas*."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo hago un ajuste de stock (merma, stock inicial o corrección)?",
+    "slug": "como-hacer-un-ajuste-de-stock",
+    "summary": "Registra mermas, consumo interno, stock inicial o correcciones desde Inventario, Ajustes, eligiendo el motivo del ajuste.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/adjustments",
+      "/inventory/adjustments/new"
+    ],
+    "tags": [
+      "ajuste",
+      "merma",
+      "stock inicial",
+      "consumo interno",
+      "correccion",
+      "perdida"
+    ],
+    "position": 5,
+    "isPublished": true,
+    "body": "Ve a **Inventario → Ajustes → Nuevo ajuste**, elige el motivo, el local y los ítems, y toca **Registrar ajuste**. El motivo define si las cantidades suman o restan.\n\n## Motivos\n\n- **Merma** (resta): vencido, dañado o se cayó. La nota es obligatoria.\n- **Consumo interno** (resta): comida del personal o degustación.\n- **Stock inicial** (suma): lo que tienes al empezar a usar el inventario. El costo es opcional y fija el costo promedio.\n- **Corrección por conteo** (+ / −): después de contar, usa + para sumar y − para restar la diferencia.\n- **Otro** (+ / −): explica el motivo en la nota (obligatoria).\n\n## Paso a paso\n\n1. Ve a **Inventario → Ajustes** y toca **Nuevo ajuste** (también está en **Inventario → Stock**).\n2. Elige el **Motivo**.\n3. En *Datos del ajuste* elige el **Local**, la **Fecha** y escribe las **Notas** (ej. \"se venció el lote del lunes\").\n4. En *Ítems* busca cada ítem y escribe la cantidad:\n   - Motivos que restan o suman: ingresa la cantidad en positivo.\n   - Motivos + / −: ingresa la diferencia con signo (ej. −3 si faltan 3). El botón ± cambia el signo.\n5. En las líneas que suman puedes indicar costo unitario, lote y vencimiento (opcionales).\n6. Toca **Registrar ajuste**. Verás *\"Ajuste registrado\"*.\n\nLas salidas descuentan primero lo que vence antes, incluidos los lotes vencidos.\n\n## Stock inicial\n\nAl activar el inventario, usa el atajo **Carga tu stock inicial** o elige el motivo *Stock inicial*. Indica el costo unitario para que el costo promedio y el food cost partan correctos.\n\nSi haces un conteo completo, prefiere **Inventario → Conteos**: calcula la diferencia por ti.\n\n## Errores comunes\n\n- **\"Para 'Merma' explica el motivo en la nota.\"**: la nota es obligatoria en Merma y Otro.\n- **\"Las cantidades no pueden ser 0.\"**: quita la línea o cambia la cantidad.\n- **\"Para este motivo ingresa la cantidad en positivo.\"**: en Merma, Consumo interno y Stock inicial no uses signo.\n- **\"No hay stock suficiente de: …\"**: si *Permitir stock negativo* está apagado, una salida no puede dejar el stock bajo cero. Revisa la cantidad o actívalo en **Negocio → Mi negocio**, pestaña Inventario.\n- **\"Estos productos no tienen stock propio: …\"**: cambia su *Control de stock* a *Stock propio* en **Carta → Productos**."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo hago un conteo físico del inventario?",
+    "slug": "como-hacer-un-conteo-fisico",
+    "summary": "Cuenta lo que hay en el local con la planilla de conteo. El stock de cada ítem contado queda igual a lo contado y las diferencias se valorizan.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/counts",
+      "/inventory/counts/new"
+    ],
+    "tags": [
+      "conteo",
+      "toma de inventario",
+      "planilla",
+      "faltante",
+      "sobrante",
+      "diferencia"
+    ],
+    "position": 7,
+    "isPublished": true,
+    "body": "Ve a **Inventario → Conteos → Nuevo conteo**, anota lo que contaste en la planilla y toca **Confirmar conteo**. El stock de cada ítem contado queda igual a lo contado; los no contados no cambian.\n\n## Paso a paso\n\n1. Ve a **Inventario → Conteos** y toca **Nuevo conteo**.\n2. En *Datos del conteo* elige el **Local**, la **Fecha** y, si quieres, **Notas** (ej. \"conteo mensual de bodega\").\n3. En *Planilla de conteo* aparecen todos los ingredientes y productos con *Stock propio* del local. Puedes:\n   - Buscar por nombre o SKU.\n   - Filtrar **Todos / Ingredientes / Productos**.\n   - Activar **Mostrar stock del sistema** si quieres ver lo que dice Redom (apágalo para un conteo a ciegas).\n4. Escribe la cantidad contada de cada ítem en su unidad. Deja vacío lo que no contaste; **0 significa que no queda nada**.\n5. Toca **Confirmar conteo (N)** y confirma.\n\nSi hay ventas mientras cuentas, la diferencia se calcula contra el stock al momento de confirmar.\n\nPara cambiar de local después de empezar, toca **vacía lo contado**.\n\n## El resultado\n\nVerás *\"Conteo registrado\"* con:\n\n- **Diferencia neta valorizada**: valor perdido (faltante neto) o sobrante neto.\n- **Líneas con diferencia**: solo estas generan movimientos en el kardex.\n- Por cada ítem: Sistema, Contado, Diferencia (*Faltante* o *Sobrante*), Costo unitario y Valor diferencia.\n\nSi todo coincide, verás *\"Todo cuadró: lo contado coincide con el stock del sistema.\"*\n\nDesde ahí puedes ir a **Ver kardex** o **Ver documento**. Las diferencias se valorizan al costo promedio.\n\nUn conteo al final del mes también completa el reporte de **Consumo teórico vs real**.\n\n## Errores comunes\n\n- **\"Ingresa la cantidad contada de al menos un ítem.\"**: la planilla está vacía.\n- **\"Ingresa un número mayor o igual a 0, con hasta 4 decimales.\"**: revisa el valor marcado.\n- **\"'un' no permite decimales.\"**: esa unidad solo admite enteros.\n- **\"Un conteo admite hasta N ítems; divídelo en varios conteos.\"**: haz el conteo por partes (ej. por bodega).\n- **\"No hay ítems para contar\"**: solo se cuentan ingredientes y productos con *Stock propio*."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo registro una compra?",
+    "slug": "como-registrar-una-compra",
+    "summary": "Registra la factura del proveedor con sus ítems, costos e IVA. La compra suma stock al local y actualiza el costo promedio.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/purchases",
+      "/inventory/purchases/new"
+    ],
+    "tags": [
+      "compra",
+      "factura",
+      "proveedor",
+      "iva",
+      "costo promedio",
+      "cuentas por pagar",
+      "lote"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "Ve a **Inventario → Compras → Nueva compra**, completa los datos de la factura, agrega los ítems y toca **Registrar compra**. La compra suma stock en el local y actualiza el costo promedio.\n\n## Paso a paso\n\n1. Ve a **Inventario → Compras** y toca **Nueva compra** (también está en **Inventario → Stock**).\n2. En *Datos de la compra* completa:\n   - **Local**: dónde entra la mercadería.\n   - **Proveedor** (opcional). Si no existe, toca **Nuevo proveedor**.\n   - **N° de factura** y **Notas** (opcionales) y la **Fecha**.\n3. En *Ítems comprados*, busca cada ítem por nombre en **Agregar ítem**. Solo aparecen ingredientes y productos con *Stock propio*.\n4. En cada línea indica:\n   - **Cantidad** y **Unidad**: puedes comprar en una subunidad (ej. kg) aunque el ítem esté en gramos; el sistema convierte.\n   - **Costo unitario**: neto, sin IVA, por la unidad elegida.\n   - **Lote / vencimiento** (opcional): anota el lote y la fecha si el producto vence.\n5. En *Total y pago*, revisa el **IVA de la factura**. Redom sugiere un monto sobre el neto; escribe 0 si la factura es exenta o toca **Usar sugerido** para volver al cálculo.\n6. **Vence**: fecha de pago de la factura. Si la dejas vacía, se usa la condición de pago del proveedor (o el mismo día si no hay proveedor).\n7. **Pagada ahora**:\n   - Encendido: se registra el pago del total con IVA. Elige el **Medio de pago** y una **Referencia** opcional. Si pagas en efectivo y usas la caja, el efectivo sale del turno abierto de ese local.\n   - Apagado: la compra queda pendiente y se paga después en **Finanzas → Cuentas por pagar**.\n8. Toca **Registrar compra**. Verás *\"Compra registrada por $120.000 · pagada\"* o *\"… pendiente de pago\"*.\n\n## Errores comunes\n\n- **\"Elige un local.\"** o **\"Agrega al menos un ítem.\"**: faltan datos obligatorios.\n- **\"… ya está en la lista. Ajusta su cantidad.\"**: cada ítem va una sola vez por compra.\n- **\"El IVA no puede ser negativo.\"**: usa 0 o un monto positivo.\n- **\"La unidad … no permite decimales\"**: usa números enteros con esa unidad.\n- **\"Sin resultados. Solo aparecen ingredientes y productos con 'Stock propio'.\"**: cambia el *Control de stock* del producto en **Carta → Productos**.\n- **\"Esta fecha ya pasó: el lote quedará como vencido.\"**: revisa la fecha de vencimiento del lote."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo transfiero stock entre locales?",
+    "slug": "como-transferir-stock-entre-locales",
+    "summary": "Envía stock de un local a otro desde Inventario, Transferencias. Sale del origen a su costo promedio y entra al destino a ese mismo costo.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/transfers",
+      "/inventory/transfers/new"
+    ],
+    "tags": [
+      "transferencia",
+      "locales",
+      "sucursales",
+      "traspaso",
+      "enviar stock"
+    ],
+    "position": 8,
+    "isPublished": true,
+    "body": "Ve a **Inventario → Transferencias → Nueva transferencia**, elige el origen, el destino y los ítems, y toca **Registrar transferencia**.\n\nEl menú *Transferencias* aparece solo si tu negocio tiene más de un local. Si tienes uno solo, crea otra sucursal en **Negocio → Sucursales**.\n\n## Paso a paso\n\n1. Ve a **Inventario → Transferencias** y toca **Nueva transferencia**.\n2. En *Datos de la transferencia* elige el **Origen** y el **Destino**. El botón **Intercambiar** los da vuelta.\n3. Elige la **Fecha** y, si quieres, **Notas** (ej. \"reposición del fin de semana\").\n4. En *Ítems a transferir* busca cada ítem y escribe la cantidad. Debajo de cada línea verás el *Stock en origen*; si no alcanza, aparece *no alcanza*.\n5. Toca **Registrar transferencia**.\n\nVerás *\"Transferencia registrada por $45.000\"* con el detalle: ítem, cantidad, costo unitario y costo total. Toca **Ver documento** para abrirla.\n\n## Cómo se valoriza\n\n- Cada ítem sale del origen a su **costo promedio** y entra al destino a ese mismo costo. El promedio del destino se recalcula.\n- Los lotes salen del origen por orden de vencimiento (primero lo que vence antes) y llegan al destino con su número y fecha.\n- En el kardex quedan dos movimientos: *Transferencia (salida)* en el origen y *Transferencia (entrada)* en el destino.\n\nSolo se transfieren ingredientes y productos con *Stock propio*.\n\n## Errores comunes\n\n- **\"El origen y el destino deben ser locales distintos.\"**: cambia uno de los dos.\n- **\"Elige el origen y el destino.\"**: ambos son obligatorios.\n- **\"Hay un ítem repetido en la transferencia: suma sus cantidades en una sola línea.\"**\n- **\"No hay stock suficiente de: …\"**: si *Permitir stock negativo* está apagado, el origen no puede quedar bajo cero. Transfiere menos o registra primero la compra.\n- **\"Necesitas al menos dos locales\"**: crea otra sucursal para poder transferir."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo veo mi stock y el kardex?",
+    "slug": "como-ver-mi-stock-y-el-kardex",
+    "summary": "Revisa el stock, costo promedio y valor de cada ítem por local, los productos bajo mínimo, y cada entrada y salida en el kardex.",
+    "module": "inventory",
+    "routes": [
+      "/inventory",
+      "/inventory/kardex",
+      "/inventory/documents"
+    ],
+    "tags": [
+      "stock",
+      "kardex",
+      "costo promedio",
+      "bajo minimo",
+      "movimientos",
+      "valor del inventario"
+    ],
+    "position": 6,
+    "isPublished": true,
+    "body": "El stock está en **Inventario → Stock** y el detalle de cada movimiento en **Inventario → Kardex**. Cada local tiene su propio stock y su costo promedio ponderado.\n\n## Pantalla de stock\n\n1. Ve a **Inventario → Stock**.\n2. Elige el **Local** arriba. El local elegido se recuerda en las demás pantallas de inventario.\n3. Usa los filtros: búsqueda por nombre o SKU, **Todos / Ingredientes / Productos** y **Solo bajo mínimo**.\n\nPor cada ítem verás:\n\n- **Stock**: en la unidad base (ej. gramos).\n- **Costo promedio**: por unidad base. Se recalcula con cada compra.\n- **Valor**: stock × costo promedio. Abajo aparece el *Valor del inventario (esta página)*.\n- Etiqueta **Bajo mínimo** si el stock es igual o menor al stock mínimo del ingrediente o producto.\n- Fecha del lote que vence antes y, si hay, la cantidad vencida (tócala para registrar la merma).\n\nCada fila tiene los botones **Comprar**, **Ajustar** y **Kardex**.\n\nArriba verás avisos como *\"3 productos bajo mínimo\"* (tócalo para filtrar) y *Por vencer / Vencidos*.\n\nAquí solo aparecen ingredientes y productos con *Control de stock* en *Stock propio*. Los platos *Por receta* no tienen stock propio: descuentan sus ingredientes.\n\n## Kardex\n\nEl kardex muestra cada entrada y salida con su costo y el saldo que dejó.\n\n1. Ve a **Inventario → Kardex**, o toca **Kardex** en un ítem para ver solo ese producto.\n2. Filtra por **local**, **tipo** (Compra, Venta, Anulación de venta, Ajuste, Merma, Conteo, Transferencia), **Desde** y **Hasta**.\n3. Para quitar el filtro de producto, toca la X en *Producto: …*.\n\nColumnas: Fecha, Local, Producto, Tipo, Cantidad, Costo unit., Costo total, Saldo, Documento, Usuario y Notas.\n\nEn **Documento** puedes abrir la compra, ajuste, conteo, transferencia o producción que originó el movimiento, o el pedido si fue una venta.\n\n## Errores comunes\n\n- **\"Todavía no hay productos con stock\"**: crea ingredientes o productos con *Stock propio* y registra una compra o el stock inicial.\n- **\"Aún no tienes locales\"**: el stock se lleva por local. Crea uno en **Negocio → Sucursales**.\n- Un plato vendido no aparece en el kardex: solo aparecen sus ingredientes, y solo si *Descontar stock al vender* está activo y el plato tiene receta."
+  },
+  {
+    "category": "inventario",
+    "title": "¿Cómo uso las órdenes de compra y recibo un pedido en partes?",
+    "slug": "ordenes-de-compra-y-recepcion",
+    "summary": "Crea una orden para pedirle a un proveedor y regístrala al recibir la mercadería, completa o en varias entregas.",
+    "module": "inventory",
+    "routes": [
+      "/inventory/purchase-orders",
+      "/inventory/purchase-orders/new"
+    ],
+    "tags": [
+      "orden de compra",
+      "proveedor",
+      "recepcion",
+      "recepcion parcial",
+      "pedido a proveedor"
+    ],
+    "position": 4,
+    "isPublished": true,
+    "body": "Una orden de compra es el pedido que le haces a un proveedor. **No mueve stock**: al recibirla se registra una compra con lo que llegó, que suma stock y actualiza el costo promedio.\n\n## Crear la orden\n\n1. Ve a **Inventario → Órdenes de compra** y toca **Nueva orden**.\n2. En *Datos de la orden* completa el **Local** (donde se recibirá), el **Proveedor**, el **N° de referencia** (ej. OC-0012), la **Fecha** y la **Entrega esperada**.\n3. En *Ítems a pedir* agrega los ítems con cantidad, unidad y costo unitario neto (sin IVA). Al recibir puedes ajustar el costo.\n4. Toca **Guardar borrador** o **Guardar y marcar como enviada**.\n\n## Estados\n\n- **Borrador** y **Enviada**: se pueden editar.\n- **Parcial**: llegó una parte.\n- **Recibida**: llegó todo.\n- **Anulada**: ya no se puede editar ni recibir.\n\nSi la entrega esperada pasó y falta recibir, la orden aparece como **Atrasada**.\n\n## Recibir la mercadería\n\n1. Abre la orden y toca **Recibir**.\n2. Completa el **N° de factura**, la **Fecha**, el **IVA de la factura** y, si quieres, **Vence** y **Notas**.\n3. En *¿Qué llegó?* marca las líneas recibidas. La cantidad viene precargada con lo pendiente: cámbiala si llegó menos. También puedes ajustar el costo e indicar **Lote** y **Vencimiento**.\n4. Toca **Registrar recepción**.\n\nSi llegó todo verás *\"Orden recibida\"*; si falta algo, *\"Recepción parcial registrada\"* y la orden queda **Parcial** para la próxima entrega. En la sección *Recepciones* de la orden ves cada compra generada.\n\nPara recibir más de lo pedido, activa *Mostrar también las líneas completas (recibir de más)*.\n\n## Anular\n\nToca **Anular**. Lo ya recibido se mantiene en el stock, pero lo pendiente se cierra y no se podrá recibir. No se puede deshacer.\n\n## Errores comunes\n\n- **\"Marca al menos una línea para recibir.\"**: selecciona lo que llegó.\n- **\"Más de lo pendiente.\"**: es solo un aviso; revisa la cantidad.\n- **\"Una orden parcial ya no se puede editar.\"**: después de recibir algo, la orden no se edita.\n- **\"Hay un ítem repetido en la orden: suma sus cantidades en una sola línea.\"**"
+  },
+  {
+    "category": "pedidos-y-cobros",
+    "title": "¿Cómo anulo un pago o cancelo un pedido?",
+    "slug": "como-anular-un-pago-o-cancelar-un-pedido",
+    "summary": "Anula un pago con un motivo desde el pedido o desde Pagos, y cancela un pedido abierto que no tenga pagos vigentes.",
+    "module": "orders",
+    "routes": [
+      "/orders/:id",
+      "/payments"
+    ],
+    "tags": [
+      "anular pago",
+      "cancelar pedido",
+      "motivo",
+      "caja cerrada",
+      "propina liquidada"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "Para anular un pago, toca el ícono de bloqueo junto al pago e indica el motivo. Para cancelar un pedido, primero anula todos sus pagos vigentes y luego toca **Cancelar pedido**.\n\n## Anular un pago\n\n1. Abre el pedido desde **POS → Pedidos** y baja a la sección **Pagos**. También puedes ir a **POS → Pagos**, donde ves todos los cobros del negocio.\n2. En la fila del pago, toca el ícono de bloqueo (**Anular pago**).\n3. Escribe el **Motivo** o elige uno: *Error de digitación*, *Método de pago incorrecto*, *Cliente cambió la forma de pago* o *Pago duplicado*.\n4. Toca **Anular pago**.\n\nEl pago queda como **Anulado**, con su motivo, y el monto vuelve al saldo del pedido. Si se pagó por productos, esos productos vuelven a quedar pendientes.\n\n## Cancelar un pedido\n\n1. Abre el pedido. Debe estar en estado **Abierto**.\n2. Si tiene pagos vigentes, anúlalos primero.\n3. Toca **Cancelar pedido** y confirma.\n\nEl pedido queda como **Cancelado** y la mesa se libera. Esta acción no se puede deshacer. Si tienes inventario activo y descuentas stock al ingresar el pedido, el stock vuelve al inventario. Lo que ya se preparó queda registrado como merma.\n\n## Errores comunes\n\n- **\"Indica el motivo de la anulación\"**: el motivo es obligatorio.\n- **\"El pedido tiene pagos registrados. Anúlalos antes de cancelarlo.\"**: anula los pagos vigentes en la sección **Pagos** del pedido.\n- **\"Abre la caja para devolver el efectivo\"**: aparece solo si tienes activado *Caja y turnos* en **Negocio → Mi negocio → Punto de venta**. Para anular un pago en efectivo, la caja debe estar abierta, porque el dinero sale de ella. Se abre la ventana para abrir el turno y, al confirmar, la anulación continúa.\n- **\"Propina ya liquidada\"**: la propina de ese pago ya se le pagó al equipo. Toca **Ver liquidación #N**, anula esa liquidación en **Finanzas → Propinas** y vuelve a anular el pago.\n- **\"El pedido ya no está abierto.\"**: solo se pueden cancelar pedidos abiertos. Un pedido pagado se cierra automáticamente.\n- **\"No tienes permiso para esta acción.\"**: tu rol no permite anular pagos ni cancelar pedidos."
+  },
+  {
+    "category": "pedidos-y-cobros",
+    "title": "¿Cómo cobro un pedido?",
+    "slug": "como-cobrar-un-pedido",
+    "summary": "Abre el cobro desde el POS o desde el pedido, elige el medio de pago, la propina y el monto; en efectivo, Redom calcula el vuelto.",
+    "module": "orders",
+    "routes": [
+      "/pos",
+      "/orders/:id"
+    ],
+    "tags": [
+      "cobrar",
+      "pago",
+      "propina",
+      "vuelto",
+      "efectivo",
+      "pago parcial"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Para cobrar un pedido, toca **Cobrar [saldo]** en el POS o **Cobrar** en el detalle del pedido. Luego elige el medio de pago y toca **Registrar**.\n\n## Paso a paso\n\n1. Abre el cobro desde una de estas pantallas:\n   - **POS → Tomar pedido**: elige la mesa o la cuenta y toca **Cobrar $**. Si agregaste productos que todavía no envías, primero envíalos o quítalos.\n   - **POS → Pedidos**: abre el pedido y toca **Cobrar**.\n2. Revisa el resumen: *Total*, *Pagado* y *Saldo*.\n3. Elige el método de pago: **Efectivo**, **Débito**, **Crédito**, **Transferencia** u **Otro**.\n4. En *Monto a pagar*, toca **Todo el saldo**, **Mitad** o escribe otro monto.\n5. Elige la propina: **Sin propina**, el porcentaje sugerido, **15 %** u **Otro**. La propina es voluntaria, se calcula sobre lo que pagas en este cobro y no suma al total del pedido.\n6. Si el pago es en efectivo, indica el *Efectivo recibido*. Puedes usar **Exacto** o los montos redondeados que se sugieren, como $10.000 o $20.000, y Redom muestra el **Vuelto**.\n7. Si quieres, agrega una nota y toca **Registrar $**.\n\nCuando el saldo llega a cero, verás **Cuenta pagada**. El pedido se cierra solo. Toca **Listo**.\n\n## Pagos parciales\n\nSi pagas menos que el saldo, verás \"Pago parcial: quedará un saldo de…\". Al registrar el pago, el modal queda listo para el siguiente pago, con el nuevo saldo cargado. Por ejemplo, para una cuenta de $30.000, registra $15.000 en débito y luego $15.000 en efectivo. Los cobros quedan en *Pagos registrados*. Toca **Terminar** si quieres cobrar el resto más tarde.\n\nSi hay vuelto, aparece destacado en **Vuelto a entregar**. Toca **Continuar con el siguiente pago** para seguir.\n\nEl porcentaje de propina sugerida se configura en **Negocio → Mi negocio → Punto de venta**.\n\n## Con Caja y turnos activado\n\nSi activaste *Caja y turnos* en Mi negocio, cada cobro queda registrado en la caja abierta.\n\n- **\"La caja está cerrada: ábrela para cobrar\"**: se abre la ventana para abrir el turno. Al abrirlo, el cobro se registra.\n- **\"¿Con qué caja cobras?\"**: hay varias cajas abiertas. Elige una, y este equipo la recordará.\n\n## Errores comunes\n\n- **\"El efectivo recibido no cubre el monto más la propina\"**: aumenta el efectivo recibido o baja la propina.\n- **\"Revisa los montos: el pago no puede superar el saldo…\"**: el monto supera lo pendiente.\n- **\"El pedido ya no está abierto o el pago ya fue anulado.\"**: recarga el pedido."
+  },
+  {
+    "category": "pedidos-y-cobros",
+    "title": "¿Cómo divido la cuenta por productos?",
+    "slug": "como-dividir-la-cuenta-por-productos",
+    "summary": "En el cobro, la pestaña Por productos permite que cada persona pague lo que consumió e imprimir una pre-cuenta por persona.",
+    "module": "orders",
+    "routes": [
+      "/pos",
+      "/orders/:id"
+    ],
+    "tags": [
+      "dividir cuenta",
+      "por productos",
+      "pre-cuenta",
+      "precuenta",
+      "pago parcial"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "Para que cada persona pague lo que consumió, abre el cobro y elige la pestaña **Por productos**. Marca los productos de esa persona y registra el pago.\n\n## Paso a paso\n\n1. Abre el cobro con **Cobrar** desde el POS o desde el detalle del pedido.\n2. Elige el método de pago.\n3. Toca la pestaña **Por productos**.\n4. En *Productos a pagar*, usa **+** y **−** para indicar cuántas unidades paga esta persona. Con **Todo** marcas todas las unidades pendientes de un producto. También puedes usar **Seleccionar todo** o **Limpiar**.\n5. Revisa el *Total estimado*. El monto final lo calcula el sistema al cobrar.\n6. Si quieres, toca **Pre-cuenta por persona** para imprimir el detalle de lo que paga esa persona.\n7. Elige la propina y, si paga en efectivo, indica el efectivo recibido para ver el *Vuelto estimado*.\n8. Toca **Registrar ≈ $**.\n\nDespués de cada pago, la lista se actualiza. Cada producto muestra cuánto falta, por ejemplo \"Pagado 1 de 2 · Pendiente 1\". Los productos ya pagados quedan agrupados en **Pagado**. Repite los pasos con la siguiente persona.\n\n## Cómo funciona\n\n- Cada producto se paga junto con sus modificadores.\n- El monto incluye la parte proporcional del descuento del pedido.\n- Un pago **Por monto** baja el saldo, pero no marca productos como pagados.\n- Si anulas un pago, sus productos vuelven a quedar pendientes.\n\nLa pestaña **Por productos** solo aparece cuando el pedido permite cobrar por productos.\n\n## Errores comunes\n\n- **\"Selecciona los productos a pagar\"**: marca al menos un producto.\n- **\"Los productos superan el saldo porque hubo pagos por monto. Cobra el resto con 'Por monto'.\"**: ya se pagó parte de la cuenta por monto. Cobra lo que falta en la pestaña **Por monto**.\n- **\"No quedan productos pendientes. Cobra el saldo con 'Por monto'.\"**: todos los productos están pagados, pero queda saldo. Cóbralo por monto.\n- **\"Alguno de los productos ya fue pagado. Se actualizó la cuenta: revisa la selección.\"**: otra persona cobró esos productos al mismo tiempo. Revisa la selección y vuelve a intentarlo.\n- **\"No se pudo imprimir la precuenta\"**: revisa que la impresora esté conectada y vuelve a intentarlo."
+  },
+  {
+    "category": "primeros-pasos",
+    "title": "¿Cómo agrego una sucursal?",
+    "slug": "como-agregar-una-sucursal",
+    "summary": "Crea, edita o elimina los locales donde vendes desde Negocio → Sucursales.",
+    "module": "settings",
+    "routes": [
+      "/business/location"
+    ],
+    "tags": [
+      "sucursal",
+      "local",
+      "multilocal",
+      "direccion"
+    ],
+    "position": 4,
+    "isPublished": true,
+    "body": "Para agregar una sucursal, entra a **Negocio → Sucursales** y toca **Nueva sucursal**. Cada sucursal es un local donde vendes, con su propia dirección y su propio stock.\n\n## Crear una sucursal\n\n1. Ve a **Negocio → Sucursales**.\n2. Toca **Nueva sucursal**. Si todavía no tienes ninguna, toca **Crear sucursal**.\n3. Completa el *Nombre*, que es el único campo obligatorio. También puedes llenar *País*, *Estado/Región*, *Ciudad*, *Código postal*, *Dirección*, *Teléfono* y *Email*.\n4. Toca **Crear**. Verás el mensaje \"Sucursal creada\".\n\nTambién llegas a esta pantalla desde **Negocio → Mi negocio**, con el acceso **Sucursales** al final de la página.\n\n## Editar o eliminar\n\n- Para editar, toca el ícono de lápiz en la fila de la sucursal, cambia los datos y toca **Guardar**. Al editar también puedes agregar el *Website*.\n- Para eliminar, toca el ícono de basurero y confirma con **Eliminar**. Esta acción no se puede deshacer.\n\n## Trabajar con varias sucursales\n\n- En el **POS** y en el **Resumen** eliges la sucursal con la que quieres trabajar. El Resumen también permite ver *Todas las sucursales*.\n- Si tienes activado el inventario y más de una sucursal, aparece **Inventario → Transferencias** para mover stock entre locales.\n- En el POS solo aparecen los meseros asignados a esa sucursal o los que no tienen sucursal asignada.\n\n## Errores comunes\n\n- **El botón Crear está desactivado**: falta el *Nombre* o el *Email* tiene un formato inválido.\n- **\"Error al crear la sucursal\"** o **\"Error al actualizar\"**: revisa tu conexión e inténtalo de nuevo.\n- **\"Primero crea tu local\"** en el POS: tu negocio no tiene ninguna sucursal. Crea una desde **Negocio → Sucursales**."
+  },
+  {
+    "category": "primeros-pasos",
+    "title": "¿Cómo creo mi negocio y empiezo a vender?",
+    "slug": "como-crear-mi-negocio",
+    "summary": "El asistente de bienvenida crea tu negocio, tu local, tus mesas y tus primeros productos en pocos pasos, y te deja listo para el primer pedido.",
+    "module": "onboarding",
+    "routes": [
+      "/onboarding"
+    ],
+    "tags": [
+      "onboarding",
+      "crear negocio",
+      "local",
+      "mesas",
+      "primeros pasos",
+      "bienvenida"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Al entrar por primera vez sin negocio, Redom abre un asistente que te deja listo para vender en un par de minutos. Arriba ves \"Paso N de M\" y, con el botón **Atrás**, puedes volver a los pasos que todavía no se han guardado.\n\n1. **Tu negocio**: escribe el *Nombre del restaurante*, elige la *Moneda* (por defecto, peso chileno) y la *Zona horaria*. El *Logo* es opcional. Toca **Continuar**. Aquí todavía no se guarda nada.\n2. **Tu local**: es el lugar donde vendes; ahí quedan tus pedidos y tu caja. Solo el *Nombre del local* es obligatorio; *Dirección*, *Comuna* y *Teléfono* son opcionales. Toca **Crear negocio y local**. Este paso es obligatorio: sin local no se pueden tomar pedidos.\n3. **¿Cómo atiendes?** (opcional): elige *Mostrador*, *Mesas* o *Ambos*. Si usas mesas, indica el *Nombre del sector* (por defecto \"Salón\"), el *Número de mesas* (de 1 a 50) y las *Personas por mesa*. Las mesas se crean como Mesa 1, Mesa 2… Si eliges *Mostrador*, el negocio queda configurado sin mesas.\n4. **Tus primeros productos** (opcional): agrega hasta 3 productos con su precio, con IVA incluido, y toca **Guardar productos**. Las categorías, fotos y modificadores los agregas después en **Carta**.\n5. **Tu foto** (opcional): sube tu foto de perfil para que tu equipo te reconozca. No aparece si ya tienes foto.\n6. **¡Listo!**: verás un resumen. Toca **Tomar mi primer pedido** para ir al POS o **Ir al panel** para ir al Resumen.\n\nLos pasos opcionales tienen el botón **Omitir**. Todo lo que configures aquí lo puedes cambiar después en **Negocio → Mi negocio**.\n\n## Si recargas la página a mitad de camino\n\nSi tu negocio ya existe pero todavía no tiene local, el asistente retoma en **Tu local** y crea solo el local.\n\n## Errores comunes\n\n- **\"Ingresa el nombre de tu negocio\"** o **\"Ponle un nombre a tu local\"**: falta completar el nombre.\n- **\"Tu cuenta ya pertenece a un negocio. Te llevamos al panel.\"**: tu usuario ya es parte de otro negocio. Entrarás al panel de ese negocio.\n- **\"No se pudo subir el logo, puedes intentarlo desde Mi negocio\"**: el negocio se creó igual. Sube el logo después en **Negocio → Mi negocio**.\n- **\"No pudimos guardar si atiendes con mesas. Puedes cambiarlo en Mi negocio.\"**: activa o desactiva *Trabajo con mesas* en **Negocio → Mi negocio → Punto de venta**."
+  },
+  {
+    "category": "primeros-pasos",
+    "title": "¿Cómo edito los datos de mi negocio?",
+    "slug": "como-editar-los-datos-de-mi-negocio",
+    "summary": "En Mi negocio cambias el nombre, el logo, el color, la moneda, la zona horaria, los datos fiscales y la configuración del punto de venta.",
+    "module": "settings",
+    "routes": [
+      "/business"
+    ],
+    "tags": [
+      "mi negocio",
+      "logo",
+      "moneda",
+      "rut",
+      "iva",
+      "propina",
+      "mesas",
+      "meseros",
+      "configuracion"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "Los datos de tu negocio se editan en **Negocio → Mi negocio**, en la pestaña **General**. Cada sección tiene su propio botón **Guardar**. Si te arrepientes antes de guardar, toca **Descartar**.\n\n## Identidad\n\n- **Nombre del negocio**: escribe el nuevo nombre y toca **Guardar**.\n- **Logo del negocio**: elige una imagen y toca **Guardar logo**, o usa **Quitar logo** para eliminarlo.\n- **Color de marca**: toca un color. Se guarda al instante y cambia la app de todo tu equipo: botones, menú, login y POS.\n\n## Moneda y horario\n\nAquí eliges la **Moneda** y la **Zona horaria** que usan los pedidos, los turnos y los reportes. Si cambias la moneda, los precios no se convierten: tus productos mantienen el mismo número. Revísalos después del cambio.\n\n## Datos fiscales\n\n- **RUT del negocio** (opcional): se valida el dígito verificador.\n- **IVA (%)**: en Chile es 19 %.\n- **Los precios de mis productos**:\n  - *Incluyen IVA*: el precio es lo que paga el cliente. Es lo habitual en Chile.\n  - *No incluyen IVA*: el precio es neto y el IVA se suma al vender.\n\nEl cambio aplica a las líneas que agregues desde ahora. Los pedidos ya creados no cambian.\n\n## Punto de venta\n\n- **Trabajo con mesas**: muestra el panel de mesas en el POS para asignar una mesa a cada pedido. Si lo apagas, el POS trabaja solo en mostrador y el catálogo ocupa más espacio.\n- **Uso meseros**: el POS pregunta \"¿Quién atiende?\" para dejar cada pedido a nombre de un mesero. Si lo apagas, el POS entra directo sin elegir mesero.\n- **Mesero obligatorio al tomar pedidos**: quita la opción de continuar sin mesero en el POS. Solo se activa si *Uso meseros* está encendido.\n- **Caja y turnos**: el turno se abre con un fondo de caja y se cierra con arqueo ciego y reporte Z. Si está apagado, el POS cobra sin caja.\n- **Propina sugerida (%)**: se propone al cobrar y en la precuenta. Usa 0 si no quieres sugerir propina.\n- **Reparto de propinas**: *Cada mesero lo suyo*, *Partes iguales* o *Por puntos*. Es el modo por defecto, y puedes cambiarlo en cada liquidación.\n\nLa pestaña **Inventario** tiene la configuración de stock.\n\n## Errores comunes\n\n- **\"RUT inválido. Revisa el dígito verificador.\"**: revisa el número y el dígito final.\n- **\"Debe estar entre 0 y 100.\"** o **\"Máximo 2 decimales.\"**: corrige el IVA o la propina.\n- **\"Cierra las cajas abiertas primero\"**: no puedes apagar *Caja y turnos* mientras haya turnos abiertos. Ciérralos en **POS → Turnos de caja**.\n- **\"No tienes permiso para esta acción.\"**: tu rol no permite editar el negocio. Pídele al dueño que lo haga."
+  },
+  {
+    "category": "primeros-pasos",
+    "title": "¿Qué son los \"Primeros pasos\" del Resumen?",
+    "slug": "primeros-pasos-del-resumen",
+    "summary": "Una lista de tareas en el Resumen que muestra qué te falta para dejar tu restaurante listo para vender y te lleva directo a cada pantalla.",
+    "module": "onboarding",
+    "routes": [
+      "/dashboard/admin"
+    ],
+    "tags": [
+      "primeros pasos",
+      "checklist",
+      "resumen",
+      "dashboard",
+      "puesta en marcha"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "\"Primeros pasos\" es una lista de tareas que aparece arriba en **Resumen**. Te muestra qué te falta para dejar tu restaurante listo para vender. Cada tarea se marca sola cuando la completas.\n\n## Las tareas\n\n| Tarea | Tipo | Te lleva a |\n|---|---|---|\n| Crea tu local | Esencial | Negocio → Sucursales |\n| Carga tu carta (al menos un producto a la venta con precio) | Esencial | Carta → Productos |\n| Toma tu primer pedido | Esencial | POS |\n| Completa los datos fiscales (RUT del negocio) | Recomendado | Negocio → Mi negocio |\n| Configura tus mesas | Opcional | Mesas |\n| Invita a tu equipo (otro usuario además de ti) | Opcional | Roles y permisos → Usuarios |\n| Conecta una impresora o una estación de cocina | Opcional | Configuración → Impresoras o Estaciones |\n\n## Cómo usarla\n\n1. Entra a **Resumen**. Verás la barra de avance (\"3 de 7\", por ejemplo).\n2. La siguiente tarea pendiente aparece destacada, con un botón que te lleva a la pantalla correspondiente (por ejemplo, **Abrir el POS**). Las demás tienen una flecha.\n3. Cuando completas la tarea y vuelves al Resumen, la lista se actualiza. También se actualiza cuando vuelves a la pestaña del navegador.\n\nCuando completas todas las tareas esenciales y recomendadas, la tarjeta se reduce a un aviso **¡Todo listo!**. Toca **Ver** si quieres abrirla otra vez.\n\n## Ocultarla y volver a verla\n\n- Toca **Ocultar** para quitar la lista del Resumen.\n- Para recuperarla, toca **Ver primeros pasos**, junto al selector de período.\n\nOcultarla solo afecta al navegador que estás usando. En otro equipo, la lista vuelve a aparecer.\n\n## Errores comunes\n\n- **\"No pudimos verificar tu avance.\"**: no se pudo consultar el estado y ninguna tarea se marca. Revisa tu conexión y toca **Reintentar**.\n- **Una tarea aparece con un signo de pregunta**: no se pudo comprobar. Toca **Reintentar** o recarga la página."
+  },
+  {
+    "category": "propinas",
+    "title": "¿Cómo reparto y pago las propinas al equipo?",
+    "slug": "como-repartir-y-pagar-las-propinas",
+    "summary": "Revisa las propinas pendientes, elige el modo de reparto y los participantes, liquida e imprime el comprobante para firmar.",
+    "module": "tips",
+    "routes": [
+      "/finance/tips",
+      "/finance/tips/new",
+      "/finance/tips/payouts/:id"
+    ],
+    "tags": [
+      "propinas",
+      "liquidacion",
+      "reparto",
+      "puntos",
+      "comprobante",
+      "anular"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Las propinas se pagan desde **Finanzas → Propinas → Liquidar propinas**. Eliges el período, cómo se reparten y el medio de pago. Redom calcula cuánto le toca a cada persona.\n\n## Ver lo pendiente\n\nEn **Finanzas → Propinas** ves **Propinas por pagar** (total y cantidad de pagos) y la tabla **Por mesero**, incluida la fila *Sin mesero* para pedidos sin mesero asignado. Puedes filtrar por fechas **Desde** / **Hasta** y por local.\n\nLa propina no es venta del local: se le debe al equipo hasta que se le paga.\n\n## Liquidar\n\n1. Toca **Liquidar propinas**.\n2. **1. Qué propinas se pagan**: elige **Desde**, **Hasta** y el **Local**. Se usa la fecha del pago.\n3. **2. Cómo se reparten**: elige el modo.\n   - **Cada mesero lo suyo**: cada mesero recibe las propinas de sus pedidos. Opcionalmente agrega a quienes comparten las propinas sin mesero.\n   - **Partes iguales**: todo junto, en partes iguales. Si no agregas a nadie, se reparte entre los meseros con propinas.\n   - **Por puntos**: todo junto según los puntos de cada uno (ej: mesero 2, ayudante 1). Los participantes son obligatorios.\n4. Agrega participantes desde **Meseros con propinas** (o **Agregar todos**) o con el buscador del equipo. Máximo 100.\n5. Revisa la **Vista previa**: nombre, propinas propias, puntos y monto de cada uno.\n6. **3. Pago**: elige el **Medio de pago**, **Fecha y hora** y, si quieres, **Referencia** y **Nota**.\n7. Toca **Liquidar** (el botón muestra el total).\n\nSi pagas en **Efectivo** con *Caja y turnos* activo, el dinero sale del turno abierto de la caja del local y queda en su reporte Z. Para eso debes elegir un local.\n\n## Comprobante\n\nAl terminar verás *\"Liquidación registrada\"*. Toca **Imprimir** (o **Imprimir comprobante** después) para que cada persona firme lo que recibió.\n\n## Anular una liquidación\n\nEn el detalle, toca **Anular liquidación**, elige el motivo y confirma. Las propinas vuelven a pendientes y, si se pagó en efectivo, el dinero vuelve a la caja (debe estar abierta).\n\n## Errores comunes\n\n- **\"No hay propinas pendientes en ese período.\"**: cambia las fechas.\n- **\"Revisa los puntos: números ≥ 0 con hasta 2 decimales.\"**: corrige los puntos.\n- **\"Para pagar en efectivo elige el local (arriba)\"**: el efectivo necesita una caja.\n- **\"La propina de este pago ya se liquidó: anula primero la liquidación.\"**: aparece al anular un cobro cuya propina ya se pagó."
+  },
+  {
+    "category": "punto-de-venta",
+    "title": "¿Cómo agrego opciones o modificadores a un producto en el pedido?",
+    "slug": "como-agregar-opciones-a-un-producto-en-el-pedido",
+    "summary": "Al tocar un producto con opciones se abre un modal para elegir agregados, cuántas veces va cada uno, una nota y la cantidad; luego puedes editar la línea.",
+    "module": "pos",
+    "routes": [
+      "/pos",
+      "/orders/new",
+      "/orders/:id/add"
+    ],
+    "tags": [
+      "modificadores",
+      "opciones",
+      "agregados",
+      "extras",
+      "pos",
+      "nota"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "Los productos con modificadores muestran la etiqueta **Opciones** en su tarjeta. Al tocarlos, se abre un modal para elegir los agregados antes de sumarlos al pedido.\n\n## Elegir las opciones\n\n1. En **POS → Tomar pedido**, toca un producto con la etiqueta **Opciones**.\n2. El modal muestra el nombre y el precio del producto, y cada set de opciones (por ejemplo, *Agregados*). Marca las opciones que quieras. Las opciones con costo muestran el valor que suman, por ejemplo *+$800*.\n3. Si una opción va más de una vez, como doble queso, usa **+** y **−** junto a la opción. Cada opción puede ir hasta 10 veces por unidad.\n4. En **Nota para cocina**, escribe una indicación o toca una nota rápida, como *sin cebolla* o *término medio*.\n5. Ajusta la **Cantidad** (de 1 a 99).\n6. Revisa el *Total estimado* y toca **Agregar**.\n\nEn el ticket, la línea muestra las opciones elegidas (por ejemplo, \"+ Extra queso\" o \"+ 2 x Palta\") y el precio por unidad con las opciones incluidas.\n\n## Editar una línea\n\nToca el nombre del producto en la lista **Productos**. Las líneas que se pueden editar tienen el ícono de ajustes. El modal se abre con lo que habías elegido. Haz los cambios y toca **Guardar**.\n\nSi agregas el mismo producto con otras opciones o con otra nota, queda en una línea aparte. Así, cocina sabe exactamente qué lleva cada uno.\n\n## Buenas prácticas\n\n- La nota de una línea aplica a todas sus unidades. Si solo una unidad lleva la nota, deja esa línea en 1 y vuelve a tocar el producto para agregar otra línea.\n- Las opciones se configuran en **Carta → Modificadores**. Ahí también eliges los productos que las ofrecen.\n\n## Errores comunes\n\n- **\"Una de las opciones elegidas ya no está disponible para [producto]. Vuelve a elegirlas.\"**: alguien cambió el set mientras tomabas el pedido. La carta se recarga sola. Edita la línea y vuelve a elegir las opciones.\n- **\"Hay una opción repetida en [producto]. Edítalo y vuelve a intentar.\"**: abre la línea, revisa las opciones y guarda de nuevo.\n- **El producto no muestra Opciones**: el set no está vinculado a ese producto o no tiene opciones. Revísalo en **Carta → Modificadores → Productos**."
+  },
+  {
+    "category": "punto-de-venta",
+    "title": "¿Cómo tomo un pedido en el POS?",
+    "slug": "como-tomar-un-pedido-en-el-pos",
+    "summary": "Elige mesa o venta sin mesa, toca los productos, agrega notas y envía el pedido a cocina desde POS → Tomar pedido.",
+    "module": "pos",
+    "routes": [
+      "/pos",
+      "/orders/new",
+      "/orders/:id/add"
+    ],
+    "tags": [
+      "pos",
+      "pedido",
+      "mesa",
+      "comanda",
+      "cocina",
+      "carrito",
+      "notas"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Para tomar un pedido, entra a **POS → Tomar pedido**, elige una mesa o **Sin mesa**, toca los productos y presiona **Enviar pedido**.\n\n## Paso a paso\n\n1. Si tienes varias sucursales, elige la sucursal arriba.\n2. En **¿Quién atiende?**, toca tu nombre e ingresa tu PIN de 4 dígitos. Si en **Negocio → Mi negocio → Punto de venta** está apagado *Uso meseros*, el POS no lo pregunta; si está encendido *Mesero obligatorio al tomar pedidos*, no aparece la opción **Continuar sin mesero**.\n3. En el panel **Mesas**, toca una mesa o **Sin mesa**. Si tienes varios sectores, puedes filtrar las mesas por sector. Las mesas bloqueadas no se pueden elegir.\n4. Busca los productos con **Buscar producto…** o filtra por categoría. Si una categoría tiene subcategorías, aparece una segunda fila con **Todo [categoría]** y cada subcategoría.\n5. Toca la tarjeta de un producto para agregarlo. El número sobre la tarjeta indica cuántas unidades llevas. Si la tarjeta dice **Opciones**, se abre un modal para elegirlas.\n6. En **Productos**, usa **+** y **−** para cambiar la cantidad. Con una sola unidad, el botón de basurero quita el producto.\n7. Para agregar una nota a un producto, toca el ícono de nota. Puedes escribir la nota o usar las notas rápidas: *sin palta*, *sin cebolla*, *bien cocido*, *para llevar*, etc.\n8. Opcionalmente, elige un **Cliente** o crea uno nuevo, y escribe una **Nota general del pedido**.\n9. Deja marcado **Enviar a cocina** si el pedido debe llegar a cocina, y toca **Enviar pedido**.\n\nVerás el mensaje \"Pedido [número] enviado\". La cuenta queda abierta a la derecha, con el estado de cada producto y el **Saldo por pagar**.\n\n## Agregar productos a una cuenta abierta\n\nToca una mesa ocupada para cargar su cuenta. Agrega los productos y toca **Agregar a la cuenta**. Si el pedido va a cocina, la comanda incluye solo los productos nuevos.\n\nDesde **POS → Pedidos** también puedes abrir un pedido y tocar **Agregar productos**.\n\n## Antes de enviar\n\nEl *Total estimado* es una referencia. El sistema confirma el total final al guardar el pedido. Si vendes con precios sin IVA, el total ya incluye el IVA.\n\nSi cambias de mesero con productos sin enviar, se descartan. Antes de hacerlo, Redom te pide confirmar.\n\n## Errores comunes\n\n- **\"Primero crea tu local\"**: necesitas al menos una sucursal. Créala en **Negocio → Sucursales**.\n- **\"No hay meseros disponibles\"**: el usuario necesita el rol *Mesero*, estar activo y estar asignado a esta sucursal o no tener sucursal asignada.\n- **\"La cuenta ya no está abierta: no se le pueden agregar productos.\"**: alguien cerró o canceló la cuenta. Toma un pedido nuevo.\n- **\"[Producto] ya no está a la venta…\"**: quítalo del pedido y vuelve a enviar.\n- **\"La mesa está bloqueada y no puede recibir pedidos.\"**: elige otra mesa."
+  },
+  {
+    "category": "recetas-y-costeo",
+    "title": "¿Cómo creo la receta de un plato o de una opción de modificador?",
+    "slug": "como-crear-la-receta-de-un-plato",
+    "summary": "Indica qué ingredientes consume cada unidad vendida de un plato, con su merma, y qué suma o quita cada opción de modificador.",
+    "module": "recipes",
+    "routes": [
+      "/inventory/recipes"
+    ],
+    "tags": [
+      "receta",
+      "plato",
+      "modificador",
+      "merma",
+      "quita ingrediente",
+      "copiar receta",
+      "descontar stock"
+    ],
+    "position": 1,
+    "isPublished": true,
+    "body": "Ve a **Inventario → Recetas**, abre el plato y agrega sus ingredientes con la cantidad que consume **una unidad vendida**. Luego toca **Guardar**.\n\nSolo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario. Para que la receta descuente stock al vender, también debe estar activo *Descontar stock al vender*.\n\n## Antes de empezar\n\nSolo los platos con *Control de stock* en **Por receta** usan receta. Cámbialo al editar el producto en **Carta → Productos**.\n\n## Receta de un plato\n\n1. Ve a **Inventario → Recetas**, pestaña **Platos**, y abre el plato. Cada uno muestra *Con receta*, *Sin receta* o *Receta en 1 de 2* (si tiene variaciones).\n2. Cada variación (ej. Mediana, Familiar) tiene su propia tarjeta. En **Agregar ingrediente** busca el insumo por nombre.\n3. En cada fila completa:\n   - **Cantidad** y **Unidad**: si eliges kg y el ingrediente está en g, el sistema convierte.\n   - **Merma %**: lo que se pierde al preparar. 150 g de carne con 10 % de merma descuentan 165 g.\n4. Toca **Guardar**. Verás *\"Receta de … guardada\"*. **Descartar cambios** vuelve a lo guardado.\n\nSi el plato tiene varias variaciones, usa **Copiar receta de…** para partir de la receta de otra variación. Revisa y guarda.\n\nArriba de cada tarjeta ves el **Costo de la receta** y el **% del precio** (food cost). Con **Costos de** eliges el local, o *Promedio del negocio*.\n\n## Receta de una opción de modificador\n\n1. Ve a **Inventario → Recetas**, pestaña **Opciones de modificador**, y abre el set (ej. Agregados).\n2. En cada opción agrega lo que consume. Ej: \"Extra queso\" suma 30 g de queso.\n3. Para opciones como \"Sin cebolla\", agrega la cebolla y marca **Quita ingrediente**: devuelve lo que el plato iba a consumir. El consumo neto nunca baja de 0.\n4. Toca **Guardar**.\n\nLos sets se crean en **Carta → Modificadores**.\n\n## Errores comunes\n\n- **\"Este producto no usa receta\"**: cambia su control de stock a *Por receta*.\n- **\"Costo incompleto: … no tiene costo\"**: falta registrar una compra con costo de ese ingrediente. El costo y el % quedan subestimados.\n- **\"Hay un ingrediente repetido: suma sus cantidades en una sola fila.\"**\n- **\"Entre 0 y 99,99 %.\"**: corrige la merma.\n- **\"Solo las opciones de modificador pueden quitar ingredientes (cantidad negativa).\"**\n- **\"Las recetas no están activadas\"**: toca **Ir a la configuración**."
+  },
+  {
+    "category": "recetas-y-costeo",
+    "title": "¿Cómo leo el food cost de mis platos?",
+    "slug": "como-leer-el-food-cost",
+    "summary": "El food cost muestra qué parte del precio sin IVA se va en costo, por plato y por producto con stock propio, con su margen.",
+    "module": "recipes",
+    "routes": [
+      "/inventory/food-cost"
+    ],
+    "tags": [
+      "food cost",
+      "costo",
+      "margen",
+      "rentabilidad",
+      "precio",
+      "receta"
+    ],
+    "position": 3,
+    "isPublished": true,
+    "body": "En **Inventario → Food cost** ves qué parte del precio sin IVA se va en costo, por cada plato *Por receta* y cada producto con *Stock propio*.\n\n## Cómo se calcula\n\n- **Costo unitario** de cada insumo: su costo promedio ponderado en el local elegido. Con *Promedio del negocio* se promedian los locales según el stock de cada uno.\n- **Costo de un plato**: suma de cantidad × (1 + merma %) × costo unitario de cada ingrediente de su receta.\n- **Productos con stock propio** (ej. bebidas): su costo es el costo promedio del producto.\n- **Food cost %**: costo ÷ precio sin IVA × 100.\n- **Margen**: precio sin IVA − costo.\n\nEjemplo: un plato de $11.900 con IVA vale $10.000 sin IVA. Si su receta cuesta $3.000, su food cost es 30 % y su margen $7.000.\n\n## Cómo leer la pantalla\n\n1. Ve a **Inventario → Food cost**.\n2. Elige el local en **Local para calcular los costos**, busca por nombre o SKU y filtra por categoría.\n3. Ordena por food cost %, margen o nombre.\n\nArriba verás **Analizados**, **Food cost promedio** (ponderado por precio) y **Margen promedio** (por unidad, sin IVA). El promedio no incluye platos sin receta ni productos sin precio.\n\nColores:\n\n- **≤ 30 %**: saludable.\n- **30–40 %**: revisar.\n- **> 40 %**: alto.\n\nComo referencia, en restaurantes se apunta a un food cost entre 25 % y 35 %.\n\nDesde cada fila puedes abrir **Ver receta** o **Ver kardex**. Toca *Sin receta o costo incompleto* para ver solo los que tienen avisos.\n\n## Por qué un % puede estar mal\n\n- **Costo incompleto**: a un insumo nunca se le registró una compra con costo, así que cuenta como 0 y el % queda subestimado. Registra una compra o un stock inicial con costo.\n- **Plato sin ingredientes en su receta**: su costo es 0. Completa la receta.\n- **Sin precio**: no se puede calcular el %.\n\n## Errores comunes\n\n- **\"Todavía no hay nada que analizar\"**: arma recetas para tus platos *Por receta* y registra compras con costo.\n- **\"El inventario no está activado\"**: actívalo en **Negocio → Mi negocio**, pestaña Inventario."
+  },
+  {
+    "category": "recetas-y-costeo",
+    "title": "¿Cómo leo el reporte de consumo teórico vs real?",
+    "slug": "consumo-teorico-vs-real",
+    "summary": "Compara lo que las ventas debieron consumir según las recetas con lo que realmente salió del stock, para detectar pérdidas.",
+    "module": "recipes",
+    "routes": [
+      "/inventory/consumption"
+    ],
+    "tags": [
+      "consumo teorico",
+      "consumo real",
+      "variacion",
+      "perdidas",
+      "mermas",
+      "conteo"
+    ],
+    "position": 4,
+    "isPublished": true,
+    "body": "En **Inventario → Consumo** comparas lo que las ventas debieron consumir según las recetas con lo que realmente salió del stock en un local y un período.\n\n## Cómo usarlo\n\n1. Ve a **Inventario → Consumo**.\n2. Elige el **local**.\n3. Elige el período: **Este mes**, **Mes anterior**, **Últimos 7 días** o **Personalizado** (con *Desde* y *Hasta*).\n4. Si quieres, usa **Filtrar por ítem…** para ver un solo ingrediente o producto.\n\n## Qué significa cada número\n\n- **Consumo teórico**: lo que las ventas debieron consumir según las recetas (y los productos con stock propio vendidos).\n- **Mermas**: pérdidas registradas como ajuste.\n- **Faltantes del conteo**: lo que faltó al contar.\n- **Consumo real**: teórico + mermas + faltantes del conteo.\n- **Variación** (real − teórico): lo que se perdió por mermas, robos o porciones mal servidas. En rojo si es pérdida; si es negativa, el conteo encontró más stock del esperado.\n\nLos valores usan el costo promedio del local y las cantidades se muestran en la unidad base de cada ítem.\n\n## La tabla por ítem\n\nPor cada ingrediente o producto ves: Inicial, Compras, Transferencias, Ajustes, Mermas, Dif. conteo, Consumo teórico, Consumo real, Variación y Final. En el detalle también aparecen lo *Producido* y lo *Usado en producción*. Puedes ordenar la tabla y abrir el kardex de cada ítem.\n\n## Ejemplo\n\nVendiste 100 hamburguesas con 150 g de carne cada una: el consumo teórico es 15 kg. Registraste 1 kg de merma y el conteo de fin de mes encontró 2 kg menos de lo esperado. El consumo real es 18 kg y la variación es 3 kg.\n\n## Para que el reporte sirva\n\n- Tus platos deben tener receta y *Descontar stock al vender* debe estar activo.\n- Haz un **conteo físico al final del período** en **Inventario → Conteos**. Sin conteo, la variación solo refleja las mermas registradas. Si no hay conteos, verás el aviso *No hay conteos en el período* con el botón **Hacer un conteo**.\n- El período usa la fecha en que se registró cada movimiento, no la fecha del documento.\n\n## Errores comunes\n\n- **\"La fecha 'Desde' no puede ser posterior a 'Hasta'.\"**: corrige el período.\n- **\"Sin movimientos en el período\"**: no hubo ventas, compras, ajustes ni conteos en ese local entre esas fechas. Prueba con otro período o local.\n- **\"Aún no tienes locales\"**: crea uno en **Negocio → Sucursales**."
+  },
+  {
+    "category": "recetas-y-costeo",
+    "title": "¿Qué son las preparaciones y cómo registro una producción?",
+    "slug": "preparaciones-y-produccion",
+    "summary": "Una preparación es un ingrediente que elaboras en el local, con receta por tanda y rinde. Al producirla se consumen sus ingredientes y suma su stock.",
+    "module": "recipes",
+    "routes": [
+      "/inventory/recipes",
+      "/inventory/productions",
+      "/inventory/productions/new"
+    ],
+    "tags": [
+      "preparacion",
+      "produccion",
+      "rinde",
+      "tanda",
+      "salsa",
+      "masa",
+      "consumo estimado"
+    ],
+    "position": 2,
+    "isPublished": true,
+    "body": "Una **preparación** es un ingrediente que se elabora en el local (salsas, masas, caldos). Tiene una receta **por tanda** con su **rinde**, y su stock se carga registrando una **producción**.\n\nSolo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario.\n\n## Armar la receta de la preparación\n\n1. Crea el ingrediente (ej. \"Salsa de tomate\") en **Inventario → Ingredientes**.\n2. Ve a **Inventario → Recetas**, pestaña **Preparaciones**, y ábrelo.\n3. Completa el **Rinde**: cuánto produce una tanda (ej. 2 l).\n4. Agrega los ingredientes que consume una tanda, con cantidad y **Merma %**.\n5. Toca **Guardar**.\n\nVerás el **Costo de la tanda** y el **Costo por** unidad (costo de la tanda ÷ rinde). Una preparación puede usar otras preparaciones, pero no puede contenerse a sí misma.\n\nLuego agrega la preparación a la receta de tus platos como cualquier ingrediente. Al vender, los platos descuentan la preparación, no sus ingredientes.\n\n## Registrar una producción\n\n1. Ve a **Inventario → Producción** y toca **Nueva producción** (o **Producir** desde la receta).\n2. En *Qué vas a producir* elige el **Local**, la **Preparación** y la **Cantidad a producir**.\n3. Revisa el **Consumo estimado**: tandas, lo que consume cada ingrediente, el stock en el local y el costo estimado. Si algo no alcanza, verás *No alcanza*.\n4. En *Datos de la producción* completa la **Fecha** y, si quieres, **N° de lote**, **Vence** y **Notas**.\n5. Toca **Registrar producción**.\n\nLos ingredientes se consumen en proporción: producir 1 l con una receta que rinde 2 l usa media tanda. La preparación entra al stock con el costo de lo consumido. El resumen muestra lo producido, el costo total y el saldo de cada ingrediente.\n\n## Errores comunes\n\n- **\"Esta preparación aún no tiene receta.\"** o **\"La receta no indica cuánto rinde una tanda.\"**: toca **Ir a la receta** y complétala.\n- **\"No hay stock suficiente en el local de: … Registra una compra o produce menos.\"**: pasa si *Permitir stock negativo* está apagado.\n- **\"Hay ingredientes sin costo\"**: registra una compra con costo; si no, el costo queda subestimado.\n- **\"La receta se contendría a sí misma a través de otra preparación.\"**: quita esa preparación de la receta."
+  }
+]

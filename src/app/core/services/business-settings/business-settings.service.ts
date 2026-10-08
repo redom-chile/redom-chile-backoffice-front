@@ -25,7 +25,8 @@ const DEFAULT_VAT_RATE = 19;
 export const FALLBACK_TIP_PERCENT = 10;
 
 /** Opciones del POS normalizadas: siempre con los tres valores. */
-export type ResolvedPosSettings = Readonly<Required<PosSettings>>;
+// configured: false si el negocio nunca guardó estas opciones (negocios antiguos): el POS se muestra completo.
+export type ResolvedPosSettings = Readonly<Required<PosSettings> & { configured: boolean }>;
 
 /**
  * El GET devuelve pos_settings como texto JSON con claves snake_case
@@ -44,7 +45,10 @@ export function parsePosSettings(raw: unknown): ResolvedPosSettings {
     stored = raw as Record<string, unknown>;
   }
   const flag = (camel: string, snake: string) => (stored[camel] ?? stored[snake]) === true;
+  const keys = ['tablesEnabled', 'tables_enabled', 'waiterEnabled', 'waiter_enabled', 'isServiceStaffRequired', 'is_service_staff_required'];
+  const configured = typeof stored['configured'] === 'boolean' ? stored['configured'] : keys.some((key) => key in stored);
   return {
+    configured,
     tablesEnabled: flag('tablesEnabled', 'tables_enabled'),
     waiterEnabled: flag('waiterEnabled', 'waiter_enabled'),
     isServiceStaffRequired: flag('isServiceStaffRequired', 'is_service_staff_required'),
@@ -163,7 +167,7 @@ export class BusinessSettingsService {
           if (!current) return current;
           // posSettings es un PATCH parcial: se mezcla con lo que ya había.
           const posSettings = changes.posSettings
-            ? { ...parsePosSettings(current.posSettings), ...changes.posSettings }
+            ? { ...parsePosSettings(current.posSettings), ...changes.posSettings, configured: true }
             : current.posSettings;
           return { ...current, ...changes, posSettings };
         }),

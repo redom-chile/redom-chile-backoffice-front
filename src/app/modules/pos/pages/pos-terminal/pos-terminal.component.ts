@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { ApiError } from 'src/app/core/utils';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
@@ -84,6 +85,22 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly locationsService = inject(GetAllBusinessLocationsService);
   readonly $noLocations = computed(() => !this.terminalMode() && this.locationsService.$locations()?.length === 0);
 
+  // Opciones del POS (Mi negocio → Punto de venta). Sin configurar (negocios antiguos), el POS se muestra completo.
+  private readonly businessSettings = inject(BusinessSettingsService);
+  readonly $showTables = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return !pos.configured || pos.tablesEnabled;
+  });
+  // La terminal de salón siempre trabaja con meseros (PIN).
+  readonly $useWaiters = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return this.terminalMode() || !pos.configured || pos.waiterEnabled;
+  });
+  readonly $waiterRequired = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return pos.configured && pos.waiterEnabled && pos.isServiceStaffRequired;
+  });
+
   readonly $waiter = this.session.$waiter;
   readonly $isReady = computed(() => !!this.$waiter() || this.session.$isAnonymous());
 
@@ -117,6 +134,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly $panelTitle = computed(() => this.$table()?.name ?? 'Venta sin mesa');
 
   constructor() {
+    // Sin meseros: se entra directo al POS, sin la pantalla "¿Quién atiende?".
+    effect(() => {
+      if (!this.$useWaiters() && !this.$isReady()) this.session.startAnonymous();
+    });
+
     effect(() => {
       const created = this.createService.$created();
       if (!created) return;

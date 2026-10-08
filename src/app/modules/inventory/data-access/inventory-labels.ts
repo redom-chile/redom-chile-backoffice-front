@@ -21,6 +21,7 @@ export const MOVEMENT_TYPE_OPTIONS: ReadonlyArray<{ value: StockMovementType; la
   { value: 'sale_reversal', label: 'Anulación de venta' },
   { value: 'transfer_in', label: 'Transferencia (entrada)' },
   { value: 'transfer_out', label: 'Transferencia (salida)' },
+  { value: 'production', label: 'Producción' },
 ];
 
 export const DOCUMENT_TYPE_LABELS: Record<InventoryDocumentType, string> = {

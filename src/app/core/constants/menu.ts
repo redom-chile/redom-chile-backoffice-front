@@ -19,7 +19,7 @@ export class Menu {
             { label: 'Tomar pedido', route: '/pos' },
             { label: 'Pedidos', route: '/orders' },
             { label: 'Pagos', route: '/payments' },
-            { label: 'Cajas', route: '/cash' },
+            { label: 'Turnos de caja', route: '/cash' },
           ],
         },
         {
@@ -99,7 +99,7 @@ export class Menu {
           label: 'Negocio',
           route: '/business',
           children: [
-            { label: 'Restaurante', route: '/business' },
+            { label: 'Mi negocio', route: '/business' },
             { label: 'Sucursales', route: '/business/location' },
           ],
         },

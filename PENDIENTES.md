@@ -104,7 +104,7 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - [ ] Probar el onboarding de punta a punta (registro → negocio y local en una llamada → mesas → productos → POS), retomar sin local y los 409 (`BUSINESS_ALREADY_EXISTS`, `USER_ALREADY_IN_BUSINESS`).
 - [ ] Probar "no incluyen IVA" ($1.000 → $1.190) y la propina sugerida configurada en el cobro.
 - El nombre del negocio en el encabezado se oculta en pantallas muy angostas (celular) para no tapar el menú.
-- El POS todavía no aplica las opciones de mesas, meseros y mesero obligatorio (`GET /pos/details`): solo se configuran.
+- El POS aplica mesas, meseros y mesero obligatorio desde la configuración del negocio; los negocios que nunca guardaron esas opciones ven el POS completo como antes.
 - `businessGuard` manda al onboarding ("Tu local") al dueño que desactiva todos sus locales. Confirmar con producto.
 - Con `BUSINESS_ALREADY_EXISTS` y 0 locales se retoma en "Tu local" (el backend sugería ir a la app, pero el guard lo devolvería igual).
 - Si fallan el sector o algunas mesas, no hay reintento dentro del onboarding (se completan en Mesas/Sectores).
@@ -152,6 +152,14 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - `TIP_ALREADY_PAID_OUT` con enlace a la liquidación solo en el modal de anular pago de Pagos; en otras pantallas el mensaje sale sin número.
 - Comisiones y abonos son estimados: no consideran feriados, no se guardan por pago (cambiar una comisión reescribe el historial) y no hay conciliación con la cartola (#45).
 - Plata por llegar: sin exportar a CSV ni detalle de los pagos de cada fecha de abono.
+
+## Centro de ayuda y asistente con IA
+
+- Esperando al backend (#46, prompt en `docs/backend-prompts/centro-de-ayuda.md`).
+- Front por hacer: página Centro de ayuda (buscador, categorías, artículo), botón de ayuda por pantalla, panel del asistente con streaming, 👍/👎, y la administración del CRUD de preguntas frecuentes para el equipo de Redom.
+- Contenido: 35 artículos listos en `docs/help-center/articles/` (y `articles.json` para cargarlos); revisarlos con el equipo antes de publicar.
+- Huecos de interfaz detectados al redactarlos: corregidos (menú "Mi negocio" y "Turnos de caja", opciones del POS aplicadas, "Producción" en el kardex, textos de datos fiscales y de sucursal). Revisados y correctos tal como están: la columna "Dirección" de Sucursales (el backend guarda la dirección en `landmark`), la lista fija de medios de pago en el cobro (Medios de pago solo configura comisiones) y Food cost / Consumo visibles sin recetas.
+- Definir el rol de administración de la plataforma (quién edita las preguntas frecuentes) y el límite mensual por plan.
 
 ## Otros pendientes generales
 

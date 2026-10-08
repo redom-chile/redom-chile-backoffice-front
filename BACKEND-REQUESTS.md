@@ -14,7 +14,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #46 centro de ayuda y asistente con IA |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
@@ -319,6 +319,18 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Mantener en el detalle de una liquidación anulada cuántos pagos cubría.
 
 **Front mientras tanto:** pagina con `perPage`; con caja activa y varios locales pide elegir el local para pagar en efectivo; muestra comisiones y abonos como estimados.
+
+### 46. 🔵 Centro de ayuda (preguntas frecuentes) y asistente con IA
+
+**Problema:** no hay dónde documentar el uso de Redom ni responder dudas dentro de la app.
+
+**Se pide:** ver el prompt completo en `docs/backend-prompts/centro-de-ayuda.md`:
+- migración con 4 tablas (`help_categories`, `help_articles` con búsqueda de texto completo en español sin tildes, `help_article_feedback`, `help_chat_logs`) y sus entidades;
+- endpoints públicos del centro de ayuda y CRUD de administración de categorías y preguntas frecuentes (solo equipo de Redom);
+- `POST /help/chat` con streaming SSE usando Claude Haiku 5.5 (`HELP_MODEL`), solo con los artículos publicados, cuota mensual por negocio, registro de tokens y costo;
+- feedback de artículos y respuestas, métricas de uso y revisión de preguntas mal respondidas.
+
+**Front mientras tanto:** nada; el centro de ayuda y el panel del asistente se construyen cuando estén los endpoints.
 
 ---
 

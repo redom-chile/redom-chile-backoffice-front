@@ -34,7 +34,7 @@ const STEPS: StepDefinition[] = [
   { key: 'location', title: 'Crea tu local', description: 'La sucursal donde atiendes: dirección, horario y datos de contacto.', link: '/business/location', cta: 'Crear local', level: 'required', isDone: (s) => s.hasLocation },
   { key: 'products', title: 'Carga tu carta', description: 'Agrega al menos un producto a la venta con su precio.', link: '/products', cta: 'Cargar productos', level: 'required', isDone: (s) => s.hasSellableProduct },
   { key: 'order', title: 'Toma tu primer pedido', description: 'Abre el POS y registra una venta de prueba o real.', link: '/pos', cta: 'Abrir el POS', level: 'required', isDone: (s) => s.hasOrder },
-  { key: 'fiscal', title: 'Completa los datos fiscales', description: 'RUT y razón social para tus documentos de venta.', link: '/business', cta: 'Completar datos', level: 'recommended', isDone: (s) => s.hasTaxData },
+  { key: 'fiscal', title: 'Completa los datos fiscales', description: 'El RUT del negocio y cómo se calcula el IVA de tus precios.', link: '/business', cta: 'Completar datos', level: 'recommended', isDone: (s) => s.hasTaxData },
   { key: 'tables', title: 'Configura tus mesas', description: 'Si atiendes en salón, crea tus mesas para tomar pedidos por mesa.', link: '/tables', cta: 'Crear mesas', level: 'optional', isDone: (s) => s.hasTables },
   // teamMembers incluye al dueño: listo cuando hay alguien más.
   { key: 'team', title: 'Invita a tu equipo', description: 'Crea usuarios para tus meseros, cajeros o cocina.', link: '/roles-and-permissions/users', cta: 'Invitar equipo', level: 'optional', isDone: (s) => s.teamMembers > 1 },
