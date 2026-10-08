@@ -98,6 +98,16 @@ const routes: Routes = [
     loadChildren: () => import('../settings/settings.routes'),
   },
   {
+    path: 'platform',
+    component: LayoutComponent,
+    loadChildren: () => import('../platform/platform.routes'),
+  },
+  {
+    path: 'billing',
+    component: LayoutComponent,
+    loadChildren: () => import('../billing/billing.routes'),
+  },
+  {
     path: 'profile',
     component: LayoutComponent,
     loadChildren: () => import('../profile/profile.routes'),

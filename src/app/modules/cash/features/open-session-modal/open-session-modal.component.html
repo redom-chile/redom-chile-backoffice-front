@@ -33,7 +33,7 @@
         (change)="$selectedId.set(+$any($event.target).value)">
         @for (register of $registers(); track register.id) {
         <option [value]="register.id" [selected]="register.id === $selectedId()">
-          {{ register.name }}{{ register.openSession ? ' (abierta)' : '' }}
+          {{ register.name }}{{ register.openSession ? ' (abierta)' : isLocked(register) ? ' (solo lectura)' : '' }}
         </option>
         }
       </select>
@@ -44,7 +44,12 @@
     </p>
     }
 
-    @if ($openLabel(); as label) {
+    @if ($selectedLocked()) {
+    <div class="flex items-start gap-2 rounded-lg bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300">
+      <app-icon class="h-5 w-5 shrink-0">lock</app-icon>
+      <p>Esta caja está en solo lectura porque supera el límite de tu plan. Desactiva cajas o locales que no uses, o mejora tu plan.</p>
+    </div>
+    } @else if ($openLabel(); as label) {
     <div class="flex items-start gap-2 rounded-lg bg-green-500/15 p-3 text-sm text-green-800 dark:text-green-300">
       <app-icon class="h-5 w-5 shrink-0">lock_open</app-icon>
       <p>{{ label }}. Puedes seguir trabajando con este turno.</p>
@@ -81,7 +86,7 @@
         type="button"
         full
         impact="bold"
-        [disabled]="!$selected() || $isSaving()"
+        [disabled]="!$selected() || $isSaving() || $selectedLocked()"
         [isLoading]="$isSaving()"
         (buttonClick)="confirm()">
         {{ $selected()?.openSession ? 'Usar este turno' : 'Abrir caja' }}

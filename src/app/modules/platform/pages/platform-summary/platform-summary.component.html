@@ -1,0 +1,166 @@
+<app-header-dashboard title="Resumen" subtitle="Negocios por estado, ingresos recurrentes y pruebas por terminar.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/platform/businesses" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Negocios">
+      <app-icon class="h-5 w-5">storefront</app-icon>
+      <span class="hidden lg:inline">Negocios</span>
+    </a>
+  </div>
+</app-header-dashboard>
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar el resumen</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="reload()">Reintentar</app-button>
+</div>
+} @else if (summary.isLoading() && !$summary()) {
+<div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+  @for (card of skeletonCards; track card) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 60%" />
+    <app-skeleton size="sm" style="width: 40%" />
+  </div>
+  }
+</div>
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+  @for (card of skeletonCards.slice(0, 5); track card) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 50%" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if ($summary(); as s) {
+<!-- Negocios por estado -->
+<h2 class="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wider">Negocios</h2>
+<div class="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" [class.opacity-60]="summary.isLoading()">
+  @for (card of $counts(); track card.label) {
+  @if (card.status) {
+  <a
+    [routerLink]="['/platform/businesses']"
+    [queryParams]="{ status: card.status }"
+    class="glass glass-row block rounded-[1rem] p-4 transition"
+    [title]="'Ver negocios: ' + card.label.toLowerCase()">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">{{ card.label }}</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums" [class]="card.tone || 'text-foreground'">{{ card.value }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">{{ card.hint }}</p>
+  </a>
+  } @else {
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">{{ card.label }}</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ card.value }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">{{ card.hint }}</p>
+  </div>
+  }
+  }
+</div>
+
+<!-- Montos -->
+<h2 class="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wider">Ingresos</h2>
+<div class="mb-2 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5" [class.opacity-60]="summary.isLoading()">
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">MRR</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatClp(s.mrr) }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">Suscripciones pagadas vigentes por mes (anuales / 12, con descuento)</p>
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">ARR</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatClp(s.arr) }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">MRR × 12</p>
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Ingresos del mes</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatClp(s.revenueThisMonth) }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">Pagos confirmados, menos reembolsos y reversos</p>
+  </div>
+  <a
+    routerLink="/platform/businesses"
+    [queryParams]="{ overdue: 'true' }"
+    class="glass glass-row block rounded-[1rem] p-4 transition"
+    title="Ver negocios con deuda">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Monto vencido</p>
+    <p class="mt-1 text-2xl font-semibold tabular-nums" [class]="s.overdueAmount > 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'">
+      {{ formatClp(s.overdueAmount) }}
+    </p>
+    <p class="text-muted-foreground mt-1 text-xs">Cobros vencidos sin pagar</p>
+  </a>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Bajas del mes pasado</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ s.churnLastMonth }}</p>
+    <p class="text-muted-foreground mt-1 text-xs">Suscripciones vencidas o canceladas</p>
+  </div>
+</div>
+<p class="text-muted-foreground mb-5 flex items-start gap-1 text-xs">
+  <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+  Los ingresos y el monto vencido serán 0 hasta que existan pagos.
+</p>
+}
+
+<!-- Pruebas que terminan esta semana -->
+@if (!$error()) {
+<section class="glass overflow-hidden rounded-[1rem]">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
+    <div>
+      <h2 class="text-foreground font-semibold">Pruebas que terminan esta semana</h2>
+      <p class="text-muted-foreground text-xs">Terminan en 7 días o menos.</p>
+    </div>
+    @if ($trialsTotal() > 0) {
+    <a
+      routerLink="/platform/businesses"
+      [queryParams]="{ trialEndingInDays: 7 }"
+      class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
+      Ver {{ $trialsTotal() === 1 ? 'la prueba' : 'las ' + $trialsTotal() }}
+      <app-icon class="h-4 w-4" aria-hidden="true">arrow_forward</app-icon>
+    </a>
+    }
+  </div>
+
+  @if ($trialsError()) {
+  <div class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+    <p class="text-muted-foreground text-sm">No se pudieron cargar las pruebas. {{ $trialsErrorMessage() }}</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="trials.reload()">Reintentar</button>
+  </div>
+  } @else if (trials.isLoading() && !$trials().length) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 160px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 140px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$trials().length) {
+  <div class="px-4 py-8 text-center">
+    <p class="text-foreground font-medium">Ninguna prueba termina esta semana</p>
+  </div>
+  } @else {
+  <ul class="divide-y divide-[var(--border)]">
+    @for (business of $trials(); track business.id) {
+    <li>
+      <a [routerLink]="['/platform/businesses', business.id]" class="glass-row flex items-center gap-3 px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground truncate text-sm font-semibold">{{ business.name }}</p>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ business.owner?.name || 'Sin dueño' }}@if (business.owner?.email) { · {{ business.owner?.email }} }
+          </p>
+        </div>
+        <div class="hidden text-sm sm:block">
+          <span class="text-muted-foreground">Plan</span>
+          <span class="text-foreground ml-1 font-medium">{{ business.plan?.name ?? '—' }}</span>
+        </div>
+        <div class="text-right">
+          <p class="text-foreground whitespace-nowrap text-sm font-medium">{{ formatDate(business.trialEndsAt) }}</p>
+          <p class="whitespace-nowrap text-xs font-semibold text-amber-700 dark:text-amber-300">{{ trialCountdown(business.trialEndsAt) }}</p>
+        </div>
+        <app-icon class="text-muted-foreground h-5 w-5 shrink-0" aria-hidden="true">chevron_right</app-icon>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+</section>
+}

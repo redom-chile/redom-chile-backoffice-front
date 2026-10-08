@@ -1,8 +1,10 @@
 import { afterRenderEffect, ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { IconComponent, ToastService } from 'src/ui';
 import { getHelpErrorMessage, HELP_ASSISTANT_DISCLAIMER, HelpService } from '../../data-access';
 import { MarkdownComponent } from '../../ui';
+import { HelpPanelService } from '../help-panel/help-panel.service';
 import { HELP_QUESTION_MAX, HelpChatEntry, HelpChatStore } from './help-chat.store';
 
 const COMMENT_MAX = 500;
@@ -18,7 +20,13 @@ const COMMENT_MAX = 500;
 export class HelpChatComponent {
   readonly #help = inject(HelpService);
   readonly #toast = inject(ToastService);
+  readonly #router = inject(Router);
+  readonly #panel = inject(HelpPanelService);
+  readonly #entitlements = inject(EntitlementsService);
   protected readonly store = inject(HelpChatStore);
+
+  /** El plan no incluye el asistente: se muestra el candado en vez del chat. */
+  readonly $locked = computed(() => !this.#entitlements.hasFeature('help_assistant'));
 
   /** Pantalla desde la que se pregunta (contexto para el asistente). */
   readonly route = input<string>();
@@ -69,6 +77,11 @@ export class HelpChatComponent {
       this.$question.set('');
       this.$commentFor.set(null);
     }
+  }
+
+  openPlans() {
+    this.#panel.close();
+    this.#router.navigateByUrl('/billing/plans');
   }
 
   handleReset() {

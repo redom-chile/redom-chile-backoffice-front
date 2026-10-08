@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { IconComponent } from 'src/ui';
 import { HelpPanelService } from '../help-panel/help-panel.service';
 
@@ -16,6 +17,11 @@ import { HelpPanelService } from '../help-panel/help-panel.service';
       title="Pregúntale al asistente"
       (click)="panel.open('chat')">
       <app-icon class="h-6 w-6">auto_awesome</app-icon>
+      @if ($locked()) {
+      <span class="bg-background text-muted-foreground absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] shadow-sm" title="El asistente con IA no está incluido en tu plan">
+        <app-icon class="h-3 w-3">lock</app-icon>
+      </span>
+      }
     </button>
     }
   `,
@@ -38,4 +44,7 @@ import { HelpPanelService } from '../help-panel/help-panel.service';
 })
 export class HelpFabComponent {
   readonly panel = inject(HelpPanelService);
+  readonly #entitlements = inject(EntitlementsService);
+  /** El plan no incluye el asistente: el botón sigue (abre los artículos y el aviso) con un candado. */
+  readonly $locked = computed(() => !this.#entitlements.hasFeature('help_assistant'));
 }

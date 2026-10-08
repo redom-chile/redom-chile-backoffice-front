@@ -1,8 +1,19 @@
 <app-header-dashboard title="Cajas" subtitle="Los cajones de cada local. Cada local trae una Caja principal; agrega más si cobras en varios puntos (barra, salón).">
-  <app-button impact="bold" tone="primary" shape="rounded" size="medium" icon="add" [disabled]="!$locationOptions().length" (buttonClick)="create()">
+  <app-button
+    impact="bold"
+    tone="primary"
+    shape="rounded"
+    size="medium"
+    [icon]="limitGate.$canAdd() ? 'add' : 'lock'"
+    [disabled]="!$locationOptions().length"
+    [class.opacity-50]="!limitGate.$canAdd()"
+    [attr.title]="limitGate.$canAdd() ? null : limitTooltip"
+    (buttonClick)="create()">
     <span class="hidden sm:inline">Agregar caja</span><span class="sm:hidden">Nueva</span>
   </app-button>
 </app-header-dashboard>
+<app-plan-usage limit="max_registers" class="-mt-2 mb-3" />
+<app-plan-locked-notice limit="max_registers" />
 
 @if ($isModuleOff()) {
 <div class="mb-4 flex flex-col gap-3 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-4 sm:flex-row sm:items-center">
@@ -54,8 +65,13 @@
         <app-icon class="text-muted-foreground h-5 w-5" aria-hidden="true">storefront</app-icon>
         {{ group.locationName }}
       </h2>
-      <button type="button" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="create(group.locationId)">
-        <app-icon class="h-4 w-4">add</app-icon>Caja
+      <button
+        type="button"
+        class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
+        [class.opacity-50]="!limitGate.$canAdd()"
+        [attr.title]="limitGate.$canAdd() ? null : limitTooltip"
+        (click)="create(group.locationId)">
+        <app-icon class="h-4 w-4">{{ limitGate.$canAdd() ? 'add' : 'lock' }}</app-icon>Caja
       </button>
     </div>
     <ul class="divide-y divide-[var(--border)]">
@@ -68,6 +84,9 @@
             <span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">Activa</span>
             } @else {
             <span class="text-muted-foreground rounded-full bg-gray-500/15 px-2 py-0.5 text-xs font-semibold">Inactiva</span>
+            }
+            @if (register.isActive && isLocked(register)) {
+            <app-plan-locked-badge />
             }
           </p>
           @if (register.openSession; as open) {

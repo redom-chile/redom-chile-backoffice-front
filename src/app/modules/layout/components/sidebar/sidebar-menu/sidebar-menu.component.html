@@ -38,9 +38,13 @@
         <a
           [ngClass]="{ hidden: !menuService.showSideBar }"
           routerLinkActive="text-primary"
+          [attr.title]="item.locked ? 'No incluido en tu plan' : null"
           class="truncate text-xs font-semibold tracking-wide focus:outline-hidden">
           {{ item.label }}
         </a>
+        @if (item.locked && menuService.showSideBar) {
+        <span class="ml-1.5 inline-flex"><app-icon class="text-muted-foreground/60 h-3.5 w-3.5 shrink-0" title="No incluido en tu plan" aria-label="No incluido en tu plan">lock</app-icon></span>
+        }
       </div>
       }
 

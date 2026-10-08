@@ -144,7 +144,7 @@ export class ExpenseFormComponent {
   });
   readonly $step = computed(() => 1 / 10 ** this.#settings.$currencyPrecision());
   readonly $cashFromRegister = computed(
-    () => this.#settings.$cashManagementEnabled() && this.$value().payNow && this.$value().method === 'cash',
+    () => this.#settings.$cashActive() && this.$value().payNow && this.$value().method === 'cash',
   );
   readonly $backLink = computed(() => (this.expenseId ? ['/finance/expenses', this.expenseId] : ['/finance/expenses']));
 

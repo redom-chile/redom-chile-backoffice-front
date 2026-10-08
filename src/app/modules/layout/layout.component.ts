@@ -6,13 +6,14 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { BottomNavbarComponent } from 'src/ui';
 import { HelpPanelComponent } from 'src/app/modules/help/features/help-panel/help-panel.component';
 import { HelpFabComponent } from 'src/app/modules/help/features/help-fab';
+import { SubscriptionBannerComponent } from 'src/app/modules/billing/features/subscription-banner';
 
 @Component({
   selector: 'app-layout',
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, BottomNavbarComponent, HelpPanelComponent, HelpFabComponent],
+  imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, BottomNavbarComponent, HelpPanelComponent, HelpFabComponent, SubscriptionBannerComponent],
 })
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;

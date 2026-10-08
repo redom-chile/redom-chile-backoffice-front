@@ -8,6 +8,7 @@ import {
   HelpChatEvent,
   HelpChatMessageDto,
   HelpChatService,
+  helpQuotaCanUpgrade,
   helpQuotaMessage,
 } from '../../data-access';
 
@@ -37,6 +38,8 @@ export type HelpChatEntry = Readonly<{
   vote: boolean | null;
   error: string | null;
   errorKind: HelpChatErrorKind | null;
+  /** Con `quota`: hay planes con más preguntas (se ofrece "Ver planes"). */
+  canUpgrade?: boolean;
 }>;
 
 // owner: usuario y negocio dueños de la conversación (otra cuenta en la misma pestaña no la ve).
@@ -197,7 +200,8 @@ export class HelpChatStore {
         break;
       case 'done':
         this.#patch(id, { status: 'done', sources: event.data.sources ?? [], logId: event.data.logId ?? null });
-        if (typeof event.data.remaining === 'number') this.#remaining.set(event.data.remaining);
+        // null: el plan no tiene límite y no se muestra el contador.
+        this.#remaining.set(typeof event.data.remaining === 'number' ? event.data.remaining : null);
         break;
       case 'error':
         this.#patch(id, { status: 'error', error: 'El asistente no está disponible en este momento.', errorKind: 'unavailable' });
@@ -209,7 +213,7 @@ export class HelpChatStore {
     const { code } = readApiError(error);
     if (code === 'HELP_QUOTA_EXCEEDED') {
       this.#remaining.set(0);
-      this.#patch(id, { status: 'error', error: helpQuotaMessage(error), errorKind: 'quota' });
+      this.#patch(id, { status: 'error', error: helpQuotaMessage(error), errorKind: 'quota', canUpgrade: helpQuotaCanUpgrade(error) });
       return;
     }
     this.#patch(id, { status: 'error', error: getHelpErrorMessage(error, 'No se pudo enviar la pregunta. Intenta nuevamente.'), errorKind: 'other' });

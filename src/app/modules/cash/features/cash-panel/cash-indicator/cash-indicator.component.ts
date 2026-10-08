@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { filter, fromEvent, merge } from 'rxjs';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { IconComponent } from 'src/ui';
 import { openCashSessionModal } from '../../open-session-modal/open-session-modal.component';
 import { CashContextStore } from '../cash-context.store';
@@ -20,12 +21,21 @@ import { openRegisterPicker } from '../register-picker-modal/register-picker-mod
 export class CashIndicatorComponent {
   private readonly dialog = inject(MatDialog);
   readonly context = inject(CashContextStore);
+  readonly #entitlements = inject(EntitlementsService);
 
   readonly $visible = computed(() => this.context.$enabled() && !!this.context.$locationId());
   readonly $label = computed(() => {
     const register = this.context.$register();
     const session = register?.openSession;
     return register && session ? cashSessionLabel(register.name, session.openedByName, session.openedAt) : null;
+  });
+  // Caja o local sobre el límite del plan: no se puede abrir.
+  readonly $locked = computed(() => {
+    const register = this.context.$register();
+    return (
+      !!register &&
+      (this.#entitlements.isLocked('registers', register.id) || this.#entitlements.isLocked('locations', this.context.$locationId()))
+    );
   });
   readonly $canChange = computed(() => this.context.$activeRegisters().length > 1);
 
@@ -63,6 +73,7 @@ export class CashIndicatorComponent {
   }
 
   openSession() {
+    if (this.$locked()) return;
     openCashSessionModal(this.dialog, {
       locationId: this.context.$locationId(),
       registerId: this.context.$register()?.id ?? null,

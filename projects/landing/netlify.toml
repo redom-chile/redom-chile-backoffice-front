@@ -7,6 +7,14 @@ publish = "dist/landing/browser"
 [build.environment]
 NODE_VERSION = "22"
 
+# Planes públicos: Netlify pide la API por la landing (mismo origen, sin CORS).
+# URL de billing en AWS por confirmar con el backend.
+[[redirects]]
+from = "/billing/api/*"
+to = "https://3rns8qoa8g.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
+status = 200
+force = true
+
 # Es una sola página: cualquier ruta desconocida muestra la portada.
 [[redirects]]
 from = "/*"

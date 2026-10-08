@@ -1,0 +1,151 @@
+@let interval = $interval();
+<div class="space-y-4">
+  <app-header-dashboard title="Planes" subtitle="Compara lo que incluye cada plan y elige el que mejor le sirve a tu negocio" />
+
+  <!-- Plan actual y período -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    @if ($current(); as current) {
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <span class="text-muted-foreground">Tu plan:</span>
+      <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-3 py-1 font-semibold">
+        <app-icon class="h-4 w-4">workspace_premium</app-icon>
+        {{ current.name }}
+      </span>
+      @if (current.status) {
+      <span
+        class="rounded-full border px-2.5 py-0.5 text-xs font-medium"
+        [class]="current.warning ? 'border-destructive/30 bg-destructive/10 text-destructive' : 'text-muted-foreground border-[var(--border)]'">
+        {{ current.status }}
+      </span>
+      }
+    </div>
+    } @else {
+    <span></span>
+    }
+
+    <div role="group" aria-label="Período de pago" class="glass inline-flex self-start rounded-full p-1 text-sm sm:self-auto">
+      <button
+        type="button"
+        class="rounded-full px-4 py-1.5 font-medium transition-colors"
+        [class]="interval === 'month' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-pressed]="interval === 'month'"
+        (click)="setInterval('month')">
+        Mensual
+      </button>
+      <button
+        type="button"
+        class="rounded-full px-4 py-1.5 font-medium transition-colors"
+        [class]="interval === 'year' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-pressed]="interval === 'year'"
+        (click)="setInterval('year')">
+        Anual
+      </button>
+    </div>
+  </div>
+
+  <!-- Uso del plan (dueño) -->
+  @let usage = $usage();
+  @if (usage.length) {
+  <section class="glass rounded-2xl p-4" aria-labelledby="plans-usage-title">
+    <h2 id="plans-usage-title" class="text-foreground mb-3 text-sm font-semibold">Uso de tu plan</h2>
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (item of usage; track item.code) {
+      <li>
+        <p class="text-muted-foreground text-xs">{{ item.label }}</p>
+        <p class="text-foreground text-sm font-medium">{{ item.text }}</p>
+        @if (item.percent !== null) {
+        <div class="bg-muted mt-1.5 h-1.5 overflow-hidden rounded-full" role="progressbar" [attr.aria-valuenow]="item.percent" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="item.label">
+          <div class="h-full rounded-full" [class]="item.full ? 'bg-amber-500' : 'bg-primary'" [style.width.%]="item.percent"></div>
+        </div>
+        }
+      </li>
+      }
+    </ul>
+  </section>
+  }
+
+  @if ($isLoading()) {
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <app-skeleton size="3xl" />
+    }
+  </div>
+  } @else if ($isEmpty()) {
+  <app-empty-state icon="cloud_off" title="No pudimos cargar los planes" description="Revisa tu conexión e intenta nuevamente.">
+    <button type="button" class="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90" (click)="reload()">
+      Reintentar
+    </button>
+  </app-empty-state>
+  } @else {
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @for (card of $cards(); track card.plan.id) {
+    <article
+      class="glass relative flex flex-col rounded-2xl p-5"
+      [class.ring-2]="card.current || card.plan.isHighlighted"
+      [class.ring-primary]="card.current"
+      [class.ring-primary/40]="!card.current && card.plan.isHighlighted">
+      <div class="flex flex-wrap items-center gap-2">
+        <h2 class="text-foreground text-lg font-semibold">{{ card.plan.name }}</h2>
+        @if (card.plan.isHighlighted) {
+        <span class="bg-primary text-primary-foreground rounded-full px-2.5 py-0.5 text-[11px] font-semibold">Recomendado</span>
+        }
+        @if (card.current) {
+        <span class="border-primary/40 text-primary rounded-full border px-2.5 py-0.5 text-[11px] font-semibold">Tu plan actual</span>
+        }
+      </div>
+      @if (card.plan.description) {
+      <p class="text-muted-foreground mt-1 text-sm">{{ card.plan.description }}</p>
+      }
+
+      <div class="mt-4 min-h-[3.25rem]">
+        @if (card.plan.isFree) {
+        <p class="text-foreground text-2xl font-bold">Gratis</p>
+        } @else if (card.price) {
+        <p class="text-foreground text-2xl font-bold">{{ card.price }}</p>
+        @if (card.monthlyEquivalent) {
+        <p class="text-muted-foreground text-xs">{{ card.monthlyEquivalent }}</p>
+        }
+        } @else {
+        <p class="text-muted-foreground text-base font-semibold">Precio por confirmar</p>
+        }
+      </div>
+
+      <dl class="mt-4 space-y-1.5 border-t border-[var(--border)] pt-4 text-sm">
+        @for (limit of card.limits; track limit.label) {
+        <div class="flex items-center justify-between gap-2">
+          <dt class="text-muted-foreground">{{ limit.label }}</dt>
+          <dd class="text-foreground font-medium">{{ limit.value }}</dd>
+        </div>
+        }
+      </dl>
+
+      <ul class="mt-4 flex-1 space-y-1.5 border-t border-[var(--border)] pt-4 text-sm">
+        @for (feature of card.features; track feature.code) {
+        <li class="flex items-start gap-2" [class.text-muted-foreground]="!feature.included" [class.text-foreground]="feature.included">
+          <app-icon class="mt-0.5 h-4 w-4 shrink-0" [class.text-primary]="feature.included" [class.opacity-50]="!feature.included">
+            {{ feature.included ? 'check' : 'remove' }}
+          </app-icon>
+          <span [class.line-through]="!feature.included" [class.opacity-70]="!feature.included">{{ feature.label }}</span>
+          <span class="sr-only">{{ feature.included ? '(incluido)' : '(no incluido)' }}</span>
+        </li>
+        }
+      </ul>
+
+      <div class="mt-5">
+        @if (card.current) {
+        <p class="text-primary flex items-center justify-center gap-1 rounded-full py-2.5 text-sm font-semibold">
+          <app-icon class="h-4 w-4">check_circle</app-icon>
+          Tu plan actual
+        </p>
+        } @else {
+        <button type="button" disabled class="glass-row text-muted-foreground w-full cursor-not-allowed rounded-full py-2.5 text-sm font-semibold opacity-70">
+          Disponible pronto
+        </button>
+        }
+      </div>
+    </article>
+    }
+  </div>
+  <p class="text-muted-foreground text-center text-xs">El pago en línea llega en la próxima actualización.</p>
+  }
+</div>

@@ -48,8 +48,12 @@
       </div>
     </div>
     } @else {
-    <button type="button" class="text-muted-foreground hover:text-primary inline-flex items-center gap-1 text-sm" (click)="$qrCode() ? $confirmRegenerate.set(true) : regenerate()">
-      <app-icon class="h-4 w-4">autorenew</app-icon>{{ $qrCode() ? 'Regenerar QR' : 'Generar QR' }}
+    <button
+      type="button"
+      class="text-muted-foreground hover:text-primary inline-flex items-center gap-1 text-sm"
+      [attr.title]="$canRegenerate() ? null : 'Disponible con la carta digital con QR'"
+      (click)="askRegenerate()">
+      <app-icon class="h-4 w-4">{{ $canRegenerate() ? 'autorenew' : 'lock' }}</app-icon>{{ $qrCode() ? 'Regenerar QR' : 'Generar QR' }}
     </button>
     }
   </div>

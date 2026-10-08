@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { businessGuard, terminalModeGuard } from './core';
+import { planFeatureGuard } from './core/services/entitlements';
 
 export const routes: Routes = [
   {
@@ -14,7 +15,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    canActivateChild: [terminalModeGuard, businessGuard],
+    canActivateChild: [terminalModeGuard, businessGuard, planFeatureGuard],
     loadChildren: () => import('./modules/layout/layout.routes'),
   },
   {

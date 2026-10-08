@@ -1,0 +1,262 @@
+@let v = $value();
+<app-header-dashboard title="Ajustes de la plataforma" subtitle="Prueba gratis, días de gracia, plan de respaldo, recordatorios y datos para transferencias." />
+
+@if ($loadError(); as error) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">No se pudieron cargar los ajustes</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ getError(error) }}</p>
+  </div>
+  <app-button type="button" impact="bold" (buttonClick)="retryLoad()">Reintentar</app-button>
+</div>
+} @else if ($isLoading()) {
+<div class="space-y-4">
+  @for (block of [1, 2, 3]; track block) {
+  <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-2">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  }
+</div>
+} @else {
+<form [formGroup]="form" class="space-y-4" (ngSubmit)="handleSubmit()">
+  <!-- Prueba gratis -->
+  <section class="glass rounded-[1rem] p-4">
+    <h2 class="text-foreground font-semibold">Prueba gratis</h2>
+    <p class="text-muted-foreground mb-4 text-sm">Los negocios nuevos parten en este plan por estos días. Los cambios aplican a las pruebas nuevas.</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="settings-trial-days" class="mb-1 block text-sm font-medium">Días de prueba *</label>
+        <input
+          id="settings-trial-days"
+          type="number"
+          min="1"
+          max="90"
+          step="1"
+          inputmode="numeric"
+          formControlName="trialDays"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalid('trialDays')" />
+        @if (invalid('trialDays')) {
+        <p class="text-destructive mt-1 text-xs">Un número entero de 1 a 90.</p>
+        }
+      </div>
+
+      <div>
+        <label for="settings-trial-plan" class="mb-1 block text-sm font-medium">Plan de la prueba *</label>
+        <select
+          id="settings-trial-plan"
+          formControlName="trialPlanCode"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalid('trialPlanCode')">
+          @for (plan of $trialPlans(); track plan.id) {
+          <option [value]="plan.code">{{ plan.name }}{{ plan.isActive ? '' : ' (inactivo)' }}{{ plan.isFree ? ' (gratis)' : '' }}</option>
+          }
+        </select>
+        @if (planWarning(v.trialPlanCode, false); as warning) {
+        <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ warning }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Un plan pagado y activo.</p>
+        }
+      </div>
+    </div>
+
+    <label class="mt-4 flex cursor-pointer items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <span>
+        <span class="text-foreground block text-sm font-semibold">Pedir tarjeta para empezar la prueba</span>
+        <span class="text-muted-foreground block text-xs">La prueba parte recién cuando el dueño registra su tarjeta.</span>
+      </span>
+      <input type="checkbox" role="switch" formControlName="trialRequiresCard" class="peer sr-only" />
+      <span
+        class="relative h-6 w-11 shrink-0 rounded-full bg-gray-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 dark:bg-gray-600"
+        aria-hidden="true"></span>
+    </label>
+    <div
+      class="mt-3 flex gap-2 rounded-md border p-3 text-xs"
+      [class]="v.trialRequiresCard ? 'border-amber-500/40 bg-amber-500/10 text-foreground' : 'border-[var(--border)] text-muted-foreground'">
+      <app-icon class="h-4 w-4 shrink-0" [class]="v.trialRequiresCard ? 'text-amber-700 dark:text-amber-400' : ''">info</app-icon>
+      <p>
+        Los negocios nuevos quedarán en Free hasta registrar la tarjeta. El registro de tarjeta con Flow llega en la fase 5; mientras tanto déjalo
+        apagado.
+      </p>
+    </div>
+  </section>
+
+  <!-- Cobros atrasados -->
+  <section class="glass rounded-[1rem] p-4">
+    <h2 class="text-foreground font-semibold">Pagos atrasados y recordatorios</h2>
+    <p class="text-muted-foreground mb-4 text-sm">Qué pasa cuando un cobro no se paga a tiempo y cuándo avisamos antes de cobrar.</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="settings-grace-days" class="mb-1 block text-sm font-medium">Días de gracia *</label>
+        <input
+          id="settings-grace-days"
+          type="number"
+          min="0"
+          max="60"
+          step="1"
+          inputmode="numeric"
+          formControlName="graceDays"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalid('graceDays')" />
+        @if (invalid('graceDays')) {
+        <p class="text-destructive mt-1 text-xs">Un número entero de 0 a 60.</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Días con el pago atrasado antes de pasar al plan de respaldo.</p>
+        }
+      </div>
+
+      <div>
+        <label for="settings-fallback-plan" class="mb-1 block text-sm font-medium">Plan de respaldo *</label>
+        <select
+          id="settings-fallback-plan"
+          formControlName="fallbackPlanCode"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalid('fallbackPlanCode')">
+          @for (plan of $fallbackPlans(); track plan.id) {
+          <option [value]="plan.code">{{ plan.name }}{{ plan.isActive ? '' : ' (inactivo)' }}{{ plan.isFree ? '' : ' (pagado)' }}</option>
+          }
+        </select>
+        @if (planWarning(v.fallbackPlanCode, true); as warning) {
+        <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ warning }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Un plan gratis y activo. Lo usan los negocios sin suscripción o con la prueba o la gracia vencidas.</p>
+        }
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="settings-reminders" class="mb-1 block text-sm font-medium">Recordatorios antes de cada cobro (días)</label>
+        <div class="glass-input flex min-h-[2.625rem] w-full flex-wrap items-center gap-1.5 rounded-md px-2 py-1.5">
+          @for (day of v.reminderDaysBefore; track day) {
+          <span class="bg-primary/10 text-foreground inline-flex items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs font-medium">
+            {{ day }} {{ day === 1 ? 'día' : 'días' }}
+            <button
+              type="button"
+              class="text-muted-foreground hover:text-foreground inline-flex h-5 w-5 items-center justify-center rounded-full"
+              [attr.aria-label]="'Quitar ' + day + ' días'"
+              (click)="removeReminder(day)">
+              <app-icon class="h-4 w-4">close</app-icon>
+            </button>
+          </span>
+          }
+          <input
+            id="settings-reminders"
+            type="number"
+            min="1"
+            max="30"
+            step="1"
+            inputmode="numeric"
+            class="min-w-[7rem] flex-1 bg-transparent px-1 py-1 text-sm outline-none"
+            [placeholder]="v.reminderDaysBefore.length >= remindersMax ? '' : 'Ej: 3 y Enter'"
+            [disabled]="v.reminderDaysBefore.length >= remindersMax"
+            [value]="$reminderDraft()"
+            (input)="$reminderDraft.set($any($event.target).value)"
+            (keydown)="handleReminderKeydown($event)"
+            (blur)="addReminder()" />
+        </div>
+        <p class="text-muted-foreground mt-1 text-xs">
+          Hasta {{ remindersMax }} valores de 1 a 30. Enviamos un correo esa cantidad de días antes de cada cobro.
+          @if (!v.reminderDaysBefore.length) { Sin valores no se envían recordatorios. }
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Datos para transferencias -->
+  <section class="glass rounded-[1rem] p-4" formGroupName="bankTransferInfo">
+    <h2 class="text-foreground font-semibold">Datos para transferencias</h2>
+    <p class="text-muted-foreground mb-4 text-sm">Los ven los dueños que pagan con transferencia. Deja vacío lo que no quieras mostrar.</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="settings-bank" class="mb-1 block text-sm font-medium">Banco</label>
+        <input id="settings-bank" type="text" maxlength="100" list="settings-banks" formControlName="bank" placeholder="Banco de Chile" class="glass-input w-full rounded-md px-3 py-2" />
+        <datalist id="settings-banks">
+          @for (bank of banks; track bank) {
+          <option [value]="bank"></option>
+          }
+        </datalist>
+      </div>
+      <div>
+        <label for="settings-account-type" class="mb-1 block text-sm font-medium">Tipo de cuenta</label>
+        <input
+          id="settings-account-type"
+          type="text"
+          maxlength="60"
+          list="settings-account-types"
+          formControlName="accountType"
+          placeholder="Cuenta corriente"
+          class="glass-input w-full rounded-md px-3 py-2" />
+        <datalist id="settings-account-types">
+          @for (type of accountTypes; track type) {
+          <option [value]="type"></option>
+          }
+        </datalist>
+      </div>
+      <div>
+        <label for="settings-account-number" class="mb-1 block text-sm font-medium">Número de cuenta</label>
+        <input
+          id="settings-account-number"
+          type="text"
+          maxlength="40"
+          inputmode="numeric"
+          autocomplete="off"
+          formControlName="accountNumber"
+          class="glass-input w-full rounded-md px-3 py-2 tabular-nums" />
+      </div>
+      <div>
+        <label for="settings-holder-name" class="mb-1 block text-sm font-medium">Titular</label>
+        <input id="settings-holder-name" type="text" maxlength="150" formControlName="holderName" placeholder="Redom SpA" class="glass-input w-full rounded-md px-3 py-2" />
+      </div>
+      <div>
+        <label for="settings-holder-tax-id" class="mb-1 block text-sm font-medium">RUT del titular</label>
+        <input
+          id="settings-holder-tax-id"
+          type="text"
+          maxlength="20"
+          formControlName="holderTaxId"
+          placeholder="76.123.456-7"
+          autocomplete="off"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalidBank('holderTaxId')"
+          (blur)="formatTaxId()" />
+        @if (invalidBank('holderTaxId')) {
+        <p class="text-destructive mt-1 text-xs">RUT inválido. Revisa el dígito verificador.</p>
+        }
+      </div>
+      <div>
+        <label for="settings-email" class="mb-1 block text-sm font-medium">Correo para enviar el comprobante</label>
+        <input
+          id="settings-email"
+          type="email"
+          maxlength="150"
+          formControlName="email"
+          placeholder="pagos@redom.cl"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="invalidBank('email')" />
+        @if (invalidBank('email')) {
+        <p class="text-destructive mt-1 text-xs">Ingresa un correo válido.</p>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Barra de guardado -->
+  <div class="glass flex flex-col gap-3 rounded-[1rem] p-3 sm:flex-row sm:items-center">
+    <p class="text-muted-foreground flex-1 text-xs sm:text-sm">
+      @if ($hasChanges()) {
+      <span class="text-foreground font-medium">Tienes cambios sin guardar.</span>
+      } @else {
+      Última modificación: {{ formatDate($settings()?.updatedAt, true) }}
+      }
+    </p>
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="!$hasChanges() || $isSaving()" (buttonClick)="handleDiscard()">Descartar</app-button>
+      <app-button type="button" impact="bold" [disabled]="!$hasChanges() || $isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        Guardar cambios
+      </app-button>
+    </div>
+  </div>
+</form>
+}

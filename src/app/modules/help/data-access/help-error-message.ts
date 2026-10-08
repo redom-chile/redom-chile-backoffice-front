@@ -19,6 +19,12 @@ export function getHelpErrorMessage(error: unknown, fallback = 'No se pudo compl
   return fallback;
 }
 
+/** El plan del negocio no es el mayor: hay planes con más preguntas (details.requiredPlans). */
+export function helpQuotaCanUpgrade(error: unknown): boolean {
+  const plans = readApiError(error).details['requiredPlans'];
+  return Array.isArray(plans) && plans.length > 0;
+}
+
 /** "Usaste las N preguntas de este mes; se renuevan el <fecha>". */
 export function helpQuotaMessage(error: unknown): string {
   const { details } = readApiError(error);
@@ -29,5 +35,8 @@ export function helpQuotaMessage(error: unknown): string {
     resetsAt && !Number.isNaN(resetsAt.getTime())
       ? resetsAt.toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })
       : null;
-  return `Usaste ${questions} al asistente de este mes${date ? `; se renuevan el ${date}` : ''}. Mientras tanto, puedes buscar en los artículos.`;
+  const base = `Usaste ${questions} al asistente de este mes${date ? `; se renuevan el ${date}` : ''}.`;
+  return helpQuotaCanUpgrade(error)
+    ? `${base} Mejora tu plan para tener más preguntas o, mientras tanto, busca en los artículos.`
+    : `${base} Mientras tanto, puedes buscar en los artículos.`;
 }

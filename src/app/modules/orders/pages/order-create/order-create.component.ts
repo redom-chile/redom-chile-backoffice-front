@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -58,6 +59,8 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly entitlements = inject(EntitlementsService);
+  private readonly upsell = inject(PlanUpsellService);
   private readonly dialog = inject(MatDialog);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
@@ -219,6 +222,11 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.entitlements.isLocked('locations', this.$locationId())) {
+      this.upsell.open({ resource: 'locations' });
+      return;
+    }
+
     const { resTableId, resWaiterId, isKitchenOrder, kitchenNote } = this.form.getRawValue();
     this.createService.create({
       locationId: this.$locationId()!,
@@ -233,6 +241,8 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
 
   // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
   private handleSaveError(error: ApiError, adding: boolean) {
+    // Error de plan (p. ej. local en solo lectura): ya lo muestra el modal global.
+    if (error.code?.startsWith('PLAN_')) return;
     const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
     this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
     if (isModifierNotAvailableError(error)) this.menuService.reload();

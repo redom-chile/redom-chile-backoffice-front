@@ -3,10 +3,21 @@
 <app-header-dashboard title="Sucursales" subtitle="Gestiona las sucursales de tu negocio">
   <app-button full impact="none" tone="primary" shape="rounded" size="medium" icon="refresh" (buttonClick)="retry()">
   </app-button>
-  <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="createBusinessLocation()">
+  <app-button
+    full
+    impact="bold"
+    tone="primary"
+    shape="rounded"
+    size="medium"
+    [icon]="limitGate.$canAdd() ? 'add' : 'lock'"
+    [class.opacity-50]="!limitGate.$canAdd()"
+    [attr.title]="limitGate.$canAdd() ? null : limitTooltip"
+    (buttonClick)="createBusinessLocation()">
     Nueva sucursal
   </app-button>
 </app-header-dashboard>
+<app-plan-usage limit="max_locations" class="-mt-2 mb-3" />
+<app-plan-locked-notice limit="max_locations" />
 
 @if (hasError) {
 <app-empty-state icon="error_outline" title="Error al cargar las sucursales" description="No se pudieron obtener los datos. Intenta nuevamente.">
@@ -20,6 +31,8 @@
 <app-business-location-list
   [locations]="locations ?? []"
   [isLoading]="isLoading ?? false"
+  [togglingId]="$activateService.$isLoading() ? togglingId : null"
   (update)="updateBusinessLocation($event)"
+  (toggleActive)="toggleBusinessLocation($event)"
   (delete)="deleteBusinessLocation($event)" />
 }

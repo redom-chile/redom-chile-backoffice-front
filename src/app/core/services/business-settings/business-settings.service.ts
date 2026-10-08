@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { EntitlementsService } from '../entitlements/entitlements.service';
 import { WhoamiService } from '../whoami/whoami.service';
 import {
   BusinessSettingsDto,
@@ -85,6 +86,7 @@ function normalizeSettings(settings: BusinessSettingsDto): BusinessSettingsDto {
 export class BusinessSettingsService {
   readonly #http = inject(HttpClient);
   readonly #whoami = inject(WhoamiService);
+  readonly #entitlements = inject(EntitlementsService);
 
   readonly #settings = signal<BusinessSettingsDto | null>(null);
   readonly #isLoading = signal(false);
@@ -114,6 +116,8 @@ export class BusinessSettingsService {
 
   // Caja y turnos activos (apagado: el POS cobra sin caja).
   readonly $cashManagementEnabled = computed(() => !!this.#settings()?.cashManagementEnabled);
+  /** Caja exigida al cobrar: activada en el negocio y en el plan (sin `cash` el backend no pide turno). */
+  readonly $cashActive = computed(() => this.$cashManagementEnabled() && this.#entitlements.hasFeature('cash'));
   readonly $posSettings = computed<ResolvedPosSettings>(() => parsePosSettings(this.#settings()?.posSettings));
   /** Propina sugerida (%): 0 = sin sugerencia; sin configuración cargada se usa el valor previo (10). */
   readonly $suggestedTipPercent = computed(() => {

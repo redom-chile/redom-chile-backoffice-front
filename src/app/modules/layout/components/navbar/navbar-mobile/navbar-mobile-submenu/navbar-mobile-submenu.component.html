@@ -20,8 +20,12 @@
             [routerLink]="sub.route"
             routerLinkActive="text-primary"
             [routerLinkActiveOptions]="{ exact: true }"
-            class="hover:bg-card inline-block w-full px-4 py-2 text-xs">
-            {{ sub.label }}
+            [attr.title]="sub.locked ? 'No incluido en tu plan' : null"
+            class="hover:bg-card flex w-full items-center gap-1.5 px-4 py-2 text-xs">
+            <span class="truncate">{{ sub.label }}</span>
+            @if (sub.locked) {
+            <app-icon class="text-muted-foreground/60 h-3.5 w-3.5 shrink-0" title="No incluido en tu plan" aria-label="No incluido en tu plan">lock</app-icon>
+            }
           </a>
           @if(menuService.isActive(sub.route)){
           <span

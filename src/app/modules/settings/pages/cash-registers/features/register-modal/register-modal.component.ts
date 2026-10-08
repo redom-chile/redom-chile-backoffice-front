@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { isPlanError } from 'src/app/core/services/entitlements';
 import { CashRegisterDto, CashService, getCashErrorMessage } from 'src/app/modules/cash/data-access';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 
@@ -74,6 +75,7 @@ export class RegisterModalComponent {
       next: () => this.#dialogRef.close(register ? 'updated' : 'created'),
       error: (error: unknown) => {
         this.$isSaving.set(false);
+        if (isPlanError(error)) return;
         this.#toast.show(getCashErrorMessage(error, register ? 'No se pudo renombrar la caja.' : 'No se pudo crear la caja.'), 'error');
       },
     });

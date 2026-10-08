@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
 import { CreateBusinessLocationDto } from './dtos';
 import { ApiPathEnum } from 'src/environments';
+import { isPlanError } from 'src/app/core/services/entitlements';
 
 @Injectable({ providedIn: 'root' })
 export class CreateBusinessLocationService {
@@ -31,7 +32,8 @@ export class CreateBusinessLocationService {
               this.#isLoading$.next(false);
             }),
             catchError((error: HttpErrorResponse) => {
-              this.#error$.next(error.status);
+              // El error de plan ya muestra su modal: sin toast genérico.
+              if (!isPlanError(error)) this.#error$.next(error.status);
               this.#success$.next(false);
               this.#isLoading$.next(false);
               return EMPTY;

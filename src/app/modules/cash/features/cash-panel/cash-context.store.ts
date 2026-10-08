@@ -5,7 +5,7 @@ import { CashDeviceStore, CashRegisterDto, CashService } from '../../data-access
 
 /**
  * Caja del dispositivo en el POS: cajas del local, la elegida (o la única activa) y su turno abierto.
- * Con el módulo apagado no carga nada.
+ * Con el módulo apagado (o fuera del plan) no carga nada.
  */
 @Injectable({ providedIn: 'root' })
 export class CashContextStore {
@@ -19,7 +19,8 @@ export class CashContextStore {
   readonly #hasError = signal(false);
   #request: Subscription | null = null;
 
-  readonly $enabled = this.#settings.$cashManagementEnabled;
+  // Sin la función `cash` en el plan se cobra sin caja aunque el negocio la tenga activada.
+  readonly $enabled = this.#settings.$cashActive;
   readonly $locationId = this.#locationId.asReadonly();
   readonly $isLoading = this.#isLoading.asReadonly();
   readonly $hasError = this.#hasError.asReadonly();

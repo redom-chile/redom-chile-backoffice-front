@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, Subject, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { isPlanError } from 'src/app/core/services/entitlements';
 
 export type TableQrDto = Readonly<{ qrCode: string; qrUrl: string | null }>;
 
@@ -27,7 +28,8 @@ export class RegenerateTableQrService {
       .pipe(
         tap(() => this.#isLoading$.next(false)),
         catchError((error: HttpErrorResponse) => {
-          this.#error$.next(error.status);
+          // El error de plan ya muestra su modal.
+          if (!isPlanError(error)) this.#error$.next(error.status);
           this.#isLoading$.next(false);
           return EMPTY;
         }),

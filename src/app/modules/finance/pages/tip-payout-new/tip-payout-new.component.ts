@@ -160,7 +160,7 @@ export class TipPayoutNewComponent {
   readonly note = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(255)] });
   readonly $isSaving = signal(false);
 
-  readonly $cashEnabled = this.#settings.$cashManagementEnabled;
+  readonly $cashEnabled = this.#settings.$cashActive;
   // Con caja activa y varios locales, el efectivo necesita saber de qué local (y caja) sale.
   readonly $cashNeedsLocation = computed(
     () => this.$method() === 'cash' && this.$cashEnabled() && this.$locationId() === null && this.$locationOptions().length !== 1,

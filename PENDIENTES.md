@@ -162,6 +162,20 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Huecos de interfaz detectados al redactarlos: corregidos (menú "Mi negocio" y "Turnos de caja", opciones del POS aplicadas, "Producción" en el kardex, textos de datos fiscales y de sucursal). Revisados y correctos tal como están: la columna "Dirección" de Sucursales (el backend guarda la dirección en `landmark`), la lista fija de medios de pago en el cobro (Medios de pago solo configura comisiones) y Food cost / Consumo visibles sin recetas.
 - Definir el límite mensual del asistente por plan (hoy 50 preguntas al mes por negocio, `HELP_CHAT_MONTHLY_LIMIT`). El rol administrador quedó como `SUPERADMIN`.
 
+## Planes, suscripciones y cobros
+
+- Fase 2 implementada (#47): entitlements desde whoami y `GET /billing/entitlements`; candados en el menú y modal "Disponible desde el plan X" (guard por ruta y errores `PLAN_*` desde cualquier API); banners de prueba, pago atrasado, Free y cancelación (solo dueño) y de usuario en solo lectura; uso y límites en Locales, Cajas y Usuarios (crear bloqueado al llegar al límite, recursos en solo lectura, activar/desactivar locales); POS sin exigir caja si el plan no incluye `cash`; locales bloqueados no venden; QR con candado sin `qr_menu`; asistente con candado sin `help_assistant` y sin contador si es ilimitado; página `/billing/plans` y sección Precios en la landing. Falta probarlo E2E contra el backend.
+- Decidido: el SUPERADMIN no ve nada de planes (ni avisos, ni uso, ni candados), aunque sea dueño; se prueba con otro usuario dueño. Menú propio "Plan y facturación" (hoy solo Planes).
+- Landing: la sección Precios espera el #48 (CORS con varios orígenes).
+- Fase 3 implementada (panel del superadmin, menú Plataforma): Resumen, Negocios (filtros, detalle auditado con suscripción, uso, excepciones, historial y acciones: cambiar plan, extender prueba o período, estado, nota, descuento, excepciones), Planes (orden, datos, funciones, límites, precios con historial), Descuentos (cupones, restricciones, términos bloqueados si ya se usaron) y Ajustes (prueba, gracia, plan de respaldo, recordatorios, datos de transferencia). Falta probarlo E2E.
+- Mejoras posibles de la fase 3: aviso de cambios sin guardar al cambiar de pestaña en el detalle del plan; nombres de negocios de un descuento exclusivo (falta un endpoint para buscarlos por id sin lectura auditada); el historial muestra priceId/discountId como número.
+- Próximas fases (esperando al backend): checkout (Flow y transferencia), "Mi suscripción", panel Plataforma del superadmin, y en Roles y permisos deshabilitar los módulos fuera del plan (cuando exista el mapa `module_codes`).
+- Detalles menores: el candado no aparece en el tooltip del menú colapsado; los días de prueba del banner no se recalculan sin recargar; los banners también se ven en `/billing/plans`; las pantallas de caja muestran "módulo apagado" según el ajuste del negocio (sus rutas ya exigen la función `cash`); la URL de `billing` en AWS está por confirmar.
+- Decisiones tomadas: prueba de 15 días en Pro (el superadmin activa o desactiva la exigencia de tarjeta), lo no incluido se muestra con candado ofreciendo subir de plan, pago manual + Flow, todos los pagos registrados y la tarjeta solo como marca y últimos 4 dígitos cifrados.
+- Asumido (confirmar): al vencer el pago hay 7 días de gracia y después el negocio baja a Free sin perder datos; los recursos sobre el límite quedan en solo lectura.
+- Por definir: precios de cada plan (mensual y anual) y qué incluye cada uno (hay un borrador en el prompt).
+- Front por hacer cuando responda el backend: Mi negocio → Plan y facturación (comparar, checkout con Flow o transferencia, tarjeta, cupón, cobros, cancelar), banner de prueba o pago vencido, candados en el menú y en Roles y permisos, interceptor de errores `PLAN_*`, grupo Plataforma del superadmin (resumen, negocios, planes, descuentos, cobros, ajustes) y sección de precios en la landing.
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).

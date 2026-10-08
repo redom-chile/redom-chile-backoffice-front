@@ -85,6 +85,7 @@ export class SiteHeader {
     { href: '#funciones', label: 'Funciones' },
     { href: '#tu-marca', label: 'Tu marca' },
     { href: '#como-funciona', label: 'Cómo funciona' },
+    { href: '#precios', label: 'Precios' },
     { href: '#preguntas', label: 'Preguntas' },
   ];
 }

@@ -14,7 +14,7 @@
     </h1>
     @if (!terminalMode()) {
     <div class="w-52">
-      <app-business-location-selector (selectedLocationChange)="handleLocationChange($event)" />
+      <app-business-location-selector forSale (selectedLocationChange)="handleLocationChange($event)" />
     </div>
     }
     @if ($isReady() && $useWaiters()) {

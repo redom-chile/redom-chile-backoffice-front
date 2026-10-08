@@ -7,6 +7,7 @@ import { environment } from 'src/environments/environment';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
+import { EntitlementsService, planFeaturesForUrl } from 'src/app/core/services/entitlements';
 
 @Injectable({
   providedIn: 'root',
@@ -19,6 +20,7 @@ export class MenuService implements OnDestroy {
   private _subscription = new Subscription();
   private _whoamiService = inject(WhoamiService);
   #businessSettings = inject(BusinessSettingsService);
+  #entitlements = inject(EntitlementsService);
   #injector = inject(Injector);
 
   // Los locales se piden recién cuando el inventario está activo (el servicio dispara la carga al crearse).
@@ -42,12 +44,19 @@ export class MenuService implements OnDestroy {
     const roles = this.#roles();
     const isVisible = (item: SubMenuItem) =>
       (!item.feature || enabled[item.feature]) && (!item.role || roles.has(item.role));
+    // Lo que el plan no incluye se muestra con candado (no se oculta): al entrar, planFeatureGuard ofrece mejorar el plan.
+    this.#entitlements.$entitlements();
+    const isLocked = (route: string | null | undefined) => !this.#entitlements.hasFeatures(planFeaturesForUrl(route));
+    // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
+    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
     return this._pagesMenu().map((group) => ({
       ...group,
       items: group.items.filter(isVisible).map((item) => {
-        if (!item.children?.some((child) => !isVisible(child))) return item;
-        // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
-        return Object.assign(Object.create(item) as SubMenuItem, { children: item.children.filter(isVisible) });
+        if (!item.children) return isLocked(item.route) ? derive(item, { locked: true }) : item;
+        const children = item.children.filter(isVisible).map((child) => (isLocked(child.route) ? derive(child, { locked: true }) : child));
+        const changed = children.length !== item.children.length || children.some((child, i) => child !== item.children![i]);
+        if (!changed) return item;
+        return derive(item, { children, locked: children.length > 0 && children.every((child) => child.locked) });
       }),
     }));
   });

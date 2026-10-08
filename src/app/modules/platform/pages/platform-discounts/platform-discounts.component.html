@@ -1,0 +1,237 @@
+@let q = $query();
+<app-header-dashboard title="Descuentos" subtitle="Cupones que escriben los dueños y descuentos que asigna el equipo de Redom.">
+  <button
+    type="button"
+    class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+    (click)="handleCreate()">
+    <app-icon class="h-5 w-5">add</app-icon>
+    <span class="hidden sm:inline">Nuevo descuento</span>
+    <span class="sm:hidden">Nuevo</span>
+  </button>
+</app-header-dashboard>
+
+<details class="glass mb-4 rounded-[1rem] p-4 text-sm">
+  <summary class="text-foreground cursor-pointer font-medium">¿Cómo funcionan los descuentos?</summary>
+  <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+    <li>Con <strong>código</strong>, el dueño lo escribe al contratar. Sin código, solo lo asigna el equipo desde el detalle del negocio.</li>
+    <li><strong>Porcentaje</strong> (más de 0 y hasta 100) o <strong>monto fijo</strong> en CLP, por un cobro, varios cobros o para siempre.</li>
+    <li>Puede limitarse a algunos planes, a un intervalo (mensual o anual), a ciertos negocios, a una cantidad de usos y a un rango de fechas.</li>
+    <li>Una vez usado, su tipo, valor y duración ya no cambian: desactívalo y crea otro. Los descuentos no se borran.</li>
+  </ul>
+</details>
+
+<!-- Filtros -->
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div class="relative flex-1">
+    <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" aria-hidden="true">search</app-icon>
+    <input
+      type="search"
+      aria-label="Buscar"
+      placeholder="Buscar por nombre o código"
+      class="glass-input w-full rounded-md py-2 pl-10 pr-3"
+      [value]="$search()"
+      (input)="handleSearch($event)" />
+  </div>
+  <div class="glass-input flex shrink-0 rounded-md p-1" role="tablist" aria-label="Filtrar por estado">
+    @for (tab of activeTabs; track tab.label) {
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 rounded px-3 py-1.5 text-sm font-medium transition sm:flex-none"
+      [attr.aria-selected]="q.isActive === tab.value"
+      [class.bg-primary]="q.isActive === tab.value"
+      [class.text-primary-foreground]="q.isActive === tab.value"
+      [class.text-muted-foreground]="q.isActive !== tab.value"
+      (click)="handleActive(tab.value)">
+      {{ tab.label }}
+    </button>
+    }
+  </div>
+</div>
+@if ($hasFilters()) {
+<button type="button" class="text-primary -mt-1 mb-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+}
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los descuentos</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="discounts.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (discounts.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" style="width: 90px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 140px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 70px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$page()?.data?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin descuentos</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay descuentos que coincidan con los filtros.' : 'Todavía no hay descuentos ni cupones.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    } @else {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto lg:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Descuento</th>
+          <th class="px-4 py-3 text-right">Valor</th>
+          <th class="px-4 py-3">Duración</th>
+          <th class="px-4 py-3">Restricciones</th>
+          <th class="px-4 py-3 text-right">Usos</th>
+          <th class="px-4 py-3">Vigencia</th>
+          <th class="px-4 py-3 text-right" title="Suscripciones que lo tienen ahora">Suscr.</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (discount of $page()!.data; track discount.id) {
+        @let range = validity(discount);
+        <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0">
+          <td class="px-4 py-3 text-sm">
+            <button type="button" class="text-foreground flex items-center gap-1 text-left font-medium hover:underline" (click)="handleEdit(discount)">
+              <span class="max-w-[16rem] truncate" [title]="discount.name">{{ discount.name }}</span>
+              @if (isLocked(discount)) {
+              <app-icon class="text-muted-foreground h-4 w-4 shrink-0" title="Ya se usó: sus términos no cambian">lock</app-icon>
+              }
+            </button>
+            @if (discount.code) {
+            <span class="text-muted-foreground block font-mono text-xs">{{ discount.code }}</span>
+            } @else {
+            <span class="text-muted-foreground block text-xs italic">Solo asignable por el equipo</span>
+            }
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatValue(discount) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDuration(discount) }}</td>
+          <td class="text-muted-foreground px-4 py-3 text-xs">
+            @for (part of restrictions(discount); track $index) {
+            <span class="block max-w-[14rem] truncate" [title]="part">{{ part }}</span>
+            }
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ discount.redemptions }} / {{ discount.maxRedemptions ?? '∞' }}
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-xs">
+            <span class="text-foreground block">{{ range.label }}</span>
+            @if (range.state === 'expired') {
+            <span class="text-red-700 dark:text-red-400">Vencido</span>
+            } @else if (range.state === 'upcoming') {
+            <span class="text-amber-700 dark:text-amber-400">Aún no empieza</span>
+            }
+          </td>
+          <td class="text-foreground px-4 py-3 text-right text-sm tabular-nums">{{ discount.subscriptions }}</td>
+          <td class="px-4 py-3">
+            <span
+              class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
+              [class]="discount.isActive ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-[var(--muted)] text-muted-foreground'">
+              {{ discount.isActive ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right">
+            <div class="flex justify-end gap-1">
+              <button
+                type="button"
+                class="text-muted-foreground hover:text-foreground rounded-md p-1.5"
+                title="Editar"
+                [attr.aria-label]="'Editar ' + discount.name"
+                (click)="handleEdit(discount)">
+                <app-icon class="h-5 w-5">edit</app-icon>
+              </button>
+              <button
+                type="button"
+                class="text-muted-foreground hover:text-foreground rounded-md p-1.5 disabled:opacity-50"
+                [title]="discount.isActive ? 'Desactivar' : 'Activar'"
+                [attr.aria-label]="(discount.isActive ? 'Desactivar ' : 'Activar ') + discount.name"
+                [disabled]="$busyId() !== null"
+                (click)="handleToggleActive(discount)">
+                <app-icon class="h-5 w-5">{{ discount.isActive ? 'toggle_on' : 'toggle_off' }}</app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil y tablet: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] lg:hidden">
+    @for (discount of $page()!.data; track discount.id) {
+    @let range = validity(discount);
+    <li class="px-4 py-3">
+      <div class="flex items-start gap-3">
+        <button type="button" class="min-w-0 flex-1 text-left" (click)="handleEdit(discount)">
+          <p class="text-foreground flex items-center gap-1 text-sm font-semibold">
+            <span class="truncate">{{ discount.name }}</span>
+            @if (isLocked(discount)) {
+            <app-icon class="text-muted-foreground h-4 w-4 shrink-0" aria-label="Ya se usó">lock</app-icon>
+            }
+          </p>
+          @if (discount.code) {
+          <p class="text-muted-foreground font-mono text-xs">{{ discount.code }}</p>
+          } @else {
+          <p class="text-muted-foreground text-xs italic">Solo asignable por el equipo</p>
+          }
+        </button>
+        <div class="text-right">
+          <p class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatValue(discount) }}</p>
+          <p class="text-muted-foreground whitespace-nowrap text-xs">{{ formatDuration(discount) }}</p>
+        </div>
+      </div>
+      <p class="text-muted-foreground mt-1 text-xs">{{ restrictions(discount).join(' · ') }}</p>
+      <p class="text-muted-foreground mt-0.5 text-xs">
+        {{ range.label }}@if (range.state === 'expired') { · <span class="text-red-700 dark:text-red-400">Vencido</span> }@if (range.state === 'upcoming') { · <span class="text-amber-700 dark:text-amber-400">Aún no empieza</span> }
+      </p>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+        <span
+          class="rounded-full px-2 py-0.5 font-medium"
+          [class]="discount.isActive ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-[var(--muted)] text-muted-foreground'">
+          {{ discount.isActive ? 'Activo' : 'Inactivo' }}
+        </span>
+        <span class="text-muted-foreground">Usos {{ discount.redemptions }} / {{ discount.maxRedemptions ?? '∞' }}</span>
+        <span class="text-muted-foreground">· {{ discount.subscriptions }} {{ discount.subscriptions === 1 ? 'suscripción' : 'suscripciones' }}</span>
+        <span class="ml-auto flex gap-1">
+          <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" [attr.aria-label]="'Editar ' + discount.name" (click)="handleEdit(discount)">
+            <app-icon class="h-5 w-5">edit</app-icon>
+          </button>
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground rounded-md p-1.5 disabled:opacity-50"
+            [attr.aria-label]="(discount.isActive ? 'Desactivar ' : 'Activar ') + discount.name"
+            [disabled]="$busyId() !== null"
+            (click)="handleToggleActive(discount)">
+            <app-icon class="h-5 w-5">{{ discount.isActive ? 'toggle_on' : 'toggle_off' }}</app-icon>
+          </button>
+        </span>
+      </div>
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalItems > 0 && !discounts.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}

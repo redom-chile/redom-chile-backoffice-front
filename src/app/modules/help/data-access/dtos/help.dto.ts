@@ -67,11 +67,12 @@ export type HelpArticleLinkDto = Readonly<{ slug: string; title: string }>;
  * - `delta`: un trozo de la respuesta en markdown.
  * - `done`: `sources` son los artículos que usó la respuesta (pueden venir vacíos).
  * - `error`: HELP_AI_UNAVAILABLE; la pregunta no se descuenta.
+ * `remaining` null: el plan no tiene límite de preguntas.
  */
 export type HelpChatEvent =
   | Readonly<{ event: 'articles'; data: HelpArticleLinkDto[] }>
   | Readonly<{ event: 'delta'; data: { text: string } }>
-  | Readonly<{ event: 'done'; data: { logId: number; remaining: number; sources: HelpArticleLinkDto[] } }>
+  | Readonly<{ event: 'done'; data: { logId: number; remaining: number | null; sources: HelpArticleLinkDto[] } }>
   | Readonly<{ event: 'error'; data: { code: string; message: string } }>;
 
 // --- Administración (solo SUPERADMIN) ---

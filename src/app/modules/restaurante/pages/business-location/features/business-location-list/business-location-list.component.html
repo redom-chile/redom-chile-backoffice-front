@@ -9,13 +9,31 @@
   @if (!isLoading()) {
   @for (location of $locations(); track location.id) {
   <tr class="glass-row h-10">
-    <td class="text-center font-medium">{{ location.name }}</td>
+    <td class="text-center font-medium">
+      {{ location.name }}
+      @if (location.isActive === false) {
+      <span class="text-muted-foreground ml-1 rounded-full bg-gray-500/15 px-2 py-0.5 text-xs font-semibold">Inactiva</span>
+      } @else if (isLocked(location)) {
+      <div class="mt-1"><app-plan-locked-badge /></div>
+      }
+    </td>
     <td class="text-muted-foreground text-center text-sm">{{ location.city || '—' }}</td>
     <td class="text-muted-foreground text-center text-sm">{{ location.country || '—' }}</td>
     <td class="text-muted-foreground text-center text-sm">{{ location.landmark || '—' }}</td>
     <td class="text-center">
       <div class="flex items-center justify-center gap-1">
         <app-button size="small" icon="edit_document" (click)="onUpdate(location)" />
+        @if (location.isActive !== undefined) {
+        <app-button
+          size="small"
+          [icon]="location.isActive ? 'toggle_on' : 'toggle_off'"
+          [tone]="location.isActive ? 'success' : 'light'"
+          [isLoading]="togglingId() === location.id"
+          [disabled]="togglingId() !== null"
+          [attr.title]="location.isActive ? 'Desactivar' : 'Activar'"
+          [attr.aria-label]="(location.isActive ? 'Desactivar ' : 'Activar ') + location.name"
+          (buttonClick)="toggleActive.emit(location)" />
+        }
         <app-button size="small" icon="delete" tone="danger" (click)="onDelete(location)" />
       </div>
     </td>

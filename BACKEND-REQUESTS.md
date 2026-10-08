@@ -12,9 +12,9 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
@@ -319,6 +319,35 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Mantener en el detalle de una liquidación anulada cuántos pagos cubría.
 
 **Front mientras tanto:** pagina con `perPage`; con caja activa y varios locales pide elegir el local para pagar en efectivo; muestra comisiones y abonos como estimados.
+
+---
+
+### 47. 🔵 Planes, suscripciones y cobros (pago manual y Flow)
+
+**Problema:** Redom no tiene planes ni cobros. Todos los negocios acceden a todo, y no hay forma de saber quién está al día.
+
+**Se pide:** ver el prompt completo en `docs/backend-prompts/planes-y-suscripciones.md`:
+- planes con precios mensual y anual, funciones y límites (borrador Free, Emprende, Pro, Empresa) que administra el superadmin;
+- suscripción por negocio con prueba de 15 días en Pro (el superadmin define si exige tarjeta), gracia y bajada a Free sin perder datos;
+- entitlements (plan ∩ permisos del rol), `@RequiresFeature`, límites y entitlements en whoami;
+- cobro con Flow (tarjeta, webhooks idempotentes) y pago manual por transferencia confirmado por el superadmin;
+- descuentos y cupones (incluidos los exclusivos para clientes preferenciales) y excepciones por negocio;
+- registro inmutable de todos los pagos y auditoría;
+- datos de la tarjeta según la Ley 19.628/21.719 y PCI: nunca el número completo ni el CVV, solo la marca y los últimos 4 dígitos cifrados con AES-256-GCM.
+
+> Fase 2 resuelta (front implementado): API `billing` (`/billing/api`), `GET /plans/public`, `GET /billing/entitlements` y `whoami.user.entitlements`, errores `PLAN_FEATURE_NOT_INCLUDED` / `PLAN_LIMIT_REACHED` / `PLAN_RESOURCE_LOCKED`, cuota del asistente según el plan. Pendientes del backend: checkout (pago manual y Flow), "Mi suscripción", panel del superadmin (`/platform`), mapa de funciones a módulos para Roles y permisos, y la ruta de `billing` en AWS (el front usa `…/billing/api` en el mismo API Gateway, por confirmar).
+
+**Front:** fase 2 lista (candados, modal para mejorar el plan, banners, límites y solo lectura, caja sin la función `cash`, comparación de planes y precios en la landing). Falta lo de las próximas fases.
+
+---
+
+### 48. 🟡 CORS: aceptar varios orígenes (la landing no puede leer los planes)
+
+**Problema:** `app.setup.ts` hace `app.enableCors({ origin: URL_CORS })` con un solo origen (`http://localhost:4200`). La landing (`localhost:4300` en local, `redom.cl` en producción) llama a `GET /billing/api/plans/public` desde el navegador y el CORS la bloquea, así que la sección Precios muestra su mensaje de respaldo.
+
+**Se pide:** que `URL_CORS` acepte una lista separada por comas (`http://localhost:4200,http://localhost:4300`) y pasarla como arreglo a `enableCors`. En producción, agregar el dominio de la landing (`https://redom.cl`, `https://www.redom.cl`) junto al de la app.
+
+**Front mientras tanto:** la sección Precios muestra "Pronto publicaremos nuestros planes" con el botón para crear cuenta.
 
 ---
 

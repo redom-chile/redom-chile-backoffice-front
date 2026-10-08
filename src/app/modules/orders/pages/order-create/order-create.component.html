@@ -46,7 +46,7 @@
         @if (!$locationId()) {
         <div class="col-span-2">
           <label class="text-foreground mb-1 block text-sm font-medium">Sucursal *</label>
-          <app-business-location-selector (selectedLocationChange)="handleLocationChange($event)" />
+          <app-business-location-selector forSale (selectedLocationChange)="handleLocationChange($event)" />
         </div>
         }
         <div>

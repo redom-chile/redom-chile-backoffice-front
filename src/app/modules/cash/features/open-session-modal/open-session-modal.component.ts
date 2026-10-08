@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
+import { EntitlementsService, isPlanError } from 'src/app/core/services/entitlements';
 import { ApiErrorCode, readApiError } from 'src/app/core/utils';
 import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
@@ -38,6 +39,7 @@ export class OpenSessionModalComponent implements OnInit {
   private readonly device = inject(CashDeviceStore);
   private readonly context = inject(CashContextStore);
   private readonly toast = inject(ToastService);
+  private readonly entitlements = inject(EntitlementsService);
 
   readonly data = inject<OpenSessionData>(MAT_DIALOG_DATA, { optional: true }) ?? {};
   readonly formatCurrency = formatCurrency;
@@ -48,6 +50,11 @@ export class OpenSessionModalComponent implements OnInit {
   readonly $selectedId = signal<number | null>(null);
   readonly $isSaving = signal(false);
   readonly $selected = computed(() => this.$registers()?.find((register) => register.id === this.$selectedId()) ?? null);
+  // Caja o local sobre el límite del plan: no se puede abrir un turno nuevo.
+  readonly $selectedLocked = computed(() => {
+    const register = this.$selected();
+    return !!register && !register.openSession && this.isLocked(register);
+  });
   readonly $openLabel = computed(() => {
     const register = this.$selected();
     const session = register?.openSession;
@@ -82,13 +89,17 @@ export class OpenSessionModalComponent implements OnInit {
       });
   }
 
+  isLocked(register: CashRegisterDto): boolean {
+    return this.entitlements.isLocked('registers', register.id) || this.entitlements.isLocked('locations', register.locationId);
+  }
+
   setAmount(value: number) {
     this.amount.setValue(value);
   }
 
   confirm() {
     const register = this.$selected();
-    if (!register || this.$isSaving()) return;
+    if (!register || this.$isSaving() || this.$selectedLocked()) return;
     if (register.openSession) {
       this.finish(register, register.openSession.id, true);
       return;
@@ -117,6 +128,8 @@ export class OpenSessionModalComponent implements OnInit {
             this.finish(register, Number.isFinite(sessionId) && sessionId > 0 ? sessionId : null, true);
             return;
           }
+          // El error de plan ya muestra su modal.
+          if (isPlanError(error)) return;
           this.toast.show(getCashErrorMessage(error, 'No se pudo abrir la caja'), 'error');
         },
       });

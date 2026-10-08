@@ -1,0 +1,84 @@
+<app-header-dashboard title="Planes" subtitle="Funciones, límites y precios de cada plan. Arrastra para cambiar el orden de la landing.">
+  <button
+    type="button"
+    class="bg-primary text-primary-foreground inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+    (click)="handleCreate()">
+    <app-icon class="h-5 w-5">add</app-icon>
+    <span class="hidden sm:inline">Nuevo plan</span>
+    <span class="sm:hidden">Nuevo</span>
+  </button>
+</app-header-dashboard>
+
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (plans.isLoading() && !$items().length) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <div class="flex items-center gap-3 px-4 py-4">
+      <app-skeleton size="xs" style="width: 40px" />
+      <app-skeleton size="xs" style="width: 200px" />
+    </div>
+    }
+  </div>
+  } @else if ($error(); as error) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <p class="text-foreground font-medium">No se pudieron cargar los planes</p>
+    <p class="text-muted-foreground text-sm">{{ errorMessage(error) }}</p>
+    <app-button type="button" impact="bold" (buttonClick)="plans.reload()">Reintentar</app-button>
+  </div>
+  } @else if (!$items().length) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground h-10 w-10">workspace_premium</app-icon>
+    <p class="text-foreground font-medium">Todavía no hay planes</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
+  </div>
+  } @else {
+  <ul
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="divide-y divide-[var(--border)]"
+    [cdkDropListDisabled]="$isReordering()"
+    (cdkDropListDropped)="handleDrop($event)">
+    @for (plan of $items(); track plan.id) {
+    <li cdkDrag class="glass-row flex items-start gap-2 px-3 py-3 sm:items-center sm:px-4">
+      <button
+        type="button"
+        cdkDragHandle
+        class="text-muted-foreground hover:text-foreground -ml-1 inline-flex h-9 w-7 shrink-0 cursor-grab items-center justify-center rounded-md active:cursor-grabbing"
+        [attr.aria-label]="'Mover ' + plan.name"
+        title="Arrastra para ordenar">
+        <app-icon class="h-5 w-5">drag_indicator</app-icon>
+      </button>
+
+      <a [routerLink]="['/platform/plans', plan.id]" class="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p class="text-foreground truncate font-medium" [class.text-muted-foreground]="!plan.isActive">{{ plan.name }}</p>
+            <app-plan-badges [plan]="plan" />
+          </div>
+          <p class="text-muted-foreground truncate font-mono text-xs">{{ plan.code }}</p>
+        </div>
+
+        <div class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm sm:justify-end">
+          <div class="flex flex-col sm:items-end">
+            @if (plan.isFree) {
+            <span class="text-muted-foreground">Gratis</span>
+            } @else {
+            @for (price of activePrices(plan); track price.id) {
+            <span class="text-foreground tabular-nums">{{ formatClp(price.amount) }}<span class="text-muted-foreground text-xs">{{ intervalSuffix[price.interval] }}</span></span>
+            } @empty {
+            <span class="text-amber-700 dark:text-amber-300">Sin precio</span>
+            }
+            }
+          </div>
+          <span class="text-muted-foreground inline-flex items-center gap-1 text-xs sm:w-32 sm:justify-end">
+            <app-icon class="h-4 w-4">storefront</app-icon>
+            {{ subscriptionsLabel(plan.subscriptions) }}
+          </span>
+          <app-icon class="text-muted-foreground hidden h-5 w-5 sm:block">chevron_right</app-icon>
+        </div>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+</div>

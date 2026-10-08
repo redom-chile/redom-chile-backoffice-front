@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { isPlanError } from 'src/app/core/services/entitlements';
 
 @Injectable({ providedIn: 'root' })
 export class ActivateDeactivateBusinessLocationService {
@@ -24,7 +25,7 @@ export class ActivateDeactivateBusinessLocationService {
       switchMap((id) =>
         this.#httpClient.post(`${ApiPathEnum.RESTAURANT}/business-locations/${id}/activate-deactivate`, { id }).pipe(
           tap(() => { this.#success$.next(true); this.#isLoading$.next(false); }),
-          catchError((error: HttpErrorResponse) => { this.#error$.next(error.status); this.#success$.next(false); this.#isLoading$.next(false); return EMPTY; }),
+          catchError((error: HttpErrorResponse) => { if (!isPlanError(error)) this.#error$.next(error.status); this.#success$.next(false); this.#isLoading$.next(false); return EMPTY; }),
         ),
       ),
     ).subscribe();

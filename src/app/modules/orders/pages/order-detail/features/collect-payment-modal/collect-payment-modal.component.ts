@@ -206,7 +206,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
       this.$lastChange.set(payment.change > 0 ? payment : null);
       this.paymentService.reset();
       this.lastRequest = null;
-      if (this.businessSettings.$cashManagementEnabled()) this.cashContext.refresh();
+      if (this.businessSettings.$cashActive()) this.cashContext.refresh();
       if (result.remaining > 0) {
         const change = payment.change > 0 ? ` · Vuelto ${formatCurrency(payment.change)}` : '';
         this.toast.show(
@@ -395,7 +395,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
 
   // Efectivo: la caja del equipo. Otros medios: solo si se sabe abierta (cerrada, el backend exigiría turno).
   private cashRegisterFor(method: PaymentMethod): number | undefined {
-    if (!this.businessSettings.$cashManagementEnabled()) return undefined;
+    if (!this.businessSettings.$cashActive()) return undefined;
     const locationId = this.$order().locationId;
     const inContext = this.cashContext.$locationId() === locationId ? this.cashContext.$register() : null;
     if (method !== 'cash') return inContext?.openSession ? inContext.id : undefined;
@@ -405,7 +405,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
   /** true si el error es de caja y ya se atendió. */
   private handleCashError(error: ApiError): boolean {
     const request = this.lastRequest;
-    if (!request || !this.businessSettings.$cashManagementEnabled()) return false;
+    if (!request || !this.businessSettings.$cashActive()) return false;
     const locationId = this.$order().locationId;
 
     if (error.code === ApiErrorCode.CASH_SESSION_REQUIRED) {

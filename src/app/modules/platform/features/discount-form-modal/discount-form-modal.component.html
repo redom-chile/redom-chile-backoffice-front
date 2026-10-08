@@ -1,0 +1,286 @@
+@let v = $value();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ discount ? 'Editar descuento' : 'Nuevo descuento' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="space-y-5 p-2" (ngSubmit)="handleSubmit()">
+    <!-- Datos -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label for="discount-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+        <input
+          id="discount-name"
+          type="text"
+          [attr.maxlength]="nameMax"
+          formControlName="name"
+          placeholder="Ej: Lanzamiento 2027"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('name')" />
+        @if (show('name'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Lo ve el dueño cuando se le aplica el descuento.</p>
+        }
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="discount-code" class="mb-1 block text-sm font-medium">Código de cupón</label>
+        <input
+          id="discount-code"
+          type="text"
+          maxlength="40"
+          formControlName="code"
+          placeholder="LANZAMIENTO"
+          autocapitalize="characters"
+          autocomplete="off"
+          spellcheck="false"
+          class="glass-input w-full rounded-md px-3 py-2 font-mono uppercase"
+          [class.border-red-500]="show('code')"
+          (input)="handleCodeInput($event)" />
+        @if (show('code'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">
+          El dueño lo escribe al contratar. Vacío: solo el equipo de Redom puede asignarlo desde el detalle del negocio.
+        </p>
+        }
+      </div>
+    </div>
+
+    <!-- Términos -->
+    <fieldset class="space-y-4 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Valor y duración</legend>
+
+      @if (isLocked) {
+      <div class="flex flex-col gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm sm:flex-row sm:items-center">
+        <app-icon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400">lock</app-icon>
+        <p class="text-foreground flex-1">Ya se usó: no se pueden cambiar sus términos. Desactívalo y crea otro.</p>
+        @if (discount?.isActive) {
+        <app-button type="button" impact="light" tone="danger" size="small" [disabled]="$isSaving()" (buttonClick)="handleDeactivate()">
+          Desactivar
+        </app-button>
+        }
+      </div>
+      }
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <span class="mb-1 block text-sm font-medium">Tipo *</span>
+          <div class="glass-input flex rounded-md p-1" role="radiogroup" aria-label="Tipo de descuento">
+            <label class="flex-1">
+              <input type="radio" value="percent" formControlName="type" class="peer sr-only" />
+              <span
+                class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer rounded px-3 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-60">
+                Porcentaje
+              </span>
+            </label>
+            <label class="flex-1">
+              <input type="radio" value="amount" formControlName="type" class="peer sr-only" />
+              <span
+                class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer rounded px-3 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2 peer-disabled:cursor-not-allowed peer-disabled:opacity-60">
+                Monto fijo
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label for="discount-value" class="mb-1 block text-sm font-medium">{{ v.type === 'percent' ? 'Porcentaje *' : 'Monto (CLP, IVA incluido) *' }}</label>
+          <div class="relative">
+            @if (v.type === 'amount') {
+            <span class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm">$</span>
+            }
+            <input
+              id="discount-value"
+              type="number"
+              inputmode="decimal"
+              formControlName="value"
+              [attr.min]="v.type === 'percent' ? 0.01 : 1"
+              [attr.max]="v.type === 'percent' ? 100 : null"
+              [attr.step]="v.type === 'percent' ? 0.01 : 1"
+              [placeholder]="v.type === 'percent' ? '20' : '5000'"
+              class="glass-input w-full rounded-md py-2 disabled:opacity-60"
+              [class.pl-7]="v.type === 'amount'"
+              [class.pl-3]="v.type === 'percent'"
+              [class.pr-8]="v.type === 'percent'"
+              [class.pr-3]="v.type === 'amount'"
+              [class.border-red-500]="show('value')" />
+            @if (v.type === 'percent') {
+            <span class="text-muted-foreground pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm">%</span>
+            }
+          </div>
+          @if (show('value'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          }
+        </div>
+
+        <div>
+          <label for="discount-duration" class="mb-1 block text-sm font-medium">Duración *</label>
+          <select id="discount-duration" formControlName="duration" class="glass-input w-full rounded-md px-3 py-2 disabled:opacity-60">
+            @for (duration of durations; track duration) {
+            <option [value]="duration">{{ durationLabels[duration] }}</option>
+            }
+          </select>
+          <p class="text-muted-foreground mt-1 text-xs">
+            @switch (v.duration) {
+            @case ('once') { Se aplica solo al primer cobro. }
+            @case ('repeating') { Se aplica a la cantidad de cobros que indiques. }
+            @case ('forever') { Se aplica a todos los cobros mientras la suscripción lo tenga. }
+            }
+          </p>
+        </div>
+
+        @if (v.duration === 'repeating') {
+        <div>
+          <label for="discount-periods" class="mb-1 block text-sm font-medium">Cantidad de cobros *</label>
+          <input
+            id="discount-periods"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            formControlName="durationPeriods"
+            placeholder="3"
+            class="glass-input w-full rounded-md px-3 py-2 disabled:opacity-60"
+            [class.border-red-500]="show('durationPeriods')" />
+          @if (show('durationPeriods'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          }
+        </div>
+        }
+      </div>
+    </fieldset>
+
+    <!-- Restricciones -->
+    <fieldset class="space-y-4 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Restricciones</legend>
+
+      <div>
+        <span class="mb-1 block text-sm font-medium">Planes</span>
+        @if ($plansLoading()) {
+        <p class="text-muted-foreground text-sm">Cargando planes…</p>
+        } @else if (!$planOptions().length) {
+        <p class="text-muted-foreground text-sm">No hay planes pagados.</p>
+        } @else {
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          @for (plan of $planOptions(); track plan.id) {
+          <label class="glass-row flex cursor-pointer items-center gap-2 rounded-md border border-[var(--border)] px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              class="accent-[var(--primary)] h-4 w-4"
+              [checked]="v.planIds.includes(plan.id)"
+              (change)="togglePlan(plan.id, $any($event.target).checked)" />
+            <span class="text-foreground min-w-0 flex-1 truncate">{{ plan.name }}</span>
+            @if (!plan.isActive) {
+            <span class="text-muted-foreground text-xs">Inactivo</span>
+            } @else if (!plan.isPublic) {
+            <span class="text-muted-foreground text-xs">A medida</span>
+            }
+          </label>
+          }
+        </div>
+        }
+        <p class="text-muted-foreground mt-1 text-xs">Sin marcar: sirve para todos los planes.</p>
+      </div>
+
+      <div>
+        <span class="mb-1 block text-sm font-medium">Intervalo de cobro</span>
+        <div class="flex flex-wrap gap-4">
+          @for (interval of intervals; track interval) {
+          <label class="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              class="accent-[var(--primary)] h-4 w-4"
+              [checked]="v.intervals.includes(interval)"
+              (change)="toggleInterval(interval, $any($event.target).checked)" />
+            <span class="text-foreground">{{ intervalLabels[interval] }}</span>
+          </label>
+          }
+        </div>
+        <p class="text-muted-foreground mt-1 text-xs">Sin marcar (o ambos): mensual y anual.</p>
+      </div>
+
+      <div>
+        <label for="discount-businesses" class="mb-1 block text-sm font-medium">Exclusivo de estos negocios</label>
+        <app-discount-business-picker inputId="discount-businesses" [(value)]="$businesses" [disabled]="$isSaving()" />
+        <p class="text-muted-foreground mt-1 text-xs">Sin negocios: lo puede usar cualquiera.</p>
+      </div>
+
+      <div class="sm:w-1/2">
+        <label for="discount-max" class="mb-1 block text-sm font-medium">Usos máximos</label>
+        <input
+          id="discount-max"
+          type="number"
+          [attr.min]="discount?.redemptions || 1"
+          step="1"
+          inputmode="numeric"
+          formControlName="maxRedemptions"
+          placeholder="Ilimitado"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('maxRedemptions')" />
+        @if (show('maxRedemptions'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">
+          Vacío: ilimitado.@if (discount?.redemptions) { Lleva {{ discount!.redemptions }} {{ discount!.redemptions === 1 ? 'uso' : 'usos' }}. }
+        </p>
+        }
+      </div>
+    </fieldset>
+
+    <!-- Vigencia -->
+    <fieldset class="border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Vigencia</legend>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="discount-from" class="mb-1 block text-sm font-medium">Desde</label>
+          <input
+            id="discount-from"
+            type="date"
+            formControlName="validFrom"
+            [max]="v.validUntil"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('dates')" />
+        </div>
+        <div>
+          <label for="discount-until" class="mb-1 block text-sm font-medium">Hasta (inclusive)</label>
+          <input
+            id="discount-until"
+            type="date"
+            formControlName="validUntil"
+            [min]="v.validFrom"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('dates')" />
+        </div>
+      </div>
+      @if (show('dates'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Hora de Chile. Vacías: sin límite de fechas.</p>
+      }
+    </fieldset>
+
+    <label class="flex cursor-pointer items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <span>
+        <span class="text-foreground block text-sm font-semibold">Activo</span>
+        <span class="text-muted-foreground block text-xs">Si está inactivo no se puede aplicar a nuevas suscripciones. Las que ya lo tienen lo mantienen.</span>
+      </span>
+      <input type="checkbox" role="switch" formControlName="isActive" class="peer sr-only" />
+      <span
+        class="relative h-6 w-11 shrink-0 rounded-full bg-gray-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 dark:bg-gray-600"
+        aria-hidden="true"></span>
+    </label>
+
+    <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ discount ? 'Guardar' : 'Crear descuento' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

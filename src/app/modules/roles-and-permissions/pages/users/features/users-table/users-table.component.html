@@ -14,7 +14,12 @@
 
   @if (!isLoading()) { @for (user of $users(); track user.code) {
   <tr class="glass-row h-10">
-    <td class="text-center">{{ getFullName(user) }}</td>
+    <td class="text-center">
+      {{ getFullName(user) }}
+      @if (isLocked(user)) {
+      <div class="mt-1"><app-plan-locked-badge /></div>
+      }
+    </td>
     <td class="text-center">{{ user.email }}</td>
     <td class="text-center">
       @if (getBranchName(user); as branchName) {

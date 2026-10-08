@@ -104,6 +104,13 @@ export class Menu {
           ],
         },
         {
+          // Planes y, en las próximas fases, la suscripción y los cobros del negocio.
+          icon: 'workspace_premium',
+          label: 'Plan y facturación',
+          route: '/billing',
+          children: [{ label: 'Planes', route: '/billing/plans' }],
+        },
+        {
           icon: 'admin_panel_settings',
           label: 'Roles y permisos',
           route: '/roles-and-permissions',
@@ -189,6 +196,19 @@ export class Menu {
           icon: 'help',
           label: 'Ayuda',
           route: '/help',
+        },
+        {
+          icon: 'admin_panel_settings',
+          label: 'Plataforma',
+          route: '/platform',
+          role: 'SUPERADMIN',
+          children: [
+            { label: 'Resumen', route: '/platform/summary' },
+            { label: 'Negocios', route: '/platform/businesses' },
+            { label: 'Planes', route: '/platform/plans' },
+            { label: 'Descuentos', route: '/platform/discounts' },
+            { label: 'Ajustes', route: '/platform/settings' },
+          ],
         },
         {
           icon: 'support_agent',

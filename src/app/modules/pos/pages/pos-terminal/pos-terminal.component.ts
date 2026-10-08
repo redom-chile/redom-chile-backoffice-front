@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
@@ -70,6 +71,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
+  private readonly entitlements = inject(EntitlementsService);
+  private readonly upsell = inject(PlanUpsellService);
   private readonly session = inject(PosSessionService);
   private readonly tablesService = inject(GetAllTablesService);
   private readonly sectorsService = inject(GetAllSectorsService);
@@ -312,6 +315,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   handleSubmit() {
     const locationId = this.$locationId();
     if (!this.$cart().length || !locationId) return;
+    // Local sobre el límite del plan: solo lectura, no vende.
+    if (!this.$orderId() && this.entitlements.isLocked('locations', locationId)) {
+      this.upsell.open({ resource: 'locations' });
+      return;
+    }
     // Cada producto lleva su nota; la nota general solo existe al abrir la cuenta.
     const products: OrderProductDto[] = toOrderProducts(this.$cart());
 
@@ -383,6 +391,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
   // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
   private handleSaveError(error: ApiError, adding: boolean) {
+    // Error de plan (p. ej. local en solo lectura): ya lo muestra el modal global.
+    if (error.code?.startsWith('PLAN_')) return;
     const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
     this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
     if (isModifierNotAvailableError(error)) this.menuService.reload();

@@ -1,3 +1,5 @@
+import { EntitlementsDto } from '../../entitlements/dtos';
+
 export type WhoamiDto = Readonly<{
   user: {
     code: string;
@@ -16,6 +18,8 @@ export type WhoamiDto = Readonly<{
     branchId: number | null;
     // URL firmada (vence en 1 hora): no persistir.
     profileImageUrl?: string | null;
+    // Lo que puede usar el negocio según su plan; null sin negocio (onboarding).
+    entitlements?: EntitlementsDto | null;
   };
   roles: ReadonlyArray<{ id: number; code: string; name: string }>;
   permissions: string[];

@@ -19,11 +19,15 @@
     tone="primary"
     shape="rounded"
     size="medium"
+    [class.opacity-50]="!limitGate.$canAdd()"
+    [attr.title]="limitGate.$canAdd() ? null : limitTooltip"
     (buttonClick)="createUser()">
-    <app-icon class="h-6 w-7"> add </app-icon>
+    <app-icon class="h-6 w-7"> {{ limitGate.$canAdd() ? 'add' : 'lock' }} </app-icon>
     Invitar al equipo
   </app-button>
 </app-header-dashboard>
+<app-plan-usage limit="max_users" class="-mt-2 mb-3" />
+<app-plan-locked-notice limit="max_users" />
 
 @let isLoading = $service.$isLoading(); @let usersResp = $service.$users();
 

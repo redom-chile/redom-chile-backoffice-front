@@ -28,6 +28,7 @@ import { Icon } from '../ui/icon';
 })
 export class Faq {
   protected readonly faqs = [
+    { q: '¿Hay prueba gratis?', a: 'Sí. Al crear tu cuenta tienes 15 días del plan Pro para probar todo. Después eliges el plan que más te acomode, y si no eliges uno pasas al plan Free sin perder tus datos.' },
     { q: '¿Tengo que instalar algo?', a: 'No. Redom funciona en el navegador. Para imprimir comandas basta con dejar abierta la estación de impresión en un equipo del local.' },
     { q: '¿Funciona en tablet o celular?', a: 'Sí. El POS y la pantalla de cocina están pensados para pantallas táctiles, y el resto de la app se adapta al celular.' },
     { q: '¿Puedo manejar varias sucursales?', a: 'Sí. Creas tus sucursales dentro del mismo negocio y cada una tiene sus propias mesas, estaciones y equipo.' },

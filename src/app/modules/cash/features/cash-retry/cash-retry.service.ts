@@ -33,7 +33,7 @@ export class CashRetryService {
 
   /** Caja de este equipo para el local (solo con el módulo activo). */
   deviceRegister(locationId: number | null | undefined): number | undefined {
-    if (!this.#settings.$cashManagementEnabled()) return undefined;
+    if (!this.#settings.$cashActive()) return undefined;
     return this.#device.registerFor(locationId) ?? undefined;
   }
 

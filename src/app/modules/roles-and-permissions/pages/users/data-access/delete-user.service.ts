@@ -4,10 +4,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
 import { DeleteUserDto } from './dtos';
 import { ApiPathEnum } from 'src/environments';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 
 @Injectable({ providedIn: 'root' })
 export class DeleteUserService {
   readonly #httpClient = inject(HttpClient);
+  readonly #entitlements = inject(EntitlementsService);
 
   readonly #isLoading$ = new BehaviorSubject(false);
   readonly #error$ = new Subject<HttpStatusCode | undefined>();
@@ -27,6 +29,7 @@ export class DeleteUserService {
         switchMap((input) =>
           this.#httpClient.delete<{ message: string }>(`${ApiPathEnum.AUTH}/users/${input.userId}`).pipe(
             tap(() => {
+              this.#entitlements.refresh();
               this.#success$.next(true);
               this.#isLoading$.next(false);
             }),
