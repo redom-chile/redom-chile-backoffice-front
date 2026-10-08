@@ -30,6 +30,8 @@ export type BusinessSettingsDto = Readonly<{
   suggestedTipPercent?: number | null;
   // Caja y turnos: con el módulo apagado el POS cobra sin caja.
   cashManagementEnabled?: boolean;
+  // Reparto de propinas por defecto (se puede cambiar en cada liquidación).
+  tipDistributionMode?: 'individual' | 'equal' | 'points';
 }>;
 
 /** Opciones del POS (PATCH parcial: solo cambian las que se envían). */
@@ -53,6 +55,7 @@ export type UpdateBusinessSettingsDto = Partial<
     posSettings: PosSettings;
     suggestedTipPercent: number;
     cashManagementEnabled: boolean;
+    tipDistributionMode: 'individual' | 'equal' | 'points';
   }>
 >;
 

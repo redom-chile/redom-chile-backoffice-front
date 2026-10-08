@@ -1,0 +1,182 @@
+<a routerLink="/finance/tips" class="text-muted-foreground hover:text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Propinas
+</a>
+<h1 class="text-foreground mb-4 text-2xl font-bold">Liquidar propinas</h1>
+
+<div class="mx-auto max-w-4xl space-y-4">
+  <!-- 1. Período y local -->
+  <section class="glass rounded-[1rem] p-5">
+    <h2 class="text-foreground text-base font-semibold"><span class="text-primary">1.</span> Qué propinas se pagan</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">Por fecha del pago. Sin "desde" se incluyen todas las pendientes hasta la fecha "hasta".</p>
+    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div>
+        <label for="tip-from" class="text-foreground mb-1 block text-sm font-medium">Desde</label>
+        <input id="tip-from" type="date" class="glass-input h-11 w-full rounded-md px-3" [value]="$dateFrom()" [max]="$dateTo() || today" [disabled]="$isSaving()" (change)="onDate('from', $event)" />
+      </div>
+      <div>
+        <label for="tip-to" class="text-foreground mb-1 block text-sm font-medium">Hasta</label>
+        <input id="tip-to" type="date" class="glass-input h-11 w-full rounded-md px-3" [value]="$dateTo()" [min]="$dateFrom()" [max]="today" [disabled]="$isSaving()" (change)="onDate('to', $event)" />
+      </div>
+      @if ($showLocations()) {
+      <div>
+        <label for="tip-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+        <select id="tip-location" class="glass-input h-11 w-full rounded-md px-3" [disabled]="$isSaving()" (change)="onLocation($event)">
+          <option value="" [selected]="$locationId() === null">Todos los locales</option>
+          @for (location of $locationOptions(); track location.id) {
+          <option [value]="location.id" [selected]="$locationId() === location.id">{{ location.name }}</option>
+          }
+        </select>
+      </div>
+      }
+    </div>
+    @if ($pending(); as p) {
+    <p class="text-muted-foreground mt-3 text-sm">
+      Pendientes: <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency(p.total) }}</span>
+      en {{ p.payments }} {{ p.payments === 1 ? 'pago' : 'pagos' }}
+      @if (p.unassigned.tips > 0) { · {{ formatCurrency(p.unassigned.tips) }} sin mesero }
+    </p>
+    }
+  </section>
+
+  <!-- 2. Reparto -->
+  <section class="glass rounded-[1rem] p-5">
+    <h2 class="text-foreground text-base font-semibold"><span class="text-primary">2.</span> Cómo se reparten</h2>
+    <fieldset class="mt-3">
+      <legend class="sr-only">Modo de reparto</legend>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        @for (mode of modes; track mode) {
+        <label
+          class="flex cursor-pointer flex-col gap-1 rounded-md border p-3 transition-colors"
+          [class]="$mode() === mode ? 'border-primary bg-primary/10' : 'glass-row border-[var(--border)]'">
+          <span class="flex items-center gap-2">
+            <input type="radio" name="tip-mode" class="h-4 w-4" [value]="mode" [checked]="$mode() === mode" [disabled]="$isSaving()" (change)="setMode(mode)" />
+            <span class="text-foreground text-sm font-semibold">{{ modeLabels[mode] }}</span>
+          </span>
+          <span class="text-muted-foreground text-xs">{{ modeHints[mode] }}</span>
+        </label>
+        }
+      </div>
+    </fieldset>
+
+    <div class="mt-4 border-t border-[var(--border)] pt-4">
+      <app-tip-participants [mode]="$mode()" [suggestions]="$suggestions()" [disabled]="$isSaving()" [(participants)]="$participants" />
+    </div>
+  </section>
+
+  <!-- Vista previa -->
+  <section class="glass rounded-[1rem] p-5" aria-live="polite">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-foreground text-base font-semibold">Vista previa</h2>
+      @if ($isPreviewStale()) {
+      <span class="text-muted-foreground inline-flex items-center gap-1 text-xs">
+        <app-icon class="h-4 w-4 animate-spin" aria-hidden="true">autorenew</app-icon>
+        Calculando…
+      </span>
+      }
+    </div>
+
+    @let preview = $preview();
+    @if (preview?.notice && !$isPreviewStale()) {
+    <div
+      class="mt-3 flex items-start gap-2 rounded-md border p-3 text-sm"
+      [class]="preview!.noTips ? 'border-[var(--border)] bg-[var(--muted)] text-foreground' : 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300'">
+      <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">{{ preview!.noTips ? 'info' : 'warning' }}</app-icon>
+      <p>{{ preview!.notice }}</p>
+    </div>
+    } @else if ($lastPreview(); as d) {
+    <div class="mt-3" [class.opacity-60]="$isPreviewStale()">
+      <p class="text-muted-foreground text-xs">
+        {{ periodLabel(d.dateFrom, d.dateTo) }} · {{ d.payments }} {{ d.payments === 1 ? 'pago' : 'pagos' }} · {{ modeLabels[d.mode] }}
+      </p>
+      <div class="mt-2 overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+              <th class="py-2 pr-3">Nombre</th>
+              <th class="px-3 py-2 text-right">Propias</th>
+              @if (d.mode === 'points') { <th class="px-3 py-2 text-right">Puntos</th> }
+              <th class="py-2 pl-3 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of d.lines; track line.userCode) {
+            <tr class="border-b border-[var(--border)]">
+              <td class="text-foreground py-2 pr-3 text-sm">{{ line.name ?? 'Sin nombre' }}</td>
+              <td class="text-muted-foreground whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums">{{ formatCurrency(line.ownTips) }}</td>
+              @if (d.mode === 'points') { <td class="text-muted-foreground px-3 py-2 text-right text-sm tabular-nums">{{ line.points }}</td> }
+              <td class="text-foreground whitespace-nowrap py-2 pl-3 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(line.amount) }}</td>
+            </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="text-foreground pt-2 pr-3 text-sm font-semibold" [attr.colspan]="d.mode === 'points' ? 3 : 2">Total ({{ d.lines.length }} {{ d.lines.length === 1 ? 'persona' : 'personas' }})</td>
+              <td class="text-foreground whitespace-nowrap pt-2 pl-3 text-right text-lg font-bold tabular-nums">{{ formatCurrency(d.total) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="text-muted-foreground mt-2 text-xs">"Propias": propinas de sus pedidos como mesero. Los montos se redondean y suman el total exacto.</p>
+    </div>
+    } @else {
+    <p class="text-muted-foreground mt-3 text-sm">Calculando el reparto…</p>
+    }
+  </section>
+
+  <!-- 3. Pago -->
+  <section class="glass rounded-[1rem] p-5">
+    <h2 class="text-foreground text-base font-semibold"><span class="text-primary">3.</span> Pago</h2>
+    <fieldset class="mt-3">
+      <legend class="text-foreground mb-1 block text-sm font-medium">Medio de pago *</legend>
+      <div class="flex flex-wrap gap-2">
+        @for (method of methods; track method) {
+        <button
+          type="button"
+          class="rounded-full border px-3 py-1.5 text-sm transition-colors"
+          [class]="$method() === method ? 'border-primary bg-primary text-white' : 'glass-row border-[var(--border)] text-foreground'"
+          [attr.aria-pressed]="$method() === method"
+          [disabled]="$isSaving()"
+          (click)="$method.set(method)">
+          {{ methodLabels[method] }}
+        </button>
+        }
+      </div>
+      @if ($method() === 'cash' && $cashEnabled()) {
+      @if ($cashNeedsLocation()) {
+      <p class="mt-2 flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400">
+        <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">warning</app-icon>
+        Para pagar en efectivo elige el local (arriba): el efectivo sale de su caja.
+      </p>
+      } @else {
+      <p class="text-muted-foreground mt-2 flex items-start gap-1 text-xs">
+        <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">point_of_sale</app-icon>
+        El efectivo sale del turno abierto de la caja del local.
+      </p>
+      }
+      }
+    </fieldset>
+
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <label for="tip-paid-at" class="text-foreground mb-1 block text-sm font-medium">Fecha y hora *</label>
+        <input id="tip-paid-at" type="datetime-local" [max]="maxPaidAt" [formControl]="paidAt" class="glass-input h-11 w-full rounded-md px-3" />
+      </div>
+      <div>
+        <label for="tip-reference" class="text-foreground mb-1 block text-sm font-medium">Referencia</label>
+        <input id="tip-reference" type="text" maxlength="100" placeholder="N° de transferencia…" [formControl]="reference" class="glass-input h-11 w-full rounded-md px-3" />
+      </div>
+      <div class="sm:col-span-2">
+        <label for="tip-note" class="text-foreground mb-1 block text-sm font-medium">Nota</label>
+        <textarea id="tip-note" rows="2" maxlength="255" [formControl]="note" class="glass-input w-full rounded-md px-3 py-2"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="flex flex-col-reverse gap-2 pb-6 sm:flex-row sm:justify-end">
+    <a routerLink="/finance/tips" class="glass-row text-foreground inline-flex items-center justify-center rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium">Cancelar</a>
+    <app-button type="button" impact="bold" tone="primary" [disabled]="!$canSubmit()" [isLoading]="$isSaving()" (buttonClick)="submit()">
+      Liquidar {{ !$isPreviewStale() && $preview()?.value ? formatCurrency($preview()!.value!.total) : '' }}
+    </app-button>
+  </div>
+</div>

@@ -4,7 +4,17 @@ export type { PaymentMethod };
 export type CashSessionStatus = 'open' | 'closed';
 // opening, sale, cash_in y expense_refund suman; refund, cash_out y expense restan (el monto siempre viene positivo).
 // expense: pago de un gasto o compra en efectivo; expense_refund: su anulación.
-export type CashMovementType = 'opening' | 'sale' | 'refund' | 'cash_in' | 'cash_out' | 'expense' | 'expense_refund';
+// tip_payout: liquidación de propinas en efectivo (resta); tip_payout_refund: su anulación (suma).
+export type CashMovementType =
+  | 'opening'
+  | 'sale'
+  | 'refund'
+  | 'cash_in'
+  | 'cash_out'
+  | 'expense'
+  | 'expense_refund'
+  | 'tip_payout'
+  | 'tip_payout_refund';
 
 // ---------- Cajas: /cash/registers ----------
 export type CashRegisterOpenSessionDto = Readonly<{
@@ -76,6 +86,9 @@ export type CashTotalsDto = Readonly<{
   // Pagos de gastos y compras en efectivo, y sus anulaciones.
   expenses: number;
   expenseRefunds?: number;
+  // Propinas pagadas al equipo en efectivo, y sus anulaciones.
+  tipPayouts?: number;
+  tipPayoutRefunds?: number;
 }>;
 
 export type CashMethodSummaryDto = Readonly<{

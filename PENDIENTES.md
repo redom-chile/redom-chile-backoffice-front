@@ -142,10 +142,21 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Cuentas por pagar no tiene paginación (el backend devuelve todo); "Esta semana" = hoy + 7 días.
 - Los toasts no llevan enlace: "Cuentas por pagar" se menciona en el texto.
 
+## Propinas y comisiones (flujo de caja, fase 3)
+
+- [ ] E2E del prompt del backend (7 pasos): pendientes por mesero, vista previa individual/partes iguales/puntos, liquidar en efectivo con y sin caja, `NO_TIPS_TO_PAY`, `TIP_ALREADY_PAID_OUT`, anular liquidación, transferencia, y comisiones débito/crédito con sus abonos.
+- [ ] Plan de pruebas: pestaña "cajas-fase3".
+- Con caja activa y varios locales, pagar propinas en efectivo exige elegir un local, y eso filtra las propinas a ese local (el backend usa el mismo `locationId` para ambas cosas, #45).
+- El buscador de participantes trae los primeros 20 resultados por nombre.
+- Si la configuración del negocio carga después de elegir un modo, el modo vuelve al del negocio; al recargar el detalle recién creado reaparece el aviso "Imprimir".
+- `TIP_ALREADY_PAID_OUT` con enlace a la liquidación solo en el modal de anular pago de Pagos; en otras pantallas el mensaje sale sin número.
+- Comisiones y abonos son estimados: no consideran feriados, no se guardan por pago (cambiar una comisión reescribe el historial) y no hay conciliación con la cartola (#45).
+- Plata por llegar: sin exportar a CSV ni detalle de los pagos de cada fecha de abono.
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43, #44. Bloqueante: #39.
+- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43–#45. Bloqueante: #39.

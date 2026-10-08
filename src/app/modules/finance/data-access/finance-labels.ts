@@ -1,4 +1,4 @@
-import { ExpenseDocumentType, ExpenseStatus, PayableType, RecurringFrequency } from './dtos';
+import { ExpenseDocumentType, ExpenseStatus, PayableType, RecurringFrequency, TipDistributionMode } from './dtos';
 
 export const EXPENSE_STATUS_LABELS: Record<ExpenseStatus, string> = {
   pending: 'Pendiente',
@@ -44,3 +44,15 @@ export function dueLabel(daysToDue: number): string {
   const days = Math.abs(daysToDue);
   return `vencida hace ${days} ${days === 1 ? 'día' : 'días'}`;
 }
+
+export const TIP_MODE_LABELS: Record<TipDistributionMode, string> = {
+  individual: 'Cada mesero lo suyo',
+  equal: 'Partes iguales',
+  points: 'Por puntos',
+};
+
+export const TIP_MODE_HINTS: Record<TipDistributionMode, string> = {
+  individual: 'Cada mesero recibe las propinas de sus pedidos; las de pedidos sin mesero se reparten en partes iguales.',
+  equal: 'Todas las propinas juntas, en partes iguales entre los participantes.',
+  points: 'Todas las propinas juntas, según los puntos de cada uno (ej. mesero 2, ayudante 1).',
+};

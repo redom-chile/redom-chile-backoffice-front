@@ -24,6 +24,13 @@ function cashPaymentMessage(error: ApiError): string | null {
   return CASH_MESSAGES.find(([pattern]) => pattern.test(error.message))?.[1] ?? null;
 }
 
+/** Id de la liquidación de propinas que impide anular el pago (409 TIP_ALREADY_PAID_OUT). */
+export function tipPayoutIdOf(error: ApiError | undefined): number | null {
+  if (!error || error.code !== ApiErrorCode.TIP_ALREADY_PAID_OUT) return null;
+  const id = Number(error.details['tipPayoutId']);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 /** Acepta el error normalizado (`readApiError`) o solo el status HTTP. */
 export function getPaymentErrorMessage(error: ApiError | HttpStatusCode | undefined): string {
   // El pago que deja el pedido pagado descuenta stock (on_payment) y puede responder 409 por falta de stock.
@@ -34,6 +41,10 @@ export function getPaymentErrorMessage(error: ApiError | HttpStatusCode | undefi
 
   // Pago por productos (dividir la cuenta): la cuenta se recarga para corregir la selección.
   switch (typeof error === 'object' ? error.code : null) {
+    case ApiErrorCode.TIP_ALREADY_PAID_OUT: {
+      const payoutId = tipPayoutIdOf(error as ApiError);
+      return `La propina de este pago ya se liquidó; anula primero la liquidación${payoutId ? ` #${payoutId}` : ''}.`;
+    }
     case ApiErrorCode.LINE_ALREADY_PAID:
       return 'Alguno de los productos ya fue pagado. Se actualizó la cuenta: revisa la selección.';
     case ApiErrorCode.INVALID_PAYMENT_LINE:

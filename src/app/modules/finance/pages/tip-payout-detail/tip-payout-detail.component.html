@@ -1,0 +1,168 @@
+<a routerLink="/finance/tips" class="text-muted-foreground hover:text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Propinas
+</a>
+
+@if (!$isValidId() || $isNotFound()) {
+<div class="glass rounded-[1rem] px-6 py-12 text-center">
+  <p class="text-foreground font-semibold">No encontramos esa liquidación</p>
+  <a routerLink="/finance/tips" class="text-primary mt-2 inline-block text-sm font-medium hover:underline">Volver a Propinas</a>
+</div>
+} @else if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar la liquidación</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="payout.reload()">Reintentar</app-button>
+</div>
+} @else if ($payout(); as p) {
+<div class="space-y-4" [class.opacity-60]="payout.isLoading()">
+  @if ($justCreated() && !p.cancelled) {
+  <div class="flex flex-col gap-3 rounded-[1rem] border border-green-500/30 bg-green-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <p class="flex items-center gap-2 text-sm font-medium text-green-800 dark:text-green-300">
+      <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">check_circle</app-icon>
+      Liquidación registrada. Imprime el comprobante para que cada persona firme lo que recibió.
+    </p>
+    <div class="flex shrink-0 gap-2">
+      <app-button type="button" size="small" impact="light" (buttonClick)="$justCreated.set(false)">Ahora no</app-button>
+      <app-button type="button" size="small" impact="bold" tone="primary" [isLoading]="$isPrinting()" (buttonClick)="print(p)">Imprimir</app-button>
+    </div>
+  </div>
+  }
+
+  <!-- Encabezado -->
+  <section class="glass rounded-[1rem] p-5">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="bg-[var(--muted)] text-foreground rounded-full px-2 py-0.5 text-xs font-semibold">Liquidación #{{ p.id }}</span>
+          @if (p.cancelled) {
+          <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Anulada</span>
+          }
+        </div>
+        <h1 class="text-foreground mt-2 text-xl font-bold" [class.line-through]="p.cancelled">Propinas · {{ formatCurrency(p.total) }}</h1>
+        <p class="text-muted-foreground text-sm">{{ periodLabel(p.dateFrom, p.dateTo) }} · {{ p.lines.length }} {{ p.lines.length === 1 ? 'persona' : 'personas' }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
+        <app-button type="button" impact="light" [isLoading]="$isPrinting()" (buttonClick)="print(p)">
+          <app-icon class="h-4 w-4" aria-hidden="true">print</app-icon>
+          Imprimir comprobante
+        </app-button>
+        @if (!p.cancelled) {
+        <app-button type="button" impact="light" tone="danger" (buttonClick)="cancelPayout(p)">Anular liquidación</app-button>
+        }
+      </div>
+    </div>
+
+    @if (p.cancelled) {
+    <div class="mt-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm">
+      <p class="font-semibold text-red-700 dark:text-red-400">Liquidación anulada{{ p.cancelledAt ? ' el ' + formatPaidAt(p.cancelledAt) : '' }}</p>
+      @if (p.cancellationReason) {
+      <p class="text-foreground mt-1">{{ p.cancellationReason }}</p>
+      }
+      <p class="text-muted-foreground mt-1 text-xs">Sus propinas volvieron a quedar pendientes.</p>
+    </div>
+    }
+  </section>
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <!-- Reparto -->
+    <section class="glass overflow-hidden rounded-[1rem] lg:col-span-2">
+      <h2 class="text-foreground border-b border-[var(--border)] px-5 py-3 text-base font-semibold">Reparto</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+              <th class="px-5 py-2">Nombre</th>
+              <th class="px-3 py-2 text-right">Propias</th>
+              @if ($showPoints()) { <th class="px-3 py-2 text-right">Puntos</th> }
+              <th class="px-5 py-2 text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of p.lines; track line.userCode) {
+            <tr class="border-b border-[var(--border)]">
+              <td class="text-foreground px-5 py-2.5 text-sm">{{ line.name ?? 'Sin nombre' }}</td>
+              <td class="text-muted-foreground whitespace-nowrap px-3 py-2.5 text-right text-sm tabular-nums">{{ formatCurrency(line.ownTips) }}</td>
+              @if ($showPoints()) { <td class="text-muted-foreground px-3 py-2.5 text-right text-sm tabular-nums">{{ line.points }}</td> }
+              <td class="text-foreground whitespace-nowrap px-5 py-2.5 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(line.amount) }}</td>
+            </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="text-foreground px-5 py-3 text-sm font-semibold" [attr.colspan]="$showPoints() ? 3 : 2">Total · {{ p.payments }} {{ p.payments === 1 ? 'pago' : 'pagos' }}</td>
+              <td class="text-foreground whitespace-nowrap px-5 py-3 text-right text-lg font-bold tabular-nums">{{ formatCurrency(p.total) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Datos -->
+    <section class="glass rounded-[1rem] p-5">
+      <h2 class="text-foreground mb-3 text-base font-semibold">Datos</h2>
+      <dl class="space-y-3 text-sm">
+        <div>
+          <dt class="text-muted-foreground text-xs">Fecha de pago</dt>
+          <dd class="text-foreground">{{ formatPaidAt(p.paidAt) }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Período</dt>
+          <dd class="text-foreground">{{ periodLabel(p.dateFrom, p.dateTo) }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Local</dt>
+          <dd class="text-foreground">{{ p.locationName ?? 'Todos los locales' }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Modo de reparto</dt>
+          <dd class="text-foreground">{{ modeLabels[p.mode] }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Medio de pago</dt>
+          <dd class="text-foreground">
+            {{ methodLabels[p.method] ?? p.method }}
+            @if (p.cashSessionId) {
+            · <a [routerLink]="['/cash/sessions', p.cashSessionId]" class="text-primary font-medium hover:underline">Ver turno de caja #{{ p.cashSessionId }}</a>
+            }
+          </dd>
+        </div>
+        @if (p.reference) {
+        <div>
+          <dt class="text-muted-foreground text-xs">Referencia</dt>
+          <dd class="text-foreground break-words">{{ p.reference }}</dd>
+        </div>
+        }
+        @if (p.note) {
+        <div>
+          <dt class="text-muted-foreground text-xs">Nota</dt>
+          <dd class="text-foreground whitespace-pre-line break-words">{{ p.note }}</dd>
+        </div>
+        }
+        <div>
+          <dt class="text-muted-foreground text-xs">Registrado por</dt>
+          <dd class="text-foreground">{{ p.createdByName ?? '—' }} · {{ formatPaidAt(p.createdAt) }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</div>
+} @else {
+<section class="glass space-y-3 rounded-[1rem] p-5">
+  <app-skeleton size="xs" style="width: 120px" />
+  <app-skeleton size="sm" style="width: 260px" />
+  <app-skeleton size="xs" style="width: 60%" />
+</section>
+<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+  <div class="glass space-y-3 rounded-[1rem] p-5 lg:col-span-2">
+    @for (row of [1, 2, 3, 4]; track row) { <app-skeleton size="xs" style="width: 70%" /> }
+  </div>
+  <div class="glass space-y-3 rounded-[1rem] p-5">
+    @for (row of [1, 2, 3]; track row) { <app-skeleton size="xs" style="width: 80%" /> }
+  </div>
+</div>
+}

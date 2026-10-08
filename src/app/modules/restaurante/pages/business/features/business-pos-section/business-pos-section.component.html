@@ -90,6 +90,24 @@
       <p id="business-tip-hint" class="text-muted-foreground mt-1 text-xs">Se propone al cobrar y en la precuenta. 0 = sin sugerencia.</p>
       }
     </div>
+
+    <div class="p-4 sm:max-w-md">
+      <label for="business-tip-mode" class="text-foreground mb-1 block text-sm font-medium">Reparto de propinas</label>
+      <select
+        id="business-tip-mode"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [disabled]="$isSaving()"
+        aria-describedby="business-tip-mode-hint"
+        (change)="onTipModeChange($event)">
+        @for (mode of tipModes; track mode) {
+        <option [value]="mode" [selected]="$tipMode() === mode">{{ tipModeLabels[mode] }}</option>
+        }
+      </select>
+      <p id="business-tip-mode-hint" class="text-muted-foreground mt-1 text-xs">
+        {{ tipModeHints[$tipMode()] }} Es el modo por defecto; puedes cambiarlo en cada
+        <a routerLink="/finance/tips" class="text-primary font-medium hover:underline">liquidación</a>.
+      </p>
+    </div>
   </div>
 
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">

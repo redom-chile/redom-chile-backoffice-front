@@ -3,9 +3,12 @@ import { RouterLink } from '@angular/router';
 import { BusinessSettingsService, PosSettings, UpdateBusinessSettingsDto } from 'src/app/core/services/business-settings';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
 import { ButtonComponent, CardComponent, ToastService, ToggleComponent } from 'src/ui';
+import { TIP_MODE_HINTS, TIP_MODE_LABELS, TipDistributionMode } from 'src/app/modules/finance/data-access';
 import { getBusinessErrorMessage } from '../../data-access';
 
-/** Sección "Punto de venta": mesas, meseros, propina sugerida y caja y turnos. */
+const TIP_MODES: readonly TipDistributionMode[] = ['individual', 'equal', 'points'];
+
+/** Sección "Punto de venta": mesas, meseros, propina sugerida, reparto de propinas y caja y turnos. */
 @Component({
   selector: 'app-business-pos-section',
   imports: [RouterLink, CardComponent, ButtonComponent, ToggleComponent],
@@ -29,6 +32,12 @@ export class BusinessPosSectionComponent {
   // Texto del input: permite dejarlo vacío mientras se escribe.
   protected readonly $tipPercent = linkedSignal(() => String(this.#savedTip()));
   protected readonly $cashEnabled = linkedSignal(() => this.#settings.$cashManagementEnabled());
+  // Sin valor guardado, el backend reparte "cada mesero lo suyo".
+  readonly #savedTipMode = computed<TipDistributionMode>(() => this.#settings.$settings()?.tipDistributionMode ?? 'individual');
+  protected readonly $tipMode = linkedSignal(() => this.#savedTipMode());
+  protected readonly tipModes = TIP_MODES;
+  protected readonly tipModeLabels = TIP_MODE_LABELS;
+  protected readonly tipModeHints = TIP_MODE_HINTS;
 
   // Sin meseros no puede exigirse uno al tomar pedidos.
   readonly #effectiveStaffRequired = computed(() => this.$waiterEnabled() && this.$staffRequired());
@@ -56,14 +65,20 @@ export class BusinessPosSectionComponent {
   });
   readonly #tipChanged = computed(() => this.#tipValue() !== this.#savedTip());
   readonly #cashChanged = computed(() => this.$cashEnabled() !== this.#settings.$cashManagementEnabled());
+  readonly #tipModeChanged = computed(() => this.$tipMode() !== this.#savedTipMode());
   protected readonly $hasChanges = computed(
-    () => Object.keys(this.#posChanges()).length > 0 || this.#tipChanged() || this.#cashChanged(),
+    () => Object.keys(this.#posChanges()).length > 0 || this.#tipChanged() || this.#cashChanged() || this.#tipModeChanged(),
   );
   protected readonly $isValid = computed(() => !this.$tipError());
   protected readonly $isSaving = signal(false);
 
   onTipInput(event: Event) {
     this.$tipPercent.set((event.target as HTMLInputElement).value);
+  }
+
+  onTipModeChange(event: Event) {
+    const value = (event.target as HTMLSelectElement).value as TipDistributionMode;
+    if (TIP_MODES.includes(value)) this.$tipMode.set(value);
   }
 
   setWaiterEnabled(enabled: boolean) {
@@ -78,6 +93,7 @@ export class BusinessPosSectionComponent {
     this.$staffRequired.set(saved.isServiceStaffRequired);
     this.$tipPercent.set(String(this.#savedTip()));
     this.$cashEnabled.set(this.#settings.$cashManagementEnabled());
+    this.$tipMode.set(this.#savedTipMode());
   }
 
   save() {
@@ -87,6 +103,7 @@ export class BusinessPosSectionComponent {
     if (Object.keys(posChanges).length) changes.posSettings = posChanges;
     if (this.#tipChanged()) changes.suggestedTipPercent = this.#tipValue();
     if (this.#cashChanged()) changes.cashManagementEnabled = this.$cashEnabled();
+    if (this.#tipModeChanged()) changes.tipDistributionMode = this.$tipMode();
     this.$isSaving.set(true);
     this.#settings.update(changes).subscribe({
       next: () => {

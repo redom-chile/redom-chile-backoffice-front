@@ -4,6 +4,8 @@ import { getCashErrorMessage } from 'src/app/modules/cash/data-access';
 const BY_CODE: Record<string, string> = {
   PAYABLE_AMOUNT_EXCEEDED: 'El monto supera lo que se debe.',
   EXPENSE_HAS_PAYMENTS: 'El gasto tiene pagos: anúlalos primero.',
+  NO_TIPS_TO_PAY: 'No hay propinas pendientes en ese período.',
+  TIP_ALREADY_PAID_OUT: 'La propina de este pago ya se liquidó: anula primero la liquidación.',
 };
 
 const BY_MESSAGE: ReadonlyArray<[RegExp, string]> = [
@@ -19,6 +21,16 @@ const BY_MESSAGE: ReadonlyArray<[RegExp, string]> = [
   [/amount must be greater than zero/i, 'El monto debe ser mayor a cero.'],
   [/payment is already cancelled/i, 'El pago ya estaba anulado.'],
   [/put the cash back/i, 'Abre la caja para devolver el efectivo.'],
+  [/dateFrom cannot be after dateTo/i, 'La fecha "desde" no puede ser posterior a "hasta".'],
+  [/participant is repeated/i, 'Hay un participante repetido.'],
+  [/Participant not found/i, 'Uno de los participantes ya no pertenece al negocio. Recarga la lista.'],
+  [/Send the participants with their points/i, 'En el reparto por puntos agrega a los participantes con sus puntos.'],
+  [/points must add up to more than 0/i, 'Los puntos deben sumar más que 0.'],
+  [/tips of orders without waiter: send the participants/i, 'Hay propinas de pedidos sin mesero: agrega a quienes las comparten.'],
+  [/Send the participants who share the tips/i, 'Agrega a los participantes del reparto (no hay meseros con propinas).'],
+  [/Cash payouts need the cash register/i, 'Para pagar en efectivo elige el local o la caja.'],
+  [/tip payout is already cancelled/i, 'La liquidación ya estaba anulada.'],
+  [/Tip payout not found/i, 'No encontramos esa liquidación.'],
   [/Weekly: dayOfPeriod/i, 'En semanal, el día va de 1 (lunes) a 7 (domingo).'],
   [/endDate cannot be before startDate/i, 'La fecha de término no puede ser anterior al inicio.'],
   [/Recurring expense not found/i, 'No encontramos ese gasto recurrente.'],

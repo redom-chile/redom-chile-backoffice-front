@@ -40,6 +40,8 @@ export function zReportHtml(session: CashSessionDto): string {
     parts.push(row('Retiros', formatCurrency(totals.cashOut)));
     if (totals.expenses > 0) parts.push(row('Gastos pagados', `-${formatCurrency(totals.expenses)}`));
     if ((totals.expenseRefunds ?? 0) > 0) parts.push(row('Anulaciones de gastos', `+${formatCurrency(totals.expenseRefunds ?? 0)}`));
+    if ((totals.tipPayouts ?? 0) > 0) parts.push(row('Propinas pagadas', `-${formatCurrency(totals.tipPayouts ?? 0)}`));
+    if ((totals.tipPayoutRefunds ?? 0) > 0) parts.push(row('Anulaciones de propinas', `+${formatCurrency(totals.tipPayoutRefunds ?? 0)}`));
 
     for (const method of session.methods ?? []) {
       parts.push('<div class="sep"></div>');

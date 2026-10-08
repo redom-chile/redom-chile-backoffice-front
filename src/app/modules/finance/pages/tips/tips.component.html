@@ -1,0 +1,239 @@
+@let q = $query();
+<app-header-dashboard title="Propinas" subtitle="Lo que se le debe al equipo y cómo se ha pagado.">
+  @let np = $newPayoutParams();
+  <a
+    routerLink="/finance/tips/new"
+    [queryParams]="{ from: np.from, to: np.to, locationId: np.locationId }"
+    class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+    [class.pointer-events-none]="$pending()?.total === 0"
+    [class.opacity-50]="$pending()?.total === 0"
+    [attr.aria-disabled]="$pending()?.total === 0">
+    <app-icon class="h-5 w-5">payments</app-icon>
+    <span class="hidden sm:inline">Liquidar propinas</span>
+    <span class="sm:hidden">Liquidar</span>
+  </a>
+</app-header-dashboard>
+
+<app-tips-help />
+
+<!-- Filtros de las pendientes -->
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Desde</span>
+    <input type="date" aria-label="Pendientes desde" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.from ?? ''" [max]="q.to ?? ''" (change)="onDate('from', $event)" />
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Hasta</span>
+    <input type="date" aria-label="Pendientes hasta" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.to ?? ''" [min]="q.from ?? ''" (change)="onDate('to', $event)" />
+  </label>
+  @if ($showLocations() || q.locationId) {
+  <select aria-label="Filtrar por local" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onLocation($event)">
+    <option value="" [selected]="!q.locationId">Todos los locales</option>
+    @for (location of $locationOptions(); track location.id) {
+    <option [value]="location.id" [selected]="q.locationId === location.id">{{ location.name }}</option>
+    }
+  </select>
+  }
+  @if ($hasPendingPeriod()) {
+  <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-center" (click)="clearPeriod()">Ver todas las pendientes</button>
+  }
+</div>
+
+<!-- Pendientes -->
+@if ($pendingError()) {
+<div class="glass mb-6 flex flex-col items-center gap-4 rounded-[1rem] px-4 py-10 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las propinas</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $pendingErrorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="pending.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3" [class.opacity-60]="pending.isLoading() && !!$pending()">
+  <section class="glass rounded-[1rem] p-5">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Propinas por pagar</p>
+    @if ($pending(); as p) {
+    <p class="text-foreground mt-1 text-3xl font-bold tabular-nums">{{ formatCurrency(p.total) }}</p>
+    <p class="text-muted-foreground text-xs">{{ p.payments }} {{ p.payments === 1 ? 'pago' : 'pagos' }} · {{ periodLabel(p.dateFrom, p.dateTo) }}</p>
+    @if (p.total > 0) {
+    <a
+      routerLink="/finance/tips/new"
+      [queryParams]="{ from: q.from, to: q.to, locationId: q.locationId }"
+      class="text-primary mt-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline">
+      Liquidar propinas
+      <app-icon class="h-4 w-4" aria-hidden="true">arrow_forward</app-icon>
+    </a>
+    } @else {
+    <p class="text-muted-foreground mt-3 text-sm">No hay propinas pendientes {{ $hasPendingPeriod() ? 'en este período' : '' }}.</p>
+    }
+    } @else {
+    <app-skeleton size="sm" class="mt-2" style="width: 60%" />
+    <app-skeleton size="xs" class="mt-2" style="width: 40%" />
+    }
+  </section>
+
+  <section class="glass overflow-hidden rounded-[1rem] lg:col-span-2">
+    <h2 class="text-foreground border-b border-[var(--border)] px-4 py-3 text-base font-semibold">Por mesero</h2>
+    @if ($pending(); as p) {
+    @if (!p.byWaiter.length && !p.unassigned.payments) {
+    <p class="text-muted-foreground px-4 py-8 text-center text-sm">Sin propinas pendientes.</p>
+    } @else {
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-2">Mesero</th>
+          <th class="px-4 py-2 text-right">Propinas</th>
+          <th class="px-4 py-2 text-right">Pagos</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (w of p.byWaiter; track w.userCode) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td class="text-foreground px-4 py-2.5 text-sm">{{ w.name ?? 'Sin nombre' }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(w.tips) }}</td>
+          <td class="text-muted-foreground px-4 py-2.5 text-right text-sm tabular-nums">{{ w.payments }}</td>
+        </tr>
+        }
+        @if (p.unassigned.payments > 0) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td class="text-muted-foreground px-4 py-2.5 text-sm italic">
+            Sin mesero
+            <span class="block text-xs not-italic">Pedidos sin mesero asignado</span>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-2.5 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(p.unassigned.tips) }}</td>
+          <td class="text-muted-foreground px-4 py-2.5 text-right text-sm tabular-nums">{{ p.unassigned.payments }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+    }
+    } @else {
+    <div class="space-y-3 p-4">
+      @for (row of skeletonRows; track row) { <app-skeleton size="xs" style="width: 80%" /> }
+    </div>
+    }
+  </section>
+</div>
+}
+
+<!-- Historial -->
+<section>
+  <div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <h2 class="text-foreground text-lg font-semibold">Liquidaciones</h2>
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground w-12">Desde</span>
+        <input type="date" aria-label="Pagadas desde" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.paidFrom ?? ''" [max]="q.paidTo ?? ''" (change)="onDate('paidFrom', $event)" />
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground w-12">Hasta</span>
+        <input type="date" aria-label="Pagadas hasta" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.paidTo ?? ''" [min]="q.paidFrom ?? ''" (change)="onDate('paidTo', $event)" />
+      </label>
+      <label class="text-foreground inline-flex items-center gap-2 text-sm">
+        <input type="checkbox" class="h-4 w-4" [checked]="q.cancelled" (change)="toggleCancelled($event)" />
+        Incluir anuladas
+      </label>
+      @if ($hasHistoryFilters()) {
+      <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-center" (click)="clearHistoryFilters()">Limpiar</button>
+      }
+    </div>
+  </div>
+
+  @if ($payoutsError()) {
+  <div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-10 text-center">
+    <p class="text-muted-foreground text-sm">{{ $payoutsErrorMessage() }}</p>
+    <app-button type="button" impact="bold" tone="primary" (buttonClick)="payouts.reload()">Reintentar</app-button>
+  </div>
+  } @else {
+  <div class="glass overflow-hidden rounded-[1rem]">
+    @if (payouts.isLoading()) {
+    <div class="divide-y divide-[var(--border)]">
+      @for (row of skeletonRows; track row) {
+      <div class="flex items-center gap-4 px-4 py-4">
+        <app-skeleton size="xs" style="width: 110px" />
+        <app-skeleton size="xs" style="width: 160px" />
+        <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+      </div>
+      }
+    </div>
+    } @else if (!$payoutsPage()?.data?.length) {
+    <div class="px-4 py-10 text-center">
+      <app-icon class="text-muted-foreground mx-auto h-10 w-10" aria-hidden="true">savings</app-icon>
+      <p class="text-foreground mt-2 font-medium">Sin liquidaciones</p>
+      <p class="text-muted-foreground mt-1 text-sm">
+        {{ $hasHistoryFilters() ? 'No hay liquidaciones que coincidan con los filtros.' : 'Cuando pagues propinas al equipo, aparecerán aquí.' }}
+      </p>
+    </div>
+    } @else {
+    <!-- Escritorio: tabla -->
+    <div class="hidden overflow-x-auto md:block">
+      <table class="min-w-full">
+        <thead>
+          <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+            <th class="px-4 py-3">Fecha</th>
+            <th class="px-4 py-3">Período</th>
+            @if ($showLocations()) { <th class="px-4 py-3">Local</th> }
+            <th class="px-4 py-3">Modo</th>
+            <th class="px-4 py-3 text-right">Total</th>
+            <th class="px-4 py-3">Medio</th>
+            <th class="px-4 py-3 text-right">Personas</th>
+            <th class="hidden px-4 py-3 lg:table-cell">Creado por</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of $payoutsPage()!.data; track item.id) {
+          <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" [class.opacity-60]="item.cancelled" (click)="openPayout(item.id)">
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
+              <a [routerLink]="['/finance/tips/payouts', item.id]" class="font-medium hover:underline" (click)="$event.stopPropagation()">{{ formatPaidAt(item.paidAt) }}</a>
+              @if (item.cancelled) {
+              <span class="ml-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Anulada</span>
+              }
+            </td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ periodLabel(item.dateFrom, item.dateTo) }}</td>
+            @if ($showLocations()) { <td class="text-muted-foreground px-4 py-3 text-sm">{{ item.locationName ?? 'Todos' }}</td> }
+            <td class="text-foreground px-4 py-3 text-sm">{{ modeLabels[item.mode] }}</td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums" [class.line-through]="item.cancelled">{{ formatCurrency(item.total) }}</td>
+            <td class="text-foreground px-4 py-3 text-sm">{{ methodLabels[item.method] ?? item.method }}</td>
+            <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">{{ item.people }}</td>
+            <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ item.createdByName ?? '—' }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Móvil: tarjetas -->
+    <ul class="divide-y divide-[var(--border)] md:hidden">
+      @for (item of $payoutsPage()!.data; track item.id) {
+      <li>
+        <a [routerLink]="['/finance/tips/payouts', item.id]" class="glass-row flex items-start gap-3 px-4 py-3" [class.opacity-60]="item.cancelled">
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground flex items-center gap-2 text-sm font-semibold">
+              {{ formatPaidAt(item.paidAt) }}
+              @if (item.cancelled) {
+              <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Anulada</span>
+              }
+            </p>
+            <p class="text-muted-foreground truncate text-xs">
+              {{ periodLabel(item.dateFrom, item.dateTo) }} · {{ modeLabels[item.mode] }}@if ($showLocations()) { · {{ item.locationName ?? 'Todos' }} }
+            </p>
+            <p class="text-muted-foreground truncate text-xs">
+              {{ methodLabels[item.method] ?? item.method }} · {{ item.people }} {{ item.people === 1 ? 'persona' : 'personas' }}
+            </p>
+          </div>
+          <p class="text-foreground whitespace-nowrap text-sm font-bold tabular-nums" [class.line-through]="item.cancelled">{{ formatCurrency(item.total) }}</p>
+        </a>
+      </li>
+      }
+    </ul>
+    }
+
+    @if ($payoutsPage()?.pagination; as meta) { @if (meta.totalItems > 0 && !payouts.isLoading()) {
+    <div class="border-t border-[var(--border)] px-4 pb-3">
+      <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+    </div>
+    } }
+  </div>
+  }
+</section>

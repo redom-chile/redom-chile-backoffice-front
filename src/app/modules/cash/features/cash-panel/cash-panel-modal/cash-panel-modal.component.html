@@ -73,6 +73,18 @@
           <p class="font-semibold tabular-nums text-green-700 dark:text-green-400">+{{ formatCurrency(totals.expenseRefunds ?? 0) }}</p>
         </div>
         }
+        @if ((totals.tipPayouts ?? 0) > 0) {
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Propinas pagadas</p>
+          <p class="font-semibold tabular-nums text-red-600 dark:text-red-400">−{{ formatCurrency(totals.tipPayouts ?? 0) }}</p>
+        </div>
+        }
+        @if ((totals.tipPayoutRefunds ?? 0) > 0) {
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Anulaciones de propinas</p>
+          <p class="font-semibold tabular-nums text-green-700 dark:text-green-400">+{{ formatCurrency(totals.tipPayoutRefunds ?? 0) }}</p>
+        </div>
+        }
         @if (session.cashExpected !== null) {
         <div class="bg-primary/10 text-primary rounded-lg p-2">
           <p class="text-xs">Efectivo esperado</p>

@@ -60,6 +60,9 @@ export class CashZReportComponent {
     // Pagos de gastos y compras en efectivo, y sus anulaciones (devuelven el efectivo).
     if (totals.expenses > 0) cards.push({ label: 'Gastos pagados', value: totals.expenses, tone: 'minus' });
     if ((totals.expenseRefunds ?? 0) > 0) cards.push({ label: 'Anulaciones de gastos', value: totals.expenseRefunds ?? 0, tone: 'plus' });
+    // Propinas pagadas al equipo desde la caja, y sus anulaciones.
+    if ((totals.tipPayouts ?? 0) > 0) cards.push({ label: 'Propinas pagadas', value: totals.tipPayouts ?? 0, tone: 'minus' });
+    if ((totals.tipPayoutRefunds ?? 0) > 0) cards.push({ label: 'Anulaciones de propinas', value: totals.tipPayoutRefunds ?? 0, tone: 'plus' });
     return cards;
   });
 

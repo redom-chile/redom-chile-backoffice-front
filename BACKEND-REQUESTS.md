@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
@@ -302,6 +302,23 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Limpieza periódica de archivos no asociados.
 
 **Front mientras tanto:** pagina con `perPage`; envía el registro completo al pausar o editar recurrentes y gastos; arma la cabecera de la compra con el listado de cuentas por pagar o con el router state.
+
+### 45. 🟡 Propinas y comisiones: ajustes de la fase 3
+
+**Problema:**
+- El prompt del front decía `page` y `limit` para `GET /tips/payouts`, pero el backend usa `perPage` (`limit` se descarta). El front usa `perPage`.
+- En `POST /tips/payouts`, `locationId` sirve a la vez para filtrar las propinas y para elegir la caja de un pago en efectivo: con caja activa y varios locales no se puede pagar en efectivo propinas de todos los locales.
+- Varios 400 no traen código (modo `points` sin participantes, participante repetido, `dateFrom > dateTo`, "Cash payouts need the cash register…"); el front los reconoce por el texto.
+- La comisión y la fecha de abono se calculan al vuelo con la configuración actual: cambiar una comisión cambia el historial. Los días hábiles no consideran feriados.
+- `GET /tips/payouts/:id` deja `payments` en 0 después de anular, así que no se ve cuántos pagos cubría.
+
+**Se pide:**
+- Separar el local de las propinas (`locationId`) de la caja (`cashRegisterId` basta para el efectivo), o permitir `cashRegisterId` sin restringir el período a su local.
+- Códigos de negocio para esos 400 (`TIP_PARTICIPANTS_REQUIRED`, `TIP_PARTICIPANT_REPEATED`, `INVALID_DATE_RANGE`).
+- Guardar la comisión y la fecha de abono por pago al cobrar (o versionar la configuración), y feriados de Chile en los días hábiles.
+- Mantener en el detalle de una liquidación anulada cuántos pagos cubría.
+
+**Front mientras tanto:** pagina con `perPage`; con caja activa y varios locales pide elegir el local para pagar en efectivo; muestra comisiones y abonos como estimados.
 
 ---
 

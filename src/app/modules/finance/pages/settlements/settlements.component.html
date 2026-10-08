@@ -1,0 +1,320 @@
+@let q = $query();
+<app-header-dashboard
+  title="Plata por llegar"
+  subtitle="Lo cobrado con tarjeta y transferencia, descontada la comisión, y cuándo llega al banco.">
+  <a
+    routerLink="/settings/payment-methods"
+    class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium"
+    title="Configurar comisiones">
+    <app-icon class="h-5 w-5">tune</app-icon>
+    <span class="hidden sm:inline">Comisiones</span>
+  </a>
+</app-header-dashboard>
+
+<!-- Filtros -->
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Desde</span>
+    <input
+      type="date"
+      aria-label="Pagos desde"
+      class="glass-input min-w-0 flex-1 rounded-md px-3 py-2"
+      [value]="$dateFrom()"
+      [max]="$dateTo()"
+      (change)="onDate('from', $event)" />
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Hasta</span>
+    <input
+      type="date"
+      aria-label="Pagos hasta"
+      class="glass-input min-w-0 flex-1 rounded-md px-3 py-2"
+      [value]="$dateTo()"
+      [min]="$dateFrom()"
+      (change)="onDate('to', $event)" />
+  </label>
+  <select aria-label="Filtrar por medio de pago" class="glass-input rounded-md px-3 py-2" (change)="onMethod($event)">
+    <option value="" [selected]="!q.method">Todos los medios</option>
+    @for (method of methods; track method) {
+    <option [value]="method" [selected]="q.method === method">{{ methodLabels[method] }}</option>
+    }
+  </select>
+  @if ($showLocations() || q.locationId) {
+  <select aria-label="Filtrar por local" class="glass-input rounded-md px-3 py-2" (change)="onLocation($event)">
+    <option value="" [selected]="!q.locationId">Todos los locales</option>
+    @for (location of $locationOptions(); track location.id) {
+    <option [value]="location.id" [selected]="q.locationId === location.id">{{ location.name }}</option>
+    }
+  </select>
+  }
+</div>
+<div class="-mt-1 mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+  <p class="text-muted-foreground">
+    Pagos {{ q.from || q.to ? 'del período elegido' : 'de los últimos 30 días' }}. Sin efectivo ni pagos anulados.
+  </p>
+  @if ($hasFilters()) {
+  <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="clearFilters()">
+    Limpiar filtros
+  </button>
+  }
+</div>
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar la plata por llegar</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="settlements.reload()">Reintentar</app-button>
+</div>
+} @else if ($isFirstLoad()) {
+<div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+  @for (card of [1, 2, 3, 4, 5]; track card) {
+  <div class="glass rounded-[1rem] p-4"><app-skeleton size="sm" style="width: 70%" /></div>
+  }
+</div>
+<div class="glass divide-[var(--border)] divide-y rounded-[1rem]">
+  @for (row of skeletonRows; track row) {
+  <div class="flex items-center gap-4 px-4 py-4">
+    <app-skeleton size="xs" style="width: 90px" />
+    <app-skeleton size="xs" style="width: 140px" />
+    <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+  </div>
+  }
+</div>
+} @else if ($data(); as data) {
+<div [class.opacity-60]="settlements.isLoading()">
+  <!-- Resumen -->
+  @let t = data.totals;
+  <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <div class="glass rounded-[1rem] p-4">
+      <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Cobrado (bruto)</p>
+      <p class="text-foreground mt-1 text-xl font-bold tabular-nums sm:text-2xl">{{ formatCurrency(t.gross) }}</p>
+      <p class="text-muted-foreground text-xs">
+        {{ t.payments }} {{ t.payments === 1 ? 'pago' : 'pagos' }} · con propina
+      </p>
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Comisiones</p>
+      <p class="mt-1 text-xl font-bold tabular-nums text-red-600 dark:text-red-400 sm:text-2xl">
+        @if (t.fees) { − }{{ formatCurrency(t.fees) }}
+      </p>
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Neto</p>
+      <p class="text-foreground mt-1 text-xl font-bold tabular-nums sm:text-2xl">{{ formatCurrency(t.net) }}</p>
+    </div>
+    <div class="border-primary/40 bg-primary/10 rounded-[1rem] border p-4">
+      <p class="text-primary text-xs font-semibold uppercase tracking-wider">Por llegar</p>
+      <p class="text-primary mt-1 text-xl font-bold tabular-nums sm:text-2xl">{{ formatCurrency(t.pendingNet) }}</p>
+      <p class="text-muted-foreground text-xs">Abono después de hoy</p>
+    </div>
+    <div class="glass col-span-2 rounded-[1rem] p-4 lg:col-span-1">
+      <p class="text-xs font-medium uppercase tracking-wider text-green-700 dark:text-green-400">Ya abonado</p>
+      <p class="text-foreground mt-1 text-xl font-bold tabular-nums sm:text-2xl">{{ formatCurrency(t.settledNet) }}</p>
+      <p class="text-muted-foreground text-xs">Hasta hoy, {{ formatDay(data.today) }}</p>
+    </div>
+  </div>
+
+  <p class="text-muted-foreground mb-4 flex items-start gap-2 text-xs">
+    <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+    <span>
+      Estimado según la comisión configurada; puede diferir de la cartola. Revisa los valores en
+      <a routerLink="/settings/payment-methods" class="text-primary font-medium hover:underline"
+        >Configuración → Medios de pago</a
+      >.
+    </span>
+  </p>
+
+  @if ($isEmpty()) {
+  <div class="glass rounded-[1rem] px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground mx-auto h-10 w-10" aria-hidden="true">account_balance</app-icon>
+    <p class="text-foreground mt-2 font-medium">Sin pagos con tarjeta ni transferencia</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{
+        $hasFilters()
+          ? 'No hay pagos que coincidan con los filtros.'
+          : 'En los últimos 30 días no hay cobros con débito, crédito, transferencia u otro medio.'
+      }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters()">
+      Limpiar filtros
+    </button>
+    }
+  </div>
+  } @else {
+  <!-- Por medio -->
+  <h2 class="text-foreground mb-2 font-semibold">Por medio de pago</h2>
+  <div class="glass mb-6 overflow-hidden rounded-[1rem]">
+    <div class="hidden overflow-x-auto md:block">
+      <table class="min-w-full">
+        <thead>
+          <tr
+            class="text-muted-foreground border-[var(--border)] border-b text-left text-xs font-medium uppercase tracking-wider">
+            <th class="px-4 py-3">Medio</th>
+            <th class="px-4 py-3 text-right">Pagos</th>
+            <th class="px-4 py-3 text-right">Bruto</th>
+            <th class="px-4 py-3 text-right">Comisión</th>
+            <th class="px-4 py-3 text-right">Neto</th>
+            <th class="px-4 py-3 text-right">Por llegar</th>
+            <th class="px-4 py-3 text-right">Abonado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of data.byMethod; track row.method) {
+          <tr class="border-[var(--border)] border-b last:border-0">
+            <td class="text-foreground px-4 py-3 text-sm font-medium">{{ methodLabels[row.method] ?? row.method }}</td>
+            <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">{{ row.payments }}</td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+              {{ formatCurrency(row.gross) }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-red-600 dark:text-red-400">
+              @if (row.fees) { − }{{ formatCurrency(row.fees) }}
+            </td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">
+              {{ formatCurrency(row.net) }}
+            </td>
+            <td class="text-primary whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">
+              {{ formatCurrency(row.pendingNet) }}
+            </td>
+            <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+              {{ formatCurrency(row.settledNet) }}
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <ul class="divide-[var(--border)] divide-y md:hidden">
+      @for (row of data.byMethod; track row.method) {
+      <li class="px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-foreground text-sm font-semibold">
+            {{ methodLabels[row.method] ?? row.method }}
+            <span class="text-muted-foreground text-xs font-normal">({{ row.payments }})</span>
+          </p>
+          <p class="text-foreground text-sm font-bold tabular-nums">{{ formatCurrency(row.net) }}</p>
+        </div>
+        <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+          <dt class="text-muted-foreground">Bruto</dt>
+          <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(row.gross) }}</dd>
+          <dt class="text-muted-foreground">Comisión</dt>
+          <dd class="text-right tabular-nums text-red-600 dark:text-red-400">
+            @if (row.fees) { − }{{ formatCurrency(row.fees) }}
+          </dd>
+          <dt class="text-muted-foreground">Por llegar</dt>
+          <dd class="text-primary text-right font-semibold tabular-nums">{{ formatCurrency(row.pendingNet) }}</dd>
+          <dt class="text-muted-foreground">Abonado</dt>
+          <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(row.settledNet) }}</dd>
+        </dl>
+      </li>
+      }
+    </ul>
+  </div>
+
+  <!-- Por fecha de abono -->
+  <h2 class="text-foreground mb-2 font-semibold">Por fecha de abono</h2>
+  <div class="glass overflow-hidden rounded-[1rem]">
+    <div class="hidden overflow-x-auto md:block">
+      <table class="min-w-full">
+        <thead>
+          <tr
+            class="text-muted-foreground border-[var(--border)] border-b text-left text-xs font-medium uppercase tracking-wider">
+            <th class="px-4 py-3">Fecha de abono</th>
+            <th class="px-4 py-3">Medio</th>
+            <th class="px-4 py-3 text-right">Pagos</th>
+            <th class="px-4 py-3 text-right">Bruto</th>
+            <th class="px-4 py-3 text-right">Comisión</th>
+            <th class="px-4 py-3 text-right">Neto</th>
+            <th class="px-4 py-3">Estado</th>
+          </tr>
+        </thead>
+        @for (day of $days(); track day.date) {
+        <tbody class="border-[var(--border)] border-b last:border-0">
+          @for (row of day.rows; track row.method; let first = $first) {
+          <tr>
+            <td class="text-foreground whitespace-nowrap px-4 py-2 text-sm font-medium">
+              {{ first ? formatDay(day.date) : '' }}
+            </td>
+            <td class="text-foreground px-4 py-2 text-sm">{{ methodLabels[row.method] ?? row.method }}</td>
+            <td class="text-muted-foreground px-4 py-2 text-right text-sm tabular-nums">{{ row.payments }}</td>
+            <td class="text-foreground whitespace-nowrap px-4 py-2 text-right text-sm tabular-nums">
+              {{ formatCurrency(row.gross) }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-2 text-right text-sm tabular-nums text-red-600 dark:text-red-400">
+              @if (row.fees) { − }{{ formatCurrency(row.fees) }}
+            </td>
+            <td class="text-foreground whitespace-nowrap px-4 py-2 text-right text-sm font-semibold tabular-nums">
+              {{ formatCurrency(row.net) }}
+            </td>
+            <td class="px-4 py-2">
+              @if (first) {
+              <ng-container *ngTemplateOutlet="statusTpl; context: { $implicit: day.settled }" />
+              }
+            </td>
+          </tr>
+          } @if (day.rows.length > 1) {
+          <tr class="bg-gray-500/5">
+            <td class="text-muted-foreground px-4 py-2 text-xs font-medium" colspan="2">Total del día</td>
+            <td class="text-muted-foreground px-4 py-2 text-right text-xs tabular-nums">{{ day.payments }}</td>
+            <td class="text-foreground whitespace-nowrap px-4 py-2 text-right text-xs tabular-nums">
+              {{ formatCurrency(day.gross) }}
+            </td>
+            <td class="whitespace-nowrap px-4 py-2 text-right text-xs tabular-nums text-red-600 dark:text-red-400">
+              @if (day.fees) { − }{{ formatCurrency(day.fees) }}
+            </td>
+            <td class="text-foreground whitespace-nowrap px-4 py-2 text-right text-sm font-bold tabular-nums">
+              {{ formatCurrency(day.net) }}
+            </td>
+            <td></td>
+          </tr>
+          }
+        </tbody>
+        }
+      </table>
+    </div>
+    <ul class="divide-[var(--border)] divide-y md:hidden">
+      @for (day of $days(); track day.date) {
+      <li class="px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-foreground text-sm font-semibold">{{ formatDay(day.date) }}</p>
+          <ng-container *ngTemplateOutlet="statusTpl; context: { $implicit: day.settled }" />
+        </div>
+        <ul class="mt-1 space-y-0.5 text-xs">
+          @for (row of day.rows; track row.method) {
+          <li class="flex justify-between gap-3">
+            <span class="text-muted-foreground">
+              {{ methodLabels[row.method] ?? row.method }} ({{ row.payments }}) · bruto
+              {{ formatCurrency(row.gross) }} · com. {{ formatCurrency(row.fees) }}
+            </span>
+            <span class="text-foreground shrink-0 tabular-nums">{{ formatCurrency(row.net) }}</span>
+          </li>
+          }
+        </ul>
+        <p class="border-[var(--border)] mt-1 flex justify-between gap-3 border-t pt-1 text-sm">
+          <span class="text-muted-foreground">Neto del día</span>
+          <span class="text-foreground font-bold tabular-nums">{{ formatCurrency(day.net) }}</span>
+        </p>
+      </li>
+      }
+    </ul>
+  </div>
+  }
+</div>
+}
+
+<ng-template #statusTpl let-settled>
+  @if (settled) {
+  <span
+    class="bg-green-500/15 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400"
+    >Abonado</span
+  >
+  } @else {
+  <span
+    class="bg-amber-500/15 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400"
+    >Por llegar</span
+  >
+  }
+</ng-template>

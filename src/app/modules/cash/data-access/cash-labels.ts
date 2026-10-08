@@ -16,11 +16,13 @@ export const CASH_MOVEMENT_LABELS: Record<CashMovementType, string> = {
   cash_out: 'Retiro de efectivo',
   expense: 'Pago de gasto o compra',
   expense_refund: 'Anulación de pago de gasto',
+  tip_payout: 'Pago de propinas',
+  tip_payout_refund: 'Anulación de pago de propinas',
 };
 
 /** Signo con que el movimiento afecta la caja. */
 export function cashMovementSign(type: CashMovementType): 1 | -1 {
-  return type === 'opening' || type === 'sale' || type === 'cash_in' || type === 'expense_refund' ? 1 : -1;
+  return type === 'opening' || type === 'sale' || type === 'cash_in' || type === 'expense_refund' || type === 'tip_payout_refund' ? 1 : -1;
 }
 
 /** Billetes y monedas de Chile para el arqueo. */

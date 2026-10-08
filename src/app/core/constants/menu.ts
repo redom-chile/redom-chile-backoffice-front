@@ -65,6 +65,8 @@ export class Menu {
           children: [
             { label: 'Gastos', route: '/finance/expenses' },
             { label: 'Cuentas por pagar', route: '/finance/payables' },
+            { label: 'Propinas', route: '/finance/tips' },
+            { label: 'Plata por llegar', route: '/finance/settlements' },
             { label: 'Gastos recurrentes', route: '/finance/recurring' },
             { label: 'Categorías de gasto', route: '/finance/categories' },
           ],
@@ -177,6 +179,7 @@ export class Menu {
             { label: 'Horarios', route: '/settings/schedules' },
             { label: 'Estaciones', route: '/settings/stations' },
             { label: 'Impresoras', route: '/settings/printers' },
+            { label: 'Medios de pago', route: '/settings/payment-methods' },
             { label: 'Cajas', route: '/settings/registers' },
             { label: 'Estación de impresión', route: '/settings/print-station' },
             { label: 'Terminal de salón', route: '/settings/terminal' },

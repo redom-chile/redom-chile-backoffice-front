@@ -9,6 +9,10 @@ import {
   PayablesComponent,
   PurchasePaymentsComponent,
   RecurringExpensesComponent,
+  SettlementsComponent,
+  TipPayoutDetailComponent,
+  TipPayoutNewComponent,
+  TipsComponent,
 } from './pages';
 
 const routes: Routes = [
@@ -27,6 +31,13 @@ const routes: Routes = [
       { path: 'payables', component: PayablesComponent },
       // Pagos de una compra de inventario (id = documento de compra).
       { path: 'purchases/:id', component: PurchasePaymentsComponent },
+      // Query params opcionales: from, to, locationId, paidFrom, paidTo, cancelled, page.
+      { path: 'tips', component: TipsComponent, pathMatch: 'full' },
+      // Query params opcionales: from, to, locationId.
+      { path: 'tips/new', component: TipPayoutNewComponent },
+      { path: 'tips/payouts/:id', component: TipPayoutDetailComponent },
+      // Query params opcionales: from, to, locationId, method.
+      { path: 'settlements', component: SettlementsComponent },
       { path: 'recurring', component: RecurringExpensesComponent },
       { path: 'categories', component: ExpenseCategoriesComponent },
     ],
