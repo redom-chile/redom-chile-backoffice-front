@@ -24,8 +24,14 @@
       </h1>
     </div>
     <div class="sm:text-right">
+      @if (header.type === 'purchase' && !header.partial) {
+      <p class="text-muted-foreground text-xs">Total con IVA</p>
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatMoney(header.totalCost + header.vatAmount) }}</p>
+      <p class="text-muted-foreground text-xs tabular-nums">Neto {{ formatMoney(header.totalCost) }} · IVA {{ formatMoney(header.vatAmount) }}</p>
+      } @else {
       <p class="text-muted-foreground text-xs">{{ $totalLabel() }}</p>
       <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatMoney(header.totalCost) }}</p>
+      }
     </div>
   </div>
 
@@ -64,6 +70,28 @@
       <dt class="text-muted-foreground text-xs">N° factura</dt>
       <dd class="text-foreground font-mono">{{ header.referenceNo ?? '—' }}</dd>
     </div>
+    @if (header.paymentStatus) {
+    <div>
+      <dt class="text-muted-foreground text-xs">Pago</dt>
+      <dd class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" [class]="paymentClasses[header.paymentStatus]">
+          {{ paymentLabels[header.paymentStatus] }}
+        </span>
+        @if (header.paymentStatus !== 'paid') {
+        <span class="text-muted-foreground text-xs tabular-nums">Saldo {{ formatMoney($purchaseBalance()) }}</span>
+        }
+      </dd>
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">Vence</dt>
+      <dd [class]="$isPurchaseOverdue() ? 'font-medium text-red-600 dark:text-red-400' : 'text-foreground'">
+        {{ header.dueDate ? formatDate(header.dueDate) : '—' }}
+        @if ($isPurchaseOverdue()) {
+        <span class="text-xs">· vencida</span>
+        }
+      </dd>
+    </div>
+    }
     @if (header.purchaseOrderId) {
     <div>
       <dt class="text-muted-foreground text-xs">Recepción de</dt>
@@ -91,6 +119,28 @@
     </div>
     }
   </dl>
+
+  @if (header.type === 'purchase' && header.paymentStatus) {
+  <div class="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+    @if (header.paymentStatus !== 'paid') {
+    <a
+      [routerLink]="['/finance/purchases', $id()]"
+      class="bg-primary text-primary-foreground inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold hover:opacity-90">
+      <app-icon class="h-5 w-5">payments</app-icon>Pagar
+    </a>
+    }
+    @if (header.paymentStatus !== 'pending' || header.paidAmount > 0) {
+    <a
+      [routerLink]="['/finance/purchases', $id()]"
+      class="glass-input text-primary inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-medium">
+      <app-icon class="h-5 w-5">receipt_long</app-icon>Ver pagos
+    </a>
+    }
+    <a routerLink="/finance/payables" class="text-primary inline-flex items-center justify-center gap-1 px-2 py-2 text-sm font-medium hover:underline">
+      Cuentas por pagar
+    </a>
+  </div>
+  }
 
   @if (header.partial && !$isHeaderLoading()) {
   <p class="text-muted-foreground mt-3 text-xs">No encontramos todos los datos de la cabecera; se muestran los que vienen en los movimientos.</p>

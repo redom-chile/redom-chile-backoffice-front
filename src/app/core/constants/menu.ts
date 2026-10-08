@@ -59,6 +59,17 @@ export class Menu {
           ],
         },
         {
+          icon: 'account_balance_wallet',
+          label: 'Finanzas',
+          route: '/finance',
+          children: [
+            { label: 'Gastos', route: '/finance/expenses' },
+            { label: 'Cuentas por pagar', route: '/finance/payables' },
+            { label: 'Gastos recurrentes', route: '/finance/recurring' },
+            { label: 'Categorías de gasto', route: '/finance/categories' },
+          ],
+        },
+        {
           icon: 'inventory',
           label: 'Inventario',
           route: '/inventory',

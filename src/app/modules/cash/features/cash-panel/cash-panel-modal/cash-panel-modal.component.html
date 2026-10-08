@@ -61,6 +61,18 @@
           <p class="text-muted-foreground text-xs">Retiros</p>
           <p class="text-foreground font-semibold tabular-nums">{{ formatCurrency(totals.cashOut) }}</p>
         </div>
+        @if (totals.expenses > 0) {
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Gastos pagados</p>
+          <p class="font-semibold tabular-nums text-red-600 dark:text-red-400">−{{ formatCurrency(totals.expenses) }}</p>
+        </div>
+        }
+        @if ((totals.expenseRefunds ?? 0) > 0) {
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-muted-foreground text-xs">Anulaciones de gastos</p>
+          <p class="font-semibold tabular-nums text-green-700 dark:text-green-400">+{{ formatCurrency(totals.expenseRefunds ?? 0) }}</p>
+        </div>
+        }
         @if (session.cashExpected !== null) {
         <div class="bg-primary/10 text-primary rounded-lg p-2">
           <p class="text-xs">Efectivo esperado</p>

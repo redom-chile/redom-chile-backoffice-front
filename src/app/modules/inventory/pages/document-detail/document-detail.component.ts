@@ -21,7 +21,11 @@ import { InventoryDisabledComponent } from '../../ui';
 import {
   formatDateTimeFull,
   formatDocumentDate,
+  isPurchaseOverdue,
   LoadErrorComponent,
+  PURCHASE_PAYMENT_CLASSES,
+  PURCHASE_PAYMENT_LABELS,
+  PurchasePaymentStatus,
   MovementsTableComponent,
   productLabel,
   resultError,
@@ -50,6 +54,11 @@ type DocumentHeader = Readonly<{
   createdAt: string | null;
   // Compras que vienen de una orden de compra.
   purchaseOrderId: number | null;
+  // Compras: IVA, lo pagado, estado de pago y vencimiento (null si no vino la cabecera).
+  vatAmount: number;
+  paidAmount: number;
+  paymentStatus: PurchasePaymentStatus | null;
+  dueDate: string | null;
   partial: boolean;
 }>;
 
@@ -106,6 +115,10 @@ function fromDocument(document: InventoryDocumentDto): DocumentHeader {
     createdBy: document.createdByName || document.createdBy,
     createdAt: document.createdAt,
     purchaseOrderId: document.purchaseOrderId ?? null,
+    vatAmount: Number(document.vatAmount ?? 0),
+    paidAmount: Number(document.paidAmount ?? 0),
+    paymentStatus: document.paymentStatus ?? null,
+    dueDate: document.dueDate ?? null,
     partial: false,
   };
 }
@@ -136,6 +149,10 @@ function fromMovements(movements: readonly StockMovementDto[]): DocumentHeader |
     createdBy: first.createdByName || first.createdBy,
     createdAt: first.createdAt,
     purchaseOrderId: null,
+    vatAmount: 0,
+    paidAmount: 0,
+    paymentStatus: null,
+    dueDate: null,
     partial: true,
   };
 }
@@ -188,6 +205,9 @@ export class DocumentDetailComponent {
   readonly formatDateTime = formatDateTimeFull;
   readonly formatQuantity = formatQuantity;
   readonly formatUnitCost = formatUnitCost;
+  readonly formatDate = formatDocumentDate;
+  readonly paymentLabels = PURCHASE_PAYMENT_LABELS;
+  readonly paymentClasses = PURCHASE_PAYMENT_CLASSES;
 
   readonly $id = toSignal(this.#route.paramMap.pipe(map((params) => Number(params.get('id')))), {
     initialValue: Number(this.#route.snapshot.paramMap.get('id')),
@@ -209,7 +229,12 @@ export class DocumentDetailComponent {
   // Sin state de navegación (ej. al llegar desde el kardex o recargar), se busca la cabecera.
   readonly #searchedDocument = rxResource({
     params: () => {
-      if (this.$stateDocument()) return undefined;
+      const state = this.$stateDocument();
+      // Las compras se vuelven a buscar: el estado de pago puede haber cambiado (ej. al volver de pagarla).
+      if (state) {
+        if (state.type !== 'purchase') return undefined;
+        return { id: state.id, filters: { type: 'purchase', locationId: state.locationId } as InventoryDocumentFiltersDto };
+      }
       const first = this.$lines()[0];
       if (!first) return undefined;
       const type = typeFromMovements(this.$lines());
@@ -221,7 +246,7 @@ export class DocumentDetailComponent {
 
   readonly $isHeaderLoading = computed(() => this.movements.isLoading() || this.#searchedDocument.isLoading());
   readonly $header = computed<DocumentHeader | null>(() => {
-    const document = this.$stateDocument() ?? this.#searchedDocument.value() ?? null;
+    const document = this.#searchedDocument.value() ?? this.$stateDocument() ?? null;
     return document ? fromDocument(document) : fromMovements(this.$lines());
   });
   readonly #back = computed(() => {
@@ -246,6 +271,14 @@ export class DocumentDetailComponent {
   readonly $totalLabel = computed(() => {
     const type = this.$header()?.type;
     return type === 'count' ? 'Valor ajustado' : type === 'transfer' || type === 'production' ? 'Costo total' : 'Total';
+  });
+  readonly $isPurchaseOverdue = computed(() => {
+    const header = this.$header();
+    return !!header && header.type === 'purchase' && isPurchaseOverdue(header);
+  });
+  readonly $purchaseBalance = computed(() => {
+    const header = this.$header();
+    return header ? Math.max(0, header.totalCost + header.vatAmount - header.paidAmount) : 0;
   });
   readonly $hasMoreLines = computed(() => (this.$page()?.pagination.totalItems ?? 0) > LINES_PER_PAGE);
 

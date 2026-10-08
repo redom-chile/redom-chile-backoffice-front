@@ -126,6 +126,11 @@ export type InventoryDocumentDto = Readonly<{
   createdByName?: string | null;
   // Compras que vienen de una orden de compra.
   purchaseOrderId?: number | null;
+  // Compras: IVA de la factura, lo pagado, estado de pago y vencimiento (0/null en otros documentos).
+  vatAmount?: number;
+  paidAmount?: number;
+  paymentStatus?: 'pending' | 'partial' | 'paid' | null;
+  dueDate?: string | null;
   createdAt: string;
 }>;
 
@@ -148,6 +153,12 @@ export type CreatePurchaseDto = Readonly<{
   documentDate?: string | null;
   notes?: string | null;
   lines: CreatePurchaseLineDto[];
+  // IVA de la factura del proveedor: se suma al costo neto en la deuda.
+  vatAmount?: number | null;
+  // Por defecto, fecha + condiciones de pago del proveedor.
+  dueDate?: string | null;
+  // "Pagada al contado": paga el total (efectivo con la caja activa sale del turno).
+  payment?: Readonly<{ method: 'cash' | 'debit' | 'credit' | 'transfer' | 'other'; cashRegisterId?: number; reference?: string }>;
 }>;
 
 export type InventoryMovementSummaryDto = Readonly<{
@@ -160,8 +171,14 @@ export type InventoryMovementSummaryDto = Readonly<{
 
 export type InventoryDocumentResultDto = Readonly<{
   documentId: number;
+  // Neto.
   totalCost: number;
   movements: InventoryMovementSummaryDto[];
+  // Solo compras.
+  vatAmount?: number;
+  dueDate?: string | null;
+  paymentStatus?: 'pending' | 'partial' | 'paid' | null;
+  paymentId?: number | null;
 }>;
 
 // ---------- Ajustes: POST /inventory/adjustments ----------

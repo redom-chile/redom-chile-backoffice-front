@@ -63,6 +63,11 @@ const routes: Routes = [
     loadChildren: () => import('../cash/cash.routes'),
   },
   {
+    path: 'finance',
+    component: LayoutComponent,
+    loadChildren: () => import('../finance/finance.routes'),
+  },
+  {
     path: 'products',
     component: LayoutComponent,
     loadChildren: () => import('../products/products.routes'),

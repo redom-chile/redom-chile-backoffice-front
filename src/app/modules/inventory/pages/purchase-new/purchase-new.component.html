@@ -110,6 +110,91 @@
         [preselectVariationId]="preselectVariationId" />
     </section>
 
+    <!-- Total, IVA y pago -->
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Total y pago</h2>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="space-y-3">
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="text-muted-foreground">Neto (suma de los ítems)</span>
+            <span class="text-foreground font-medium tabular-nums">{{ formatMoney($netTotal()) }}</span>
+          </div>
+
+          <div>
+            <label for="purchase-vat" class="mb-1 block text-sm font-medium">IVA de la factura (se suma al neto)</label>
+            <input
+              id="purchase-vat"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="any"
+              formControlName="vatAmount"
+              class="glass-input w-full rounded-md px-3 py-2 text-right tabular-nums"
+              [class.border-red-500]="form.controls.vatAmount.invalid && ($submitted() || form.controls.vatAmount.touched)" />
+            @if (form.controls.vatAmount.invalid && ($submitted() || form.controls.vatAmount.touched)) {
+            <p class="text-destructive mt-1 text-xs">El IVA no puede ser negativo.</p>
+            } @else {
+            <p class="text-muted-foreground mt-1 text-xs">
+              Sugerido: {{ formatMoney($suggestedVat()) }} ({{ $vatRate() }} % del neto). Usa 0 si la factura es exenta.
+              @if ($vatAmount() !== $suggestedVat()) {
+              <button type="button" class="text-primary ml-1 font-medium hover:underline" (click)="resetVat()">Usar sugerido</button>
+              }
+            </p>
+            }
+          </div>
+
+          <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+            <span class="text-foreground font-semibold">Total con IVA</span>
+            <span class="text-foreground text-xl font-bold tabular-nums">{{ formatMoney($grossTotal()) }}</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label for="purchase-due" class="mb-1 block text-sm font-medium">Vence</label>
+            <input id="purchase-due" type="date" formControlName="dueDate" class="glass-input w-full rounded-md px-3 py-2" />
+            <p class="text-muted-foreground mt-1 text-xs">{{ $dueHint() }}</p>
+          </div>
+
+          <div class="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] p-3">
+            <div>
+              <p class="text-foreground text-sm font-medium">Pagada ahora</p>
+              <p class="text-muted-foreground text-xs">
+                {{ $paidNow() ? 'Se registra el pago del total con IVA.' : 'Queda pendiente: se paga después en Cuentas por pagar.' }}
+              </p>
+            </div>
+            <app-toggle aria-label="Pagada ahora" [checked]="$paidNow()" [disabled]="$isSaving()" (changed)="setPaidNow($event)" />
+          </div>
+
+          @if ($paidNow()) {
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label for="purchase-method" class="mb-1 block text-sm font-medium">Medio de pago</label>
+              <select id="purchase-method" formControlName="paymentMethod" class="glass-input w-full rounded-md px-3 py-2">
+                @for (method of paymentMethods; track method) {
+                <option [ngValue]="method">{{ paymentMethodLabels[method] }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label for="purchase-payment-ref" class="mb-1 block text-sm font-medium">Referencia</label>
+              <input
+                id="purchase-payment-ref"
+                type="text"
+                maxlength="100"
+                formControlName="paymentReference"
+                placeholder="Opcional. Ej: N° de transferencia"
+                class="glass-input w-full rounded-md px-3 py-2" />
+            </div>
+            @if (form.controls.paymentMethod.value === 'cash') {
+            <p class="text-muted-foreground text-xs sm:col-span-2">Si usas la caja, el efectivo sale del turno abierto de este local.</p>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </section>
+
     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <a
         routerLink="/inventory/purchases"

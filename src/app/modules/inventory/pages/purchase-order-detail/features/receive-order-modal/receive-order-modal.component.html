@@ -33,6 +33,36 @@
         <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
         }
       </div>
+      <div>
+        <label for="receive-vat" class="mb-1 block text-sm font-medium">IVA de la factura (se suma al neto)</label>
+        <input
+          id="receive-vat"
+          type="number"
+          inputmode="decimal"
+          min="0"
+          step="any"
+          formControlName="vatAmount"
+          class="glass-input w-full rounded-md px-3 py-2 text-right tabular-nums"
+          [class.border-red-500]="header.controls.vatAmount.invalid && ($submitted() || header.controls.vatAmount.touched)" />
+        @if (header.controls.vatAmount.invalid && ($submitted() || header.controls.vatAmount.touched)) {
+        <p class="text-destructive mt-1 text-xs">El IVA no puede ser negativo.</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">
+          Sugerido: {{ formatMoney($suggestedVat()) }} ({{ $vatRate() }} %).
+          @if ($vatAmount() !== $suggestedVat()) {
+          <button type="button" class="text-primary ml-1 font-medium hover:underline" (click)="resetVat()">Usar sugerido</button>
+          }
+        </p>
+        }
+      </div>
+      <div>
+        <label for="receive-due" class="mb-1 block text-sm font-medium">Vence</label>
+        <input id="receive-due" type="date" formControlName="dueDate" class="glass-input w-full rounded-md px-3 py-2" />
+        <p class="text-muted-foreground mt-1 text-xs">Opcional. Vacío = según las condiciones de pago del proveedor.</p>
+      </div>
+      <p class="text-muted-foreground flex items-start gap-1 text-xs sm:col-span-2">
+        La recepción queda como deuda con el proveedor: se paga después en Cuentas por pagar.
+      </p>
       <div class="sm:col-span-2">
         <label for="receive-notes" class="mb-1 block text-sm font-medium">Notas</label>
         <textarea
@@ -153,8 +183,9 @@
   <ng-template app-slot="footer">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-muted-foreground text-sm">
-        {{ $included().length }} {{ $included().length === 1 ? 'línea' : 'líneas' }} ·
-        <span class="text-foreground font-semibold tabular-nums">{{ formatMoney($total()) }}</span>
+        {{ $included().length }} {{ $included().length === 1 ? 'línea' : 'líneas' }} · Neto
+        <span class="tabular-nums">{{ formatMoney($total()) }}</span> · Total con IVA
+        <span class="text-foreground font-semibold tabular-nums">{{ formatMoney($grossTotal()) }}</span>
       </p>
       <div class="flex justify-end gap-3">
         <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>

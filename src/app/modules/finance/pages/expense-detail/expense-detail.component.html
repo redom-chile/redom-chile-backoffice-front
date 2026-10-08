@@ -1,0 +1,171 @@
+<a routerLink="/finance/payables" class="text-muted-foreground hover:text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Cuentas por pagar
+</a>
+
+@if (!$isValidId() || $isNotFound()) {
+<div class="glass rounded-[1rem] px-6 py-12 text-center">
+  <p class="text-foreground font-semibold">No encontramos ese gasto</p>
+  <a routerLink="/finance/payables" class="text-primary mt-2 inline-block text-sm font-medium hover:underline">Volver a Cuentas por pagar</a>
+</div>
+} @else if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar el gasto</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="expense.reload()">Reintentar</app-button>
+</div>
+} @else if ($expense(); as e) {
+<div class="space-y-4" [class.opacity-60]="expense.isLoading()">
+  <!-- Encabezado -->
+  <section class="glass rounded-[1rem] p-5">
+    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="rounded-full px-2 py-0.5 text-xs font-semibold" [class]="statusClasses[e.status]">{{ statusLabels[e.status] }}</span>
+          @if (e.overdue) {
+          <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Vencido</span>
+          }
+          @if (e.recurringExpenseId) {
+          <span class="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">autorenew</app-icon>
+            Recurrente{{ e.period ? ' · ' + e.period : '' }}
+          </span>
+          }
+        </div>
+        <h1 class="text-foreground mt-2 text-xl font-bold break-words" [class.line-through]="$isCancelled()">{{ e.description }}</h1>
+        <p class="text-muted-foreground text-sm">{{ e.categoryName }} · {{ e.locationName }}</p>
+      </div>
+
+      <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
+        @if ($canPay()) {
+        <app-button type="button" impact="bold" tone="primary" (buttonClick)="pay(e)">Pagar</app-button>
+        }
+        @if (!$isCancelled()) {
+        <a
+          [routerLink]="['/finance/expenses', e.id, 'edit']"
+          class="glass-row text-foreground inline-flex items-center gap-1 rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium">
+          <app-icon class="h-4 w-4" aria-hidden="true">edit</app-icon>
+          Editar
+        </a>
+        <app-button type="button" impact="light" tone="danger" (buttonClick)="cancelExpense(e)">Anular gasto</app-button>
+        }
+      </div>
+    </div>
+
+    @if ($isCancelled()) {
+    <div class="mt-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm">
+      <p class="font-semibold text-red-700 dark:text-red-400">Gasto anulado{{ e.cancelledAt ? ' el ' + formatPaidAt(e.cancelledAt) : '' }}</p>
+      @if (e.cancellationReason) {
+      <p class="text-foreground mt-1">{{ e.cancellationReason }}</p>
+      }
+    </div>
+    }
+  </section>
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <!-- Datos -->
+    <section class="glass rounded-[1rem] p-5 lg:col-span-2">
+      <h2 class="text-foreground mb-3 text-base font-semibold">Datos</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt class="text-muted-foreground text-xs">Local</dt>
+          <dd class="text-foreground">{{ e.locationName }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Categoría</dt>
+          <dd class="text-foreground">{{ e.categoryName }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Proveedor</dt>
+          <dd class="text-foreground">{{ e.supplierName ?? 'Sin proveedor' }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Fecha</dt>
+          <dd class="text-foreground">{{ formatDay(e.expenseDate) }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Vencimiento</dt>
+          <dd [class]="e.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-foreground'">{{ formatDay(e.dueDate) }}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground text-xs">Documento</dt>
+          <dd class="text-foreground">{{ documentLabels[e.documentType] }}{{ e.documentNo ? ' N° ' + e.documentNo : '' }}</dd>
+        </div>
+        @if (e.documentUrl) {
+        <div>
+          <dt class="text-muted-foreground text-xs">Adjunto</dt>
+          <dd>
+            <button
+              type="button"
+              class="text-primary inline-flex items-center gap-1 font-medium hover:underline disabled:opacity-60"
+              [disabled]="$isOpeningDocument()"
+              (click)="openDocument(e)">
+              <app-icon class="h-4 w-4" aria-hidden="true">attach_file</app-icon>
+              Ver documento
+            </button>
+          </dd>
+        </div>
+        }
+        <div>
+          <dt class="text-muted-foreground text-xs">Registrado por</dt>
+          <dd class="text-foreground">{{ e.createdByName ?? '—' }} · {{ formatPaidAt(e.createdAt) }}</dd>
+        </div>
+        @if (e.notes) {
+        <div class="sm:col-span-2">
+          <dt class="text-muted-foreground text-xs">Notas</dt>
+          <dd class="text-foreground whitespace-pre-line break-words">{{ e.notes }}</dd>
+        </div>
+        }
+      </dl>
+    </section>
+
+    <!-- Montos -->
+    <section class="glass rounded-[1rem] p-5">
+      <h2 class="text-foreground mb-3 text-base font-semibold">Montos</h2>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between gap-3">
+          <dt class="text-muted-foreground">Neto</dt>
+          <dd class="text-foreground tabular-nums">{{ formatCurrency(e.netAmount) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-muted-foreground">IVA</dt>
+          <dd class="text-foreground tabular-nums">{{ formatCurrency(e.vatAmount) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3 border-t border-[var(--border)] pt-2">
+          <dt class="text-foreground font-medium">Total</dt>
+          <dd class="text-foreground font-semibold tabular-nums">{{ formatCurrency(e.amount) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-muted-foreground">Pagado</dt>
+          <dd class="tabular-nums text-green-700 dark:text-green-400">{{ formatCurrency(e.paidAmount) }}</dd>
+        </div>
+        <div class="flex justify-between gap-3 border-t border-[var(--border)] pt-2">
+          <dt class="text-foreground font-semibold">Saldo</dt>
+          <dd class="text-lg font-bold tabular-nums" [class]="e.balance > 0 && e.overdue ? 'text-red-600 dark:text-red-400' : 'text-foreground'">
+            {{ formatCurrency(e.balance) }}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <app-payable-payments [payments]="e.payments" [locationId]="e.locationId" (changed)="expense.reload()" />
+</div>
+} @else {
+<section class="glass space-y-3 rounded-[1rem] p-5">
+  <app-skeleton size="xs" style="width: 120px" />
+  <app-skeleton size="sm" style="width: 260px" />
+  <app-skeleton size="xs" style="width: 60%" />
+</section>
+<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+  <div class="glass space-y-3 rounded-[1rem] p-5 lg:col-span-2">
+    @for (row of [1, 2, 3, 4]; track row) { <app-skeleton size="xs" style="width: 70%" /> }
+  </div>
+  <div class="glass space-y-3 rounded-[1rem] p-5">
+    @for (row of [1, 2, 3]; track row) { <app-skeleton size="xs" style="width: 80%" /> }
+  </div>
+</div>
+}

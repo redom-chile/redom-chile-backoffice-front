@@ -2,8 +2,9 @@ import { PaymentMethod } from 'src/app/modules/payments/pages/payment-list/data-
 
 export type { PaymentMethod };
 export type CashSessionStatus = 'open' | 'closed';
-// opening, sale y cash_in suman; refund, cash_out y expense restan (el monto siempre viene positivo).
-export type CashMovementType = 'opening' | 'sale' | 'refund' | 'cash_in' | 'cash_out' | 'expense';
+// opening, sale, cash_in y expense_refund suman; refund, cash_out y expense restan (el monto siempre viene positivo).
+// expense: pago de un gasto o compra en efectivo; expense_refund: su anulación.
+export type CashMovementType = 'opening' | 'sale' | 'refund' | 'cash_in' | 'cash_out' | 'expense' | 'expense_refund';
 
 // ---------- Cajas: /cash/registers ----------
 export type CashRegisterOpenSessionDto = Readonly<{
@@ -72,7 +73,9 @@ export type CashTotalsDto = Readonly<{
   refunds: number;
   cashIn: number;
   cashOut: number;
+  // Pagos de gastos y compras en efectivo, y sus anulaciones.
   expenses: number;
+  expenseRefunds?: number;
 }>;
 
 export type CashMethodSummaryDto = Readonly<{

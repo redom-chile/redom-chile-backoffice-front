@@ -1,0 +1,89 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div class="min-w-0">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Registrar pago</h2>
+      <p class="text-muted-foreground truncate text-sm">{{ typeLabel }} · {{ data.description }}</p>
+    </div>
+  </ng-template>
+
+  <div class="space-y-4 py-2">
+    <div class="flex items-center justify-between rounded-md bg-[var(--muted)] px-3 py-2 text-sm">
+      <span class="text-muted-foreground">Saldo pendiente</span>
+      <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency($balance()) }}</span>
+    </div>
+
+    <div>
+      <div class="mb-1 flex items-center justify-between gap-2">
+        <label for="payable-amount" class="text-foreground block text-sm font-medium">Monto *</label>
+        @if (amount.value !== $balance()) {
+        <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="setFullBalance()">Pagar todo</button>
+        }
+      </div>
+      <input
+        id="payable-amount"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="any"
+        [max]="$balance()"
+        [formControl]="amount"
+        class="glass-input h-11 w-full rounded-md px-3 text-lg tabular-nums"
+        [class.border-red-500]="amount.touched && (!amount.value || amount.value <= 0 || amount.value > $balance())" />
+      @if (amount.value && amount.value < $balance()) {
+      <p class="text-muted-foreground mt-1 text-xs">Pago parcial: quedará un saldo de {{ formatCurrency($balance() - amount.value) }}.</p>
+      }
+    </div>
+
+    <fieldset>
+      <legend class="text-foreground mb-1 block text-sm font-medium">Medio de pago *</legend>
+      <div class="flex flex-wrap gap-2">
+        @for (method of methods; track method) {
+        <button
+          type="button"
+          class="rounded-full border px-3 py-1.5 text-sm transition-colors"
+          [class]="$method() === method ? 'border-primary bg-primary text-white' : 'glass-row border-[var(--border)] text-foreground'"
+          [attr.aria-pressed]="$method() === method"
+          (click)="$method.set(method)">
+          {{ methodLabels[method] }}
+        </button>
+        }
+      </div>
+      @if ($method() === 'cash') {
+      <p class="text-muted-foreground mt-2 flex items-start gap-1 text-xs">
+        <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">point_of_sale</app-icon>
+        Si usas la caja, el efectivo sale del turno abierto del local.
+      </p>
+      }
+    </fieldset>
+
+    <div>
+      <label for="payable-paid-at" class="text-foreground mb-1 block text-sm font-medium">Fecha y hora *</label>
+      <input id="payable-paid-at" type="datetime-local" [max]="maxPaidAt" [formControl]="paidAt" class="glass-input h-11 w-full rounded-md px-3" />
+    </div>
+
+    <div>
+      <label for="payable-reference" class="text-foreground mb-1 block text-sm font-medium">Referencia</label>
+      <input
+        id="payable-reference"
+        type="text"
+        maxlength="100"
+        placeholder="N° de transferencia, cheque…"
+        [formControl]="reference"
+        class="glass-input h-11 w-full rounded-md px-3" />
+    </div>
+
+    <div>
+      <label for="payable-note" class="text-foreground mb-1 block text-sm font-medium">Nota</label>
+      <textarea id="payable-note" rows="2" maxlength="255" [formControl]="note" class="glass-input w-full rounded-md px-3 py-2"></textarea>
+    </div>
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" [disabled]="$isSaving()" (buttonClick)="cancel()">Cancelar</app-button>
+      <app-button type="button" full impact="bold" tone="primary" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="confirm()">
+        Registrar pago
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

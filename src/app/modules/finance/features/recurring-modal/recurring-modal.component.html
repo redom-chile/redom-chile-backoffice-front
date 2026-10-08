@@ -1,0 +1,166 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ recurring ? 'Editar gasto recurrente' : 'Nuevo gasto recurrente' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="grid grid-cols-1 gap-4 p-2 sm:grid-cols-2">
+    @if (recurring) {
+    <p class="text-muted-foreground bg-muted/50 rounded-md px-3 py-2 text-xs sm:col-span-2">
+      Los cambios aplican a los próximos gastos; los que ya se generaron no cambian.
+    </p>
+    }
+
+    <div class="sm:col-span-2">
+      <label for="rec-description" class="mb-1 block text-sm font-medium">Descripción *</label>
+      <input
+        id="rec-description"
+        type="text"
+        maxlength="255"
+        formControlName="description"
+        placeholder="Ej: Arriendo local"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="isInvalid('description')" />
+    </div>
+
+    <div>
+      <label for="rec-location" class="mb-1 block text-sm font-medium">Local *</label>
+      <select id="rec-location" formControlName="locationId" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="isInvalid('locationId')">
+        @for (location of data.locations; track location.id) {
+        <option [ngValue]="location.id">{{ location.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="rec-category" class="mb-1 block text-sm font-medium">Categoría *</label>
+      <select id="rec-category" formControlName="categoryId" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="isInvalid('categoryId')">
+        <option [ngValue]="null" disabled>Elige una categoría</option>
+        @for (category of categories; track category.id) {
+        <option [ngValue]="category.id">{{ category.name }}{{ category.isActive ? '' : ' (inactiva)' }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="sm:col-span-2">
+      <label for="rec-supplier" class="mb-1 block text-sm font-medium">Proveedor</label>
+      <select id="rec-supplier" formControlName="supplierId" class="glass-input w-full rounded-md px-3 py-2">
+        <option [ngValue]="null">Sin proveedor</option>
+        @for (supplier of $suppliers(); track supplier.id) {
+        <option [ngValue]="supplier.id">{{ supplierLabel(supplier) }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label for="rec-amount" class="mb-1 block text-sm font-medium">Monto (con IVA) *</label>
+      <input
+        id="rec-amount"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        [step]="$step()"
+        formControlName="amount"
+        class="glass-input w-full rounded-md px-3 py-2 tabular-nums"
+        [class.border-red-500]="isInvalid('amount')" />
+    </div>
+
+    <div>
+      <label for="rec-document" class="mb-1 block text-sm font-medium">Documento</label>
+      <select id="rec-document" formControlName="documentType" class="glass-input w-full rounded-md px-3 py-2">
+        @for (type of documentTypes; track type) {
+        <option [ngValue]="type">{{ documentLabels[type] }}</option>
+        }
+      </select>
+    </div>
+
+    @if ($isInvoice()) {
+    <div>
+      <label for="rec-vat" class="mb-1 block text-sm font-medium">IVA (crédito fiscal)</label>
+      <input
+        id="rec-vat"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        [step]="$step()"
+        formControlName="vatAmount"
+        class="glass-input w-full rounded-md px-3 py-2 tabular-nums"
+        (input)="handleVatInput()" />
+    </div>
+    <div class="flex items-end">
+      <p class="text-muted-foreground pb-2 text-sm">Neto: <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency($net()) }}</span></p>
+    </div>
+    }
+
+    <div>
+      <label for="rec-frequency" class="mb-1 block text-sm font-medium">Frecuencia *</label>
+      <select id="rec-frequency" formControlName="frequency" class="glass-input w-full rounded-md px-3 py-2">
+        <option ngValue="monthly">Mensual</option>
+        <option ngValue="weekly">Semanal</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="rec-day" class="mb-1 block text-sm font-medium">{{ $isWeekly() ? 'Día de la semana *' : 'Día del mes *' }}</label>
+      <select id="rec-day" formControlName="dayOfPeriod" class="glass-input w-full rounded-md px-3 py-2">
+        @if ($isWeekly()) {
+        @for (day of weekdays; track day.value) {
+        <option [ngValue]="day.value">{{ day.label }}</option>
+        }
+        } @else {
+        @for (day of monthDays; track day) {
+        <option [ngValue]="day">{{ day }}</option>
+        }
+        }
+      </select>
+      @if (!$isWeekly() && ($value().dayOfPeriod ?? 0) > 28) {
+      <p class="text-muted-foreground mt-1 text-xs">En meses más cortos se usa el último día.</p>
+      }
+    </div>
+
+    <div>
+      <label for="rec-start" class="mb-1 block text-sm font-medium">Inicio *</label>
+      <input id="rec-start" type="date" formControlName="startDate" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="isInvalid('startDate')" />
+    </div>
+
+    <div>
+      <label for="rec-end" class="mb-1 block text-sm font-medium">Término</label>
+      <input id="rec-end" type="date" formControlName="endDate" [min]="$value().startDate ?? ''" class="glass-input w-full rounded-md px-3 py-2" />
+      <p class="text-muted-foreground mt-1 text-xs">Opcional. Vacío: sigue hasta que lo pauses.</p>
+    </div>
+
+    <div>
+      <label for="rec-due" class="mb-1 block text-sm font-medium">Días para pagar</label>
+      <input
+        id="rec-due"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        max="365"
+        step="1"
+        formControlName="dueDays"
+        class="glass-input w-full rounded-md px-3 py-2 tabular-nums"
+        [class.border-red-500]="isInvalid('dueDays')" />
+      <p class="text-muted-foreground mt-1 text-xs">0 = vence el mismo día que se genera (máx. 365).</p>
+    </div>
+
+    <div class="bg-muted/50 rounded-md px-3 py-2 text-sm sm:col-span-2">
+      <p class="text-foreground font-medium">{{ $preview() }}</p>
+      @if ($startsInPast()) {
+      <p class="text-muted-foreground mt-1 text-xs">
+        El inicio es anterior a hoy: al guardar se crearán como pendientes los gastos de las fechas que ya pasaron.
+      </p>
+      }
+    </div>
+
+    <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="dialogRef.close()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ recurring ? 'Guardar' : 'Crear' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

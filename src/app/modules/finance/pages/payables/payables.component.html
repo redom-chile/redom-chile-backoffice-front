@@ -1,0 +1,204 @@
+<app-header-dashboard title="Cuentas por pagar" subtitle="Lo que le debes a proveedores: gastos y compras con saldo pendiente." />
+
+<!-- Resumen -->
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Total por pagar</p>
+    @if ($totals(); as t) {
+    <p class="text-foreground mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(t.balance) }}</p>
+    <p class="text-muted-foreground text-xs">{{ t.count }} {{ t.count === 1 ? 'cuenta' : 'cuentas' }}</p>
+    } @else {
+    <app-skeleton size="sm" class="mt-2" style="width: 60%" />
+    }
+  </div>
+  <div class="glass rounded-[1rem] p-4" [class.border-red-500/40]="($totals()?.overdueCount ?? 0) > 0">
+    <p class="text-xs font-medium uppercase tracking-wider text-red-700 dark:text-red-400">Vencido</p>
+    @if ($totals(); as t) {
+    <p class="mt-1 text-2xl font-bold tabular-nums" [class]="t.overdueBalance > 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'">
+      {{ formatCurrency(t.overdueBalance) }}
+    </p>
+    <p class="text-muted-foreground text-xs">{{ t.overdueCount }} {{ t.overdueCount === 1 ? 'cuenta vencida' : 'cuentas vencidas' }}</p>
+    } @else {
+    <app-skeleton size="sm" class="mt-2" style="width: 60%" />
+    }
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Vence en 7 días</p>
+    @if ($totals(); as t) {
+    <p class="text-foreground mt-1 text-2xl font-bold tabular-nums">{{ formatCurrency(t.dueNext7DaysBalance) }}</p>
+    <p class="text-muted-foreground text-xs">Sin contar lo vencido</p>
+    } @else {
+    <app-skeleton size="sm" class="mt-2" style="width: 60%" />
+    }
+  </div>
+</div>
+
+<app-payables-help />
+
+<!-- Filtros -->
+@let q = $query();
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+  <div class="flex flex-wrap gap-2" role="group" aria-label="Vencimiento">
+    @for (chip of [{ value: null, label: 'Todas' }, { value: 'week', label: 'Esta semana' }, { value: 'overdue', label: 'Vencidas' }]; track chip.label) {
+    <button
+      type="button"
+      class="rounded-full border px-3 py-1.5 text-sm transition-colors"
+      [class]="q.due === chip.value ? 'border-primary bg-primary text-white' : 'glass-row border-[var(--border)] text-foreground'"
+      [attr.aria-pressed]="q.due === chip.value"
+      (click)="setDue($any(chip.value))">
+      {{ chip.label }}
+    </button>
+    }
+  </div>
+
+  <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo">
+    @for (chip of [{ value: null, label: 'Gastos y compras' }, { value: 'expense', label: 'Gastos' }, { value: 'purchase', label: 'Compras' }]; track chip.label) {
+    <button
+      type="button"
+      class="rounded-full border px-3 py-1.5 text-sm transition-colors"
+      [class]="q.type === chip.value ? 'border-primary bg-primary text-white' : 'glass-row border-[var(--border)] text-foreground'"
+      [attr.aria-pressed]="q.type === chip.value"
+      (click)="setType($any(chip.value))">
+      {{ chip.label }}
+    </button>
+    }
+  </div>
+
+  <div class="flex flex-col gap-3 sm:flex-row lg:ml-auto">
+    <select aria-label="Filtrar por proveedor" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onSelect('supplierId', $event)">
+      <option value="" [selected]="!q.supplierId">Todos los proveedores</option>
+      @for (supplier of $supplierOptions(); track supplier.id) {
+      <option [value]="supplier.id" [selected]="q.supplierId === supplier.id">{{ supplier.name }}</option>
+      }
+    </select>
+    @if ($showLocations() || q.locationId) {
+    <select aria-label="Filtrar por local" class="glass-input rounded-md px-3 py-2 sm:w-48" (change)="onSelect('locationId', $event)">
+      <option value="" [selected]="!q.locationId">Todos los locales</option>
+      @for (location of $locationOptions(); track location.id) {
+      <option [value]="location.id" [selected]="q.locationId === location.id">{{ location.name }}</option>
+      }
+    </select>
+    }
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-center" (click)="clearFilters()">Limpiar</button>
+    }
+  </div>
+</div>
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las cuentas por pagar</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="payables.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]" [class.opacity-60]="payables.isLoading() && !$isFirstLoad()">
+  @if ($isFirstLoad()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 60px" />
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 120px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$items().length) {
+  <div class="px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground mx-auto h-10 w-10" aria-hidden="true">task_alt</app-icon>
+    <p class="text-foreground mt-2 font-medium">{{ $hasFilters() ? 'Sin resultados' : 'No tienes cuentas por pagar' }}</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay cuentas que coincidan con los filtros.' : 'Cuando registres gastos o compras sin pagar, aparecerán aquí.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Descripción</th>
+          <th class="px-4 py-3">Proveedor</th>
+          <th class="px-4 py-3">Vencimiento</th>
+          <th class="px-4 py-3 text-right">Total</th>
+          <th class="px-4 py-3 text-right">Pagado</th>
+          <th class="px-4 py-3 text-right">Saldo</th>
+          <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of $items(); track item.type + item.id) {
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(item)">
+          <td class="px-4 py-3 text-sm">
+            <div class="flex items-center gap-2">
+              <span
+                class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+                [class]="item.type === 'expense' ? 'bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-sky-500/15 text-sky-700 dark:text-sky-300'">
+                {{ typeLabels[item.type] }}
+              </span>
+              <span class="text-foreground font-medium">{{ item.description }}</span>
+            </div>
+            <p class="text-muted-foreground mt-0.5 text-xs">
+              {{ item.categoryName ?? '' }}{{ item.categoryName && item.documentNo ? ' · ' : '' }}{{ item.documentNo ? 'N° ' + item.documentNo : '' }}
+              @if ($showLocations()) { {{ item.categoryName || item.documentNo ? ' · ' : '' }}{{ item.locationName }} }
+            </p>
+          </td>
+          <td class="text-foreground px-4 py-3 text-sm">{{ item.supplierName ?? '—' }}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            <p class="text-foreground tabular-nums">{{ formatDay(item.dueDate) }}</p>
+            <p class="text-xs" [class]="item.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'">{{ dueLabel(item.daysToDue) }}</p>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(item.total) }}</td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(item.paidAmount) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(item.balance) }}</td>
+          <td class="px-4 py-3 text-right">
+            <app-button type="button" size="small" impact="bold" tone="primary" (click)="$event.stopPropagation()" (buttonClick)="pay(item)">Pagar</app-button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (item of $items(); track item.type + item.id) {
+    <li class="glass-row flex cursor-pointer flex-col gap-1 px-4 py-3" (click)="open(item)">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span
+              class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+              [class]="item.type === 'expense' ? 'bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-sky-500/15 text-sky-700 dark:text-sky-300'">
+              {{ typeLabels[item.type] }}
+            </span>
+            <p class="text-foreground truncate text-sm font-semibold">{{ item.description }}</p>
+          </div>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ item.supplierName ?? 'Sin proveedor' }}{{ item.categoryName ? ' · ' + item.categoryName : '' }}{{ item.documentNo ? ' · N° ' + item.documentNo : '' }}
+          </p>
+        </div>
+        <p class="text-foreground shrink-0 text-sm font-bold tabular-nums">{{ formatCurrency(item.balance) }}</p>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-xs" [class]="item.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'">
+          {{ formatDay(item.dueDate) }} · {{ dueLabel(item.daysToDue) }}
+        </p>
+        <button type="button" class="bg-primary shrink-0 rounded-md px-3 py-1 text-sm font-semibold text-white" (click)="pay(item, $event)">Pagar</button>
+      </div>
+      @if (item.paidAmount > 0) {
+      <p class="text-muted-foreground text-xs tabular-nums">Total {{ formatCurrency(item.total) }} · Pagado {{ formatCurrency(item.paidAmount) }}</p>
+      }
+    </li>
+    }
+  </ul>
+  }
+</div>
+}

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
-import { getInventoryErrorMessage, SupplierDto, SuppliersService } from '../../data-access';
+import { getInventoryErrorMessage, SupplierDto, SupplierPayTermType, SuppliersService } from '../../data-access';
 
 /** Proveedor creado (para dejarlo seleccionado sin recargar la lista). undefined = cancelado. */
 export type CreateSupplierModalResult = SupplierDto | undefined;
@@ -81,6 +81,34 @@ export type CreateSupplierModalResult = SupplierDto | undefined;
             class="glass-input w-full rounded-md px-3 py-2" />
         </div>
 
+        <div class="sm:col-span-2">
+          <label for="supplier-term" class="mb-1 block text-sm font-medium">Condiciones de pago</label>
+          <div class="flex gap-2">
+            <input
+              id="supplier-term"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              formControlName="payTermNumber"
+              placeholder="Ej: 30"
+              class="glass-input w-28 min-w-0 rounded-md px-3 py-2 text-right tabular-nums"
+              [class.border-red-500]="isInvalid('payTermNumber')" />
+            <select
+              formControlName="payTermType"
+              aria-label="Unidad de las condiciones de pago"
+              class="glass-input min-w-0 flex-1 rounded-md px-3 py-2 sm:flex-none">
+              <option value="days">días</option>
+              <option value="months">meses</option>
+            </select>
+          </div>
+          @if (isInvalid('payTermNumber')) {
+          <p class="text-destructive mt-1 text-xs">Usa un número entero desde 0.</p>
+          } @else {
+          <p class="text-muted-foreground mt-1 text-xs">0 o vacío = contado. Con plazo, las compras vencen a esa cantidad de días o meses.</p>
+          }
+        </div>
+
         <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
       </form>
 
@@ -107,6 +135,9 @@ export class CreateSupplierModalComponent {
     email: ['', [Validators.email]],
     supplierBusinessName: [''],
     taxNumber: [''],
+    // Vacío o 0 = contado.
+    payTermNumber: this.#fb.control<number | null>(null, [Validators.min(0), Validators.max(3650), Validators.pattern(/^\d+$/)]),
+    payTermType: this.#fb.nonNullable.control<SupplierPayTermType>('days'),
   });
 
   readonly $isSaving = signal(false);
@@ -123,6 +154,7 @@ export class CreateSupplierModalComponent {
       return;
     }
     const value = this.form.getRawValue();
+    const payTermNumber = Number(value.payTermNumber ?? 0);
     // Strings vacíos se omiten.
     const dto = {
       name: value.name.trim(),
@@ -130,6 +162,7 @@ export class CreateSupplierModalComponent {
       ...(value.email.trim() ? { email: value.email.trim() } : {}),
       ...(value.supplierBusinessName.trim() ? { supplierBusinessName: value.supplierBusinessName.trim() } : {}),
       ...(value.taxNumber.trim() ? { taxNumber: value.taxNumber.trim() } : {}),
+      ...(payTermNumber > 0 ? { payTermNumber, payTermType: value.payTermType } : {}),
     };
     this.$isSaving.set(true);
     this.#suppliers.create(dto).subscribe({
@@ -142,6 +175,8 @@ export class CreateSupplierModalComponent {
           email: dto.email ?? null,
           supplierBusinessName: dto.supplierBusinessName ?? null,
           taxNumber: dto.taxNumber ?? null,
+          payTermNumber: dto.payTermNumber ?? null,
+          payTermType: dto.payTermType ?? null,
         }),
       // El modal queda abierto con los datos para reintentar.
       error: (error) => {

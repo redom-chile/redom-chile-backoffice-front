@@ -127,10 +127,25 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Sin exportar el historial de turnos (CSV).
 - Permisos (quién abre, cierra y hace movimientos): pendiente de la etapa de permisos. Hoy el detalle en vivo solo lo ve el dueño (`business.ownerId`), no otros administradores (#43).
 
+## Gastos y cuentas por pagar (flujo de caja, fase 2)
+
+- [ ] E2E del prompt del backend (10 pasos): categorías, gasto con factura y proveedor a 30 días, gasto pagado ahora en efectivo, pago parcial y exceso, compra con IVA y pago en efectivo, anulaciones, cierre de caja con egresos y recurrentes mensual (día 31) y semanal.
+- [ ] Plan de pruebas: pestaña "cajas-fase2".
+- Pausar o editar un gasto recurrente cuya categoría está desactivada falla: el backend exige el registro completo y revalida la categoría (#44).
+- Pagos de una compra: si se entra directo a una compra ya pagada, la cabecera queda genérica ("Compra #id"); falta un detalle de compra en finanzas (#44).
+- El detalle de compra en inventario busca el documento en hasta 5 páginas: compras muy antiguas pueden no mostrar su estado de pago (#32).
+- Proveedores: se cargan los primeros 100, sin búsqueda; no hay pantalla para editar un proveedor (el servicio `update` existe).
+- Al editar un gasto, vaciar el vencimiento mantiene el actual (no se puede "recalcular con las condiciones del proveedor").
+- El IVA sugerido de una compra asume que todas las líneas llevan IVA.
+- Un adjunto subido sin guardar el gasto queda huérfano en `expense_documents`.
+- La URL del adjunto es temporal: el detalle pide una nueva si pasaron más de 4 minutos.
+- Cuentas por pagar no tiene paginación (el backend devuelve todo); "Esta semana" = hoy + 7 días.
+- Los toasts no llevan enlace: "Cuentas por pagar" se menciona en el texto.
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43. Bloqueante: #39.
+- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43, #44. Bloqueante: #39.

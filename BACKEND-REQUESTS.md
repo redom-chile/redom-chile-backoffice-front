@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
@@ -283,6 +283,25 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Código `CASH_REGISTER_INACTIVE` y `sessionId` siempre presente en `CASH_SESSION_ALREADY_OPEN`.
 
 **Front mientras tanto:** pagina con `perPage`; con tarjeta o transferencia solo envía la caja si sabe que está abierta; los montos se ingresan en pesos enteros; los billetes y monedas son los de Chile.
+
+### 44. 🟡 Gastos y cuentas por pagar: ajustes de la fase 2
+
+**Problema:**
+- El prompt del front decía `page` y `limit` para `GET /expenses`, pero el backend usa `perPage` (`limit` se descarta en silencio). El front usa `perPage`.
+- Una categoría duplicada responde 409 con código genérico `CONFLICT`; el front la reconoce por el texto.
+- `PUT /expenses/recurring/:id` exige el registro completo y vuelve a validar la categoría como activa: pausar o editar un recurrente cuya categoría se desactivó falla. `PUT /expenses/:id` también exige los campos obligatorios aunque el cambio sea parcial.
+- No hay un detalle de compra en finanzas: `GET /payables` solo trae deudas abiertas, así que una compra ya pagada no tiene cabecera (proveedor, total) en la página de pagos.
+- Al editar un gasto, `dueDate` no se recalcula si cambian la fecha o el proveedor, y no hay forma de pedir "recalcular con las condiciones del proveedor".
+- Los archivos subidos a `expense_documents` que nunca se asocian a un gasto quedan huérfanos.
+
+**Se pide:**
+- `PATCH /expenses/recurring/:id` parcial (al menos `isActive`), validando la categoría solo si cambia; lo mismo para `PUT /expenses/:id`.
+- `GET /payables/purchase/:id` (o `/inventory/documents/:id`) con cabecera, total, pagado y saldo, también si ya está pagada.
+- Código `EXPENSE_CATEGORY_EXISTS` para el duplicado.
+- `dueDate: null` en `PUT /expenses/:id` para recalcular con las condiciones del proveedor.
+- Limpieza periódica de archivos no asociados.
+
+**Front mientras tanto:** pagina con `perPage`; envía el registro completo al pausar o editar recurrentes y gastos; arma la cabecera de la compra con el listado de cuentas por pagar o con el router state.
 
 ---
 

@@ -57,7 +57,9 @@ export class CashZReportComponent {
       { label: 'Ingresos', value: totals.cashIn, tone: 'plus' },
       { label: 'Retiros', value: totals.cashOut, tone: 'minus' },
     ];
-    if (totals.expenses) cards.push({ label: 'Gastos', value: totals.expenses, tone: 'minus' });
+    // Pagos de gastos y compras en efectivo, y sus anulaciones (devuelven el efectivo).
+    if (totals.expenses > 0) cards.push({ label: 'Gastos pagados', value: totals.expenses, tone: 'minus' });
+    if ((totals.expenseRefunds ?? 0) > 0) cards.push({ label: 'Anulaciones de gastos', value: totals.expenseRefunds ?? 0, tone: 'plus' });
     return cards;
   });
 

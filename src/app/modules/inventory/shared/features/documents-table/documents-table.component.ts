@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { PaginationMeta } from 'src/app/core/standarized-response';
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
@@ -8,8 +9,35 @@ import {
   formatMoney,
   InventoryDocumentDto,
   InventoryDocumentType,
+  todayIsoDate,
 } from '../../../data-access';
 import { formatDocumentDate } from '../../data-access';
+
+export type PurchasePaymentStatus = 'pending' | 'partial' | 'paid';
+
+export const PURCHASE_PAYMENT_LABELS: Record<PurchasePaymentStatus, string> = {
+  pending: 'Pendiente',
+  partial: 'Parcial',
+  paid: 'Pagada',
+};
+
+export const PURCHASE_PAYMENT_CLASSES: Record<PurchasePaymentStatus, string> = {
+  pending: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  partial: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+  paid: 'bg-green-500/15 text-green-700 dark:text-green-400',
+};
+
+type PurchasePaymentFields = Pick<InventoryDocumentDto, 'totalCost' | 'vatAmount' | 'paymentStatus' | 'dueDate'>;
+
+/** Neto + IVA de la factura (lo que se le debe al proveedor). */
+export function purchaseGrossTotal(document: Pick<InventoryDocumentDto, 'totalCost' | 'vatAmount'>): number {
+  return Number(document.totalCost ?? 0) + Number(document.vatAmount ?? 0);
+}
+
+/** Vencida: con fecha pasada y sin pagar del todo. */
+export function isPurchaseOverdue(document: PurchasePaymentFields, today = todayIsoDate()): boolean {
+  return !!document.dueDate && document.paymentStatus !== 'paid' && document.dueDate.slice(0, 10) < today;
+}
 
 const EMPTY_TITLES: Record<InventoryDocumentType, string> = {
   purchase: 'Sin compras',
@@ -44,7 +72,7 @@ export function documentItemsLabel(document: InventoryDocumentDto): string {
  */
 @Component({
   selector: 'app-documents-table',
-  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, NgTemplateOutlet, IconComponent, SkeletonComponent, PaginationTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './documents-table.component.html',
 })
@@ -68,6 +96,20 @@ export class DocumentsTableComponent {
   readonly locationLabel = documentLocationLabel;
   readonly itemsCount = documentItemsCount;
   readonly itemsLabel = documentItemsLabel;
+  readonly grossTotal = purchaseGrossTotal;
+  readonly today = todayIsoDate();
+
+  paymentLabel(document: InventoryDocumentDto): string {
+    return document.paymentStatus ? PURCHASE_PAYMENT_LABELS[document.paymentStatus] : '';
+  }
+
+  paymentClass(document: InventoryDocumentDto): string {
+    return document.paymentStatus ? PURCHASE_PAYMENT_CLASSES[document.paymentStatus] : '';
+  }
+
+  isOverdue(document: InventoryDocumentDto): boolean {
+    return isPurchaseOverdue(document, this.today);
+  }
 
   readonly $emptyTitle = computed(() => {
     const type = this.type();
@@ -82,6 +124,8 @@ export class DocumentsTableComponent {
         return { location: 'Local', lines: 'Con diferencia', total: 'Valor ajustado' };
       case 'production':
         return { location: 'Local', lines: 'Movimientos', total: 'Costo total' };
+      case 'purchase':
+        return { location: 'Local', lines: 'Líneas', total: 'Total con IVA' };
       default:
         return { location: 'Local', lines: 'Líneas', total: 'Total' };
     }

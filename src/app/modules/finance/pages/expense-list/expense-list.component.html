@@ -1,0 +1,232 @@
+@let q = $query();
+<app-header-dashboard title="Gastos" subtitle="Arriendo, servicios, sueldos y todo lo que sale y no es inventario.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/finance/recurring" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Gastos recurrentes">
+      <app-icon class="h-5 w-5">repeat</app-icon>
+      <span class="hidden lg:inline">Recurrentes</span>
+    </a>
+    <a routerLink="/finance/categories" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Categorías">
+      <app-icon class="h-5 w-5">sell</app-icon>
+      <span class="hidden lg:inline">Categorías</span>
+    </a>
+    <a
+      routerLink="/finance/expenses/new"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">add</app-icon>
+      <span class="hidden sm:inline">Nuevo gasto</span>
+      <span class="sm:hidden">Nuevo</span>
+    </a>
+  </div>
+</app-header-dashboard>
+
+<!-- Ayuda -->
+<details class="glass mb-4 rounded-[1rem] p-4 text-sm">
+  <summary class="text-foreground cursor-pointer font-medium">¿Cómo funcionan los gastos?</summary>
+  <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+    <li>Un <strong>gasto</strong> es toda salida de plata que no es compra de inventario: arriendo, luz, sueldos, publicidad, reparaciones.</li>
+    <li>Con <strong>factura</strong>, el IVA del gasto es crédito fiscal; con boleta o sin documento, todo el monto es gasto.</li>
+    <li>El <strong>vencimiento</strong> se calcula con las condiciones de pago del proveedor (o es el mismo día si no tiene).</li>
+    <li>
+      <strong>Estados:</strong> pendiente (sin pagos), parcial (pagado en parte), pagado y anulado. Un gasto vencido es uno pendiente o parcial
+      cuya fecha de vencimiento ya pasó.
+    </li>
+    <li>Los pagos en <strong>efectivo</strong> salen de la caja abierta del local (si usas caja y turnos).</li>
+    <li>Los <a routerLink="/finance/recurring" class="text-primary font-medium hover:underline">gastos recurrentes</a> se generan solos como pendientes en cada fecha.</li>
+  </ul>
+</details>
+
+<!-- Filtros -->
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="relative sm:col-span-2">
+    <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" aria-hidden="true">search</app-icon>
+    <input
+      type="search"
+      aria-label="Buscar"
+      placeholder="Buscar por descripción o N° de documento"
+      class="glass-input w-full rounded-md py-2 pl-10 pr-3"
+      [value]="$search()"
+      (input)="handleSearch($event)" />
+  </div>
+
+  <select aria-label="Filtrar por local" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('locationId', $event)">
+    <option value="" [selected]="!q.locationId">Todos los locales</option>
+    @for (location of locationStore.$locations(); track location.id) {
+    <option [value]="location.id" [selected]="q.locationId === location.id">{{ location.name }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por estado" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('status', $event)">
+    <option value="" [selected]="!q.status">Todos los estados</option>
+    @for (status of statuses; track status) {
+    <option [value]="status" [selected]="q.status === status">{{ statusLabels[status] }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por categoría" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('categoryId', $event)">
+    <option value="" [selected]="!q.categoryId">Todas las categorías</option>
+    @for (category of $categories(); track category.id) {
+    <option [value]="category.id" [selected]="q.categoryId === category.id">{{ category.name }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por proveedor" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('supplierId', $event)">
+    <option value="" [selected]="!q.supplierId">Todos los proveedores</option>
+    @for (supplier of $suppliers(); track supplier.id) {
+    <option [value]="supplier.id" [selected]="q.supplierId === supplier.id">{{ supplierLabel(supplier) }}</option>
+    }
+  </select>
+
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Desde</span>
+    <input type="date" aria-label="Desde" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.from ?? ''" [max]="q.to ?? ''" (change)="handleDate('from', $event)" />
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Hasta</span>
+    <input type="date" aria-label="Hasta" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.to ?? ''" [min]="q.from ?? ''" (change)="handleDate('to', $event)" />
+  </label>
+</div>
+@if ($hasFilters()) {
+<button type="button" class="text-primary -mt-1 mb-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+}
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los gastos</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="expenses.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (expenses.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 90px" />
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 120px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$page()?.data?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin gastos</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay gastos que coincidan con los filtros.' : 'Todavía no registras gastos.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    } @else {
+    <a routerLink="/finance/expenses/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Registrar el primero</a>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Fecha</th>
+          <th class="px-4 py-3">Descripción</th>
+          <th class="px-4 py-3">Categoría</th>
+          <th class="hidden px-4 py-3 xl:table-cell">Local</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Proveedor</th>
+          <th class="px-4 py-3 text-right">Monto</th>
+          <th class="hidden px-4 py-3 text-right xl:table-cell">Pagado</th>
+          <th class="px-4 py-3 text-right">Saldo</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3">Vence</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (expense of $page()!.data; track expense.id) {
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(expense.id)">
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDate(expense.expenseDate) }}</td>
+          <td class="text-foreground px-4 py-3 text-sm">
+            <a [routerLink]="['/finance/expenses', expense.id]" class="inline-flex max-w-[18rem] items-center gap-1 font-medium hover:underline" (click)="$event.stopPropagation()">
+              <span class="truncate" [title]="expense.description">{{ expense.description }}</span>
+              @if (expense.hasDocument) {
+              <app-icon class="text-muted-foreground h-4 w-4 shrink-0" title="Con documento adjunto">attach_file</app-icon>
+              }
+              @if (expense.recurringExpenseId) {
+              <app-icon class="text-muted-foreground h-4 w-4 shrink-0" title="Generado por un gasto recurrente">repeat</app-icon>
+              }
+            </a>
+            @if (expense.documentNo) {
+            <span class="text-muted-foreground block font-mono text-xs">N° {{ expense.documentNo }}</span>
+            }
+          </td>
+          <td class="text-foreground px-4 py-3 text-sm">{{ expense.categoryName }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm xl:table-cell">{{ expense.locationName }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ expense.supplierName ?? '—' }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">
+            {{ formatCurrency(expense.amount) }}
+            @if (expense.vatAmount > 0) {
+            <span class="text-muted-foreground block text-xs font-normal">IVA {{ formatCurrency(expense.vatAmount) }}</span>
+            }
+          </td>
+          <td class="text-muted-foreground hidden whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums xl:table-cell">{{ formatCurrency(expense.paidAmount) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(expense.balance) }}</td>
+          <td class="px-4 py-3">
+            <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium" [class]="statusClasses[expense.status]">{{ statusLabels[expense.status] }}</span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            <span class="text-foreground">{{ formatDate(expense.dueDate) }}</span>
+            @if (expense.overdue) {
+            <span class="ml-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Vencido</span>
+            }
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (expense of $page()!.data; track expense.id) {
+    <li>
+      <a [routerLink]="['/finance/expenses', expense.id]" class="glass-row flex items-start gap-3 px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground flex items-center gap-1 text-sm font-semibold">
+            <span class="truncate">{{ expense.description }}</span>
+            @if (expense.hasDocument) {
+            <app-icon class="text-muted-foreground h-4 w-4 shrink-0" aria-label="Con documento">attach_file</app-icon>
+            }
+            @if (expense.recurringExpenseId) {
+            <app-icon class="text-muted-foreground h-4 w-4 shrink-0" aria-label="Recurrente">repeat</app-icon>
+            }
+          </p>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ formatDate(expense.expenseDate) }} · {{ expense.categoryName }} · {{ expense.locationName }}@if (expense.supplierName) { · {{ expense.supplierName }} }
+          </p>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="rounded-full px-2 py-0.5 font-medium" [class]="statusClasses[expense.status]">{{ statusLabels[expense.status] }}</span>
+            @if (expense.overdue) {
+            <span class="rounded-full bg-red-500/15 px-2 py-0.5 font-semibold text-red-700 dark:text-red-400">Vencido</span>
+            }
+            <span class="text-muted-foreground">Vence {{ formatDate(expense.dueDate) }}</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatCurrency(expense.amount) }}</p>
+          @if (expense.balance > 0 && expense.balance !== expense.amount) {
+          <p class="text-muted-foreground whitespace-nowrap text-xs tabular-nums">Saldo {{ formatCurrency(expense.balance) }}</p>
+          }
+        </div>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalItems > 0 && !expenses.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}

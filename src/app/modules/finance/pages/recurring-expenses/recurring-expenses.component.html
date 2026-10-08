@@ -1,0 +1,135 @@
+<app-header-dashboard title="Gastos recurrentes" subtitle="Arriendo, sueldos, servicios: se generan solos como gastos pendientes en cada fecha.">
+  <div class="flex items-center gap-3">
+    <a routerLink="/finance/expenses" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Gastos</span>
+    </a>
+    <button
+      type="button"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+      (click)="handleCreate()">
+      <app-icon class="h-5 w-5">add</app-icon>
+      <span class="hidden sm:inline">Nuevo recurrente</span>
+      <span class="sm:hidden">Nuevo</span>
+    </button>
+  </div>
+</app-header-dashboard>
+
+<label class="mb-4 inline-flex cursor-pointer items-center gap-2 text-sm">
+  <input type="checkbox" class="h-4 w-4" [checked]="$includeInactive()" (change)="$includeInactive.set(!$includeInactive())" />
+  Incluir pausados
+</label>
+
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (recurring.isLoading() && !$items()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if ($error()) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <p class="text-foreground font-medium">No se pudieron cargar los gastos recurrentes</p>
+    <app-button type="button" impact="bold" (buttonClick)="recurring.reload()">Reintentar</app-button>
+  </div>
+  } @else if (!$items()?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin gastos recurrentes</p>
+    <p class="text-muted-foreground mt-1 text-sm">Crea uno para el arriendo, los sueldos o las cuentas que pagas todos los meses.</p>
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Descripción</th>
+          <th class="px-4 py-3">Categoría</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Local</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Proveedor</th>
+          <th class="px-4 py-3 text-right">Monto</th>
+          <th class="px-4 py-3">Se repite</th>
+          <th class="px-4 py-3">Próximo</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of $items(); track item.id) {
+        <tr class="border-b border-[var(--border)] last:border-0" [class.opacity-60]="!item.isActive">
+          <td class="text-foreground px-4 py-3 text-sm font-medium">{{ item.description }}</td>
+          <td class="text-foreground px-4 py-3 text-sm">{{ item.categoryName }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ item.locationName }}</td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ item.supplierName ?? '—' }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">
+            {{ formatCurrency(item.amount) }}
+            @if (item.documentType === 'invoice') {
+            <span class="text-muted-foreground block text-xs font-normal">IVA {{ formatCurrency(item.vatAmount) }}</span>
+            }
+          </td>
+          <td class="text-foreground px-4 py-3 text-sm">
+            {{ recurrenceLabel(item.frequency, item.dayOfPeriod) }}
+            <span class="text-muted-foreground block text-xs">{{ item.dueDays ? 'Vence a los ' + item.dueDays + ' días' : 'Vence el mismo día' }}</span>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ item.isActive && item.nextDate ? formatDate(item.nextDate) : '—' }}</td>
+          <td class="px-4 py-3">
+            <span
+              class="rounded-full px-2 py-0.5 text-xs font-medium"
+              [class]="item.isActive ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-[var(--muted)] text-muted-foreground'">
+              {{ item.isActive ? 'Activo' : 'Pausado' }}
+            </span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right">
+            <button
+              type="button"
+              class="text-muted-foreground hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-md"
+              title="Editar"
+              [attr.aria-label]="'Editar ' + item.description"
+              (click)="handleEdit(item)">
+              <app-icon class="h-5 w-5">edit</app-icon>
+            </button>
+            <button
+              type="button"
+              class="text-primary rounded-md px-2 py-1 text-sm font-medium hover:underline disabled:opacity-50"
+              [disabled]="$busyId() === item.id"
+              (click)="handleToggle(item)">
+              {{ item.isActive ? 'Pausar' : 'Reanudar' }}
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (item of $items(); track item.id) {
+    <li class="px-4 py-3" [class.opacity-60]="!item.isActive">
+      <div class="flex items-start gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground truncate text-sm font-semibold">{{ item.description }}</p>
+          <p class="text-muted-foreground truncate text-xs">{{ item.categoryName }} · {{ item.locationName }}@if (item.supplierName) { · {{ item.supplierName }} }</p>
+          <p class="text-foreground text-xs">
+            {{ recurrenceLabel(item.frequency, item.dayOfPeriod) }} · {{ item.dueDays ? 'vence a los ' + item.dueDays + ' días' : 'vence el mismo día' }}
+          </p>
+          <p class="text-muted-foreground text-xs">
+            {{ item.isActive ? (item.nextDate ? 'Próximo: ' + formatDate(item.nextDate) : 'Sin próximas fechas') : 'Pausado' }}
+          </p>
+        </div>
+        <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatCurrency(item.amount) }}</span>
+      </div>
+      <div class="mt-2 flex justify-end gap-3">
+        <button type="button" class="text-primary text-sm font-medium" (click)="handleEdit(item)">Editar</button>
+        <button type="button" class="text-primary text-sm font-medium disabled:opacity-50" [disabled]="$busyId() === item.id" (click)="handleToggle(item)">
+          {{ item.isActive ? 'Pausar' : 'Reanudar' }}
+        </button>
+      </div>
+    </li>
+    }
+  </ul>
+  }
+</div>

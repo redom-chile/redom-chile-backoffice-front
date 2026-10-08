@@ -1,0 +1,57 @@
+<section class="glass overflow-hidden rounded-[1rem]">
+  <header class="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+    <h2 class="text-foreground text-base font-semibold">Pagos</h2>
+    @if (payments().length) {
+    <span class="text-muted-foreground text-sm">Pagado <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency($activeTotal()) }}</span></span>
+    }
+  </header>
+
+  @if (!payments().length) {
+  <p class="text-muted-foreground px-4 py-8 text-center text-sm">Todavía no tiene pagos.</p>
+  } @else {
+  <ul class="divide-y divide-[var(--border)]">
+    @for (payment of $sorted(); track payment.id) {
+    <li class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start" [class.opacity-70]="payment.cancelled">
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-foreground font-semibold tabular-nums" [class.line-through]="payment.cancelled">{{ formatCurrency(payment.amount) }}</span>
+          <span class="text-muted-foreground text-sm" [class.line-through]="payment.cancelled">{{ methodLabels[payment.method] ?? payment.method }}</span>
+          @if (payment.cashSessionId) {
+          <a
+            [routerLink]="['/cash/sessions', payment.cashSessionId]"
+            class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">point_of_sale</app-icon>
+            De la caja
+          </a>
+          }
+          @if (payment.cancelled) {
+          <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-400">Anulado</span>
+          }
+        </div>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          {{ formatPaidAt(payment.paidAt) }}
+          @if (payment.createdByName) { · {{ payment.createdByName }} }
+          @if (payment.reference) { · Ref. {{ payment.reference }} }
+        </p>
+        @if (payment.note) {
+        <p class="text-foreground mt-1 text-sm break-words">{{ payment.note }}</p>
+        }
+        @if (payment.cancelled) {
+        <p class="mt-1 text-xs text-red-700 dark:text-red-400">
+          Anulado{{ payment.cancelledAt ? ' el ' + formatPaidAt(payment.cancelledAt) : '' }}{{ payment.cancellationReason ? ': ' + payment.cancellationReason : '' }}
+        </p>
+        }
+      </div>
+      @if (canCancel() && !payment.cancelled) {
+      <button
+        type="button"
+        class="text-destructive self-start rounded-md px-2 py-1 text-sm font-medium hover:bg-red-500/10"
+        (click)="cancel(payment)">
+        Anular
+      </button>
+      }
+    </li>
+    }
+  </ul>
+  }
+</section>

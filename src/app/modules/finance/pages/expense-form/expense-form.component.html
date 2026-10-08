@@ -1,0 +1,284 @@
+<div>
+  <app-header-dashboard
+    [title]="isEdit ? 'Editar gasto' : 'Nuevo gasto'"
+    [subtitle]="isEdit ? 'Corrige los datos del gasto. Los pagos se gestionan desde el detalle.' : 'Registra una salida que no es inventario: arriendo, servicios, sueldos…'">
+    <a [routerLink]="$backLink()" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">{{ isEdit ? 'Volver al gasto' : 'Volver a gastos' }}</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if ($detailError() || $categoriesFailed()) {
+  <div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+    <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+    <p class="text-foreground font-semibold">{{ $detailError() ? 'No se pudo cargar el gasto' : 'No se pudieron cargar las categorías' }}</p>
+    <app-button type="button" impact="bold" (buttonClick)="retryLoad()">Reintentar</app-button>
+  </div>
+  } @else if ($isLoading()) {
+  <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-2">
+    <app-skeleton size="sm" />
+    <app-skeleton size="sm" />
+    <app-skeleton size="sm" />
+    <app-skeleton size="sm" />
+    <app-skeleton size="sm" />
+    <app-skeleton size="sm" />
+  </div>
+  } @else if ($isCancelled()) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground h-12 w-12">block</app-icon>
+    <p class="text-foreground font-semibold">Este gasto está anulado</p>
+    <p class="text-muted-foreground text-sm">Un gasto anulado ya no se puede editar.</p>
+    <a [routerLink]="$backLink()" class="text-primary text-sm font-medium hover:underline">Ver el gasto</a>
+  </div>
+  } @else {
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="space-y-4">
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos del gasto</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <label for="expense-description" class="mb-1 block text-sm font-medium">Descripción *</label>
+          <input
+            id="expense-description"
+            type="text"
+            maxlength="255"
+            formControlName="description"
+            placeholder="Ej: Cuenta de luz septiembre"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.description.invalid && ($submitted() || form.controls.description.touched)" />
+          @if (form.controls.description.invalid && ($submitted() || form.controls.description.touched)) {
+          <p class="text-destructive mt-1 text-xs">Describe el gasto.</p>
+          }
+        </div>
+
+        <div>
+          <label for="expense-location" class="mb-1 block text-sm font-medium">Local *</label>
+          <select
+            id="expense-location"
+            formControlName="locationId"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.locationId.invalid && $submitted()">
+            <option [ngValue]="null" disabled>{{ locationStore.$isLoading() ? 'Cargando…' : 'Elige un local' }}</option>
+            @for (location of locationStore.$locations(); track location.id) {
+            <option [ngValue]="location.id">{{ location.name }}</option>
+            }
+          </select>
+          @if ($hasPayments()) {
+          <p class="text-muted-foreground mt-1 text-xs">Tiene pagos: el local no se puede cambiar.</p>
+          }
+        </div>
+
+        <div>
+          <label for="expense-category" class="mb-1 block text-sm font-medium">Categoría *</label>
+          <div class="flex gap-2">
+            <select
+              id="expense-category"
+              formControlName="categoryId"
+              class="glass-input w-full min-w-0 rounded-md px-3 py-2"
+              [class.border-red-500]="form.controls.categoryId.invalid && ($submitted() || form.controls.categoryId.touched)">
+              <option [ngValue]="null" disabled>Elige una categoría</option>
+              @for (category of $categories(); track category.id) {
+              <option [ngValue]="category.id">{{ category.name }}{{ category.isActive ? '' : ' (inactiva)' }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+              title="Nueva categoría"
+              (click)="handleNewCategory()">
+              <app-icon class="h-5 w-5">add</app-icon>
+              <span class="hidden sm:inline">Nueva</span>
+            </button>
+          </div>
+          @if (form.controls.categoryId.invalid && ($submitted() || form.controls.categoryId.touched)) {
+          <p class="text-destructive mt-1 text-xs">Elige la categoría.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="expense-supplier" class="mb-1 block text-sm font-medium">Proveedor</label>
+          <div class="flex gap-2">
+            <select id="expense-supplier" formControlName="supplierId" class="glass-input w-full min-w-0 rounded-md px-3 py-2">
+              <option [ngValue]="null">{{ $suppliersFailed() ? 'No se pudieron cargar' : 'Sin proveedor' }}</option>
+              @for (supplier of $suppliers(); track supplier.id) {
+              <option [ngValue]="supplier.id">{{ supplierLabel(supplier) }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
+              title="Nuevo proveedor"
+              (click)="handleNewSupplier()">
+              <app-icon class="h-5 w-5">add</app-icon>
+              <span class="hidden sm:inline">Nuevo proveedor</span>
+            </button>
+          </div>
+          @if ($suppliersFailed()) {
+          <button type="button" class="text-primary mt-1 text-xs font-medium" (click)="reloadSuppliers()">Reintentar cargar proveedores</button>
+          }
+        </div>
+
+        <div>
+          <label for="expense-amount" class="mb-1 block text-sm font-medium">Monto total (con IVA) *</label>
+          <input
+            id="expense-amount"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            [step]="$step()"
+            formControlName="amount"
+            placeholder="0"
+            class="glass-input w-full rounded-md px-3 py-2 text-lg tabular-nums"
+            [class.border-red-500]="form.controls.amount.invalid && ($submitted() || form.controls.amount.touched)" />
+          @if (form.controls.amount.invalid && ($submitted() || form.controls.amount.touched)) {
+          <p class="text-destructive mt-1 text-xs">Ingresa un monto mayor a cero.</p>
+          }
+          @if ($expense(); as expense) { @if (expense.paidAmount > 0) {
+          <p class="text-muted-foreground mt-1 text-xs">Ya pagado: {{ formatCurrency(expense.paidAmount) }}. El monto no puede ser menor.</p>
+          } }
+        </div>
+
+        <div>
+          <span class="mb-1 block text-sm font-medium">Documento</span>
+          <div class="glass-input grid grid-cols-3 gap-1 rounded-md p-1" role="radiogroup" aria-label="Tipo de documento">
+            @for (type of documentTypes; track type) {
+            <button
+              type="button"
+              role="radio"
+              [attr.aria-checked]="$value().documentType === type"
+              class="rounded px-2 py-1.5 text-sm font-medium transition"
+              [class]="$value().documentType === type ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+              (click)="form.controls.documentType.setValue(type); form.controls.documentType.markAsDirty()">
+              {{ documentLabels[type] }}
+            </button>
+            }
+          </div>
+        </div>
+
+        @if ($isInvoice()) {
+        <div>
+          <label for="expense-vat" class="mb-1 block text-sm font-medium">IVA (crédito fiscal)</label>
+          <input
+            id="expense-vat"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            [step]="$step()"
+            formControlName="vatAmount"
+            class="glass-input w-full rounded-md px-3 py-2 tabular-nums"
+            (input)="handleVatInput()" />
+          <p class="text-muted-foreground mt-1 text-xs">Se calcula solo desde el monto; corrígelo si la factura dice otro valor.</p>
+        </div>
+        <div class="flex items-end">
+          <p class="text-muted-foreground pb-2 text-sm">
+            Neto: <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency($net()) }}</span>
+          </p>
+        </div>
+        }
+
+        @if ($value().documentType !== 'none') {
+        <div>
+          <label for="expense-document-no" class="mb-1 block text-sm font-medium">N° de documento</label>
+          <input
+            id="expense-document-no"
+            type="text"
+            maxlength="100"
+            formControlName="documentNo"
+            placeholder="Opcional"
+            class="glass-input w-full rounded-md px-3 py-2" />
+        </div>
+        }
+
+        <div [class]="$value().documentType === 'none' ? 'sm:col-span-2' : ''">
+          <span class="mb-1 block text-sm font-medium">Adjunto</span>
+          <app-expense-document-field
+            [fileId]="$document().fileId"
+            [url]="$document().url"
+            [disabled]="$isSaving()"
+            (changed)="handleDocumentChange($event)"
+            (uploadingChange)="$uploading.set($event)" />
+        </div>
+
+        <div>
+          <label for="expense-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+          <input
+            id="expense-date"
+            type="date"
+            formControlName="expenseDate"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="form.controls.expenseDate.invalid && $submitted()" />
+        </div>
+
+        <div>
+          <label for="expense-due" class="mb-1 block text-sm font-medium">Vencimiento</label>
+          <input id="expense-due" type="date" formControlName="dueDate" [min]="$value().expenseDate ?? ''" class="glass-input w-full rounded-md px-3 py-2" />
+          <p class="text-muted-foreground mt-1 text-xs">
+            @if (isEdit) {
+            Si lo dejas vacío, se mantiene el actual.
+            } @else {
+            Si lo dejas vacío, se calcula con las condiciones de pago del proveedor (o el mismo día).
+            }
+          </p>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="expense-notes" class="mb-1 block text-sm font-medium">Notas</label>
+          <textarea id="expense-notes" rows="2" maxlength="1000" formControlName="notes" placeholder="Opcional" class="glass-input w-full rounded-md px-3 py-2"></textarea>
+        </div>
+      </div>
+    </section>
+
+    @if (!isEdit) {
+    <section class="glass rounded-[1rem] p-4">
+      <label class="flex cursor-pointer items-center justify-between gap-3">
+        <span>
+          <span class="text-foreground block font-semibold">Pagado ahora</span>
+          <span class="text-muted-foreground block text-xs">Registra el pago del total junto con el gasto. Si no, queda pendiente en cuentas por pagar.</span>
+        </span>
+        <input type="checkbox" role="switch" formControlName="payNow" class="peer sr-only" />
+        <span
+          class="relative h-6 w-11 shrink-0 rounded-full bg-gray-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 dark:bg-gray-600"
+          aria-hidden="true"></span>
+      </label>
+
+      @if ($value().payNow) {
+      <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="expense-method" class="mb-1 block text-sm font-medium">Medio de pago *</label>
+          <select id="expense-method" formControlName="method" class="glass-input w-full rounded-md px-3 py-2">
+            @for (method of paymentMethods; track method) {
+            <option [ngValue]="method">{{ methodLabels[method] }}</option>
+            }
+          </select>
+          @if ($cashFromRegister()) {
+          <p class="text-muted-foreground mt-1 text-xs">El efectivo sale de la caja abierta del local.</p>
+          }
+        </div>
+        <div>
+          <label for="expense-reference" class="mb-1 block text-sm font-medium">Referencia</label>
+          <input
+            id="expense-reference"
+            type="text"
+            maxlength="100"
+            formControlName="reference"
+            placeholder="Opcional. Ej: N° de transferencia"
+            class="glass-input w-full rounded-md px-3 py-2" />
+        </div>
+      </div>
+      }
+    </section>
+    }
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        [routerLink]="$backLink()"
+        class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
+        Cancelar
+      </a>
+      <app-button type="submit" impact="bold" tone="primary" icon="save" [disabled]="$isSaving() || $uploading()" [isLoading]="$isSaving()">
+        {{ $isSaving() ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Registrar gasto' }}
+      </app-button>
+    </div>
+  </form>
+  }
+</div>

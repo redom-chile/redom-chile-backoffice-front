@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { startWith } from 'rxjs';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import {
   formatMoney,
@@ -68,6 +69,7 @@ export class ReceiveOrderModalComponent {
   readonly #units = inject(UnitsService);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #settings = inject(BusinessSettingsService);
 
   protected readonly formatMoney = formatMoney;
   protected readonly formatQuantity = formatQuantity;
@@ -78,7 +80,15 @@ export class ReceiveOrderModalComponent {
     referenceNo: new FormControl('', { nonNullable: true, validators: Validators.maxLength(100) }),
     documentDate: new FormControl(todayIsoDate(), { nonNullable: true, validators: Validators.required }),
     notes: new FormControl('', { nonNullable: true, validators: Validators.maxLength(1000) }),
+    // IVA de la factura (se suma al neto); sigue al neto estimado mientras no se edite a mano.
+    vatAmount: new FormControl<number | null>(0, { validators: Validators.min(0) }),
+    // Vacío = fecha + condiciones de pago del proveedor.
+    dueDate: new FormControl('', { nonNullable: true }),
   });
+
+  protected readonly $vatRate = this.#settings.$vatRate;
+  readonly #vatValue = toSignal(this.header.controls.vatAmount.valueChanges.pipe(startWith(this.header.controls.vatAmount.value)));
+  readonly $vatAmount = computed(() => Math.max(0, Number(this.#vatValue() ?? 0) || 0));
 
   readonly rows: ReceiveRow[] = this.order.lines.map((line) => this.#createRow(line));
   readonly #rowsArray = new FormArray(this.rows.map((row) => row.form));
@@ -108,6 +118,25 @@ export class ReceiveOrderModalComponent {
       return sum + (hasNumber(quantity) ? Number(quantity) * Number(cost) : 0);
     }, 0),
   );
+
+  readonly $suggestedVat = computed(() => Math.round((this.$total() * this.$vatRate()) / 100));
+  readonly $grossTotal = computed(() => this.$total() + this.$vatAmount());
+
+  constructor() {
+    // Mientras el IVA no se toque, sigue al neto de lo recibido.
+    effect(() => {
+      const vat = this.$suggestedVat();
+      untracked(() => {
+        const control = this.header.controls.vatAmount;
+        if (!control.dirty && control.value !== vat) control.setValue(vat);
+      });
+    });
+  }
+
+  resetVat() {
+    this.header.controls.vatAmount.markAsPristine();
+    this.header.controls.vatAmount.setValue(this.$suggestedVat());
+  }
 
   toggleShowAll() {
     this.$showAll.update((value) => !value);
@@ -160,6 +189,8 @@ export class ReceiveOrderModalComponent {
       ...(referenceNo ? { referenceNo } : {}),
       documentDate: header.documentDate,
       ...(notes ? { notes } : {}),
+      vatAmount: Math.max(0, Number(header.vatAmount ?? 0) || 0),
+      ...(header.dueDate ? { dueDate: header.dueDate } : {}),
       lines: included.map((row) => {
         const { quantity, unitCost, lotNumber, expiryDate } = row.form.getRawValue();
         const lot = lotNumber.trim();

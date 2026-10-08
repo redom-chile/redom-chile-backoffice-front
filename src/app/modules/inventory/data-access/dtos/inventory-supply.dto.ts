@@ -182,6 +182,9 @@ export type ReceivePurchaseOrderDto = Readonly<{
   referenceNo?: string | null;
   documentDate?: string | null;
   notes?: string | null;
+  // IVA de la factura y vencimiento de la deuda (se paga después en Cuentas por pagar).
+  vatAmount?: number | null;
+  dueDate?: string | null;
   // 1..200; quantity > 0 en la unidad de la línea (se puede recibir más de lo pedido).
   lines: ReadonlyArray<
     {

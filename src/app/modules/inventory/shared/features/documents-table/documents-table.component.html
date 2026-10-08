@@ -37,6 +37,7 @@
           @if (listType === 'purchase') {
           <th class="px-4 py-3">Proveedor</th>
           <th class="px-4 py-3">N° factura</th>
+          <th class="px-4 py-3">Pago</th>
           } @else if (listType === 'adjustment') {
           <th class="px-4 py-3">Motivo</th>
           <th class="px-4 py-3">Notas</th>
@@ -56,6 +57,9 @@
           @if (!listType) {
           <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
             {{ typeLabels[document.type] ?? document.type }}@if (document.reason) { · {{ reasonLabels[document.reason] }} }
+            @if (document.type === 'purchase' && document.paymentStatus) {
+            <span class="block"><ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" /></span>
+            }
             @if (document.purchaseOrderId) {
             <a
               [routerLink]="['/inventory/purchase-orders', document.purchaseOrderId]"
@@ -80,6 +84,9 @@
             }
           </td>
           <td class="text-muted-foreground px-4 py-3 font-mono text-sm">{{ document.referenceNo ?? '—' }}</td>
+          <td class="px-4 py-3 text-sm">
+            <ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" />
+          </td>
           } @else if (listType === 'adjustment') {
           <td class="text-foreground px-4 py-3 text-sm">{{ document.reason ? reasonLabels[document.reason] : '—' }}</td>
           <td class="text-muted-foreground px-4 py-3 text-sm">
@@ -93,7 +100,16 @@
           <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">
             {{ listType ? itemsCount(document) : itemsLabel(document) }}
           </td>
-          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
+            @if (document.type === 'purchase') {
+            {{ formatMoney(grossTotal(document)) }}
+            @if (document.vatAmount) {
+            <span class="text-muted-foreground block text-xs font-normal">Neto {{ formatMoney(document.totalCost) }} · IVA {{ formatMoney(document.vatAmount) }}</span>
+            }
+            } @else {
+            {{ formatMoney(document.totalCost) }}
+            }
+          </td>
           <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ userLabel(document) }}</td>
           <td class="px-4 py-3 text-right">
             <a
@@ -128,8 +144,16 @@
           <p class="text-muted-foreground truncate text-xs">{{ document.notes }}</p>
           }
           <p class="text-muted-foreground text-xs">{{ itemsLabel(document) }}</p>
+          @if (document.type === 'purchase' && document.paymentStatus) {
+          <div class="mt-1"><ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" /></div>
+          }
         </div>
-        <span class="text-foreground whitespace-nowrap text-sm font-semibold tabular-nums">{{ formatMoney(document.totalCost) }}</span>
+        <span class="text-foreground whitespace-nowrap text-right text-sm font-semibold tabular-nums">
+          {{ formatMoney(document.type === 'purchase' ? grossTotal(document) : document.totalCost) }}
+          @if (document.type === 'purchase' && document.vatAmount) {
+          <span class="text-muted-foreground block text-xs font-normal">con IVA</span>
+          }
+        </span>
       </a>
       @if (document.purchaseOrderId) {
       <a
@@ -149,3 +173,21 @@
   </div>
   } }
 </div>
+
+<!-- Estado de pago de una compra: chip + vencimiento (rojo si está vencida y sin pagar). -->
+<ng-template #paymentInfo let-document>
+  @if (document.paymentStatus) {
+  <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" [class]="paymentClass(document)">
+      {{ paymentLabel(document) }}
+    </span>
+    @if (document.dueDate && document.paymentStatus !== 'paid') {
+    <span class="whitespace-nowrap text-xs" [class]="isOverdue(document) ? 'font-medium text-red-600 dark:text-red-400' : 'text-muted-foreground'">
+      {{ isOverdue(document) ? 'Venció' : 'Vence' }} {{ formatDate(document.dueDate) }}
+    </span>
+    }
+  </span>
+  } @else {
+  <span class="text-muted-foreground">—</span>
+  }
+</ng-template>

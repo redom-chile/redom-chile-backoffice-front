@@ -1,4 +1,5 @@
-export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images';
+// expense_documents: boletas y facturas de gastos (imagen o PDF, hasta 10 MB).
+export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images' | 'expense_documents';
 
 export type RequestUploadUrlDto = Readonly<{
   folder: StorageFolder;
