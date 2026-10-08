@@ -34,8 +34,10 @@ Toca el indicador verde para abrir el panel del turno. Ahí ves quién abrió, e
 1. Abre el panel del turno.
 2. Toca **Ingresar efectivo** o **Retirar efectivo**.
 3. Escribe el **Monto** (ej: $50.000).
-4. Elige o escribe el **Motivo**. Sugerencias: *Sencillo para vuelto*, *Reposición de fondo*, *Retiro a caja fuerte*, *Depósito bancario*, *Pago a proveedor*.
+4. Elige o escribe el **Motivo**. Sugerencias: *Sencillo para vuelto*, *Reposición de fondo*, *Retiro a caja fuerte*, *Depósito bancario*.
 5. Toca **Ingresar** o **Retirar**.
+
+**Ojo:** si pagas un gasto o una cuenta por pagar en efectivo, regístralo en **Finanzas → Gastos** o **Finanzas → Cuentas por pagar**. Ese pago sale de la caja automáticamente: no registres además un retiro, o la caja quedará descuadrada.
 
 ## Errores comunes
 

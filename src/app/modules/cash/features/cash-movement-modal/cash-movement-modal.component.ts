@@ -15,7 +15,8 @@ export type CashMovementResult = 'saved' | 'closed';
 
 const REASONS: Record<CashMovementData['type'], string[]> = {
   cash_in: ['Sencillo para vuelto', 'Reposición de fondo'],
-  cash_out: ['Retiro a caja fuerte', 'Depósito bancario', 'Pago a proveedor'],
+  // Sin "Pago a proveedor": los pagos de gastos y cuentas por pagar en efectivo ya salen solos de la caja.
+  cash_out: ['Retiro a caja fuerte', 'Depósito bancario'],
 };
 
 @Component({

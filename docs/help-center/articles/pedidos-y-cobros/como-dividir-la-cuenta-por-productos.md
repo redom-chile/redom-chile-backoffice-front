@@ -5,7 +5,7 @@ slug: como-dividir-la-cuenta-por-productos
 summary: En el cobro, la pestaña Por productos permite que cada persona pague lo que consumió e imprimir una pre-cuenta por persona.
 module: orders
 routes: [/pos, /orders/:id]
-tags: [dividir cuenta, por productos, pre-cuenta, precuenta, pago parcial]
+tags: [dividir cuenta, por productos, pre-cuenta, precuenta, pago parcial, pagar por separado, cada uno paga, cuenta separada, separar cuenta]
 position: 2
 ---
 

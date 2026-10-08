@@ -27,6 +27,7 @@ Filtra con **Todas**, **Esta semana** o **Vencidas**; por tipo (**Gastos y compr
 2. Revisa el **Saldo pendiente** y escribe el **Monto**. Usa **Pagar todo** para el saldo completo.
    - Si pagas menos, verás *"Pago parcial: quedará un saldo de…"*. La cuenta pasa a estado *Parcial*.
 3. Elige el **Medio de pago**.
+   - En **Efectivo**, si usas *Caja y turnos*, el dinero sale automáticamente de la caja abierta del local. No hace falta registrar un retiro.
 4. Indica **Fecha y hora** y, si quieres, **Referencia** (N° de transferencia, cheque) y **Nota**.
 5. Toca **Registrar pago**.
 
