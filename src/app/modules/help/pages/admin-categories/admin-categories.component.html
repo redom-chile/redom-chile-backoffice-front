@@ -1,0 +1,117 @@
+<app-header-dashboard title="Categorías de ayuda" subtitle="Agrupan los artículos del centro de ayuda. Arrastra para cambiar el orden.">
+  <div class="flex items-center gap-3">
+    <a routerLink="/help/admin/articles" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Artículos</span>
+    </a>
+    <button
+      type="button"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+      (click)="handleCreate()">
+      <app-icon class="h-5 w-5">add</app-icon>
+      <span class="hidden sm:inline">Nueva categoría</span>
+      <span class="sm:hidden">Nueva</span>
+    </button>
+  </div>
+</app-header-dashboard>
+
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (categories.isLoading() && !$items().length) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <div class="flex items-center gap-3 px-4 py-4">
+      <app-skeleton size="xs" style="width: 40px" />
+      <app-skeleton size="xs" style="width: 200px" />
+    </div>
+    }
+  </div>
+  } @else if ($error(); as error) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <p class="text-foreground font-medium">No se pudieron cargar las categorías</p>
+    <p class="text-muted-foreground text-sm">{{ errorMessage(error) }}</p>
+    <app-button type="button" impact="bold" (buttonClick)="categories.reload()">Reintentar</app-button>
+  </div>
+  } @else if (!$items().length) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground h-10 w-10">category</app-icon>
+    <p class="text-foreground font-medium">Todavía no hay categorías</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear la primera</button>
+  </div>
+  } @else {
+  <ul
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="divide-y divide-[var(--border)]"
+    [cdkDropListDisabled]="$isReordering()"
+    (cdkDropListDropped)="handleDrop($event)">
+    @for (category of $items(); track category.id) {
+    <li cdkDrag class="glass-row flex items-start gap-3 px-3 py-3 sm:items-center sm:px-4">
+      <button
+        type="button"
+        cdkDragHandle
+        class="text-muted-foreground hover:text-foreground -ml-1 inline-flex h-9 w-7 shrink-0 cursor-grab items-center justify-center rounded-md active:cursor-grabbing"
+        [attr.aria-label]="'Mover ' + category.name"
+        title="Arrastra para ordenar">
+        <app-icon class="h-5 w-5">drag_indicator</app-icon>
+      </button>
+      <span
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+        [class]="category.isActive ? 'bg-primary/10 text-primary' : 'bg-[var(--muted)] text-muted-foreground'"
+        aria-hidden="true">
+        <app-icon class="h-6 w-6">{{ category.icon || 'help' }}</app-icon>
+      </span>
+
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p class="text-foreground truncate font-medium" [class.text-muted-foreground]="!category.isActive">{{ category.name }}</p>
+          <span
+            class="rounded-full px-2 py-0.5 text-xs font-medium"
+            [class]="category.isActive ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-[var(--muted)] text-muted-foreground'">
+            {{ category.isActive ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+        <p class="text-muted-foreground truncate font-mono text-xs">{{ category.slug }}</p>
+        @if (category.description) {
+        <p class="text-muted-foreground mt-0.5 line-clamp-2 text-sm">{{ category.description }}</p>
+        }
+        <a
+          [routerLink]="['/help/admin/articles']"
+          [queryParams]="{ categoryId: category.id }"
+          class="text-primary mt-1 inline-block text-xs font-medium hover:underline">
+          {{ category.publishedCount }} de {{ category.articlesCount }} {{ category.articlesCount === 1 ? 'artículo publicado' : 'artículos publicados' }}
+        </a>
+      </div>
+
+      <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+        <div class="flex items-center">
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md"
+            [attr.aria-label]="'Editar ' + category.name"
+            title="Editar"
+            (click)="handleEdit(category)">
+            <app-icon class="h-5 w-5">edit</app-icon>
+          </button>
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50"
+            [attr.aria-label]="'Eliminar ' + category.name"
+            title="Eliminar"
+            [disabled]="$busyId() === category.id"
+            (click)="handleDelete(category)">
+            <app-icon class="h-5 w-5">delete</app-icon>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="text-primary rounded-md px-2 py-1 text-sm font-medium hover:underline disabled:opacity-50"
+          [disabled]="$busyId() === category.id"
+          (click)="handleToggle(category)">
+          {{ category.isActive ? 'Desactivar' : 'Activar' }}
+        </button>
+      </div>
+    </li>
+    }
+  </ul>
+  }
+</div>

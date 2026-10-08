@@ -1,0 +1,175 @@
+@let messages = store.$messages();
+@let remaining = store.$remaining();
+<div #scroller class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" aria-live="polite">
+  @if (!messages.length) {
+  <div class="flex flex-col items-center gap-3 px-2 py-10 text-center">
+    <div class="bg-primary/10 text-primary flex h-14 w-14 items-center justify-center rounded-full">
+      <app-icon class="h-7 w-7">support_agent</app-icon>
+    </div>
+    <div>
+      <p class="text-foreground font-semibold">¿En qué te ayudo?</p>
+      <p class="text-muted-foreground mt-1 text-sm">Pregúntame cómo hacer algo en Redom, por ejemplo: "¿Cómo abro la caja?" o "¿Cómo registro un gasto?".</p>
+    </div>
+  </div>
+  } @else {
+  <ul class="flex flex-col gap-4">
+    @for (message of messages; track message.id) {
+    @if (message.role === 'user') {
+    <li class="flex justify-end">
+      <p class="bg-primary text-primary-foreground max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-sm px-3.5 py-2 text-sm">{{ message.content }}</p>
+    </li>
+    } @else {
+    <li class="flex flex-col items-start gap-2">
+      @if (message.content) {
+      <div class="glass-card max-w-[92%] min-w-0 rounded-2xl rounded-bl-sm px-3.5 py-2.5">
+        <app-markdown [content]="message.content" />
+      </div>
+      } @else if (message.status === 'streaming') {
+      <div class="glass-card text-muted-foreground inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-sm">
+        <span class="inline-flex gap-1" aria-hidden="true">
+          <span class="bg-muted-foreground h-1.5 w-1.5 animate-bounce rounded-full"></span>
+          <span class="bg-muted-foreground h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:150ms]"></span>
+          <span class="bg-muted-foreground h-1.5 w-1.5 animate-bounce rounded-full [animation-delay:300ms]"></span>
+        </span>
+        escribiendo…
+      </div>
+      }
+
+      @if (message.status === 'error') {
+      <div class="max-w-[92%] rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm">
+        <p class="flex items-start gap-2 font-medium text-amber-800 dark:text-amber-300">
+          <app-icon class="h-5 w-5 shrink-0">info</app-icon>
+          <span>{{ message.error }}</span>
+        </p>
+        @if (message.errorKind === 'unavailable' && message.fallback.length) {
+        <p class="text-muted-foreground mt-2 text-xs">Mientras tanto, estos artículos pueden ayudarte:</p>
+        <ul class="mt-1 space-y-1">
+          @for (article of message.fallback; track article.slug) {
+          <li>
+            <a [routerLink]="['/help', article.slug]" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
+              <app-icon class="h-4 w-4 shrink-0">article</app-icon>
+              {{ article.title }}
+            </a>
+          </li>
+          }
+        </ul>
+        }
+        @if (message.errorKind === 'quota') {
+        <button type="button" class="text-primary mt-2 inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="searchRequested.emit(questionFor(message))">
+          <app-icon class="h-4 w-4">search</app-icon>
+          Buscar en los artículos
+        </button>
+        }
+      </div>
+      }
+
+      @if (message.status === 'done') {
+      @if (message.sources.length) {
+      <div class="flex max-w-full flex-wrap gap-1.5">
+        @for (source of message.sources; track source.slug) {
+        <a
+          [routerLink]="['/help', source.slug]"
+          class="glass-row text-foreground inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium">
+          <app-icon class="text-primary h-3.5 w-3.5 shrink-0">article</app-icon>
+          <span class="truncate">{{ source.title }}</span>
+        </a>
+        }
+      </div>
+      }
+
+      @if (message.logId) {
+      <div class="text-muted-foreground flex items-center gap-1 text-xs">
+        <span class="mr-1">¿Te sirvió?</span>
+        <button
+          type="button"
+          class="hover:bg-muted rounded-full p-1 transition-colors disabled:opacity-50"
+          [class.text-primary]="message.vote === true"
+          [attr.aria-pressed]="message.vote === true"
+          aria-label="Me sirvió"
+          [disabled]="$voting() === message.id"
+          (click)="vote(message, true)">
+          <app-icon class="h-4 w-4">{{ message.vote === true ? 'thumb_up' : 'thumb_up_off_alt' }}</app-icon>
+        </button>
+        <button
+          type="button"
+          class="hover:bg-muted rounded-full p-1 transition-colors disabled:opacity-50"
+          [class.text-destructive]="message.vote === false"
+          [attr.aria-pressed]="message.vote === false"
+          aria-label="No me sirvió"
+          [disabled]="$voting() === message.id"
+          (click)="vote(message, false)">
+          <app-icon class="h-4 w-4">{{ message.vote === false ? 'thumb_down' : 'thumb_down_off_alt' }}</app-icon>
+        </button>
+      </div>
+      }
+
+      @if ($commentFor() === message.id) {
+      <div class="w-full max-w-[92%]">
+        <label class="text-muted-foreground mb-1 block text-xs" [attr.for]="'help-chat-comment-' + message.id">¿Qué faltó? (opcional)</label>
+        <textarea
+          [id]="'help-chat-comment-' + message.id"
+          rows="2"
+          class="glass-input text-foreground w-full resize-none rounded-md px-3 py-2 text-sm"
+          [maxLength]="commentMax"
+          [value]="$comment()"
+          (input)="handleComment($event)"></textarea>
+        <div class="mt-1 flex items-center justify-end gap-2">
+          <button type="button" class="text-muted-foreground hover:text-foreground text-xs font-medium" (click)="$commentFor.set(null)">Omitir</button>
+          <button
+            type="button"
+            class="bg-primary text-primary-foreground rounded-md px-3 py-1 text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
+            [disabled]="!$comment().trim() || $voting() === message.id"
+            (click)="sendComment(message)">
+            Enviar
+          </button>
+        </div>
+      </div>
+      }
+      }
+    </li>
+    }
+    }
+  </ul>
+  }
+</div>
+
+<div class="border-t border-[var(--border)] px-4 pb-4 pt-3">
+  <div class="flex items-end gap-2">
+    <label for="help-chat-question" class="sr-only">Tu pregunta</label>
+    <textarea
+      #questionInput
+      id="help-chat-question"
+      rows="2"
+      placeholder="Escribe tu pregunta…"
+      class="glass-input text-foreground max-h-40 min-w-0 flex-1 resize-none rounded-lg px-3 py-2 text-sm"
+      [maxLength]="questionMax"
+      [value]="$question()"
+      [disabled]="store.$streaming()"
+      (input)="handleInput($event)"
+      (keydown)="handleKeydown($event)"></textarea>
+    <button
+      type="button"
+      class="bg-primary text-primary-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:opacity-90 disabled:opacity-50"
+      aria-label="Enviar pregunta"
+      [disabled]="!$canSend()"
+      (click)="send()">
+      <app-icon class="h-5 w-5">send</app-icon>
+    </button>
+  </div>
+  <div class="text-muted-foreground mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+    <span>
+      @if (remaining !== null) {
+      {{ remaining === 1 ? 'Te queda 1 pregunta este mes' : 'Te quedan ' + remaining + ' preguntas este mes' }}
+      } @else {
+      Enter para enviar · Shift+Enter para nueva línea
+      }
+    </span>
+    @if (messages.length) {
+    <button type="button" class="text-primary inline-flex items-center gap-1 font-medium hover:underline" (click)="handleReset()">
+      <app-icon class="h-4 w-4">refresh</app-icon>
+      Nueva conversación
+    </button>
+    }
+  </div>
+  <p class="text-muted-foreground mt-1 text-[11px] leading-snug">{{ disclaimer }}.</p>
+</div>

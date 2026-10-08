@@ -1,0 +1,222 @@
+@let q = $query();
+<app-header-dashboard title="Revisión del asistente" subtitle="Lo que preguntan al asistente: encuentra lo que falta en los artículos de ayuda.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/help/admin/usage" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Uso y costos">
+      <app-icon class="h-5 w-5">monitoring</app-icon>
+      <span class="hidden lg:inline">Uso y costos</span>
+    </a>
+    <a routerLink="/help/admin/articles" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Artículos">
+      <app-icon class="h-5 w-5">article</app-icon>
+      <span class="hidden lg:inline">Artículos</span>
+    </a>
+  </div>
+</app-header-dashboard>
+
+<!-- Atajos -->
+<div class="mb-3 flex flex-wrap gap-2" role="group" aria-label="Atajos de revisión">
+  <button
+    type="button"
+    class="rounded-full border px-3 py-1.5 text-sm font-medium transition"
+    [class]="$preset() === 'all' ? 'bg-primary text-primary-foreground border-transparent' : 'text-foreground border-[var(--border)] hover:bg-primary/10'"
+    [attr.aria-pressed]="$preset() === 'all'"
+    (click)="handlePreset('all')">
+    Todas
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition"
+    [class]="$preset() === 'improve' ? 'bg-primary text-primary-foreground border-transparent' : 'text-foreground border-[var(--border)] hover:bg-primary/10'"
+    [attr.aria-pressed]="$preset() === 'improve'"
+    title="Respuestas marcadas como no útiles"
+    (click)="handlePreset('improve')">
+    <app-icon class="h-4 w-4">thumb_down</app-icon>
+    Por mejorar
+  </button>
+  <button
+    type="button"
+    class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition"
+    [class]="$preset() === 'withoutArticles' ? 'bg-primary text-primary-foreground border-transparent' : 'text-foreground border-[var(--border)] hover:bg-primary/10'"
+    [attr.aria-pressed]="$preset() === 'withoutArticles'"
+    title="Respuestas que no citaron ningún artículo"
+    (click)="handlePreset('withoutArticles')">
+    <app-icon class="h-4 w-4">help_center</app-icon>
+    Sin artículos
+  </button>
+</div>
+
+<!-- Filtros -->
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+  <select aria-label="Filtrar por voto" class="glass-input rounded-md px-3 py-2" (change)="handleHelpful($event)">
+    <option value="" [selected]="!q.helpful">Todos los votos</option>
+    <option value="true" [selected]="q.helpful === 'true'">👍 Útiles</option>
+    <option value="false" [selected]="q.helpful === 'false'">👎 No útiles</option>
+  </select>
+
+  <input
+    type="number"
+    inputmode="numeric"
+    min="1"
+    aria-label="ID del negocio"
+    placeholder="ID del negocio"
+    class="glass-input rounded-md px-3 py-2"
+    [value]="$businessInput()"
+    (input)="handleBusinessInput($event)" />
+
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Desde</span>
+    <input type="date" aria-label="Desde" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.from ?? ''" [max]="q.to ?? ''" (change)="handleDate('from', $event)" />
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12">Hasta</span>
+    <input type="date" aria-label="Hasta" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.to ?? ''" [min]="q.from ?? ''" (change)="handleDate('to', $event)" />
+  </label>
+
+  <label class="text-foreground flex items-center gap-2 text-sm">
+    <input type="checkbox" class="accent-primary h-4 w-4" [checked]="q.withoutArticles" (change)="handleWithoutArticles($event)" />
+    Sin artículos citados
+  </label>
+</div>
+@if ($hasFilters()) {
+<button type="button" class="text-primary -mt-1 mb-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+}
+
+@if ($invalidRange()) {
+<div class="glass rounded-[1rem] px-4 py-8 text-center">
+  <p class="text-foreground font-medium">Rango de fechas inválido</p>
+  <p class="text-muted-foreground mt-1 text-sm">La fecha "Desde" debe ser anterior o igual a "Hasta".</p>
+</div>
+} @else if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las preguntas</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <button type="button" class="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90" (click)="logs.reload()">
+    Reintentar
+  </button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (logs.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="space-y-2 px-4 py-4">
+      <app-skeleton size="xs" style="width: 220px" />
+      <app-skeleton size="xs" style="width: 70%" />
+      <app-skeleton size="xs" style="width: 40%" />
+    </div>
+    }
+  </div>
+  } @else if (!$page()?.data?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin preguntas</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay preguntas que coincidan con los filtros.' : 'Todavía nadie le pregunta al asistente.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <ul class="divide-y divide-[var(--border)]">
+    @for (log of $page()!.data; track log.id) {
+    @let st = status(log);
+    @let open = isExpanded(log.id);
+    <li class="px-4 py-4">
+      <!-- Encabezado: cuándo, quién y dónde -->
+      <div class="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span class="tabular-nums">{{ formatDateTime(log.createdAt) }}</span>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="text-foreground font-medium hover:underline" title="Ver solo este negocio" (click)="filterByBusiness(log.businessId)">
+          {{ log.businessName ?? 'Negocio #' + log.businessId }}
+        </button>
+        @if (log.userName) {
+        <span aria-hidden="true">·</span>
+        <span>{{ log.userName }}</span>
+        }
+        @if (log.route) {
+        <span aria-hidden="true">·</span>
+        <code class="max-w-[14rem] truncate rounded bg-black/5 px-1.5 py-0.5 font-mono dark:bg-white/10" [title]="log.route">{{ log.route }}</code>
+        }
+        <span class="whitespace-nowrap rounded-full px-2 py-0.5 font-medium" [class]="st.classes">{{ st.label }}</span>
+      </div>
+
+      <!-- Pregunta y acción -->
+      <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start">
+        <p class="text-foreground min-w-0 flex-1 whitespace-pre-line break-words text-sm font-semibold">{{ log.question }}</p>
+        <button
+          type="button"
+          class="text-primary border-primary/40 hover:bg-primary/10 inline-flex shrink-0 items-center gap-1 self-start rounded-lg border px-3 py-1.5 text-sm font-medium transition"
+          title="Crear un artículo con esta pregunta como título"
+          (click)="createArticle(log)">
+          <app-icon class="h-4 w-4">note_add</app-icon>
+          Crear artículo
+        </button>
+      </div>
+
+      <!-- Voto -->
+      @if (log.helpful !== null) {
+      <div class="mt-2 flex items-start gap-2 text-sm">
+        <span [attr.aria-label]="log.helpful ? 'Útil' : 'No útil'" [title]="log.helpful ? 'Útil' : 'No útil'">{{ log.helpful ? '👍' : '👎' }}</span>
+        @if (log.feedbackComment) {
+        <p class="text-muted-foreground min-w-0 flex-1 break-words italic">"{{ log.feedbackComment }}"</p>
+        }
+      </div>
+      }
+
+      <!-- Artículos citados -->
+      <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+        @for (article of log.articles; track article.id) {
+        @if (article.title) {
+        <a
+          [routerLink]="['/help/admin/articles', article.id, 'edit']"
+          class="bg-primary/10 text-primary max-w-full truncate rounded-full px-2 py-0.5 font-medium hover:underline"
+          [title]="article.title">
+          {{ article.title }}
+        </a>
+        } @else {
+        <span class="text-muted-foreground rounded-full border border-dashed border-[var(--border)] px-2 py-0.5">(artículo borrado)</span>
+        }
+        } @empty {
+        <span class="text-muted-foreground">Sin artículos citados</span>
+        }
+      </div>
+
+      <!-- Modelo, tokens y costo -->
+      <div class="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span class="font-mono">{{ log.model }}</span>
+        <span class="tabular-nums" title="Tokens de entrada / salida">{{ formatInteger(log.inputTokens) }} → {{ formatInteger(log.outputTokens) }} tokens</span>
+        <span class="text-foreground font-medium tabular-nums">{{ formatUsd(log.costUsd) }}</span>
+        @if (log.answer) {
+        <button
+          type="button"
+          class="text-primary ml-auto inline-flex items-center gap-0.5 font-medium hover:underline"
+          [attr.aria-expanded]="open"
+          [attr.aria-controls]="'answer-' + log.id"
+          (click)="toggle(log.id)">
+          {{ open ? 'Ocultar respuesta' : 'Ver respuesta' }}
+          <app-icon class="h-4 w-4">{{ open ? 'expand_less' : 'expand_more' }}</app-icon>
+        </button>
+        } @else {
+        <span class="ml-auto italic">Sin respuesta</span>
+        }
+      </div>
+
+      @if (open && log.answer) {
+      <div [id]="'answer-' + log.id" class="mt-3 rounded-lg border border-[var(--border)] bg-black/[0.02] p-3 dark:bg-white/[0.03]">
+        <app-markdown [content]="log.answer" />
+      </div>
+      }
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalItems > 0 && !logs.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}

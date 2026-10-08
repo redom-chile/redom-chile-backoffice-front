@@ -1,0 +1,238 @@
+@let q = $query();
+<app-header-dashboard title="Artículos de ayuda" subtitle="Preguntas frecuentes del centro de ayuda, incluidos los borradores.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/help/admin/categories" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Categorías">
+      <app-icon class="h-5 w-5">category</app-icon>
+      <span class="hidden lg:inline">Categorías</span>
+    </a>
+    <a
+      routerLink="/help/admin/articles/new"
+      [queryParams]="q.categoryId ? { categoryId: q.categoryId } : {}"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">add</app-icon>
+      <span class="hidden sm:inline">Nuevo artículo</span>
+      <span class="sm:hidden">Nuevo</span>
+    </a>
+  </div>
+</app-header-dashboard>
+
+<!-- Filtros -->
+<div class="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+  <div class="relative sm:col-span-2">
+    <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" aria-hidden="true">search</app-icon>
+    <input
+      type="search"
+      aria-label="Buscar"
+      placeholder="Buscar por título o slug"
+      class="glass-input w-full rounded-md py-2 pl-10 pr-3"
+      [value]="$search()"
+      (input)="handleSearch($event)" />
+  </div>
+
+  <select aria-label="Filtrar por categoría" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('categoryId', $event)">
+    <option value="" [selected]="!q.categoryId">Todas las categorías</option>
+    @for (category of $categories(); track category.id) {
+    <option [value]="category.id" [selected]="q.categoryId === category.id">{{ category.name }}{{ category.isActive ? '' : ' (inactiva)' }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por módulo" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('module', $event)">
+    <option value="" [selected]="!q.module">Todos los módulos</option>
+    @for (option of moduleOptions; track option.value) {
+    <option [value]="option.value" [selected]="q.module === option.value">{{ option.label }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por estado" class="glass-input rounded-md px-3 py-2" (change)="handleSelect('status', $event)">
+    <option value="" [selected]="!q.status">Todos los estados</option>
+    <option value="published" [selected]="q.status === 'published'">Publicados</option>
+    <option value="draft" [selected]="q.status === 'draft'">Borradores</option>
+  </select>
+</div>
+
+<div class="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+  <p class="text-muted-foreground inline-flex items-center gap-1">
+    <app-icon class="h-4 w-4 shrink-0">swap_vert</app-icon>
+    @if ($canReorder()) {
+    @if ($tooManyToReorder()) {
+    <span>Esta categoría tiene más de {{ reorderLimit }} artículos: no se puede ordenar desde aquí.</span>
+    } @else {
+    <span>Arrastra los artículos para cambiar su orden dentro de la categoría.</span>
+    }
+    } @else if (q.categoryId) {
+    <span>Quita la búsqueda y los otros filtros para ordenar.</span>
+    } @else {
+    <span>Filtra por una categoría para ordenar.</span>
+    }
+  </p>
+  @if ($hasFilters()) {
+  <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+  }
+</div>
+
+@if ($error(); as error) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los artículos</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ errorMessage(error) }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="articles.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (articles.isLoading() && !$items().length) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 220px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 120px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$items().length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin artículos</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay artículos que coincidan con los filtros.' : 'Todavía no hay artículos de ayuda.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    } @else {
+    <a routerLink="/help/admin/articles/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Escribir el primero</a>
+    }
+  </div>
+  } @else {
+  <!-- Encabezado (escritorio) -->
+  <div
+    class="text-muted-foreground hidden items-center gap-4 border-b border-[var(--border)] px-4 py-3 text-xs font-medium uppercase tracking-wider lg:flex"
+    [class.pl-14]="$dragEnabled()">
+    <span class="min-w-0 flex-1">Artículo</span>
+    <span class="w-24">Estado</span>
+    <span class="w-24 text-center">Votos</span>
+    <span class="w-40">Actualizado</span>
+    <span class="w-[13.5rem] text-right">Acciones</span>
+  </div>
+
+  <ul
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="divide-y divide-[var(--border)]"
+    [class.opacity-60]="articles.isLoading()"
+    [cdkDropListDisabled]="!$dragEnabled() || $isReordering()"
+    (cdkDropListDropped)="handleDrop($event)">
+    @for (article of $items(); track article.id) {
+    <li cdkDrag class="glass-row flex flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:gap-4">
+      <div class="flex min-w-0 flex-1 items-start gap-2">
+        @if ($dragEnabled()) {
+        <button
+          type="button"
+          cdkDragHandle
+          class="text-muted-foreground hover:text-foreground -ml-2 inline-flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded-md active:cursor-grabbing"
+          [attr.aria-label]="'Mover ' + article.title"
+          title="Arrastra para ordenar">
+          <app-icon class="h-5 w-5">drag_indicator</app-icon>
+        </button>
+        }
+        <div class="min-w-0 flex-1">
+          <a
+            [routerLink]="['/help/admin/articles', article.id, 'edit']"
+            class="text-foreground block truncate font-medium hover:underline"
+            [title]="article.title">
+            {{ article.title }}
+          </a>
+          <p class="text-muted-foreground truncate font-mono text-xs">{{ article.slug }}</p>
+          <p class="text-muted-foreground mt-0.5 truncate text-xs">{{ article.categoryName }} · {{ moduleLabels[article.module] }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:contents">
+        <span class="lg:w-24">
+          <span
+            class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium"
+            [class]="article.isPublished ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'">
+            {{ article.isPublished ? 'Publicado' : 'Borrador' }}
+          </span>
+        </span>
+        <button
+          type="button"
+          class="text-foreground inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm tabular-nums hover:underline lg:w-24"
+          title="Ver votos"
+          (click)="handleVotes(article)">
+          <span>👍 {{ article.helpfulCount }}</span>
+          <span>👎 {{ article.notHelpfulCount }}</span>
+        </button>
+        <span class="text-muted-foreground text-xs lg:w-40">
+          {{ formatDate(article.updatedAt) }}
+          @if (article.updatedByName) {
+          <span class="block truncate">por {{ article.updatedByName }}</span>
+          }
+        </span>
+      </div>
+
+      <div class="-mr-2 flex items-center justify-end gap-0.5 lg:w-[13.5rem]">
+        <a
+          [routerLink]="['/help/admin/articles', article.id, 'edit']"
+          class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md"
+          [attr.aria-label]="'Editar ' + article.title"
+          title="Editar">
+          <app-icon class="h-5 w-5">edit</app-icon>
+        </a>
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50"
+          [attr.aria-label]="(article.isPublished ? 'Despublicar ' : 'Publicar ') + article.title"
+          [title]="article.isPublished ? 'Despublicar (pasar a borrador)' : 'Publicar'"
+          [disabled]="$busyId() === article.id"
+          (click)="handleTogglePublish(article)">
+          <app-icon class="h-5 w-5">{{ article.isPublished ? 'unpublished' : 'publish' }}</app-icon>
+        </button>
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50"
+          [attr.aria-label]="'Duplicar ' + article.title"
+          title="Duplicar"
+          [disabled]="$busyId() === article.id"
+          (click)="handleDuplicate(article)">
+          <app-icon class="h-5 w-5">content_copy</app-icon>
+        </button>
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md"
+          [attr.aria-label]="'Votos de ' + article.title"
+          title="Ver votos"
+          (click)="handleVotes(article)">
+          <app-icon class="h-5 w-5">thumbs_up_down</app-icon>
+        </button>
+        @if (article.isPublished) {
+        <a
+          [routerLink]="['/help', article.slug]"
+          class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md"
+          [attr.aria-label]="'Ver publicado ' + article.title"
+          title="Ver publicado">
+          <app-icon class="h-5 w-5">visibility</app-icon>
+        </a>
+        }
+        <button
+          type="button"
+          class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50"
+          [attr.aria-label]="'Eliminar ' + article.title"
+          title="Eliminar"
+          [disabled]="$busyId() === article.id"
+          (click)="handleDelete(article)">
+          <app-icon class="h-5 w-5">delete</app-icon>
+        </button>
+      </div>
+    </li>
+    }
+  </ul>
+
+  @if (!$canReorder() && $page()?.pagination; as meta) { @if (meta.totalPages > 1) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+  }
+</div>
+}

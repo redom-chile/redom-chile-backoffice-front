@@ -14,8 +14,8 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #46 centro de ayuda y asistente con IA |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42 |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -320,7 +320,13 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 **Front mientras tanto:** pagina con `perPage`; con caja activa y varios locales pide elegir el local para pagar en efectivo; muestra comisiones y abonos como estimados.
 
-### 46. 🔵 Centro de ayuda (preguntas frecuentes) y asistente con IA
+---
+
+## Resueltas
+
+### 46. 🟢 Centro de ayuda (preguntas frecuentes) y asistente con IA (resuelta)
+
+> Resuelta: endpoints `/help/*` y `/help/admin/*` (solo `SUPERADMIN`), `POST /help/chat` con SSE (`articles`, `delta`, `done` con `sources`, `error`), cuota de 50 preguntas al mes por negocio y 10 por minuto por usuario. Nota: en AWS (API Gateway + Lambda) la respuesta del chat llega completa al final, no en trozos; el front muestra "escribiendo…" hasta el primer `delta`.
 
 **Problema:** no hay dónde documentar el uso de Redom ni responder dudas dentro de la app.
 
@@ -331,10 +337,6 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - feedback de artículos y respuestas, métricas de uso y revisión de preguntas mal respondidas.
 
 **Front mientras tanto:** nada; el centro de ayuda y el panel del asistente se construyen cuando estén los endpoints.
-
----
-
-## Resueltas
 
 Resueltas por el backend en octubre de 2026. Se indica cuando la solución quedó distinta a lo pedido.
 

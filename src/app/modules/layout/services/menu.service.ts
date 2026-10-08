@@ -29,14 +29,19 @@ export class MenuService implements OnDestroy {
     return (locationsService.$locations()?.length ?? 0) > 1;
   });
 
-  // Oculta lo que depende de una función apagada en la configuración del negocio (ej. Inventario).
+  #roles = computed(() => new Set(this._whoamiService.$whoami()?.roles.map((role) => role.code) ?? []));
+
+  // Oculta lo que depende de una función apagada en la configuración del negocio (ej. Inventario)
+  // y lo reservado a un rol (ej. la administración del centro de ayuda).
   #featureMenu: Signal<MenuItem[]> = computed(() => {
     const enabled = {
       inventory: this.#businessSettings.$inventoryEnabled(),
       ingredients: this.#businessSettings.$ingredientsEnabled(),
       multiLocation: this.#hasManyLocations(),
     };
-    const isVisible = (item: SubMenuItem) => !item.feature || enabled[item.feature];
+    const roles = this.#roles();
+    const isVisible = (item: SubMenuItem) =>
+      (!item.feature || enabled[item.feature]) && (!item.role || roles.has(item.role));
     return this._pagesMenu().map((group) => ({
       ...group,
       items: group.items.filter(isVisible).map((item) => {

@@ -264,6 +264,12 @@ export class AuthService {
     localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem(this.userDataKey);
     localStorage.removeItem(this.lastActivityKey);
+    // Conversación con el asistente del centro de ayuda (HELP_CHAT_STORAGE_KEY).
+    try {
+      sessionStorage.removeItem('redom.help-chat');
+    } catch {
+      // Sin sessionStorage no hay nada que borrar.
+    }
     this.token = null;
     this.refreshToken = null;
     this.currentUserLoginOn.next(false);

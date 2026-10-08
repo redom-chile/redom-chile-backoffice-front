@@ -7,12 +7,15 @@ import { needsLocationStep, WhoamiService } from '../services/whoami/whoami.serv
 
 // Con sesión pero sin negocio, o dueño sin ningún local activo → onboarding (sin negocio el backend responde 403 en casi todo).
 // Si whoami no trae locationsCount (respuesta antigua), solo se exige el negocio.
-export const businessGuard: CanActivateFn = () => {
+// Excepción: el equipo de Redom (SUPERADMIN) administra el centro de ayuda aunque no tenga negocio.
+export const businessGuard: CanActivateFn = (_route, state) => {
   if (!inject(AuthService).isLogin()) return true; // authGuard de cada ruta se encarga.
   const router = inject(Router);
   const whoamiService = inject(WhoamiService);
+  const isHelpAdmin = (whoami: WhoamiDto) =>
+    state.url.startsWith('/help/admin') && whoami.roles.some((role) => role.code === 'SUPERADMIN');
   const allow = (whoami: WhoamiDto) =>
-    !whoami.user.restaurantId || needsLocationStep(whoami) === true ? router.parseUrl('/onboarding') : true;
+    !isHelpAdmin(whoami) && (!whoami.user.restaurantId || needsLocationStep(whoami) === true) ? router.parseUrl('/onboarding') : true;
   const known = whoamiService.$whoami();
   if (known) return allow(known);
   return whoamiService.load().pipe(map((whoami) => (whoami ? allow(whoami) : true)));

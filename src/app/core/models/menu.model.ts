@@ -16,4 +16,6 @@ export interface SubMenuItem {
   permission?: string;
   /** Solo se muestra si la función está activa en la configuración del negocio. */
   feature?: 'inventory' | 'ingredients' | 'multiLocation';
+  /** Solo se muestra a quien tiene ese rol (roles[].code de whoami), aunque los permisos estén apagados. */
+  role?: string;
 }

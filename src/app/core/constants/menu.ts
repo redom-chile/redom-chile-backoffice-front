@@ -186,6 +186,23 @@ export class Menu {
           ],
         },
         {
+          icon: 'help',
+          label: 'Ayuda',
+          route: '/help',
+        },
+        {
+          icon: 'support_agent',
+          label: 'Centro de ayuda',
+          route: '/help/admin',
+          role: 'SUPERADMIN',
+          children: [
+            { label: 'Artículos', route: '/help/admin/articles' },
+            { label: 'Categorías', route: '/help/admin/categories' },
+            { label: 'Revisión del asistente', route: '/help/admin/review' },
+            { label: 'Uso y costos', route: '/help/admin/usage' },
+          ],
+        },
+        {
           icon: 'notifications',
           label: 'Notifications',
           route: '/gift',

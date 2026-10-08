@@ -36,6 +36,15 @@
           <span class="max-w-[14rem] truncate">{{ businessName }}</span>
         </a>
         }
+        <button
+          type="button"
+          class="glass-row text-muted-foreground hover:text-foreground inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors"
+          aria-label="Ayuda"
+          title="Ayuda"
+          [attr.aria-expanded]="helpPanel.$open()"
+          (click)="helpPanel.toggle()">
+          <app-icon class="h-5 w-5">help</app-icon>
+        </button>
         <app-profile-menu></app-profile-menu>
       </div>
     </div>

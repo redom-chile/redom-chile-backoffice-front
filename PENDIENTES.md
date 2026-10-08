@@ -155,11 +155,12 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 
 ## Centro de ayuda y asistente con IA
 
-- Esperando al backend (#46, prompt en `docs/backend-prompts/centro-de-ayuda.md`).
-- Front por hacer: página Centro de ayuda (buscador, categorías, artículo), botón de ayuda por pantalla, panel del asistente con streaming, 👍/👎, y la administración del CRUD de preguntas frecuentes para el equipo de Redom.
-- Contenido: 35 artículos listos en `docs/help-center/articles/` (y `articles.json` para cargarlos); revisarlos con el equipo antes de publicar.
+- Implementado (#46 resuelto): Centro de ayuda (`/help`, artículo `/help/:slug` con "¿Te sirvió?"), botón "?" en el navbar con panel lateral (artículos de la pantalla + asistente con streaming, fuentes, 👍/👎 y cuota restante) y administración para `SUPERADMIN` (`/help/admin`: artículos con filtros, orden, publicar, duplicar y votos; editor con vista previa; categorías; revisión del asistente; uso y costos). Falta probarlo E2E contra el backend.
+- En AWS la respuesta del asistente llega completa al final (API Gateway + Lambda acumula): evaluar Lambda response streaming o un endpoint fuera de API Gateway si se quiere ver el texto en vivo.
+- Mejoras posibles: buscador de íconos en el modal de categoría; pasar lo buscado como pregunta al abrir el asistente desde un buscador sin resultados; focus-trap completo en el panel; el gráfico de uso importa el tema de gráficos desde el módulo dashboard (mover a `src/ui`).
+- Contenido: 35 artículos listos en `docs/help-center/articles/` (y `articles.json`): cargarlos con la migración del backend o el CRUD, y revisarlos con el equipo antes de publicar.
 - Huecos de interfaz detectados al redactarlos: corregidos (menú "Mi negocio" y "Turnos de caja", opciones del POS aplicadas, "Producción" en el kardex, textos de datos fiscales y de sucursal). Revisados y correctos tal como están: la columna "Dirección" de Sucursales (el backend guarda la dirección en `landmark`), la lista fija de medios de pago en el cobro (Medios de pago solo configura comisiones) y Food cost / Consumo visibles sin recetas.
-- Definir el rol de administración de la plataforma (quién edita las preguntas frecuentes) y el límite mensual por plan.
+- Definir el límite mensual del asistente por plan (hoy 50 preguntas al mes por negocio, `HELP_CHAT_MONTHLY_LIMIT`). El rol administrador quedó como `SUPERADMIN`.
 
 ## Otros pendientes generales
 

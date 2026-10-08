@@ -1,0 +1,296 @@
+@let v = $value();
+<div>
+  <app-header-dashboard
+    [title]="isEdit ? 'Editar artículo' : 'Nuevo artículo'"
+    [subtitle]="isEdit ? 'Los cambios se ven en el centro de ayuda apenas guardas (si está publicado).' : 'Una pregunta frecuente del centro de ayuda, en markdown.'">
+    <div class="flex items-center gap-3">
+      @if ($article()?.isPublished) {
+      <a
+        [routerLink]="['/help', $article()!.slug]"
+        target="_blank"
+        class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium"
+        title="Ver publicado">
+        <app-icon class="h-5 w-5">open_in_new</app-icon>
+        <span class="hidden sm:inline">Ver publicado</span>
+      </a>
+      }
+      <a
+        routerLink="/help/admin/articles"
+        [queryParams]="v.categoryId ? { categoryId: v.categoryId } : {}"
+        class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+        <app-icon class="h-5 w-5">arrow_back</app-icon>
+        <span class="hidden sm:inline">Volver a artículos</span>
+        <span class="sm:hidden">Volver</span>
+      </a>
+    </div>
+  </app-header-dashboard>
+
+  @if ($loadError(); as error) {
+  <div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+    <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+    <div>
+      <p class="text-foreground font-semibold">{{ $detailError() ? 'No se pudo cargar el artículo' : 'No se pudieron cargar las categorías' }}</p>
+      <p class="text-muted-foreground mt-1 text-sm">{{ showError(error) }}</p>
+    </div>
+    <div class="flex flex-wrap justify-center gap-3">
+      <a routerLink="/help/admin/articles" class="text-primary self-center text-sm font-medium hover:underline">Volver a artículos</a>
+      <app-button type="button" impact="bold" (buttonClick)="retryLoad()">Reintentar</app-button>
+    </div>
+  </div>
+  } @else if ($isLoading()) {
+  <div class="glass grid grid-cols-1 gap-4 rounded-[1rem] p-4 sm:grid-cols-2">
+    @for (row of [1, 2, 3, 4, 5, 6]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  } @else {
+  <form [formGroup]="form" (ngSubmit)="handleSubmit()" class="space-y-4">
+    <section class="glass rounded-[1rem] p-4">
+      <h2 class="text-foreground mb-3 font-semibold">Datos del artículo</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <label for="article-title" class="mb-1 block text-sm font-medium">Título (la pregunta) *</label>
+          <input
+            id="article-title"
+            type="text"
+            maxlength="200"
+            formControlName="title"
+            placeholder="Ej: ¿Cómo abro la caja al empezar el turno?"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="invalid('title')" />
+          @if (invalid('title')) {
+          <p class="text-destructive mt-1 text-xs">Entre 5 y 200 caracteres.</p>
+          }
+        </div>
+
+        <div>
+          <label for="article-category" class="mb-1 block text-sm font-medium">Categoría *</label>
+          <select
+            id="article-category"
+            formControlName="categoryId"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="invalid('categoryId')">
+            <option [ngValue]="null" disabled>Elige una categoría</option>
+            @for (category of $categories(); track category.id) {
+            <option [ngValue]="category.id">{{ category.name }}{{ category.isActive ? '' : ' (inactiva)' }}</option>
+            }
+          </select>
+          @if (invalid('categoryId')) {
+          <p class="text-destructive mt-1 text-xs">Elige una categoría.</p>
+          } @else if ($selectedCategoryInactive()) {
+          <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">La categoría está inactiva: el artículo no se verá aunque esté publicado.</p>
+          } @else if (!$categories().length) {
+          <p class="text-muted-foreground mt-1 text-xs">
+            No hay categorías. <a routerLink="/help/admin/categories" class="text-primary font-medium hover:underline">Crea una primero</a>.
+          </p>
+          }
+        </div>
+
+        <div>
+          <label for="article-module" class="mb-1 block text-sm font-medium">Módulo *</label>
+          <select id="article-module" formControlName="module" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="invalid('module')">
+            <option [ngValue]="null" disabled>Elige un módulo</option>
+            @for (option of moduleOptions; track option.value) {
+            <option [ngValue]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          @if (invalid('module')) {
+          <p class="text-destructive mt-1 text-xs">Elige el módulo de la app al que se refiere.</p>
+          }
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="article-summary" class="mb-1 block text-sm font-medium">Resumen *</label>
+          <textarea
+            id="article-summary"
+            rows="2"
+            maxlength="300"
+            formControlName="summary"
+            placeholder="Una o dos frases con la respuesta corta. Se muestra en los resultados de búsqueda."
+            class="glass-input w-full resize-y rounded-md px-3 py-2"
+            [class.border-red-500]="invalid('summary')"></textarea>
+          <div class="mt-1 flex justify-between gap-2 text-xs">
+            <span class="text-destructive">{{ invalid('summary') ? 'Entre 10 y 300 caracteres.' : '' }}</span>
+            <span class="text-muted-foreground tabular-nums">{{ v.summary.length }}/300</span>
+          </div>
+        </div>
+
+        <div>
+          <label for="article-slug" class="mb-1 block text-sm font-medium">Identificador (slug)</label>
+          <input
+            id="article-slug"
+            type="text"
+            maxlength="220"
+            formControlName="slug"
+            placeholder="como-abrir-la-caja"
+            autocapitalize="off"
+            spellcheck="false"
+            class="glass-input w-full rounded-md px-3 py-2 font-mono text-sm"
+            [class.border-red-500]="invalid('slug')" />
+          @if (invalid('slug')) {
+          <p class="text-destructive mt-1 text-xs">Solo minúsculas sin tildes, números y guiones, de 2 a 220 caracteres.</p>
+          } @else {
+          <p class="text-muted-foreground mt-1 text-xs">
+            {{ isEdit ? 'Va en el enlace /help/…; si lo cambias, los enlaces anteriores dejan de funcionar.' : 'Se genera desde el título si lo dejas vacío.' }}
+          </p>
+          }
+        </div>
+
+        <div>
+          <label for="article-position" class="mb-1 block text-sm font-medium">Posición</label>
+          <input
+            id="article-position"
+            type="number"
+            min="0"
+            step="1"
+            inputmode="numeric"
+            formControlName="position"
+            placeholder="0"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="invalid('position')" />
+          <p class="mt-1 text-xs" [class]="invalid('position') ? 'text-destructive' : 'text-muted-foreground'">
+            Orden dentro de la categoría (entero desde 0). También puedes arrastrar en la lista.
+          </p>
+        </div>
+
+        <div>
+          <label for="article-routes" class="mb-1 block text-sm font-medium">Pantallas relacionadas</label>
+          <app-admin-chip-input
+            inputId="article-routes"
+            placeholder="/cash/sessions y Enter"
+            [mono]="true"
+            [max]="listMax"
+            [maxLength]="255"
+            [values]="v.routes"
+            [normalize]="normalizeRoute"
+            [validate]="validateRoute"
+            (valuesChange)="setList('routes', $event)"
+            (rejected)="showWarning($event)" />
+          <p class="text-muted-foreground mt-1 text-xs">Rutas de la app donde este artículo aparece primero (máximo {{ listMax }}).</p>
+        </div>
+
+        <div>
+          <label for="article-tags" class="mb-1 block text-sm font-medium">Etiquetas</label>
+          <app-admin-chip-input
+            inputId="article-tags"
+            placeholder="arqueo y Enter"
+            [max]="listMax"
+            [maxLength]="40"
+            [values]="v.tags"
+            [normalize]="normalizeTag"
+            [validate]="validateTag"
+            (valuesChange)="setList('tags', $event)"
+            (rejected)="showWarning($event)" />
+          <p class="text-muted-foreground mt-1 text-xs">Palabras que ayudan a encontrarlo (máximo {{ listMax }}, en minúsculas).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contenido -->
+    <section class="glass rounded-[1rem] p-4">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-foreground font-semibold">Respuesta *</h2>
+        <div class="glass inline-flex rounded-lg p-0.5 text-sm lg:hidden" role="tablist" aria-label="Editor">
+          <button
+            type="button"
+            role="tab"
+            class="rounded-md px-3 py-1 font-medium"
+            [class]="$tab() === 'write' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+            [attr.aria-selected]="$tab() === 'write'"
+            (click)="$tab.set('write')">
+            Escribir
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="rounded-md px-3 py-1 font-medium"
+            [class]="$tab() === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+            [attr.aria-selected]="$tab() === 'preview'"
+            (click)="$tab.set('preview')">
+            Vista previa
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="min-w-0" [class]="$tab() === 'preview' ? 'max-lg:hidden' : ''">
+          <label for="article-body" class="sr-only">Respuesta en markdown</label>
+          <textarea
+            id="article-body"
+            rows="18"
+            [attr.maxlength]="bodyMax"
+            formControlName="body"
+            placeholder="## Pasos&#10;&#10;1. Ve a **Caja**…&#10;&#10;Puedes enlazar otros artículos: [Cerrar la caja](/help/cerrar-la-caja)"
+            class="glass-input min-h-[18rem] w-full resize-y rounded-md px-3 py-2 font-mono text-sm leading-relaxed"
+            [class.border-red-500]="invalid('body')"></textarea>
+          <div class="mt-1 flex justify-between gap-2 text-xs">
+            <span class="text-muted-foreground">Markdown: **negrita**, listas, ## títulos, [enlaces](/help/slug), tablas.</span>
+            <span class="tabular-nums" [class]="invalid('body') ? 'text-destructive' : 'text-muted-foreground'">
+              {{ v.body.length }}/{{ bodyMax }}
+            </span>
+          </div>
+        </div>
+        <div class="min-w-0" [class]="$tab() === 'write' ? 'max-lg:hidden' : ''">
+          <p class="text-muted-foreground mb-2 hidden text-xs font-medium uppercase tracking-wider lg:block">Vista previa</p>
+          <div class="min-h-[18rem] overflow-hidden rounded-md border border-[var(--border)] p-4">
+            @if (v.body.trim()) {
+            <h1 class="text-foreground mb-3 text-xl font-semibold">{{ v.title || 'Sin título' }}</h1>
+            <app-markdown [content]="v.body" />
+            } @else {
+            <p class="text-muted-foreground text-sm">Escribe la respuesta para ver cómo queda.</p>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass rounded-[1rem] p-4">
+      <label class="flex cursor-pointer items-center justify-between gap-3">
+        <span>
+          <span class="text-foreground block font-semibold">Publicado</span>
+          <span class="text-muted-foreground block text-xs">Si no, queda como borrador: solo lo ve el equipo de Redom.</span>
+        </span>
+        <input type="checkbox" role="switch" formControlName="isPublished" class="peer sr-only" />
+        <span
+          class="relative h-6 w-11 shrink-0 rounded-full bg-gray-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 dark:bg-gray-600"
+          aria-hidden="true"></span>
+      </label>
+
+      @if ($article(); as article) {
+      <dl class="text-muted-foreground mt-4 grid grid-cols-1 gap-x-6 gap-y-1 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
+        <div>
+          <dt class="inline">Creado:</dt>
+          <dd class="inline">{{ formatDate(article.createdAt) }}{{ article.createdByName ? ' por ' + article.createdByName : '' }}</dd>
+        </div>
+        <div>
+          <dt class="inline">Última edición:</dt>
+          <dd class="inline">{{ formatDate(article.updatedAt) }}{{ article.updatedByName ? ' por ' + article.updatedByName : '' }}</dd>
+        </div>
+        @if (article.publishedAt) {
+        <div>
+          <dt class="inline">Publicado:</dt>
+          <dd class="inline">{{ formatDate(article.publishedAt) }}</dd>
+        </div>
+        }
+        <div>
+          <dt class="inline">Votos:</dt>
+          <dd class="inline">👍 {{ article.helpfulCount }} · 👎 {{ article.notHelpfulCount }}</dd>
+        </div>
+      </dl>
+      }
+    </section>
+
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a
+        routerLink="/help/admin/articles"
+        [queryParams]="v.categoryId ? { categoryId: v.categoryId } : {}"
+        class="text-muted-foreground hover:text-foreground self-center px-4 py-2 text-sm font-medium">
+        Cancelar
+      </a>
+      <app-button type="submit" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()">
+        {{ isEdit ? 'Guardar cambios' : v.isPublished ? 'Crear y publicar' : 'Guardar borrador' }}
+      </app-button>
+    </div>
+  </form>
+  }
+</div>
