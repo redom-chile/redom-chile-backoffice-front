@@ -1,0 +1,279 @@
+@let tz = $timeZone();
+<div class="space-y-4">
+  <app-header-dashboard title="Mi suscripción" subtitle="Tu plan, tus cobros y cómo pagarlos" />
+
+  @if ($ownerRequired()) {
+  <app-empty-state icon="lock" title="Solo el dueño del negocio puede ver la suscripción" description="Puedes revisar qué incluye cada plan.">
+    <a routerLink="/billing/plans" class="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90">Ver planes</a>
+  </app-empty-state>
+  } @else if ($failed()) {
+  <app-empty-state icon="cloud_off" title="No pudimos cargar tu suscripción" description="Revisa tu conexión e intenta nuevamente.">
+    <button type="button" class="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90" (click)="reload()">
+      Reintentar
+    </button>
+  </app-empty-state>
+  } @else if ($isLoading()) {
+  <app-skeleton size="3xl" />
+  <app-skeleton size="3xl" />
+  } @else if ($subscription(); as sub) {
+  <!-- Tarjeta del plan -->
+  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-plan-title">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <app-icon class="text-primary h-6 w-6" aria-hidden="true">workspace_premium</app-icon>
+          <h2 id="sub-plan-title" class="text-foreground text-xl font-semibold">Plan {{ sub.plan.name }}</h2>
+          <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" [class]="statusTones[sub.status]">{{ statusLabels[sub.status] }}</span>
+        </div>
+        @if (sub.price) {
+        <p class="text-foreground mt-1 text-2xl font-bold">
+          {{ clp(sub.price.amount) }}<span class="text-muted-foreground text-sm font-medium">{{ intervalSuffix[sub.price.interval] }}</span>
+        </p>
+        <p class="text-muted-foreground text-xs">{{ intervalLabels[sub.price.interval] }} · IVA incluido</p>
+        } @else if (sub.status !== 'trialing') {
+        <p class="text-muted-foreground mt-1 text-sm">Sin cobro</p>
+        }
+      </div>
+      <a
+        routerLink="/billing/plans"
+        class="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90">
+        <app-icon class="h-5 w-5" aria-hidden="true">swap_horiz</app-icon>
+        Cambiar plan
+      </a>
+    </div>
+
+    <ul class="mt-4 space-y-2 text-sm">
+      @if (sub.nextCharge; as next) {
+      <li class="text-foreground flex flex-wrap items-baseline gap-x-2">
+        <app-icon class="text-muted-foreground h-4 w-4 self-center" aria-hidden="true">event</app-icon>
+        <span>Próximo cobro: {{ next.date | billingDate: tz }} —</span>
+        @if (next.discountAmount > 0) {
+        <span class="text-muted-foreground line-through">{{ clp(next.subtotal) }}</span>
+        }
+        <span class="font-semibold">{{ clp(next.total) }}</span>
+        @if (next.plan.id !== sub.plan.id) {
+        <span class="text-muted-foreground">(plan {{ next.plan.name }} {{ intervalLabels[next.interval].toLowerCase() }})</span>
+        }
+        @if (next.discountAmount > 0 && sub.discount) {
+        <span class="text-primary text-xs font-medium">{{ sub.discount.name }}</span>
+        }
+      </li>
+      }
+      @if (sub.status === 'trialing' && sub.trialEndsAt) {
+      <li class="text-foreground flex items-center gap-2">
+        <app-icon class="text-muted-foreground h-4 w-4" aria-hidden="true">hourglass_top</app-icon>
+        Tu prueba termina el {{ sub.trialEndsAt | billingDate: tz }}. Elige un plan para seguir usando todo.
+      </li>
+      }
+      @if (sub.status === 'past_due') {
+      <li class="border-destructive/30 bg-destructive/10 text-destructive flex items-start gap-2 rounded-xl border px-3 py-2 font-medium">
+        <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">error</app-icon>
+        @if (sub.graceEndsAt) {
+        Tu pago está atrasado. Paga antes del {{ sub.graceEndsAt | billingDate: tz }} para no perder las funciones de tu plan.
+        } @else {
+        Tu pago está atrasado. Paga pronto para no perder las funciones de tu plan.
+        }
+      </li>
+      }
+      @if (sub.status === 'expired' || sub.status === 'cancelled') {
+      <li class="text-muted-foreground flex items-center gap-2">
+        <app-icon class="h-4 w-4" aria-hidden="true">info</app-icon>
+        Tus datos siguen guardados. Elige un plan para volver a usar todas las funciones.
+      </li>
+      }
+      @if (sub.scheduledPlan; as scheduled) {
+      <li class="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-800 dark:text-amber-300">
+        <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">schedule</app-icon>
+        <span>
+          Cambia a {{ scheduled.name }}
+          @if (sub.nextCharge && sub.nextCharge.plan.id === scheduled.id) {
+          {{ intervalLabels[sub.nextCharge.interval].toLowerCase() }}
+          }
+          el {{ sub.currentPeriodEnd | billingDate: tz }}
+        </span>
+      </li>
+      }
+      @if (sub.cancelAtPeriodEnd) {
+      <li class="flex flex-col gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-800 sm:flex-row sm:items-center sm:justify-between dark:text-amber-300">
+        <span class="flex items-start gap-2">
+          <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">event_busy</app-icon>
+          Se cancela el {{ $endsAt() | billingDate: tz }}. Después pasarás a Free, sin perder datos.
+        </span>
+        <app-button type="button" impact="bold" size="small" shape="pill" [disabled]="!!$busy()" [isLoading]="$busy() === 'resume'" (buttonClick)="handleResume()">
+          Reanudar
+        </app-button>
+      </li>
+      }
+    </ul>
+  </section>
+
+  <!-- Cobros pendientes -->
+  @if (sub.openInvoices.length) {
+  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-open-title">
+    <h2 id="sub-open-title" class="text-foreground mb-3 text-base font-semibold">Cobros pendientes</h2>
+    <div class="space-y-3">
+      @for (invoice of sub.openInvoices; track invoice.id) {
+      @let left = reportable(invoice);
+      <article class="rounded-xl border border-[var(--border)] p-3">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-foreground font-medium">{{ invoiceTitle(invoice) }}</h3>
+              <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" [class]="invoiceStatusTones[invoice.status]">
+                {{ invoiceStatusLabels[invoice.status] }}
+              </span>
+              @if (invoice.pendingAmount > 0) {
+              <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                Transferencia en revisión
+              </span>
+              }
+            </div>
+            <p class="text-muted-foreground mt-0.5 text-xs">
+              @if (invoice.kind === 'period') {
+              {{ invoice.periodStart | billingDate: tz : 'short' }} al {{ invoice.periodEnd | billingDate: tz : 'short' }} ·
+              }
+              Vence el {{ invoice.dueDate | billingDate: tz }}
+            </p>
+          </div>
+          <div class="text-left sm:text-right">
+            <p class="text-foreground text-xl font-bold tabular-nums">{{ clp(balance(invoice)) }}</p>
+            @if (invoice.discountAmount > 0) {
+            <p class="text-muted-foreground text-xs">
+              <span class="line-through">{{ clp(invoice.subtotal) }}</span> · descuento {{ clp(invoice.discountAmount) }}
+            </p>
+            }
+            @if (invoice.paidAmount > 0) {
+            <p class="text-muted-foreground text-xs">Pagado {{ clp(invoice.paidAmount) }} de {{ clp(invoice.total) }}</p>
+            }
+          </div>
+        </div>
+
+        @if (invoice.pendingAmount > 0) {
+        <p class="text-muted-foreground mt-2 text-sm">
+          Estamos revisando tu transferencia de {{ clp(invoice.pendingAmount) }}. Te avisaremos cuando la confirmemos.
+        </p>
+        }
+
+        @if (left > 0) {
+        <div class="mt-3">
+          <app-bank-transfer-info [info]="sub.bankTransferInfo" [amount]="left" [amountLabel]="clp(left)" />
+        </div>
+        <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          @if (hasRejected(invoice)) {
+          <p class="text-muted-foreground text-xs">Si tu transferencia fue rechazada, revisa el motivo e infórmala de nuevo.</p>
+          } @else {
+          <p class="text-muted-foreground text-xs">Transfiere {{ clp(left) }} y avísanos para activar tu pago.</p>
+          }
+          <app-button type="button" impact="bold" shape="pill" icon="task_alt" (buttonClick)="handleReport(invoice)">Ya transferí</app-button>
+        </div>
+        }
+
+        @if (invoice.payments.length) {
+        <div class="mt-3">
+          <p class="text-muted-foreground mb-1.5 text-xs font-medium">Pagos informados</p>
+          <app-invoice-payments [payments]="invoice.payments" [timeZone]="tz" />
+        </div>
+        }
+      </article>
+      }
+    </div>
+  </section>
+  }
+
+  <!-- Cupón -->
+  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-coupon-title">
+    <h2 id="sub-coupon-title" class="text-foreground text-base font-semibold">Descuento</h2>
+    @if ($discountLabel(); as discount) {
+    <p class="text-primary mt-1 flex items-center gap-2 text-sm font-medium">
+      <app-icon class="h-4 w-4" aria-hidden="true">sell</app-icon>
+      {{ discount }}
+    </p>
+    } @else {
+    <p class="text-muted-foreground mt-1 text-sm">No tienes descuentos activos.</p>
+    }
+    <form class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end" (ngSubmit)="handleCoupon()">
+      <div class="min-w-0 flex-1 sm:max-w-xs">
+        <label for="sub-coupon" class="mb-1 block text-sm font-medium">¿Tienes un cupón?</label>
+        <input
+          id="sub-coupon"
+          type="text"
+          maxlength="40"
+          autocomplete="off"
+          placeholder="Ej: LANZAMIENTO"
+          [formControl]="coupon"
+          class="glass-input w-full rounded-md px-3 py-2 uppercase" />
+      </div>
+      <app-button type="submit" impact="light" shape="pill" [disabled]="!!$busy()" [isLoading]="$busy() === 'coupon'">Aplicar</app-button>
+    </form>
+    <p class="text-muted-foreground mt-1 text-xs">Se aplica a tus próximos cobros y reemplaza el descuento que tengas.</p>
+  </section>
+
+  <!-- Historial -->
+  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-history-title">
+    <h2 id="sub-history-title" class="text-foreground mb-3 text-base font-semibold">Historial de cobros</h2>
+    @if ($historyFailed()) {
+    <p class="text-muted-foreground text-sm">
+      No pudimos cargar el historial.
+      <button type="button" class="text-primary font-medium hover:underline" (click)="reload()">Reintentar</button>
+    </p>
+    } @else if ($history(); as history) {
+    @if (history.data.length) {
+    <div class="space-y-3" [class.opacity-60]="$historyLoading()">
+      @for (invoice of history.data; track invoice.id) {
+      <article class="rounded-xl border border-[var(--border)] p-3">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-foreground text-sm font-medium">{{ invoiceTitle(invoice) }}</h3>
+              <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold" [class]="invoiceStatusTones[invoice.status]">
+                {{ invoiceStatusLabels[invoice.status] }}
+              </span>
+            </div>
+            <p class="text-muted-foreground text-xs">
+              {{ invoice.periodStart | billingDate: tz : 'short' }} al {{ invoice.periodEnd | billingDate: tz : 'short' }} · Vence el
+              {{ invoice.dueDate | billingDate: tz : 'short' }}
+            </p>
+          </div>
+          <div class="sm:text-right">
+            <p class="text-foreground font-semibold tabular-nums">{{ clp(invoice.total) }}</p>
+            @if (invoice.discountAmount > 0) {
+            <p class="text-muted-foreground text-xs">
+              <span class="line-through">{{ clp(invoice.subtotal) }}</span> · descuento {{ clp(invoice.discountAmount) }}
+            </p>
+            }
+          </div>
+        </div>
+        @if (invoice.payments.length) {
+        <div class="mt-2">
+          <app-invoice-payments [payments]="invoice.payments" [timeZone]="tz" />
+        </div>
+        }
+      </article>
+      }
+    </div>
+    @if (history.pagination.totalPages > 1) {
+    <div class="mt-3">
+      <app-pagination-table [pagination]="history.pagination" (pageChange)="handlePage($event)" />
+    </div>
+    }
+    } @else {
+    <p class="text-muted-foreground text-sm">Todavía no tienes cobros.</p>
+    }
+    } @else {
+    <app-skeleton size="2xl" />
+    }
+  </section>
+
+  @if ($canCancel()) {
+  <div class="flex justify-center sm:justify-end">
+    <button
+      type="button"
+      class="text-destructive hover:bg-destructive/10 rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50"
+      [disabled]="!!$busy()"
+      (click)="handleCancel()">
+      Cancelar suscripción
+    </button>
+  </div>
+  }
+  }
+</div>

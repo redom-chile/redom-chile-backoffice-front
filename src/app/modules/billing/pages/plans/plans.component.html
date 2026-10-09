@@ -1,4 +1,5 @@
 @let interval = $interval();
+@let isOwner = $isOwner();
 <div class="space-y-4">
   <app-header-dashboard title="Planes" subtitle="Compara lo que incluye cada plan y elige el que mejor le sirve a tu negocio" />
 
@@ -100,13 +101,15 @@
       <div class="mt-4 min-h-[3.25rem]">
         @if (card.plan.isFree) {
         <p class="text-foreground text-2xl font-bold">Gratis</p>
-        } @else if (card.price) {
-        <p class="text-foreground text-2xl font-bold">{{ card.price }}</p>
+        } @else if (card.priceLabel) {
+        <p class="text-foreground text-2xl font-bold">{{ card.priceLabel }}</p>
         @if (card.monthlyEquivalent) {
         <p class="text-muted-foreground text-xs">{{ card.monthlyEquivalent }}</p>
         }
+        } @else if (card.comingSoon) {
+        <p class="text-muted-foreground text-base font-semibold">Próximamente</p>
         } @else {
-        <p class="text-muted-foreground text-base font-semibold">Precio por confirmar</p>
+        <p class="text-muted-foreground text-base font-semibold">Solo con pago {{ otherIntervalLabel() }}</p>
         }
       </div>
 
@@ -131,21 +134,49 @@
         }
       </ul>
 
-      <div class="mt-5">
-        @if (card.current) {
+      <div class="mt-5 space-y-2">
+        @if (card.current && (card.plan.isFree || !card.price || card.price.isCurrent || !isOwner)) {
         <p class="text-primary flex items-center justify-center gap-1 rounded-full py-2.5 text-sm font-semibold">
           <app-icon class="h-4 w-4">check_circle</app-icon>
-          Tu plan actual
+          Plan actual
         </p>
+        }
+        @if (!isOwner) {
+        @if (!card.current) {
+        <p class="text-muted-foreground text-center text-xs">Solo el dueño del negocio puede cambiar el plan.</p>
+        }
+        } @else if (card.plan.isFree) {
+        @if (!card.current) {
+        <a routerLink="/billing/subscription" class="text-primary block text-center text-xs font-medium hover:underline">
+          Para pasar a Free, cancela tu suscripción
+        </a>
+        }
+        } @else if (card.comingSoon) {
+        <button type="button" disabled class="glass-row text-muted-foreground w-full cursor-not-allowed rounded-full py-2.5 text-sm font-semibold opacity-70">
+          Próximamente
+        </button>
+        } @else if (card.action) {
+        <button
+          type="button"
+          class="w-full rounded-full py-2.5 text-sm font-semibold"
+          [class]="card.price?.isCurrent ? 'glass-row text-foreground hover:opacity-90' : 'bg-primary text-primary-foreground hover:opacity-90'"
+          (click)="handleChoose(card)">
+          {{ buttonLabels[card.action] }}
+        </button>
         } @else {
         <button type="button" disabled class="glass-row text-muted-foreground w-full cursor-not-allowed rounded-full py-2.5 text-sm font-semibold opacity-70">
-          Disponible pronto
+          No disponible {{ interval === 'month' ? 'mensual' : 'anual' }}
         </button>
         }
       </div>
     </article>
     }
   </div>
-  <p class="text-muted-foreground text-center text-xs">El pago en línea llega en la próxima actualización.</p>
+  <p class="text-muted-foreground text-center text-xs">
+    Precios en pesos chilenos con IVA incluido.
+    @if (isOwner) {
+    Por ahora se paga por transferencia; el pago con tarjeta llega pronto.
+    }
+  </p>
   }
 </div>

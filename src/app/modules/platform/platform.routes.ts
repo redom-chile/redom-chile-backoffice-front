@@ -20,6 +20,9 @@ const routes: Routes = [
       { path: 'plans/:id', loadComponent: () => import('./pages/platform-plan-detail').then((m) => m.PlatformPlanDetailComponent) },
       // Query params opcionales: search, isActive, page.
       { path: 'discounts', loadComponent: () => import('./pages/platform-discounts').then((m) => m.PlatformDiscountsComponent) },
+      { path: 'payments-review', loadComponent: () => import('./pages/platform-payments-review').then((m) => m.PlatformPaymentsReviewComponent) },
+      // Query params opcionales: status, businessId, from, to, method, page.
+      { path: 'invoices', loadComponent: () => import('./pages/platform-invoices').then((m) => m.PlatformInvoicesComponent) },
       { path: 'settings', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./pages/platform-settings').then((m) => m.PlatformSettingsComponent) },
     ],
   },

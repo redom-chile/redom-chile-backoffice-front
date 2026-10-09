@@ -92,6 +92,7 @@ export class PlanUpsellModalComponent {
 
   handlePlans() {
     this.dialogRef.close();
-    this.#router.navigateByUrl('/billing/plans');
+    // El dueño va a "Mi suscripción" (ahí elige plan y paga); el resto, a la comparación de planes.
+    this.#router.navigateByUrl(this.$isOwner() ? '/billing/subscription' : '/billing/plans');
   }
 }

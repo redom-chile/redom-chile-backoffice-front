@@ -75,7 +75,7 @@ function validTimeZone(zone: string | null | undefined): string {
         <div class="flex shrink-0 items-center gap-2 self-end sm:self-auto">
           @if (banner.action) {
           <a
-            routerLink="/billing/plans"
+            [routerLink]="$actionLink()"
             class="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap hover:opacity-90">
             <app-icon class="h-4 w-4">workspace_premium</app-icon>
             {{ banner.action }}
@@ -103,6 +103,8 @@ export class SubscriptionBannerComponent {
   readonly #settings = inject(BusinessSettingsService);
 
   readonly tones = TONES;
+  /** El dueño va a "Mi suscripción" (ahí elige plan y paga); el resto, a la comparación de planes. */
+  readonly $actionLink = computed(() => (this.#entitlements.$isOwner() ? '/billing/subscription' : '/billing/plans'));
 
   // Avisos ocultados en esta sesión (además de los guardados en localStorage).
   readonly #dismissed = signal<ReadonlySet<string>>(new Set());
@@ -155,7 +157,7 @@ export class SubscriptionBannerComponent {
         text: grace
           ? `Tu pago está atrasado. Paga antes del ${grace} para no perder las funciones de tu plan.`
           : 'Tu pago está atrasado. Paga pronto para no perder las funciones de tu plan.',
-        action: 'Ver planes',
+        action: 'Pagar',
         dismissible: false,
       });
     } else if (value.plan.code === 'free' && (value.status === 'expired' || value.status === 'cancelled' || trialOver)) {

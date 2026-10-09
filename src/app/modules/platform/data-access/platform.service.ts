@@ -6,6 +6,9 @@ import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
 import { PlanLimitCode } from 'src/app/core/services/entitlements';
 import {
+  PlatformInvoiceDto,
+  PlatformInvoiceFiltersDto,
+  RegisterPaymentDto,
   CreateOverrideDto,
   DiscountDto,
   DiscountFiltersDto,
@@ -127,5 +130,34 @@ export class PlatformService {
   /** Termina la excepción ahora (queda en el historial). */
   endOverride(id: number): Observable<void> {
     return this.#http.delete<void>(`${BASE}/overrides/${id}`);
+  }
+
+  // --- Cobros y pagos ---
+  getInvoices(filters: PlatformInvoiceFiltersDto): Observable<StandardizedPagination<PlatformInvoiceDto>> {
+    return this.#http.get<StandardizedPagination<PlatformInvoiceDto>>(`${BASE}/invoices`, { params: toHttpParams(filters) });
+  }
+
+  /** Pago recibido por otro medio, ya confirmado. 409 INVOICE_NOT_PAYABLE si está pagado o anulado. */
+  registerPayment(invoiceId: number, dto: RegisterPaymentDto): Observable<PlatformInvoiceDto> {
+    return this.#http.post<PlatformInvoiceDto>(`${BASE}/invoices/${invoiceId}/payments`, dto);
+  }
+
+  /** 409 PAYMENT_ALREADY_CONFIRMED si ya fue revisado. */
+  confirmPayment(id: number): Observable<PlatformInvoiceDto> {
+    return this.#http.patch<PlatformInvoiceDto>(`${BASE}/payments/${id}/confirm`, {});
+  }
+
+  rejectPayment(id: number, reason: string): Observable<PlatformInvoiceDto> {
+    return this.#http.patch<PlatformInvoiceDto>(`${BASE}/payments/${id}/reject`, { reason });
+  }
+
+  /** Crea el reverso (el cobro vuelve a pendiente; si era el período actual, la suscripción pasa a past_due). */
+  reversePayment(id: number, reason: string): Observable<PlatformInvoiceDto> {
+    return this.#http.post<PlatformInvoiceDto>(`${BASE}/payments/${id}/reverse`, { reason });
+  }
+
+  /** CSV (UTF-8 con BOM) de pagos y reversos; por defecto el mes actual, máx. 366 días. Va con Bearer (interceptor). */
+  exportPayments(range: { from?: string; to?: string }): Observable<Blob> {
+    return this.#http.get(`${BASE}/payments/export`, { params: toHttpParams(range), responseType: 'blob' });
   }
 }

@@ -108,7 +108,10 @@ export class Menu {
           icon: 'workspace_premium',
           label: 'Plan y facturación',
           route: '/billing',
-          children: [{ label: 'Planes', route: '/billing/plans' }],
+          children: [
+            { label: 'Mi suscripción', route: '/billing/subscription', role: 'OWNER' },
+            { label: 'Planes', route: '/billing/plans' },
+          ],
         },
         {
           icon: 'admin_panel_settings',
@@ -206,6 +209,8 @@ export class Menu {
             { label: 'Resumen', route: '/platform/summary' },
             { label: 'Negocios', route: '/platform/businesses' },
             { label: 'Planes', route: '/platform/plans' },
+            { label: 'Pagos por revisar', route: '/platform/payments-review' },
+            { label: 'Cobros', route: '/platform/invoices' },
             { label: 'Descuentos', route: '/platform/discounts' },
             { label: 'Ajustes', route: '/platform/settings' },
           ],

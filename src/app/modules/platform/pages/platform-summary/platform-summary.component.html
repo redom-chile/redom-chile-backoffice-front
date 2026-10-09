@@ -1,5 +1,12 @@
 <app-header-dashboard title="Resumen" subtitle="Negocios por estado, ingresos recurrentes y pruebas por terminar.">
   <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/platform/payments-review" class="text-muted-foreground hover:text-foreground relative inline-flex items-center gap-1 text-sm font-medium" title="Pagos por revisar">
+      <app-icon class="h-5 w-5">fact_check</app-icon>
+      <span class="hidden lg:inline">Pagos por revisar</span>
+      @if ($reviewCount() > 0) {
+      <span class="bg-primary text-primary-foreground min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums">{{ $reviewCount() }}</span>
+      }
+    </a>
     <a routerLink="/platform/businesses" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Negocios">
       <app-icon class="h-5 w-5">storefront</app-icon>
       <span class="hidden lg:inline">Negocios</span>

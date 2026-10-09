@@ -5,6 +5,7 @@ import { resultError, resultValue, toRemoteResult } from 'src/app/modules/invent
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent } from 'src/ui';
 import { SubscriptionStatus } from 'src/app/core/services/entitlements';
 import { formatClp, formatPlatformDate, getPlatformErrorMessage, PlatformService } from '../../data-access';
+import { PaymentReviewCountService } from '../../features/payment-review-count';
 
 type CountCard = Readonly<{ label: string; value: number; hint: string; status?: SubscriptionStatus; tone?: string }>;
 
@@ -19,6 +20,8 @@ const TRIALS_PER_PAGE = 50;
 })
 export class PlatformSummaryComponent {
   readonly #platform = inject(PlatformService);
+  /** Transferencias por revisar (mismo contador que el menú). */
+  readonly $reviewCount = inject(PaymentReviewCountService).$count;
 
   readonly formatClp = formatClp;
   readonly formatDate = formatPlatformDate;

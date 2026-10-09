@@ -1,0 +1,205 @@
+@let q = $query();
+<app-header-dashboard title="Cobros" subtitle="Cobros de todos los negocios con sus pagos. Registra pagos, revisa transferencias y reversa.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/platform/payments-review" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Pagos por revisar">
+      <app-icon class="h-5 w-5">fact_check</app-icon>
+      <span class="hidden lg:inline">Pagos por revisar</span>
+    </a>
+    <app-button type="button" impact="bold" tone="primary" icon="download" (buttonClick)="exportPayments()">
+      <span class="hidden sm:inline">Exportar pagos</span>
+      <span class="sm:hidden">Exportar</span>
+    </app-button>
+  </div>
+</app-header-dashboard>
+
+<!-- Filtros -->
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+  <div class="sm:col-span-2">
+    <app-discount-business-picker inputId="invoices-business" [value]="$pickedBusiness()" (valueChange)="handleBusiness($event)" />
+  </div>
+
+  <select aria-label="Filtrar por estado" class="glass-input h-fit rounded-md px-3 py-2" (change)="handleSelect('status', $event)">
+    <option value="" [selected]="!q.status">Todos los estados</option>
+    @for (status of statuses; track status) {
+    <option [value]="status" [selected]="q.status === status">{{ statusLabels[status] }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por medio de pago" class="glass-input h-fit rounded-md px-3 py-2" (change)="handleSelect('method', $event)">
+    <option value="" [selected]="!q.method">Todos los medios</option>
+    @for (method of methods; track method) {
+    <option [value]="method" [selected]="q.method === method">{{ methodLabels[method] }}</option>
+    }
+  </select>
+
+  <label class="flex h-fit flex-col gap-1 text-xs">
+    <span class="text-muted-foreground">Creado desde</span>
+    <input type="date" class="glass-input rounded-md px-3 py-2 text-sm" [max]="q.to ?? ''" [value]="q.from ?? ''" (change)="handleDate('from', $event)" />
+  </label>
+  <label class="flex h-fit flex-col gap-1 text-xs">
+    <span class="text-muted-foreground">Creado hasta</span>
+    <input type="date" class="glass-input rounded-md px-3 py-2 text-sm" [min]="q.from ?? ''" [value]="q.to ?? ''" (change)="handleDate('to', $event)" />
+  </label>
+</div>
+@if ($hasFilters()) {
+<button type="button" class="text-primary -mt-1 mb-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+}
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los cobros</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="invoices.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (invoices.isLoading() && !$result()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 160px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 80px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$result()?.data?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin cobros</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ $hasFilters() ? 'No hay cobros que coincidan con los filtros.' : 'Todavía no hay cobros.' }}
+    </p>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla con detalle desplegable -->
+  <div class="hidden overflow-x-auto md:block" [class.opacity-60]="invoices.isLoading()">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="w-8 px-2 py-3"><span class="sr-only">Detalle</span></th>
+          <th class="px-4 py-3">Negocio</th>
+          <th class="px-4 py-3">Cobro</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Período</th>
+          <th class="px-4 py-3 text-right">Total</th>
+          <th class="px-4 py-3">Vence</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3 text-right">Pagado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (invoice of $result()!.data; track invoice.id) {
+        @let open = isExpanded(invoice.id);
+        @let pending = pendingCount(invoice);
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors" (click)="toggle(invoice.id)">
+          <td class="px-2 py-3 text-center">
+            <button type="button" class="text-muted-foreground hover:text-foreground inline-flex" [attr.aria-expanded]="open" [attr.aria-label]="open ? 'Ocultar pagos' : 'Ver pagos'" (click)="$event.stopPropagation(); toggle(invoice.id)">
+              <app-icon class="h-5 w-5 transition-transform" [class.rotate-90]="open">chevron_right</app-icon>
+            </button>
+          </td>
+          <td class="px-4 py-3 text-sm">
+            <a [routerLink]="['/platform/businesses', invoice.business.id]" class="text-foreground block max-w-[14rem] truncate font-medium hover:underline" [title]="invoice.business.name" (click)="$event.stopPropagation()">
+              {{ invoice.business.name }}
+            </a>
+            <span class="text-muted-foreground block font-mono text-xs">#{{ invoice.id }} · {{ invoice.business.taxNumber || 'Sin RUT' }}</span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            <span class="text-foreground font-medium">{{ invoice.plan.name }}</span>
+            <span class="text-muted-foreground block text-xs">
+              {{ intervalLabels[invoice.interval] }} · {{ kindLabels[invoice.kind] }}
+            </span>
+          </td>
+          <td class="text-foreground hidden whitespace-nowrap px-4 py-3 text-sm lg:table-cell">
+            {{ formatDate(invoice.periodStart) }} → {{ formatDate(invoice.periodEnd) }}
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            <span class="text-foreground font-medium">{{ formatClp(invoice.total) }}</span>
+            @if (invoice.discountAmount > 0) {
+            <span class="text-muted-foreground block text-xs">Dcto. {{ formatClp(invoice.discountAmount) }}</span>
+            }
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDate(invoice.dueDate) }}</td>
+          <td class="whitespace-nowrap px-4 py-3">
+            <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="statusTones[invoice.status]">{{ statusLabels[invoice.status] }}</span>
+            @if (pending) {
+            <span class="mt-1 block text-xs font-medium text-amber-700 dark:text-amber-300">{{ pending }} por revisar</span>
+            }
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            <span class="text-foreground">{{ formatClp(invoice.paidAmount) }}</span>
+            @if (invoice.pendingAmount > 0) {
+            <span class="block text-xs text-amber-700 dark:text-amber-300">En revisión {{ formatClp(invoice.pendingAmount) }}</span>
+            }
+            @if (remaining(invoice) > 0) {
+            <span class="text-muted-foreground block text-xs">Falta {{ formatClp(remaining(invoice)) }}</span>
+            }
+          </td>
+        </tr>
+        @if (open) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td></td>
+          <td colspan="7" class="px-4 pb-4 pt-1">
+            <app-invoice-payments [invoice]="invoice" (changed)="invoices.reload()" />
+          </td>
+        </tr>
+        }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden" [class.opacity-60]="invoices.isLoading()">
+    @for (invoice of $result()!.data; track invoice.id) {
+    @let open = isExpanded(invoice.id);
+    @let pending = pendingCount(invoice);
+    <li class="px-4 py-3">
+      <div class="flex items-start gap-3">
+        <div class="min-w-0 flex-1">
+          <a [routerLink]="['/platform/businesses', invoice.business.id]" class="text-foreground block truncate text-sm font-semibold hover:underline">{{ invoice.business.name }}</a>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ invoice.plan.name }} · {{ intervalLabels[invoice.interval] }} · {{ kindLabels[invoice.kind] }}
+          </p>
+          <p class="text-muted-foreground text-xs">{{ formatDate(invoice.periodStart) }} → {{ formatDate(invoice.periodEnd) }} · Vence {{ formatDate(invoice.dueDate) }}</p>
+          <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="rounded-full px-2 py-0.5 font-medium" [class]="statusTones[invoice.status]">{{ statusLabels[invoice.status] }}</span>
+            @if (pending) {
+            <span class="font-medium text-amber-700 dark:text-amber-300">{{ pending }} por revisar</span>
+            }
+          </div>
+        </div>
+        <div class="text-right text-xs">
+          <p class="text-foreground text-sm font-semibold tabular-nums">{{ formatClp(invoice.total) }}</p>
+          <p class="text-muted-foreground tabular-nums">Pagado {{ formatClp(invoice.paidAmount) }}</p>
+          @if (remaining(invoice) > 0) {
+          <p class="text-muted-foreground tabular-nums">Falta {{ formatClp(remaining(invoice)) }}</p>
+          }
+        </div>
+      </div>
+      <button type="button" class="text-primary mt-2 inline-flex items-center gap-1 text-xs font-medium" [attr.aria-expanded]="open" (click)="toggle(invoice.id)">
+        <app-icon class="h-4 w-4 transition-transform" [class.rotate-90]="open">chevron_right</app-icon>
+        {{ open ? 'Ocultar pagos' : 'Ver pagos (' + invoice.payments.length + ')' }}
+      </button>
+      @if (open) {
+      <div class="mt-2">
+        <app-invoice-payments [invoice]="invoice" (changed)="invoices.reload()" />
+      </div>
+      }
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($result()?.pagination; as meta) { @if (meta.totalItems > 0) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}

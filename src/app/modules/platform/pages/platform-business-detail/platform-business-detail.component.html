@@ -261,9 +261,12 @@
   <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
     <!-- Cobros -->
     <section class="glass min-w-0 overflow-hidden rounded-[1rem]">
-      <h2 class="text-foreground px-5 pb-3 pt-5 text-lg font-semibold">Cobros <span class="text-muted-foreground text-sm font-normal">(últimos 20)</span></h2>
+      <div class="flex items-baseline justify-between gap-2 px-5 pb-3 pt-5">
+        <h2 class="text-foreground text-lg font-semibold">Cobros <span class="text-muted-foreground text-sm font-normal">(últimos 20)</span></h2>
+        <a routerLink="/platform/invoices" [queryParams]="{ businessId: d.business.id }" class="text-primary whitespace-nowrap text-sm font-medium hover:underline">Ver todos</a>
+      </div>
       @if (!d.invoices.length) {
-      <p class="text-muted-foreground border-t border-[var(--border)] px-5 py-6 text-center text-sm">Sin cobros. Llegarán con la fase de cobros.</p>
+      <p class="text-muted-foreground border-t border-[var(--border)] px-5 py-6 text-center text-sm">Sin cobros todavía.</p>
       } @else {
       <div class="overflow-x-auto border-t border-[var(--border)]">
         <table class="min-w-full text-sm">
@@ -273,6 +276,7 @@
               <th class="px-4 py-2 text-right">Total</th>
               <th class="px-4 py-2">Vence</th>
               <th class="px-4 py-2">Estado</th>
+              <th class="px-4 py-2"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
@@ -295,6 +299,11 @@
                 <span class="text-muted-foreground block text-xs">{{ formatDate(invoice.paidAt) }}</span>
                 }
               </td>
+              <td class="whitespace-nowrap px-4 py-2 text-right">
+                @if (isPayable(invoice)) {
+                <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="registerPayment(d, invoice)">Registrar pago</button>
+                }
+              </td>
             </tr>
             }
           </tbody>
@@ -307,7 +316,7 @@
     <section class="glass min-w-0 overflow-hidden rounded-[1rem]">
       <h2 class="text-foreground px-5 pb-3 pt-5 text-lg font-semibold">Pagos <span class="text-muted-foreground text-sm font-normal">(últimos 20)</span></h2>
       @if (!d.payments.length) {
-      <p class="text-muted-foreground border-t border-[var(--border)] px-5 py-6 text-center text-sm">Sin pagos. Llegarán con la fase de cobros.</p>
+      <p class="text-muted-foreground border-t border-[var(--border)] px-5 py-6 text-center text-sm">Sin pagos todavía.</p>
       } @else {
       <div class="overflow-x-auto border-t border-[var(--border)]">
         <table class="min-w-full text-sm">
@@ -317,6 +326,7 @@
               <th class="px-4 py-2">Tipo</th>
               <th class="px-4 py-2 text-right">Monto</th>
               <th class="px-4 py-2">Estado</th>
+              <th class="px-4 py-2"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
@@ -332,6 +342,16 @@
               </td>
               <td class="whitespace-nowrap px-4 py-2">
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="paymentStatus[payment.status].tone">{{ paymentStatus[payment.status].label }}</span>
+              </td>
+              <td class="whitespace-nowrap px-4 py-2 text-right">
+                @if (payment.status === 'pending') {
+                <div class="flex justify-end gap-3">
+                  <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" (click)="rejectPayment(d, payment)">Rechazar</button>
+                  <button type="button" class="text-xs font-medium text-green-700 hover:underline dark:text-green-400" (click)="confirmPayment(d, payment)">Confirmar</button>
+                </div>
+                } @else if (isReversible(payment, d)) {
+                <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" (click)="reversePayment(d, payment)">Reversar</button>
+                }
               </td>
             </tr>
             }

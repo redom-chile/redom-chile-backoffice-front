@@ -1,0 +1,120 @@
+<app-header-dashboard title="Pagos por revisar" subtitle="Transferencias informadas por los dueños. Confírmalas al verlas en la cuenta o recházalas con un motivo.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/platform/invoices" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Cobros">
+      <app-icon class="h-5 w-5">receipt_long</app-icon>
+      <span class="hidden lg:inline">Cobros</span>
+    </a>
+    <button
+      type="button"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium disabled:opacity-50"
+      title="Actualizar"
+      [disabled]="invoices.isLoading()"
+      (click)="reload()">
+      <app-icon class="h-5 w-5">refresh</app-icon>
+      <span class="hidden lg:inline">Actualizar</span>
+    </button>
+  </div>
+</app-header-dashboard>
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar las transferencias</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="reload()">Reintentar</app-button>
+</div>
+} @else if (invoices.isLoading() && !$result()) {
+<div class="space-y-3">
+  @for (row of skeletonRows; track row) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 40%" />
+    <app-skeleton size="xs" style="width: 70%" />
+    <app-skeleton size="xs" style="width: 30%" />
+  </div>
+  }
+</div>
+} @else if (!$items().length) {
+<div class="glass flex flex-col items-center gap-2 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="h-12 w-12 text-green-600 dark:text-green-400">task_alt</app-icon>
+  <p class="text-foreground font-medium">No hay transferencias por revisar</p>
+  <p class="text-muted-foreground text-sm">Cuando un dueño informe una transferencia, aparecerá aquí.</p>
+</div>
+} @else {
+<ul class="space-y-3" [class.opacity-60]="invoices.isLoading()">
+  @for (item of $items(); track item.payment.id) {
+  @let invoice = item.invoice;
+  @let payment = item.payment;
+  @let busy = $busyId() === payment.id;
+  <li class="glass rounded-[1rem] p-4">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+      <!-- Negocio y cobro -->
+      <div class="min-w-0 flex-1 space-y-1">
+        <a [routerLink]="['/platform/businesses', invoice.business.id]" class="text-foreground block truncate font-semibold hover:underline" [title]="invoice.business.name">
+          {{ invoice.business.name }}
+        </a>
+        <p class="text-muted-foreground font-mono text-xs">{{ invoice.business.taxNumber || 'Sin RUT' }}</p>
+        <div class="flex flex-wrap items-center gap-1.5 pt-1 text-sm">
+          <span class="text-foreground font-medium">{{ invoice.plan.name }}</span>
+          <span class="text-muted-foreground">· {{ intervalLabels[invoice.interval] }}</span>
+          @if (invoice.kind === 'proration') {
+          <span class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">{{ kindLabels.proration }}</span>
+          }
+          <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="invoiceStatusTones[invoice.status]">{{ invoiceStatusLabels[invoice.status] }}</span>
+        </div>
+        <p class="text-muted-foreground text-xs">
+          Período {{ formatDate(invoice.periodStart) }} → {{ formatDate(invoice.periodEnd) }} · Vence {{ formatDate(invoice.dueDate) }}
+        </p>
+        <p class="text-muted-foreground text-xs">
+          Total <span class="text-foreground font-medium tabular-nums">{{ formatClp(invoice.total) }}</span>
+          @if (invoice.discountAmount > 0) {
+          <span>(dcto. {{ formatClp(invoice.discountAmount) }})</span>
+          }
+          · Pagado <span class="text-foreground font-medium tabular-nums">{{ formatClp(invoice.paidAmount) }}</span>
+          · Falta <span class="text-foreground font-medium tabular-nums">{{ formatClp(remaining(invoice)) }}</span>
+        </p>
+      </div>
+
+      <!-- Transferencia -->
+      <div class="min-w-0 space-y-1 rounded-md border border-[var(--border)] p-3 text-sm lg:w-80">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-muted-foreground text-xs">{{ methodLabels[payment.method] }}</span>
+          <span class="text-foreground text-lg font-semibold tabular-nums">{{ formatClp(payment.amount) }}</span>
+        </div>
+        @if (payment.amount !== remaining(invoice)) {
+        <p class="text-xs text-amber-700 dark:text-amber-300">
+          {{ payment.amount < remaining(invoice) ? 'Es un pago parcial: el cobro seguirá pendiente.' : 'Supera lo que falta pagar.' }}
+        </p>
+        }
+        <p class="text-muted-foreground text-xs">
+          Ref. <span class="text-foreground font-mono">{{ payment.reference || '—' }}</span>
+        </p>
+        <p class="text-muted-foreground text-xs">Transferido {{ formatDate(payment.paidAt, true) }} · Informado {{ formatDate(payment.createdAt, true) }}</p>
+        @if (payment.comment) {
+        <p class="text-foreground break-words text-xs">"{{ payment.comment }}"</p>
+        }
+        @if (payment.receiptUrl) {
+        <a [href]="payment.receiptUrl" target="_blank" rel="noopener noreferrer" class="text-primary inline-flex items-center gap-1 text-xs font-medium hover:underline">
+          <app-icon class="h-4 w-4">receipt_long</app-icon> Ver comprobante
+        </a>
+        } @else {
+        <p class="text-muted-foreground text-xs">Sin comprobante</p>
+        }
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-3">
+      <app-button type="button" impact="light" tone="danger" [disabled]="busy" (buttonClick)="reject(item)">Rechazar</app-button>
+      <app-button type="button" impact="bold" tone="success" [disabled]="busy" [isLoading]="busy" (buttonClick)="confirm(item)">Confirmar</app-button>
+    </div>
+  </li>
+  }
+</ul>
+}
+
+@if ($result()?.pagination; as meta) { @if (meta.totalPages > 1 && !$error()) {
+<div class="glass mt-3 rounded-[1rem] px-4 pb-3">
+  <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+</div>
+} }

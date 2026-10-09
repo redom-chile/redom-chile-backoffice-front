@@ -36,6 +36,12 @@ export function getPlatformErrorMessage(error: unknown, fallback = 'No se pudo c
       return 'El descuento no aplica a este negocio, plan o intervalo.';
     case 'PLAN_OVERRIDE_NOT_FOUND':
       return 'La excepción no existe.';
+    case 'PAYMENT_ALREADY_CONFIRMED':
+      return 'Ese pago ya fue revisado.';
+    case 'INVOICE_NOT_PAYABLE':
+      return 'El cobro ya está pagado o anulado.';
+    case 'PAYMENT_NOT_REVERSIBLE':
+      return 'Solo se puede reversar un pago confirmado que no tenga reverso.';
     case 'SUBSCRIPTION_NOT_FOUND':
       return 'El negocio no tiene suscripción.';
   }

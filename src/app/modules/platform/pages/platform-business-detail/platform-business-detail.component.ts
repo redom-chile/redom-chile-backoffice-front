@@ -37,6 +37,8 @@ import {
   summarizeEvent,
 } from '../../features/business-shared';
 import { openBusinessStatusModal } from '../../features/business-status-modal';
+import { PaymentActionsService } from '../../features/payment-actions';
+import { invoiceAmounts, invoiceLabel, isReversible, PaymentTarget } from '../../features/payment-shared';
 
 const LIMITS: readonly PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month'];
 const EVENTS_PREVIEW = 10;
@@ -76,6 +78,7 @@ export class PlatformBusinessDetailComponent {
   readonly #platform = inject(PlatformService);
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
+  readonly #paymentActions = inject(PaymentActionsService);
 
   readonly formatClp = formatClp;
   readonly formatDate = formatPlatformDate;
@@ -228,6 +231,47 @@ export class PlatformBusinessDetailComponent {
         },
         error: (error: unknown) => this.#toast.show(getPlatformErrorMessage(error, 'No se pudo terminar la excepción'), 'error'),
       });
+  }
+
+  // --- Cobros y pagos (fase 4) ---
+
+  isPayable(invoice: InvoiceDto): boolean {
+    return invoice.status === 'pending' || invoice.status === 'overdue';
+  }
+
+  isReversible(payment: PaymentDto, detail: PlatformBusinessDetailDto): boolean {
+    return isReversible(payment, detail.payments);
+  }
+
+  registerPayment(detail: PlatformBusinessDetailDto, invoice: InvoiceDto) {
+    // El detalle trae los últimos 20 pagos: lo pagado se calcula con ellos.
+    const plan = this.#planNames().get(invoice.planId);
+    const interval = detail.subscription?.price?.id === invoice.priceId ? detail.subscription.price.interval : null;
+    this.#afterSave(
+      this.#paymentActions.register({
+        id: invoice.id,
+        businessName: detail.business.name,
+        label: invoiceLabel({ ...invoice, plan: plan ? { name: plan } : null, interval }),
+        total: invoice.total,
+        ...invoiceAmounts(invoice.id, detail.payments),
+      }),
+    );
+  }
+
+  confirmPayment(detail: PlatformBusinessDetailDto, payment: PaymentDto) {
+    this.#afterSave(this.#paymentActions.confirm(this.#paymentTarget(detail, payment)));
+  }
+
+  rejectPayment(detail: PlatformBusinessDetailDto, payment: PaymentDto) {
+    this.#afterSave(this.#paymentActions.reject(this.#paymentTarget(detail, payment)));
+  }
+
+  reversePayment(detail: PlatformBusinessDetailDto, payment: PaymentDto) {
+    this.#afterSave(this.#paymentActions.reverse(this.#paymentTarget(detail, payment)));
+  }
+
+  #paymentTarget(detail: PlatformBusinessDetailDto, payment: PaymentDto): PaymentTarget {
+    return { id: payment.id, amount: payment.amount, method: payment.method, reference: payment.reference, businessName: detail.business.name };
   }
 
   #modalData(detail: PlatformBusinessDetailDto): BusinessModalData {

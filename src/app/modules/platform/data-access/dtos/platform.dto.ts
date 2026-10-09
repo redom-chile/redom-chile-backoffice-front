@@ -5,6 +5,7 @@ import {
   PlanLimitCode,
   SubscriptionStatus,
 } from 'src/app/core/services/entitlements';
+import { BillingPaymentMethod, InvoiceStatus, InvoiceWithPaymentsDto } from 'src/app/modules/billing/data-access/dtos';
 
 export type PlanInterval = 'month' | 'year';
 export type BillingMethod = 'none' | 'flow' | 'manual';
@@ -295,4 +296,30 @@ export type PlatformSummaryDto = Readonly<{
   revenueThisMonth: number;
   overdueAmount: number;
   churnLastMonth: number;
+}>;
+
+// --- Cobros y pagos (fase 4) ---
+
+export type PlatformInvoiceDto = InvoiceWithPaymentsDto & Readonly<{ business: Readonly<{ id: number; name: string; taxNumber: string | null }> }>;
+
+/** from/to: YYYY-MM-DD (fecha de creación, America/Santiago). pendingReview: transferencias por revisar. */
+export type PlatformInvoiceFiltersDto = Readonly<{
+  status?: InvoiceStatus;
+  businessId?: number;
+  from?: string;
+  to?: string;
+  method?: BillingPaymentMethod;
+  pendingReview?: boolean;
+  page?: number;
+  perPage?: number;
+}>;
+
+/** Pago recibido por otro medio (queda confirmado). receiptFileId: un comprobante subido por el negocio. */
+export type RegisterPaymentDto = Readonly<{
+  method: 'transfer' | 'cash' | 'other';
+  amount: number;
+  paidAt: string;
+  reference?: string | null;
+  receiptFileId?: string | null;
+  comment?: string | null;
 }>;

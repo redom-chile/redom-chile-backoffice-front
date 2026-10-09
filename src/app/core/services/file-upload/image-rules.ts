@@ -12,6 +12,7 @@ export const IMAGE_MAX_BYTES: Record<StorageFolder, number> = {
   business_logos: 2 * MB,
   profile_images: 2 * MB,
   expense_documents: 10 * MB,
+  billing_receipts: 10 * MB,
 };
 
 // Documentos (boleta, factura): imagen o PDF.
