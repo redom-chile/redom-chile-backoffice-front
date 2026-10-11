@@ -17,6 +17,8 @@ import {
 } from '../../data-access';
 import { openCancelExpenseModal } from '../../features/cancel-expense-modal';
 import { formatDay, formatPaidAt, openPayPayableModal, PayablePaymentsComponent } from '../../features';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 // La URL del adjunto es temporal: pasado este tiempo se pide una nueva antes de abrirlo.
 const DOCUMENT_URL_TTL_MS = 4 * 60_000;
@@ -24,7 +26,7 @@ const DOCUMENT_URL_TTL_MS = 4 * 60_000;
 /** Detalle de un gasto: datos, montos, adjunto, pagos y acciones (pagar, editar, anular). */
 @Component({
   selector: 'app-expense-detail',
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, PayablePaymentsComponent],
+  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, PayablePaymentsComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expense-detail.component.html',
 })
@@ -34,6 +36,8 @@ export class ExpenseDetailComponent {
   readonly #expenses = inject(ExpensesService);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatDay = formatDay;

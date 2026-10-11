@@ -1,10 +1,11 @@
-@if (isLoading()) {
+@let roles = $roles();
+@if (roles === undefined) {
 <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
 } @else {
 <select class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" (change)="onRoleChange($event)">
-  <option value="">Seleccionar rol</option>
-  @for (role of ($rolesService.$roles()?.data ?? []); track role.id) {
-  <option [value]="role.id">{{ role.name }}</option>
+  <option value="" [selected]="!value()">Seleccionar rol</option>
+  @for (role of roles; track role.id) {
+  <option [value]="role.id" [selected]="role.id === value()">{{ role.name }}</option>
   }
 </select>
 }

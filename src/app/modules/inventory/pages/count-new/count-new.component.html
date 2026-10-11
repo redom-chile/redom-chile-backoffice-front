@@ -237,7 +237,14 @@
         class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
         Cancelar
       </a>
-      <app-button type="button" impact="bold" tone="primary" icon="fact_check" [disabled]="$isSaving() || sheet.isLoading()" (buttonClick)="handleSubmit()">
+      <app-button
+        type="button"
+        impact="bold"
+        tone="primary"
+        icon="fact_check"
+        [disabled]="$isSaving() || sheet.isLoading() || !$canSubmit()"
+        [attr.title]="$canSubmit() ? null : 'No tienes permiso para esta acción'"
+        (buttonClick)="handleSubmit()">
         {{ $isSaving() ? 'Registrando…' : 'Confirmar conteo (' + $countedCount() + ')' }}
       </app-button>
     </div>

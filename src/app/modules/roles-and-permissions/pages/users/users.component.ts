@@ -11,6 +11,7 @@ import {
   PlanUsageComponent,
   planLimitGate,
 } from 'src/app/shared/components/plan-limit';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-users',
@@ -27,6 +28,7 @@ import {
   templateUrl: './users.component.html',
 })
 export class UsersComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $service = inject(GetAllUsersService);
   private readonly $locationsService = inject(GetAllBusinessLocationsService);

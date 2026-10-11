@@ -32,6 +32,8 @@ import {
   toRemoteResult,
   wasteLinkParams,
 } from '../../shared';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const STATUSES: readonly LotStatusFilter[] = ['active', 'expiring', 'expired'];
 
@@ -68,11 +70,20 @@ function toQuery(params: ParamMap): LotsQuery {
  */
 @Component({
   selector: 'app-lots',
-  imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, InventoryDisabledComponent, LoadErrorComponent],
+  imports: [
+    RouterLink,
+    HeaderDashboardComponent,
+    IconComponent,
+    SkeletonComponent,
+    InventoryDisabledComponent,
+    LoadErrorComponent,
+    CheckPermissionDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lots.component.html',
 })
 export class LotsComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #inventory = inject(InventoryService);

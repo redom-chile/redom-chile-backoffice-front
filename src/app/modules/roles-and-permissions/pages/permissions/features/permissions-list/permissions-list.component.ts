@@ -8,6 +8,7 @@ import { UpdatePermissionModalComponent } from '../update-permission-modal';
 import { DeletePermissionModalComponent } from '../delete-permission-modal';
 import { PermissionsListSkeletonComponent } from '../../ui';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-permissions-list',
@@ -36,6 +37,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   ],
 })
 export class PermissionsListComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   readonly $modules = input.required<ModulePermissionsDto[]>({ alias: 'modules' });
   readonly isLoading = input<boolean | undefined>(false, { alias: 'isLoading' });

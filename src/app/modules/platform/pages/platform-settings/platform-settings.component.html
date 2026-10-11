@@ -22,6 +22,7 @@
 </div>
 } @else {
 <form [formGroup]="form" class="space-y-4" (ngSubmit)="handleSubmit()">
+  <fieldset class="contents space-y-4" [disabled]="!$canEdit()">
   <!-- Prueba gratis -->
   <section class="glass rounded-[1rem] p-4">
     <h2 class="text-foreground font-semibold">Prueba gratis</h2>
@@ -242,7 +243,10 @@
     </div>
   </section>
 
+  </fieldset>
+
   <!-- Barra de guardado -->
+  @if ($canEdit()) {
   <div class="glass flex flex-col gap-3 rounded-[1rem] p-3 sm:flex-row sm:items-center">
     <p class="text-muted-foreground flex-1 text-xs sm:text-sm">
       @if ($hasChanges()) {
@@ -258,5 +262,6 @@
       </app-button>
     </div>
   </div>
+  }
 </form>
 }

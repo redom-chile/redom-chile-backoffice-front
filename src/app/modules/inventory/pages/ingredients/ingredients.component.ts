@@ -12,6 +12,8 @@ import { InventoryDisabledComponent } from '../../ui';
 import { IngredientDto, IngredientsService } from './data-access';
 import { IngredientModalComponent, IngredientModalData, IngredientModalResult } from './features';
 import { IngredientsTableComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const PER_PAGE = 10;
 
@@ -34,11 +36,13 @@ function toQuery(params: ParamMap): IngredientsQuery {
     SkeletonComponent,
     InventoryDisabledComponent,
     IngredientsTableComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './ingredients.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IngredientsComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #destroyRef = inject(DestroyRef);

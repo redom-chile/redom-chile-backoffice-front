@@ -6,7 +6,7 @@
     <app-icon class="text-primary">close</app-icon>
   </button>
 
-  <p class="text-muted-foreground mb-6 text-sm">ID: {{ data.userId }}</p>
+  <p class="text-muted-foreground mb-6 text-sm">Puedes dar solo roles con permisos que tú tienes.</p>
 
   @if ($loadingRoles()) {
   <div class="animate-pulse space-y-3">
@@ -19,7 +19,7 @@
     <mat-select [formControl]="rolesControl" multiple>
       <mat-select-trigger class="text-primary dark:text-primary-foreground">
         <mat-chip-set>
-          @for (roleId of selectedRoleIds; track roleId) { @for (role of (allRoles()?.data ?? []); track role.id) { @if
+          @for (roleId of selectedRoleIds; track roleId) { @for (role of (allRoles() ?? []); track role.id) { @if
           (role.id === roleId) {
           <mat-chip (removed)="removeRole(role.id)">
             {{ role.name }}
@@ -30,7 +30,7 @@
           } } }
         </mat-chip-set>
       </mat-select-trigger>
-      @for (role of (allRoles()?.data ?? []); track role.id) {
+      @for (role of (allRoles() ?? []); track role.id) {
       <mat-option [value]="role.id"
         ><p class="text-primary dark:text-primary-foreground">
           {{ role.name }}

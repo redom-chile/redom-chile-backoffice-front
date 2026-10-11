@@ -1,7 +1,7 @@
-import { Component, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, effect, inject, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { DeleteRoleService, GetAllRolesService, RoleDto } from '../../data-access';
-import { ButtonComponent, CardComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { DeleteRoleService, GetAllRolesService, getRoleErrorMessage, RoleDto } from '../../data-access';
+import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 
 @Component({
   selector: 'app-delete-role-modal',
@@ -9,7 +9,7 @@ import { ButtonComponent, CardComponent, IconComponent, ModalCardComponent, Slot
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './delete-role-modal.component.html',
 })
-export class DeleteRoleModalComponent {
+export class DeleteRoleModalComponent implements OnDestroy {
   protected readonly dialogRef = inject(MatDialogRef<DeleteRoleModalComponent>);
   protected readonly $deleteRoleService = inject(DeleteRoleService);
   private readonly $toast = inject(ToastService);
@@ -21,16 +21,15 @@ export class DeleteRoleModalComponent {
 
   constructor() {
     effect(() => {
-      if (this.$deleteRoleService.$isLoading()) {
-        this.$toast.show(`Eliminando rol...`, 'warning');
-      }
       if (this.$deleteRoleService.$success()) {
-        this.$toast.show(`Rol '${this.data.id}' eliminado con éxito`, 'success');
+        this.$toast.show(`Rol "${this.data.name}" eliminado.`, 'success');
         this.$getAllRolesService.retry();
         this.dialogRef.close();
       }
-      if (this.$deleteRoleService.$hasError()) {
-        this.$toast.show(`Algo salió mal. Por favor, vuelva a intentar.`, 'error');
+      const error = this.$deleteRoleService.$error();
+      if (error) {
+        const message = getRoleErrorMessage(error);
+        if (message) this.$toast.show(message, 'error');
       }
     });
   }

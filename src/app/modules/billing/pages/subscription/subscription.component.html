@@ -99,7 +99,15 @@
           <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">event_busy</app-icon>
           Se cancela el {{ $endsAt() | billingDate: tz }}. Después pasarás a Free, sin perder datos.
         </span>
-        <app-button type="button" impact="bold" size="small" shape="pill" [disabled]="!!$busy()" [isLoading]="$busy() === 'resume'" (buttonClick)="handleResume()">
+        <app-button
+          *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CANCEL_SUBSCRIPTION"
+          type="button"
+          impact="bold"
+          size="small"
+          shape="pill"
+          [disabled]="!!$busy()"
+          [isLoading]="$busy() === 'resume'"
+          (buttonClick)="handleResume()">
           Reanudar
         </app-button>
       </li>
@@ -164,7 +172,15 @@
           } @else {
           <p class="text-muted-foreground text-xs">Transfiere {{ clp(left) }} y avísanos para activar tu pago.</p>
           }
-          <app-button type="button" impact="bold" shape="pill" icon="task_alt" (buttonClick)="handleReport(invoice)">Ya transferí</app-button>
+          <app-button
+            *appCheckPermission="PERMISSIONS.SUBSCRIPTION.REPORT_PAYMENT"
+            type="button"
+            impact="bold"
+            shape="pill"
+            icon="task_alt"
+            (buttonClick)="handleReport(invoice)">
+            Ya transferí
+          </app-button>
         </div>
         }
 
@@ -191,6 +207,7 @@
     } @else {
     <p class="text-muted-foreground mt-1 text-sm">No tienes descuentos activos.</p>
     }
+    <ng-container *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT">
     <form class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end" (ngSubmit)="handleCoupon()">
       <div class="min-w-0 flex-1 sm:max-w-xs">
         <label for="sub-coupon" class="mb-1 block text-sm font-medium">¿Tienes un cupón?</label>
@@ -206,6 +223,7 @@
       <app-button type="submit" impact="light" shape="pill" [disabled]="!!$busy()" [isLoading]="$busy() === 'coupon'">Aplicar</app-button>
     </form>
     <p class="text-muted-foreground mt-1 text-xs">Se aplica a tus próximos cobros y reemplaza el descuento que tengas.</p>
+    </ng-container>
   </section>
 
   <!-- Historial -->
@@ -265,7 +283,7 @@
   </section>
 
   @if ($canCancel()) {
-  <div class="flex justify-center sm:justify-end">
+  <div *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CANCEL_SUBSCRIPTION" class="flex justify-center sm:justify-end">
     <button
       type="button"
       class="text-destructive hover:bg-destructive/10 rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50"

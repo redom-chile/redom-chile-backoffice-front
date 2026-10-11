@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46 |
@@ -352,6 +352,14 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 ---
 
 ## Resueltas
+
+### 49. 🟡 Crear un proveedor pide el permiso de clientes
+
+**Problema:** los proveedores se crean con `POST /contacts`, que exige `customers:create-customer`. Para registrar un proveedor desde un gasto, una compra o una orden de compra, el rol necesita poder crear clientes. Al revés, quien crea clientes también puede crear proveedores.
+
+**Se pide:** un permiso propio para proveedores (por ejemplo `suppliers:create-supplier`), o decidir que `contacts:*` (de auth, hoy sin uso en el front) cubra ambos.
+
+**Front mientras tanto:** el botón "Nuevo proveedor" se muestra con `customers:create-customer`.
 
 ### 46. 🟢 Centro de ayuda (preguntas frecuentes) y asistente con IA (resuelta)
 

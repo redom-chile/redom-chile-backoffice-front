@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { map } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { PLAN_LIMIT_LABELS, PlanLimitCode } from 'src/app/core/services/entitlements';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import { getPlatformErrorMessage, PlatformPlanDto, PlatformService } from '../../data-access';
@@ -26,6 +27,7 @@ type LimitGroup = FormGroup<{ value: FormControl<number | null>; unlimited: Form
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form class="glass rounded-[1rem]" [formGroup]="form" (ngSubmit)="handleSave()">
+      <fieldset class="contents" [disabled]="!$canEdit()">
       <ul class="divide-y divide-[var(--border)]">
         @for (code of codes; track code) {
         @let group = form.controls[code];
@@ -55,15 +57,18 @@ type LimitGroup = FormGroup<{ value: FormControl<number | null>; unlimited: Form
         </li>
         }
       </ul>
+      </fieldset>
       <div class="flex flex-col gap-3 border-t border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-muted-foreground inline-flex items-center gap-1 text-xs">
           <app-icon class="h-4 w-4">bolt</app-icon>
           Los cambios aplican al instante a los negocios del plan.
         </p>
+        @if ($canEdit()) {
         <div class="flex justify-end gap-3">
           <app-button type="button" impact="light" [disabled]="$isSaving() || !$isDirty()" (buttonClick)="reset()">Descartar</app-button>
           <app-button type="submit" impact="bold" [disabled]="$isSaving() || !$isDirty()" [isLoading]="$isSaving()">Guardar</app-button>
         </div>
+        }
       </div>
     </form>
   `,
@@ -76,6 +81,9 @@ export class PlanLimitsFormComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #access = inject(AccessService);
+  // Sin permiso la pestaña queda de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PLANS.UPDATE_PLAN));
 
   readonly codes = LIMIT_CODES;
   readonly titles = LIMIT_TITLES;
@@ -121,6 +129,7 @@ export class PlanLimitsFormComponent {
   }
 
   handleSave() {
+    if (!this.$canEdit()) return;
     if (this.$isSaving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();

@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -64,6 +65,9 @@ export class InventorySettingsComponent {
   readonly #dialog = inject(MatDialog);
   readonly #http = inject(HttpClient);
   readonly #recipes = inject(RecipesService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la sección queda de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
 
   readonly deductionMoments = STOCK_DEDUCTION_MOMENT_OPTIONS;
   readonly $isLoaded = this.#settingsService.$isLoaded;
@@ -109,6 +113,7 @@ export class InventorySettingsComponent {
   }
 
   toggle(key: InventorySettingKey, value: boolean) {
+    if (!this.$canEdit()) return;
     if (key === 'inventoryEnabled' && !value) {
       this.#confirmDisableInventory();
       return;
@@ -117,6 +122,7 @@ export class InventorySettingsComponent {
   }
 
   changeMoment(event: Event) {
+    if (!this.$canEdit()) return;
     const value = (event.target as HTMLSelectElement).value as StockDeductionMoment;
     this.#save({ stockDeductionMoment: value }, 'stockDeductionMoment', value);
   }

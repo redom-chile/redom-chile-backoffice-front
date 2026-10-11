@@ -1,5 +1,6 @@
 <app-header-dashboard title="Cajas" subtitle="Los cajones de cada local. Cada local trae una Caja principal; agrega más si cobras en varios puntos (barra, salón).">
   <app-button
+    *appCheckPermission="PERMISSIONS.CASH.CREATE_REGISTER"
     impact="bold"
     tone="primary"
     shape="rounded"
@@ -66,6 +67,7 @@
         {{ group.locationName }}
       </h2>
       <button
+        *appCheckPermission="PERMISSIONS.CASH.CREATE_REGISTER"
         type="button"
         class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline"
         [class.opacity-50]="!limitGate.$canAdd()"
@@ -98,7 +100,7 @@
           <p class="text-muted-foreground mt-0.5 text-xs">Cerrada</p>
           }
         </div>
-        <div class="flex shrink-0 items-center gap-2">
+        <div *appCheckPermission="PERMISSIONS.CASH.UPDATE_REGISTER" class="flex shrink-0 items-center gap-2">
           <app-button impact="light" size="small" icon="edit" [disabled]="isBusy(register.id)" (buttonClick)="rename(register)">Renombrar</app-button>
           @if (register.isActive) {
           <app-button impact="light" tone="danger" size="small" [disabled]="isBusy(register.id)" [isLoading]="isBusy(register.id)" (buttonClick)="setActive(register, false)">

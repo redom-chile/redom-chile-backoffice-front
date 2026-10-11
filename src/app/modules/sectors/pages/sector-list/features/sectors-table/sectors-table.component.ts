@@ -5,14 +5,18 @@ import { SectorDto } from '../../data-access';
 import { CreateSectorModalComponent } from '../create-sector-modal';
 import { UpdateSectorModalComponent } from '../update-sector-modal';
 import { DeleteSectorModalComponent } from '../delete-sector-modal';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-sectors-table',
-  imports: [TableComponent, SlotDirective, ButtonComponent, IconComponent, ProgressBarComponent],
+  imports: [TableComponent, SlotDirective, ButtonComponent, IconComponent, ProgressBarComponent, CheckPermissionDirective],
   templateUrl: './sectors-table.component.html',
 })
 export class SectorsTableComponent {
   private readonly dialog = inject(MatDialog);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly $sectors = input.required<SectorDto[]>({ alias: 'sectors' });
   readonly isLoading = input(false, { alias: 'isLoading' });
 

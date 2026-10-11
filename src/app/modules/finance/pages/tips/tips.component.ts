@@ -11,6 +11,8 @@ import { getFinanceErrorMessage, TIP_MODE_LABELS, TipPayoutFiltersDto, TipsPerio
 import { formatPaidAt } from '../../features/payable-payments/payable-format';
 import { tipPeriodLabel } from '../../features/tip-receipt-print';
 import { TipsHelpComponent } from './tips-help.component';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const PER_PAGE = 20;
 
@@ -41,7 +43,7 @@ function toQuery(params: ParamMap): TipsQuery {
 /** Propinas: lo pendiente por pagar al equipo (por mesero) y el historial de liquidaciones. Filtros en la URL. */
 @Component({
   selector: 'app-tips',
-  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent, TipsHelpComponent],
+  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent, TipsHelpComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tips.component.html',
 })
@@ -50,6 +52,8 @@ export class TipsComponent {
   readonly #router = inject(Router);
   readonly #tips = inject(TipsService);
   readonly #locations = inject(GetAllBusinessLocationsService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatPaidAt = formatPaidAt;

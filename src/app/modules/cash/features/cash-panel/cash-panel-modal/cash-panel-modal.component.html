@@ -130,7 +130,7 @@
     </div>
     }
 
-    <div class="grid grid-cols-2 gap-2">
+    <div *appCheckPermission="PERMISSIONS.CASH.CREATE_MOVEMENT" class="grid grid-cols-2 gap-2">
       <button type="button" class="glass-row flex min-h-[52px] items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium" (click)="addMovement('cash_in')">
         <app-icon class="h-5 w-5 text-green-600">add_circle</app-icon>Ingresar efectivo
       </button>
@@ -144,7 +144,16 @@
   <ng-template app-slot="footer">
     <div class="grid grid-cols-2 gap-2">
       <app-button type="button" full impact="light" [disabled]="!$session()" (buttonClick)="viewSession()">Ver turno</app-button>
-      <app-button type="button" full impact="bold" tone="danger" [disabled]="!$session()" (buttonClick)="closeSession()">Cerrar caja</app-button>
+      <app-button
+        type="button"
+        full
+        impact="bold"
+        tone="danger"
+        [disabled]="!$session() || !$canClose()"
+        [attr.title]="$canClose() ? null : 'No tienes permiso para esta acción'"
+        (buttonClick)="closeSession()">
+        Cerrar caja
+      </app-button>
     </div>
   </ng-template>
 </app-modal-card>

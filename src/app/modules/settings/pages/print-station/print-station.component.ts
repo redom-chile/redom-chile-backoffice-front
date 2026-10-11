@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom, interval } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ButtonComponent, HeaderDashboardComponent, ToastService } from 'src/ui';
 import { kitchenTicketHtml, PaperWidth, printHtml, testTicketHtml } from 'src/app/shared/utils/printing';
 import { GetAllPrintersService } from '../printer-list/data-access';
@@ -26,6 +27,12 @@ export class PrintStationComponent implements OnInit {
   private readonly printersService = inject(GetAllPrintersService);
   private readonly printJobs = inject(PrintJobsService);
   private readonly configService = inject(PrintStationConfigService);
+  readonly #access = inject(AccessService);
+
+  // La estación toma las comandas pendientes y marca cada una como impresa o fallida.
+  readonly $canRun = computed(() =>
+    this.#access.can([PERMISSIONS.PRINT_JOBS.GET_ALL_PRINT_JOBS, PERMISSIONS.PRINT_JOBS.UPDATE_PRINT_JOB], 'all'),
+  );
 
   readonly $config = this.configService.$config;
   readonly $printers = computed(() => this.printersService.$printers() ?? []);
@@ -68,6 +75,7 @@ export class PrintStationComponent implements OnInit {
   }
 
   start() {
+    if (!this.$canRun()) return;
     if (!this.$printer()) {
       this.toast.show('Elige la impresora que atiende este equipo', 'warning');
       return;

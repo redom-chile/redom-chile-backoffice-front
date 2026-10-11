@@ -30,6 +30,8 @@ import {
 } from '../../data-access';
 import { openCategoryModal } from '../../features/category-modal';
 import { ExpenseDocumentFieldComponent, ExpenseDocumentValue } from '../../features/expense-document-field';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const DOCUMENT_TYPES: ExpenseDocumentType[] = ['none', 'receipt', 'invoice'];
 const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'debit', 'credit', 'transfer', 'other'];
@@ -50,6 +52,7 @@ function positiveId(value: string | null): number | null {
     IconComponent,
     SkeletonComponent,
     ExpenseDocumentFieldComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expense-form.component.html',
@@ -60,6 +63,8 @@ export class ExpenseFormComponent {
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #dialog = inject(MatDialog);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
   readonly #expenses = inject(ExpensesService);

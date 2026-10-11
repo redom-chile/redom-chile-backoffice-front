@@ -32,6 +32,8 @@ import {
   resultValue,
   toRemoteResult,
 } from '../../shared';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 // Las líneas de un documento caben en una página (el backend permite hasta 100).
 const LINES_PER_PAGE = 100;
@@ -191,11 +193,20 @@ function toTransferLines(movements: readonly StockMovementDto[]): TransferLine[]
  */
 @Component({
   selector: 'app-document-detail',
-  imports: [RouterLink, IconComponent, SkeletonComponent, InventoryDisabledComponent, LoadErrorComponent, MovementsTableComponent],
+  imports: [
+    RouterLink,
+    IconComponent,
+    SkeletonComponent,
+    InventoryDisabledComponent,
+    LoadErrorComponent,
+    MovementsTableComponent,
+    CheckPermissionDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './document-detail.component.html',
 })
 export class DocumentDetailComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #inventory = inject(InventoryService);
   readonly #settings = inject(BusinessSettingsService);

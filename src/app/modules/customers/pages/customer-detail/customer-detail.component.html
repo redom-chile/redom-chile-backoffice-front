@@ -17,8 +17,8 @@
       </div>
     </div>
     <div class="flex gap-2">
-      <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(customer)">Editar</app-button>
-      <app-button impact="light" tone="danger" shape="rounded" icon="delete" (buttonClick)="handleDelete(customer)">Eliminar</app-button>
+      <app-button *appCheckPermission="PERMISSIONS.CUSTOMERS.UPDATE_CUSTOMER" impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(customer)">Editar</app-button>
+      <app-button *appCheckPermission="PERMISSIONS.CUSTOMERS.DELETE_CUSTOMER" impact="light" tone="danger" shape="rounded" icon="delete" (buttonClick)="handleDelete(customer)">Eliminar</app-button>
     </div>
   </div>
 

@@ -3,6 +3,8 @@ import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-int
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, filter, map, Observable, of, Subject, switchMap } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { readOption, readPage, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import {
   ButtonComponent,
@@ -41,11 +43,14 @@ function toQuery(params: ParamMap): DiscountsQuery {
 /** Descuentos y cupones (SUPERADMIN). No se borran: se desactivan. */
 @Component({
   selector: 'app-platform-discounts',
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-discounts.component.html',
 })
 export class PlatformDiscountsComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
+  readonly $canUpdate = computed(() => this.#access.can(PERMISSIONS.DISCOUNTS.UPDATE_DISCOUNT));
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #platform = inject(PlatformService);

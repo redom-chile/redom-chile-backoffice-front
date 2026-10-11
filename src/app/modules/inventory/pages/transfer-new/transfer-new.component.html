@@ -225,7 +225,13 @@
         class="text-muted-foreground hover:bg-muted inline-flex items-center justify-center rounded-lg px-5 py-2 text-sm font-semibold">
         Cancelar
       </a>
-      <app-button type="submit" impact="bold" tone="primary" icon="swap_horiz" [disabled]="$isSaving()">
+      <app-button
+        type="submit"
+        impact="bold"
+        tone="primary"
+        icon="swap_horiz"
+        [disabled]="$isSaving() || !$canSubmit()"
+        [attr.title]="$canSubmit() ? null : 'No tienes permiso para esta acción'">
         {{ $isSaving() ? 'Guardando…' : 'Registrar transferencia' }}
       </app-button>
     </div>

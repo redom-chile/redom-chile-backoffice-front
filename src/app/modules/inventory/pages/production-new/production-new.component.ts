@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, from, map, mergeMap, of, Subject, Subscription, switchMap } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
@@ -97,6 +98,9 @@ export class ProductionNewComponent implements OnInit {
   readonly #preparations = inject(PreparationsService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
+  // Sin permiso el formulario se ve, pero no se puede registrar.
+  protected readonly $canSubmit = computed(() => this.#access.can(PERMISSIONS.INVENTORY.CREATE_PRODUCTION));
   protected readonly locationStore = inject(InventoryLocationStore);
 
   protected readonly formatQuantity = formatQuantity;
@@ -306,6 +310,7 @@ export class ProductionNewComponent implements OnInit {
   }
 
   handleSubmit() {
+    if (!this.$canSubmit()) return;
     if (this.$isSaving()) return;
     this.$submitted.set(true);
     const locationId = this.locationStore.$locationId();

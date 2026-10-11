@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpStatusCode, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, catchError, EMPTY, map, Observable, of, Subject, switchMap, tap } from 'rxjs';
 import { GetAllRolesDto } from './dtos';
 import { StandardizedPagination } from 'src/app/core/standarized-response';
 import { ApiPathEnum } from 'src/environments';
@@ -59,5 +59,17 @@ export class GetAllRolesService {
 
   retry() {
     this.#params$.next({ ...this.#params$.getValue() });
+  }
+
+  /** Todos los roles para un selector, sin tocar la vista paginada de la tabla (que usa el mismo servicio). */
+  options(): Observable<GetAllRolesDto[]> {
+    return this.#httpClient
+      .get<StandardizedPagination<GetAllRolesDto>>(`${ApiPathEnum.AUTH}/roles-and-permissions/roles`, {
+        params: new HttpParams().set('page', '1').set('perPage', '100'),
+      })
+      .pipe(
+        map((response) => response.data),
+        catchError(() => of([])),
+      );
   }
 }

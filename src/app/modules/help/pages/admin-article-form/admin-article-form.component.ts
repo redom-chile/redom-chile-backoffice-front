@@ -3,6 +3,8 @@ import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-int
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map, startWith } from 'rxjs';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { formatDateTimeFull, readId, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
@@ -46,12 +48,14 @@ function sameList(a: readonly string[], b: readonly string[]): boolean {
     SkeletonComponent,
     MarkdownComponent,
     AdminChipInputComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-article-form.component.html',
   host: { '(window:beforeunload)': 'handleBeforeUnload($event)' },
 })
 export class AdminArticleFormComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #fb = inject(FormBuilder);
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);

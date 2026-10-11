@@ -1,6 +1,5 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import {
   BehaviorSubject,
   catchError,
@@ -73,8 +72,6 @@ export class WhoamiService implements OnDestroy {
   readonly #latest = signal<WhoamiDto | undefined>(undefined);
   readonly $whoami = this.#latest.asReadonly();
   readonly roles$: Observable<Set<string>> = this.#user$.pipe(map((u) => new Set(u?.roles.map((r) => r.code) ?? [])));
-  readonly permissions$: Observable<Set<string>> = this.#user$.pipe(map((u) => new Set(u?.permissions ?? [])));
-  readonly $permissionsSet = toSignal(this.permissions$, { initialValue: new Set<string>() });
   // Sucursal asignada al usuario (null si no tiene); undefined mientras carga.
   readonly $branchId = computed(() => {
     const whoami = this.$whoami();

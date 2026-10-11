@@ -124,6 +124,7 @@
   <div class="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
     @if (header.paymentStatus !== 'paid') {
     <a
+      *appCheckPermission="PERMISSIONS.PAYABLES.CREATE_PAYMENT"
       [routerLink]="['/finance/purchases', $id()]"
       class="bg-primary text-primary-foreground inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold hover:opacity-90">
       <app-icon class="h-5 w-5">payments</app-icon>Pagar

@@ -1,5 +1,6 @@
 <app-header-dashboard title="Planes" subtitle="Funciones, límites y precios de cada plan. Arrastra para cambiar el orden de la landing.">
   <button
+    *appCheckPermission="PERMISSIONS.PLANS.CREATE_PLAN"
     type="button"
     class="bg-primary text-primary-foreground inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
     (click)="handleCreate()">
@@ -29,17 +30,18 @@
   <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
     <app-icon class="text-muted-foreground h-10 w-10">workspace_premium</app-icon>
     <p class="text-foreground font-medium">Todavía no hay planes</p>
-    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
+    <button *appCheckPermission="PERMISSIONS.PLANS.CREATE_PLAN" type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
   </div>
   } @else {
   <ul
     cdkDropList
     cdkDropListLockAxis="y"
     class="divide-y divide-[var(--border)]"
-    [cdkDropListDisabled]="$isReordering()"
+    [cdkDropListDisabled]="$isReordering() || !$canReorder()"
     (cdkDropListDropped)="handleDrop($event)">
     @for (plan of $items(); track plan.id) {
     <li cdkDrag class="glass-row flex items-start gap-2 px-3 py-3 sm:items-center sm:px-4">
+      @if ($canReorder()) {
       <button
         type="button"
         cdkDragHandle
@@ -48,6 +50,7 @@
         title="Arrastra para ordenar">
         <app-icon class="h-5 w-5">drag_indicator</app-icon>
       </button>
+      }
 
       <a [routerLink]="['/platform/plans', plan.id]" class="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <div class="min-w-0 flex-1">

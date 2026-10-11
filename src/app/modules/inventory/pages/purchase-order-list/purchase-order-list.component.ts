@@ -30,6 +30,8 @@ import {
 import { InventoryDisabledComponent } from '../../ui';
 import { isOrderOverdue, PURCHASE_ORDER_STATUS_LABELS, PURCHASE_ORDER_STATUSES } from '../purchase-order-detail/data-access';
 import { PurchaseOrderStatusChipComponent, ReceivedProgressComponent } from '../purchase-order-detail/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const PER_PAGE = 20;
 
@@ -66,11 +68,13 @@ function toQuery(params: ParamMap): OrderListQuery {
     LoadErrorComponent,
     PurchaseOrderStatusChipComponent,
     ReceivedProgressComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './purchase-order-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PurchaseOrderListComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #orders = inject(PurchaseOrdersService);

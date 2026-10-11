@@ -10,7 +10,7 @@
       <select
         id="business-currency"
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
-        [disabled]="$isSaving() || !$currencies().length"
+        [disabled]="$isSaving() || !$currencies().length || !$canEdit()"
         (change)="onCurrencyChange($event)">
         @if (!$currencies().length) {
         <option value="">{{ $currenciesError() ? 'No se pudieron cargar las monedas' : 'Cargando monedas…' }}</option>
@@ -29,7 +29,7 @@
       <select
         id="business-time-zone"
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         (change)="onTimeZoneChange($event)">
         @for (zone of $timeZones(); track zone.value) {
         <option [value]="zone.value" [selected]="zone.value === $timeZone()">{{ zone.label }}</option>
@@ -45,6 +45,7 @@
     }
   </div>
 
+  @if ($canEdit()) {
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
     @if ($hasChanges()) {
     <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
@@ -59,4 +60,5 @@
       Guardar
     </app-button>
   </div>
+  }
 </app-card>

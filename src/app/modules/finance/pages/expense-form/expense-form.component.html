@@ -82,6 +82,7 @@
               }
             </select>
             <button
+              *appCheckPermission="PERMISSIONS.EXPENSES.MANAGE_CATEGORIES"
               type="button"
               class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
               title="Nueva categoría"
@@ -104,7 +105,9 @@
               <option [ngValue]="supplier.id">{{ supplierLabel(supplier) }}</option>
               }
             </select>
+            <!-- El proveedor se crea como contacto: el backend pide el permiso de crear cliente -->
             <button
+              *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER"
               type="button"
               class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
               title="Nuevo proveedor"

@@ -20,8 +20,8 @@
     <td class="w-[130px] text-center">
       <div class="flex items-center justify-center gap-1">
         <app-button size="small" icon="qr_code_2" [attr.aria-label]="'QR de ' + table.name" (click)="showQr(table)" />
-        <app-button size="small" icon="edit_document" (click)="updateTable(table)" />
-        <app-button size="small" icon="delete" tone="danger" (click)="deleteTable(table)" />
+        <app-button *appCheckPermission="PERMISSIONS.TABLES.UPDATE_TABLE" size="small" icon="edit_document" (click)="updateTable(table)" />
+        <app-button *appCheckPermission="PERMISSIONS.TABLES.DELETE_TABLE" size="small" icon="delete" tone="danger" (click)="deleteTable(table)" />
       </div>
     </td>
   </tr>

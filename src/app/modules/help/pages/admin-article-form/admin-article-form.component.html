@@ -287,7 +287,7 @@
         class="text-muted-foreground hover:text-foreground self-center px-4 py-2 text-sm font-medium">
         Cancelar
       </a>
-      <app-button type="submit" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()">
+      <app-button *appCheckPermission="PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES" type="submit" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()">
         {{ isEdit ? 'Guardar cambios' : v.isPublished ? 'Crear y publicar' : 'Guardar borrador' }}
       </app-button>
     </div>

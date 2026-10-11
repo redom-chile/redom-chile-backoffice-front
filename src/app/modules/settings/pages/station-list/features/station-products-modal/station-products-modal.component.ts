@@ -5,6 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ButtonComponent, IconComponent, ModalCardComponent, ProgressBarComponent, SlotDirective, ToastService } from 'src/ui';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { GetMenuProductsService } from 'src/app/modules/orders/pages/order-create/data-access';
 import { getStationErrorMessage, StationDto, StationProductDto, StationProductsService } from '../../data-access';
 
@@ -21,6 +22,9 @@ export class StationProductsModalComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly stationProducts = inject(StationProductsService);
   private readonly menuService = inject(GetMenuProductsService);
+  readonly #access = inject(AccessService);
+
+  readonly $canAssign = computed(() => this.#access.can(PERMISSIONS.STATIONS.ASSIGN_PRODUCTS));
 
   readonly station = inject<StationDto>(MAT_DIALOG_DATA);
   readonly search = new FormControl('', { nonNullable: true });
@@ -44,6 +48,8 @@ export class StationProductsModalComponent implements OnInit {
       },
     });
 
+    // El catálogo solo se usa para asignar.
+    if (!this.$canAssign()) return;
     this.menuService.load({ categoryId: null, name: '' });
     this.search.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
@@ -51,7 +57,7 @@ export class StationProductsModalComponent implements OnInit {
   }
 
   toggle(product: { id: number; name: string; sku: string }) {
-    if (this.$pendingIds().has(product.id)) return;
+    if (!this.$canAssign() || this.$pendingIds().has(product.id)) return;
     this.setPending(product.id, true);
     const assigned = this.$assignedIds().has(product.id);
     const request = assigned

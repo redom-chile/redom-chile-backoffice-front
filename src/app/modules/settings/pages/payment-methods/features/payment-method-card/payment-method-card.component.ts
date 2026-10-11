@@ -8,6 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { PAYMENT_METHOD_LABELS } from 'src/app/modules/cash/data-access';
 import {
   getFinanceErrorMessage,
@@ -40,6 +41,9 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 export class PaymentMethodCardComponent {
   readonly #fees = inject(PaymentFeesService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la tarjeta queda de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PAYMENT_METHODS.UPDATE_PAYMENT_METHOD));
 
   readonly setting = input.required<PaymentMethodSettingDto>();
   readonly vatRate = input(19);
@@ -137,7 +141,7 @@ export class PaymentMethodCardComponent {
   }
 
   save() {
-    if (!this.$hasChanges() || !this.$isValid() || this.$isSaving()) return;
+    if (!this.$canEdit() || !this.$hasChanges() || !this.$isValid() || this.$isSaving()) return;
     this.$isSaving.set(true);
     this.#fees.updateSetting(this.setting().method, this.#changes()).subscribe({
       next: (setting) => {

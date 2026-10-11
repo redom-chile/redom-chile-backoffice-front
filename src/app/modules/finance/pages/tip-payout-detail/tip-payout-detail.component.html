@@ -52,7 +52,7 @@
           Imprimir comprobante
         </app-button>
         @if (!p.cancelled) {
-        <app-button type="button" impact="light" tone="danger" (buttonClick)="cancelPayout(p)">Anular liquidación</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.TIPS.CANCEL_PAYOUT" type="button" impact="light" tone="danger" (buttonClick)="cancelPayout(p)">Anular liquidación</app-button>
         }
       </div>
     </div>

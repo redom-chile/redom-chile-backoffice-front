@@ -7,16 +7,20 @@ import { IconComponent } from 'src/ui';
 import { PayablePaymentDto } from '../../data-access';
 import { openCancelPayablePaymentModal } from '../cancel-payable-payment-modal';
 import { formatPaidAt } from './payable-format';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /** Pagos de un gasto o compra (incluye anulados) con la acción "Anular". Emite `changed` tras anular. */
 @Component({
   selector: 'app-payable-payments',
-  imports: [RouterLink, IconComponent],
+  imports: [RouterLink, IconComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './payable-payments.component.html',
 })
 export class PayablePaymentsComponent {
   readonly #dialog = inject(MatDialog);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly payments = input.required<readonly PayablePaymentDto[]>();
   // Local de la deuda: para abrir la caja al devolver efectivo.

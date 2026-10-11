@@ -23,11 +23,13 @@ import {
   RecurringExpenseDto,
 } from '../../data-access';
 import { openRecurringModal } from '../../features/recurring-modal';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /** Gastos que se repiten (arriendo, sueldos, servicios): se generan solos como pendientes en cada fecha. */
 @Component({
   selector: 'app-recurring-expenses',
-  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent],
+  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './recurring-expenses.component.html',
 })
@@ -37,6 +39,8 @@ export class RecurringExpensesComponent {
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
   protected readonly locationStore = inject(InventoryLocationStore);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatDate = formatDocumentDate;

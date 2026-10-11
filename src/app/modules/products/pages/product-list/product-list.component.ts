@@ -5,6 +5,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { map } from 'rxjs';
 import { throttledRefresh } from 'src/app/core/services/file-upload';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
 import { CategoryDto, GetAllCategoriesService } from '../categories/data-access';
 import { GetAllProductsService, getProductErrorMessage, ProductDto } from './data-access';
@@ -41,11 +43,13 @@ function toQuery(params: ParamMap): ProductListQuery {
     EmptyStateComponent,
     ProductsTableComponent,
     FiltersProductTableComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './product-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductListComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);

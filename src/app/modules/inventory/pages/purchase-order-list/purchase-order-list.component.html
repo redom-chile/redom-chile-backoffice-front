@@ -1,6 +1,7 @@
 <app-header-dashboard title="Órdenes de compra" subtitle="Pedidos a proveedores. Al recibir una orden se registra la compra que suma stock.">
   @if (!$isDisabled()) {
   <a
+    *appCheckPermission="PERMISSIONS.PURCHASE_ORDERS.CREATE_PURCHASE_ORDER"
     routerLink="/inventory/purchase-orders/new"
     class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
     <app-icon class="h-5 w-5">add</app-icon>
@@ -101,7 +102,7 @@
     @if ($hasFilters()) {
     <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
     } @else {
-    <a routerLink="/inventory/purchase-orders/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Nueva orden</a>
+    <a *appCheckPermission="PERMISSIONS.PURCHASE_ORDERS.CREATE_PURCHASE_ORDER" routerLink="/inventory/purchase-orders/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Nueva orden</a>
     }
   </div>
   } @else {

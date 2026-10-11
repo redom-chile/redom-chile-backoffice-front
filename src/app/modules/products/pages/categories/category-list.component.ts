@@ -14,15 +14,25 @@ import {
   DeleteCategoryModalComponent,
   CategoryModalResult,
 } from './features';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-category-list',
   standalone: true,
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, CategoriesTableComponent],
+  imports: [
+    HeaderDashboardComponent,
+    ButtonComponent,
+    IconComponent,
+    EmptyStateComponent,
+    CategoriesTableComponent,
+    CheckPermissionDirective,
+  ],
   templateUrl: './category-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryListComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly getAllService = inject(GetAllCategoriesService);

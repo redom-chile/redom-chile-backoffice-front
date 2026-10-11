@@ -3,6 +3,7 @@
 <div>
   <app-header-dashboard title="Sectores" subtitle="Gestiona los sectores o salones de tu restaurante">
     <app-button
+      *appCheckPermission="PERMISSIONS.SECTORS.CREATE_SECTOR"
       full
       impact="bold"
       tone="primary"

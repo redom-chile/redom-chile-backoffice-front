@@ -4,14 +4,17 @@ import { PaginationMeta } from 'src/app/core/standarized-response/standardized-p
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatQuantity, UnitDto } from '../../../../data-access';
 import { IngredientDto } from '../../data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-ingredients-table',
-  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   templateUrl: './ingredients-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class IngredientsTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly ingredients = input.required<readonly IngredientDto[]>();
   readonly units = input<readonly UnitDto[]>([]);
   readonly loading = input(false);

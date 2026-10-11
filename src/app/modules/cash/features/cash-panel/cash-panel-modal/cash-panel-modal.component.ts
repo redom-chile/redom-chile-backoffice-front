@@ -16,6 +16,8 @@ import { openCashMovementModal } from '../../cash-movement-modal/cash-movement-m
 import { openCloseSessionModal } from '../../close-session-modal/close-session-modal.component';
 import { CashContextStore } from '../cash-context.store';
 import { formatCashSince } from '../cash-format';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 export type CashPanelData = Readonly<{ registerId: number; registerName: string }>;
 
@@ -23,7 +25,7 @@ export type CashPanelData = Readonly<{ registerId: number; registerName: string 
 @Component({
   selector: 'app-cash-panel-modal',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective],
+  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, CheckPermissionDirective],
   templateUrl: './cash-panel-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,6 +37,11 @@ export class CashPanelModalComponent implements OnInit {
   private readonly cash = inject(CashService);
   private readonly context = inject(CashContextStore);
   private readonly toast = inject(ToastService);
+  private readonly access = inject(AccessService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
+  // Se deshabilita en vez de ocultar para no descuadrar el pie del modal.
+  protected readonly $canClose = computed(() => this.access.can(PERMISSIONS.CASH.CLOSE_SESSION));
 
   readonly data = inject<CashPanelData>(MAT_DIALOG_DATA);
   readonly formatCurrency = formatCurrency;

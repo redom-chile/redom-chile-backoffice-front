@@ -11,6 +11,8 @@ import {
   resultValue,
   toRemoteResult,
 } from 'src/app/modules/inventory/shared/data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { getHelpErrorMessage, HelpAdminService, HelpChatLogDto, HelpChatLogFiltersDto } from '../../data-access';
 import { formatHelpDateTime, formatInteger, formatUsd } from '../../features/usage-format';
@@ -52,11 +54,12 @@ const ANSWERED = { label: 'Respondida', classes: 'bg-emerald-500/15 text-emerald
 /** Preguntas al asistente (SUPERADMIN): para encontrar lo que falta en los artículos de ayuda. */
 @Component({
   selector: 'app-admin-review',
-  imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, PaginationTableComponent, MarkdownComponent],
+  imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, PaginationTableComponent, MarkdownComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-review.component.html',
 })
 export class AdminReviewComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #admin = inject(HelpAdminService);

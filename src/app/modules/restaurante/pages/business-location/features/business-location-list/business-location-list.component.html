@@ -22,8 +22,8 @@
     <td class="text-muted-foreground text-center text-sm">{{ location.landmark || '—' }}</td>
     <td class="text-center">
       <div class="flex items-center justify-center gap-1">
-        <app-button size="small" icon="edit_document" (click)="onUpdate(location)" />
-        @if (location.isActive !== undefined) {
+        <app-button *appCheckPermission="PERMISSIONS.LOCATIONS.UPDATE_LOCATION" size="small" icon="edit_document" (click)="onUpdate(location)" />
+        @if (location.isActive !== undefined && $canUpdate()) {
         <app-button
           size="small"
           [icon]="location.isActive ? 'toggle_on' : 'toggle_off'"
@@ -34,7 +34,7 @@
           [attr.aria-label]="(location.isActive ? 'Desactivar ' : 'Activar ') + location.name"
           (buttonClick)="toggleActive.emit(location)" />
         }
-        <app-button size="small" icon="delete" tone="danger" (click)="onDelete(location)" />
+        <app-button *appCheckPermission="PERMISSIONS.LOCATIONS.DELETE_LOCATION" size="small" icon="delete" tone="danger" (click)="onDelete(location)" />
       </div>
     </td>
   </tr>

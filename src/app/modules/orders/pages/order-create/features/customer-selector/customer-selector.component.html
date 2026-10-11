@@ -32,7 +32,7 @@
       <p class="text-muted-foreground px-3 py-2 text-sm">Sin coincidencias.</p>
       }
       }
-      <button type="button" class="text-primary flex w-full items-center gap-1 border-t border-[var(--border)] px-3 py-2 text-sm font-medium" (click)="openCreate()">
+      <button *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER" type="button" class="text-primary flex w-full items-center gap-1 border-t border-[var(--border)] px-3 py-2 text-sm font-medium" (click)="openCreate()">
         <app-icon class="h-4 w-4">person_add</app-icon>Crear cliente nuevo
       </button>
     </div>

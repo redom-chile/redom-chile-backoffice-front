@@ -13,10 +13,10 @@
         <p class="text-muted-foreground text-xs">{{ type.label }}{{ station.isActive ? '' : ' · Inactiva' }}</p>
       </div>
       <div class="flex gap-1">
-        <button type="button" title="Editar" [attr.aria-label]="'Editar ' + station.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md" (click)="edit.emit(station)">
+        <button *appCheckPermission="PERMISSIONS.STATIONS.UPDATE_STATION" type="button" title="Editar" [attr.aria-label]="'Editar ' + station.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md" (click)="edit.emit(station)">
           <app-icon class="h-5 w-5">edit</app-icon>
         </button>
-        <button type="button" title="Eliminar" [attr.aria-label]="'Eliminar ' + station.name" class="text-muted-foreground inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-red-500/10 hover:text-red-600" (click)="delete.emit(station)">
+        <button *appCheckPermission="PERMISSIONS.STATIONS.DELETE_STATION" type="button" title="Eliminar" [attr.aria-label]="'Eliminar ' + station.name" class="text-muted-foreground inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-red-500/10 hover:text-red-600" (click)="delete.emit(station)">
           <app-icon class="h-5 w-5">delete</app-icon>
         </button>
       </div>

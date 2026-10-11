@@ -3,6 +3,7 @@ import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-int
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import {
   ButtonComponent,
@@ -78,6 +79,7 @@ export class PurchaseOrderDetailComponent {
   readonly #orders = inject(PurchaseOrdersService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
 
   protected readonly formatMoney = formatMoney;
   protected readonly formatUnitCost = formatUnitCost;
@@ -115,13 +117,20 @@ export class PurchaseOrderDetailComponent {
     const order = this.$order();
     return order ? isOrderOverdue(order) : false;
   });
+  // Las acciones dependen del estado de la orden y de los permisos del rol.
   readonly $canEdit = computed(() => {
     const order = this.$order();
-    return order ? isOrderEditable(order.status) : false;
+    return order ? isOrderEditable(order.status) && this.#access.can(PERMISSIONS.PURCHASE_ORDERS.UPDATE_PURCHASE_ORDER) : false;
   });
   readonly $canReceive = computed(() => {
     const order = this.$order();
-    return order ? isOrderReceivable(order.status) : false;
+    return order ? isOrderReceivable(order.status) && this.#access.can(PERMISSIONS.PURCHASE_ORDERS.RECEIVE_PURCHASE_ORDER) : false;
+  });
+  // Enviar, volver a borrador y anular (PATCH /status).
+  readonly $canChangeStatus = computed(() => {
+    const order = this.$order();
+    if (!order || !this.#access.can(PERMISSIONS.PURCHASE_ORDERS.UPDATE_PURCHASE_ORDER)) return false;
+    return isOrderEditable(order.status) || isOrderReceivable(order.status);
   });
   readonly $createdBy = computed(() => {
     const order = this.$order();

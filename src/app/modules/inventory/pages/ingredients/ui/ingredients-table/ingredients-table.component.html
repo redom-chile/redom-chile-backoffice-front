@@ -43,6 +43,7 @@
                 <app-icon class="h-5 w-5">inventory_2</app-icon>
               </a>
               <button
+                *appCheckPermission="PERMISSIONS.PRODUCTS.UPDATE_PRODUCT"
                 type="button"
                 title="Editar"
                 [attr.aria-label]="'Editar ' + ingredient.name"

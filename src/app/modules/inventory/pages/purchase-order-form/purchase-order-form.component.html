@@ -64,6 +64,7 @@
               }
             </select>
             <button
+              *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER"
               type="button"
               class="glass-input text-primary inline-flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium"
               title="Nuevo proveedor"
@@ -143,14 +144,35 @@
         Cancelar
       </a>
       @if (isEdit && !$canSend()) {
-      <app-button type="button" impact="bold" tone="primary" icon="save" [disabled]="$isSaving()" (buttonClick)="handleSubmit('draft')">
+      <app-button
+        type="button"
+        impact="bold"
+        tone="primary"
+        icon="save"
+        [disabled]="$isSaving() || !$canSubmit()"
+        [attr.title]="$canSubmit() ? null : 'No tienes permiso para esta acción'"
+        (buttonClick)="handleSubmit('draft')">
         {{ $isSaving() ? 'Guardando…' : 'Guardar cambios' }}
       </app-button>
       } @else {
-      <app-button type="button" impact="light" tone="primary" icon="save" [disabled]="$isSaving()" (buttonClick)="handleSubmit('draft')">
+      <app-button
+        type="button"
+        impact="light"
+        tone="primary"
+        icon="save"
+        [disabled]="$isSaving() || !$canSubmit()"
+        [attr.title]="$canSubmit() ? null : 'No tienes permiso para esta acción'"
+        (buttonClick)="handleSubmit('draft')">
         {{ $savingStatus() === 'draft' ? 'Guardando…' : 'Guardar borrador' }}
       </app-button>
-      <app-button type="button" impact="bold" tone="primary" icon="send" [disabled]="$isSaving()" (buttonClick)="handleSubmit('sent')">
+      <app-button
+        type="button"
+        impact="bold"
+        tone="primary"
+        icon="send"
+        [disabled]="$isSaving() || !$canSubmit()"
+        [attr.title]="$canSubmit() ? null : 'No tienes permiso para esta acción'"
+        (buttonClick)="handleSubmit('sent')">
         {{ $savingStatus() === 'sent' ? 'Guardando…' : 'Guardar y marcar como enviada' }}
       </app-button>
       }

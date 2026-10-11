@@ -53,7 +53,7 @@
               </a>
               }
               @if (expiredQuantity(item) > 0) {
-              <a routerLink="/inventory/adjustments/new" [queryParams]="wasteParams(item)"
+              <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT" routerLink="/inventory/adjustments/new" [queryParams]="wasteParams(item)"
                 title="Registrar la merma de lo vencido. Las salidas consumen primero lo que vence antes (FEFO), así que la merma descuenta los lotes vencidos."
                 class="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-500/25 dark:text-red-400">
                 <app-icon class="h-3.5 w-3.5">delete_sweep</app-icon>{{ formatQuantity(expiredQuantity(item), item.unitName) }} vencido
@@ -74,11 +74,11 @@
           <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatMoney(item.stockValue) }}</td>
           <td class="whitespace-nowrap px-4 py-3 text-right">
             <div class="inline-flex items-center gap-1">
-              <a routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" title="Registrar compra" [attr.aria-label]="'Comprar ' + item.productName"
+              <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_PURCHASE" routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" title="Registrar compra" [attr.aria-label]="'Comprar ' + item.productName"
                 class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium">
                 <app-icon class="h-4 w-4">add_shopping_cart</app-icon><span class="hidden lg:inline">Comprar</span>
               </a>
-              <a routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" title="Ajustar stock" [attr.aria-label]="'Ajustar ' + item.productName"
+              <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT" routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" title="Ajustar stock" [attr.aria-label]="'Ajustar ' + item.productName"
                 class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium">
                 <app-icon class="h-4 w-4">tune</app-icon><span class="hidden lg:inline">Ajustar</span>
               </a>
@@ -118,7 +118,7 @@
           </a>
           }
           @if (expiredQuantity(item) > 0) {
-          <a routerLink="/inventory/adjustments/new" [queryParams]="wasteParams(item)"
+          <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT" routerLink="/inventory/adjustments/new" [queryParams]="wasteParams(item)"
             title="Registrar la merma de lo vencido. Las salidas consumen primero lo que vence antes (FEFO), así que la merma descuenta los lotes vencidos."
             class="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-500/25 dark:text-red-400">
             <app-icon class="h-3.5 w-3.5">delete_sweep</app-icon>{{ formatQuantity(expiredQuantity(item), item.unitName) }} vencido
@@ -135,10 +135,10 @@
       </div>
       <p class="text-muted-foreground mt-1 text-xs">Costo promedio {{ unitCost(item) }}</p>
       <div class="mt-2 flex gap-2">
-        <a routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
+        <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_PURCHASE" routerLink="/inventory/purchases/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
           <app-icon class="h-4 w-4">add_shopping_cart</app-icon>Comprar
         </a>
-        <a routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
+        <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT" routerLink="/inventory/adjustments/new" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">
           <app-icon class="h-4 w-4">tune</app-icon>Ajustar
         </a>
         <a routerLink="/inventory/kardex" [queryParams]="linkParams(item)" class="bg-primary/10 text-primary inline-flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium">

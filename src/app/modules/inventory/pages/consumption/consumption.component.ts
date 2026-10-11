@@ -20,6 +20,8 @@ import {
 } from './data-access';
 import { ConsumptionProductFilterComponent, ConsumptionTableComponent } from './features';
 import { ConsumptionHelpComponent, ConsumptionSummaryComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type ConsumptionQuery = Readonly<{
   locationId: number | null;
@@ -57,11 +59,13 @@ function toQuery(params: ParamMap): ConsumptionQuery {
     ConsumptionProductFilterComponent,
     ConsumptionSummaryComponent,
     ConsumptionTableComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './consumption.component.html',
 })
 export class ConsumptionComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #inventory = inject(InventoryService);

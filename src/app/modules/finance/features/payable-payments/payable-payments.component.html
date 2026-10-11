@@ -44,6 +44,7 @@
       </div>
       @if (canCancel() && !payment.cancelled) {
       <button
+        *appCheckPermission="PERMISSIONS.PAYABLES.CANCEL_PAYMENT"
         type="button"
         class="text-destructive self-start rounded-md px-2 py-1 text-sm font-medium hover:bg-red-500/10"
         (click)="cancel(payment)">

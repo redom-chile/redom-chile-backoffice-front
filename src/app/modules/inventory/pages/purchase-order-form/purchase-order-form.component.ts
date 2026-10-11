@@ -14,6 +14,7 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, Observable, of } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
@@ -43,6 +44,7 @@ import {
 import { resultError, resultValue, toRemoteResult } from '../../shared';
 import { InventoryDisabledComponent } from '../../ui';
 import { getPurchaseOrderErrorMessage, isOrderEditable, PURCHASE_ORDER_STATUS_LABELS } from '../purchase-order-detail/data-access';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type EditData = Readonly<{ order: PurchaseOrderDto; items: StockableItem[] }>;
 type SaveStatus = 'draft' | 'sent';
@@ -101,12 +103,14 @@ function lineItem(line: PurchaseOrderLineDto, catalog: ReadonlyMap<number, Stock
     SkeletonComponent,
     InventoryDisabledComponent,
     StockLinesEditorComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './purchase-order-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(window:beforeunload)': 'handleBeforeUnload($event)' },
 })
 export class PurchaseOrderFormComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #fb = inject(FormBuilder);
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
@@ -118,6 +122,7 @@ export class PurchaseOrderFormComponent {
   readonly #itemsService = inject(StockableItemsService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
   protected readonly locationStore = inject(InventoryLocationStore);
 
   protected readonly supplierLabel = supplierLabel;
@@ -144,6 +149,12 @@ export class PurchaseOrderFormComponent {
     return Number.isInteger(id) && id > 0 ? id : null;
   })();
   readonly isEdit = this.orderId !== null;
+  // Sin permiso el formulario se ve, pero no se puede guardar.
+  protected readonly $canSubmit = computed(() =>
+    this.#access.can(
+      this.isEdit ? PERMISSIONS.PURCHASE_ORDERS.UPDATE_PURCHASE_ORDER : PERMISSIONS.PURCHASE_ORDERS.CREATE_PURCHASE_ORDER,
+    ),
+  );
 
   readonly $suppliers = signal<SupplierDto[]>([]);
   readonly $suppliersLoading = signal(true);
@@ -283,7 +294,7 @@ export class PurchaseOrderFormComponent {
   }
 
   handleSubmit(status: SaveStatus) {
-    if (this.$isSaving()) return;
+    if (this.$isSaving() || !this.$canSubmit()) return;
     this.$submitted.set(true);
     if (this.form.controls.locationId.invalid) {
       this.#toast.show('Elige un local.', 'warning');
