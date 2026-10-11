@@ -3,6 +3,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { HttpStatusCode } from '@angular/common/http';
 import { ButtonComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { getOrderErrorMessage, GetServiceStaffService } from '../order-list/data-access';
 import {
@@ -53,6 +55,7 @@ import { OrderTotalsComponent } from './ui';
     OrderLinesTableComponent,
     OrderTotalsComponent,
     PaymentsTableComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './order-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,6 +73,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
   private readonly businessSettings = inject(BusinessSettingsService);
+  private readonly access = inject(AccessService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly orderStatus = ORDER_STATUS;
@@ -94,7 +100,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   });
 
   readonly $isOpen = computed(() => this.$order()?.status === 'ORDERED');
-  readonly $canServe = computed(() => this.$isOpen() && !!this.$order()?.isKitchenOrder);
+  readonly $canServe = computed(
+    () => this.$isOpen() && !!this.$order()?.isKitchenOrder && this.access.can(PERMISSIONS.ORDERS.MARK_SERVED),
+  );
   readonly $hasPendingLines = computed(() =>
     (this.$order()?.lines ?? []).some((line) => line.resLineOrderStatus !== 'served'),
   );
@@ -103,7 +111,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     return result && result.transactionId === this.$orderId() ? result.payments : [];
   });
   readonly $isLoadingPayments = computed(() => this.paymentsService.$isLoading() ?? false);
-  readonly $canCollect = computed(() => this.$isOpen() && (this.$order()?.remaining ?? 0) > 0);
+  readonly $canCollect = computed(
+    () =>
+      this.$isOpen() && (this.$order()?.remaining ?? 0) > 0 && this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT),
+  );
 
   readonly $isMarkingOrder = computed(() => this.markOrderService.$isLoading() ?? false);
 

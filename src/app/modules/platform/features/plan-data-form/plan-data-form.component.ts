@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { map, of, switchMap } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ButtonComponent, ToastService } from 'src/ui';
 import { formatPlatformDate, getPlatformErrorMessage, PlatformPlanDto, PlatformService, SavePlanDto } from '../../data-access';
 import { confirmPlanAction, PLAN_FLAG_FIELDS, subscriptionsLabel } from '../plan-shared';
@@ -15,6 +16,7 @@ import { confirmPlanAction, PLAN_FLAG_FIELDS, subscriptionsLabel } from '../plan
   template: `
     @let plan = $plan();
     <form class="glass space-y-5 rounded-[1rem] p-4 sm:p-6" [formGroup]="form" (ngSubmit)="handleSubmit()">
+      <fieldset class="contents space-y-5" [disabled]="!$canEdit()">
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
           <label for="plan-data-code" class="mb-1 block text-sm font-medium">Código</label>
@@ -66,13 +68,16 @@ import { confirmPlanAction, PLAN_FLAG_FIELDS, subscriptionsLabel } from '../plan
         </label>
         }
       </div>
+      </fieldset>
 
       <div class="flex flex-col-reverse gap-3 border-t border-[var(--border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p class="text-muted-foreground text-xs">Creado el {{ formatDate(plan.createdAt) }} · Actualizado el {{ formatDate(plan.updatedAt, true) }}</p>
+        @if ($canEdit()) {
         <div class="flex justify-end gap-3">
           <app-button type="button" impact="light" [disabled]="$isSaving() || !$isDirty()" (buttonClick)="reset()">Descartar</app-button>
           <app-button type="submit" impact="bold" [disabled]="$isSaving() || !$isDirty()" [isLoading]="$isSaving()">Guardar</app-button>
         </div>
+        }
       </div>
     </form>
   `,
@@ -86,6 +91,9 @@ export class PlanDataFormComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #access = inject(AccessService);
+  // Sin permiso la pestaña queda de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PLANS.UPDATE_PLAN));
 
   readonly flags = PLAN_FLAG_FIELDS;
   readonly formatDate = formatPlatformDate;
@@ -122,6 +130,7 @@ export class PlanDataFormComponent {
   }
 
   handleSubmit() {
+    if (!this.$canEdit()) return;
     if (this.$isSaving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();

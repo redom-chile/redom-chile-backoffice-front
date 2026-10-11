@@ -41,6 +41,8 @@ export type EntitlementsDto = Readonly<{
   usage: Readonly<Record<PlanLimitCode, number>>;
   /** Sobre el límite del plan: solo lectura. `users` trae códigos (uuid). */
   lockedResources: Readonly<{ locations: number[]; registers: number[]; users: string[] }>;
+  /** Módulos de Roles y permisos (`moduleCode`) de funciones fuera del plan: sus permisos no se pueden dar. */
+  lockedModules?: string[];
 }>;
 
 export type PlanPriceDto = Readonly<{ id: number; interval: 'month' | 'year'; amount: number; currency: string }>;

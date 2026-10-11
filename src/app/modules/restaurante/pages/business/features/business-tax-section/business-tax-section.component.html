@@ -17,7 +17,7 @@
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
         [class.border-red-500]="$rutError()"
         [value]="$rut()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         [attr.aria-invalid]="!!$rutError()"
         aria-describedby="business-rut-hint"
         (input)="onRutInput($event)"
@@ -41,7 +41,7 @@
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
         [class.border-red-500]="$vatRateError()"
         [value]="$vatRate()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         [attr.aria-invalid]="!!$vatRateError()"
         aria-describedby="business-vat-hint"
         (input)="onVatRateInput($event)" />
@@ -52,7 +52,7 @@
       }
     </div>
 
-    <fieldset class="sm:col-span-2" [disabled]="$isSaving()">
+    <fieldset class="sm:col-span-2" [disabled]="$isSaving() || !$canEdit()">
       <legend class="text-foreground mb-2 text-sm font-medium">Los precios de mis productos</legend>
       <div class="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Los precios de mis productos">
         @for (option of sellPriceTaxOptions; track option.value) {
@@ -90,9 +90,10 @@
     </fieldset>
   </div>
 
+  @if ($canEdit()) {
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
     @if ($hasChanges()) {
-    <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()">Descartar</app-button>
     }
     <app-button
       impact="bold"
@@ -104,4 +105,5 @@
       Guardar
     </app-button>
   </div>
+  }
 </app-card>

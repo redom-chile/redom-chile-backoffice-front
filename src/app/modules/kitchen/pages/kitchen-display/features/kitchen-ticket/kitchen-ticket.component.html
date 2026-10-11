@@ -61,7 +61,7 @@
     }
   </ul>
 
-  <footer class="border-t border-[var(--border)] p-3">
+  <footer *appCheckPermission="PERMISSIONS.KITCHEN.MARK_COOKED" class="border-t border-[var(--border)] p-3">
     <button
       type="button"
       class="flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-green-600 text-lg font-semibold text-white active:scale-[0.98] disabled:opacity-50"

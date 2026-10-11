@@ -13,7 +13,7 @@
       <app-toggle
         aria-label="Trabajo con mesas"
         [checked]="$tablesEnabled()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         (changed)="$tablesEnabled.set($event)" />
     </div>
 
@@ -25,7 +25,7 @@
       <app-toggle
         aria-label="Uso meseros"
         [checked]="$waiterEnabled()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         (changed)="setWaiterEnabled($event)" />
     </div>
 
@@ -43,7 +43,7 @@
       <app-toggle
         aria-label="Mesero obligatorio al tomar pedidos"
         [checked]="$waiterEnabled() && $staffRequired()"
-        [disabled]="$isSaving() || !$waiterEnabled()"
+        [disabled]="$isSaving() || !$waiterEnabled() || !$canEdit()"
         (changed)="$staffRequired.set($event)" />
     </div>
 
@@ -64,7 +64,7 @@
       <app-toggle
         aria-label="Caja y turnos"
         [checked]="$cashEnabled()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         (changed)="$cashEnabled.set($event)" />
     </div>
 
@@ -80,7 +80,7 @@
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
         [class.border-red-500]="$tipError()"
         [value]="$tipPercent()"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         [attr.aria-invalid]="!!$tipError()"
         aria-describedby="business-tip-hint"
         (input)="onTipInput($event)" />
@@ -96,7 +96,7 @@
       <select
         id="business-tip-mode"
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         aria-describedby="business-tip-mode-hint"
         (change)="onTipModeChange($event)">
         @for (mode of tipModes; track mode) {
@@ -110,9 +110,10 @@
     </div>
   </div>
 
+  @if ($canEdit()) {
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
     @if ($hasChanges()) {
-    <app-button impact="light" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()">Descartar</app-button>
     }
     <app-button
       impact="bold"
@@ -124,4 +125,5 @@
       Guardar
     </app-button>
   </div>
+  }
 </app-card>

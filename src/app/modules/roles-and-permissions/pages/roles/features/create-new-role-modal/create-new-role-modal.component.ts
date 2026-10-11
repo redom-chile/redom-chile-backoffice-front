@@ -1,4 +1,5 @@
 import { Component, effect, inject, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import {
@@ -9,7 +10,7 @@ import {
   SlotDirective,
   ToastService,
 } from 'src/ui';
-import { CreateRoleService, GetAllRolesService } from '../../data-access';
+import { CreateRoleService, GetAllRolesService, getRoleErrorMessage } from '../../data-access';
 
 @Component({
   selector: 'app-create-new-role-modal',
@@ -32,40 +33,43 @@ export class CreateNewRoleModalComponent implements OnDestroy {
   protected readonly $getAllRolesService = inject(GetAllRolesService);
 
   protected readonly $isLoading = this.$createRoleService.$isLoading;
+  /** Roles de los que se pueden copiar los permisos (undefined mientras cargan). */
+  protected readonly $roleOptions = toSignal(this.$getAllRolesService.options());
 
   private fb = inject(FormBuilder);
 
   form = this.fb.group({
-    code: ['', [Validators.required]],
     name: ['', [Validators.required]],
+    code: ['', [Validators.required, Validators.maxLength(50)]],
+    copyFromRoleId: [null as number | null],
   });
 
   constructor() {
     effect(() => {
-      if (this.$createRoleService.$isLoading()) {
-        this.$toast.show(`Creando rol...`, 'warning');
-      }
       if (this.$createRoleService.$success()) {
-        this.$toast.show(`Rol '${this.form.get('code')?.value}' creado con éxito`, 'success');
+        this.$toast.show(`Rol "${this.form.value.name}" creado.`, 'success');
         this.$getAllRolesService.retry();
         this.dialogRef.close();
       }
-      if (this.$createRoleService.$hasError()) {
-        this.$toast.show(`Algo salió mal. Por favor, vuelva a intentar.`, 'error');
+      const error = this.$createRoleService.$error();
+      if (error) {
+        const message = getRoleErrorMessage(error);
+        if (message) this.$toast.show(message, 'error');
       }
     });
   }
 
   submitForm() {
-    const code = this.form.get('code')!.value ?? '';
-    const name = this.form.get('name')!.value ?? '';
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
-    this.$createRoleService.create({ code, name });
+    const { code, name, copyFromRoleId } = this.form.getRawValue();
+    this.$createRoleService.create({
+      code: (code ?? '').trim().toUpperCase(),
+      name: (name ?? '').trim(),
+      ...(copyFromRoleId ? { copyFromRoleId: Number(copyFromRoleId) } : {}),
+    });
   }
 
   ngOnDestroy(): void {

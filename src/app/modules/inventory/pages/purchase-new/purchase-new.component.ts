@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, map, Observable, startWith, switchMap, throwError } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { getCashErrorMessage, PAYMENT_METHOD_LABELS, PaymentMethod } from 'src/app/modules/cash/data-access';
@@ -34,6 +35,7 @@ import {
 } from '../../features';
 import { formatDocumentDate } from '../../shared';
 import { InventoryDisabledComponent, LocationSelectComponent } from '../../ui';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 // El usuario cerró el modal de caja: no se muestra error.
 const CANCELLED = Symbol('cancelled');
@@ -59,11 +61,13 @@ function positiveId(value: string | null): number | null {
     LocationSelectComponent,
     StockLinesEditorComponent,
     ToggleComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './purchase-new.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PurchaseNewComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #fb = inject(FormBuilder);
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
@@ -74,6 +78,9 @@ export class PurchaseNewComponent implements OnInit {
   readonly #suppliersService = inject(SuppliersService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
+  // Sin permiso el formulario se ve, pero no se puede registrar.
+  protected readonly $canSubmit = computed(() => this.#access.can(PERMISSIONS.INVENTORY.CREATE_PURCHASE));
   readonly #cashRetry = inject(CashRetryService);
   protected readonly locationStore = inject(InventoryLocationStore);
 
@@ -226,6 +233,7 @@ export class PurchaseNewComponent implements OnInit {
   }
 
   handleSubmit() {
+    if (!this.$canSubmit()) return;
     if (this.$isSaving()) return;
     this.$submitted.set(true);
     const locationId = this.locationStore.$locationId();

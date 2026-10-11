@@ -10,6 +10,7 @@
       <span class="hidden lg:inline">Categorías</span>
     </a>
     <a
+      *appCheckPermission="PERMISSIONS.EXPENSES.CREATE_EXPENSE"
       routerLink="/finance/expenses/new"
       class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
       <app-icon class="h-5 w-5">add</app-icon>
@@ -120,7 +121,7 @@
     @if ($hasFilters()) {
     <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
     } @else {
-    <a routerLink="/finance/expenses/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Registrar el primero</a>
+    <a *appCheckPermission="PERMISSIONS.EXPENSES.CREATE_EXPENSE" routerLink="/finance/expenses/new" class="text-primary mt-3 inline-block text-sm font-medium hover:underline">Registrar el primero</a>
     }
   </div>
   } @else {

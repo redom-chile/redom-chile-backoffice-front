@@ -1,4 +1,4 @@
-<div class="flex flex-wrap items-end gap-4 p-2" *appCheckPermission="'users:get-all-users'">
+<div class="flex flex-wrap items-end gap-4 p-2" *appCheckPermission="PERMISSIONS.USERS.GET_ALL_USERS">
   <app-filters-table [config]="filtersConfig()" [values]="filtersValues()" (valuesChange)="onFiltersChange($event)">
   </app-filters-table>
 

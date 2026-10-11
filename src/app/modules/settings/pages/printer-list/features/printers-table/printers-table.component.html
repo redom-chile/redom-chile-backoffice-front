@@ -48,13 +48,13 @@
           </td>
           <td class="px-4 py-3">
             <div class="flex justify-end gap-1">
-              <button type="button" title="Imprimir prueba" [attr.aria-label]="'Imprimir prueba en ' + printer.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50" [disabled]="testingIds().has(printer.id)" (click)="test.emit(printer)">
+              <button *appCheckPermission="PERMISSIONS.PRINT_JOBS.CREATE_PRINT_JOB" type="button" title="Imprimir prueba" [attr.aria-label]="'Imprimir prueba en ' + printer.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-50" [disabled]="testingIds().has(printer.id)" (click)="test.emit(printer)">
                 <app-icon class="h-5 w-5">{{ testingIds().has(printer.id) ? 'hourglass_empty' : 'receipt_long' }}</app-icon>
               </button>
-              <button type="button" title="Editar" [attr.aria-label]="'Editar ' + printer.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md" (click)="edit.emit(printer)">
+              <button *appCheckPermission="PERMISSIONS.PRINTERS.UPDATE_PRINTER" type="button" title="Editar" [attr.aria-label]="'Editar ' + printer.name" class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md" (click)="edit.emit(printer)">
                 <app-icon class="h-5 w-5">edit</app-icon>
               </button>
-              <button type="button" title="Eliminar" [attr.aria-label]="'Eliminar ' + printer.name" class="text-muted-foreground inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-red-500/10 hover:text-red-600" (click)="delete.emit(printer)">
+              <button *appCheckPermission="PERMISSIONS.PRINTERS.DELETE_PRINTER" type="button" title="Eliminar" [attr.aria-label]="'Eliminar ' + printer.name" class="text-muted-foreground inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-red-500/10 hover:text-red-600" (click)="delete.emit(printer)">
                 <app-icon class="h-5 w-5">delete</app-icon>
               </button>
             </div>

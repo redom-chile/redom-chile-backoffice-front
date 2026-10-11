@@ -1,3 +1,5 @@
+import type { PermissionCode } from '../permissions';
+
 export interface MenuItem {
   group: string;
   separator?: boolean;
@@ -13,7 +15,8 @@ export interface SubMenuItem {
   expanded?: boolean;
   active?: boolean;
   children?: Array<SubMenuItem>;
-  permission?: string;
+  /** Permiso para verlo. Si no se indica, el de su ruta (permission-routes.ts). */
+  permission?: PermissionCode;
   /** Solo se muestra si la función está activa en la configuración del negocio. */
   feature?: 'inventory' | 'ingredients' | 'multiLocation';
   /** Solo se muestra a quien tiene ese rol (roles[].code de whoami), aunque los permisos estén apagados. */

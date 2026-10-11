@@ -20,7 +20,7 @@
   </section>
 
   <!-- Primeros pasos (checklist de puesta en marcha) -->
-  @if (gettingStarted.$businessId() && !gettingStarted.$hidden()) {
+  @if (gettingStarted.$available() && !gettingStarted.$hidden()) {
   <app-getting-started />
   }
 
@@ -31,7 +31,7 @@
       [to]="$query().to"
       (presetChange)="handlePreset($event)"
       (customChange)="handleCustom($event)" />
-    @if (gettingStarted.$businessId() && gettingStarted.$hidden()) {
+    @if (gettingStarted.$available() && gettingStarted.$hidden()) {
     <button type="button" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="gettingStarted.show()">
       <app-icon class="h-4 w-4">checklist</app-icon>Ver primeros pasos
     </button>

@@ -9,12 +9,14 @@ import {
 } from 'src/ui';
 import { FiltersTableRoleComponent } from '../../ui';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { GetAllRolesDto } from '../../data-access';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { CreateNewRoleModalComponent } from '../create-new-role-modal';
 import { UpdateRoleModalComponent } from '../update-role-modal';
 import { DeleteRoleModalComponent } from '../delete-role-modal';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-roles-table',
@@ -32,7 +34,9 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './roles-table.component.html',
 })
 export class RolesTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
   readonly $getAllRolesDetail = input.required<GetAllRolesDto[]>({
     alias: 'getAllRolesDetail',
   });
@@ -56,6 +60,10 @@ export class RolesTableComponent {
       width: '90%',
       data: {},
     });
+  }
+
+  openPermissions(item: GetAllRolesDto) {
+    this.router.navigate(['/roles-and-permissions/roles-permissions'], { queryParams: { roleId: item.id } });
   }
 
   updateModule(item: any) {

@@ -16,15 +16,20 @@ import { DeleteTableModalComponent } from '../delete-table-modal';
 
 import { TableQrModalComponent, TableQrModalResult } from '../table-qr-modal';
 
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
+
 @Component({
   selector: 'app-tables-table',
 
-  imports: [NgClass, TableComponent, SlotDirective, ButtonComponent, ProgressBarComponent],
+  imports: [NgClass, TableComponent, SlotDirective, ButtonComponent, ProgressBarComponent, CheckPermissionDirective],
 
   templateUrl: './tables-table.component.html',
 })
 export class TablesTableComponent {
   private readonly dialog = inject(MatDialog);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly $tables = input.required<TableDto[]>({
     alias: 'tables',

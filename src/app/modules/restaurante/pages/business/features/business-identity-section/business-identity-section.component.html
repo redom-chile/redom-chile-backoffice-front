@@ -16,7 +16,7 @@
           [class.border-red-500]="$nameError()"
           [attr.maxlength]="nameMaxLength"
           [value]="$name()"
-          [disabled]="$isSavingName()"
+          [disabled]="$isSavingName() || !$canEdit()"
           [attr.aria-invalid]="!!$nameError()"
           aria-describedby="business-name-error"
           (input)="onNameInput($event)"
@@ -25,6 +25,7 @@
         <p id="business-name-error" class="mt-1 text-xs text-red-500">{{ error }}</p>
         }
       </div>
+      @if ($canEdit()) {
       <div class="flex justify-end gap-2">
         @if ($nameChanged()) {
         <app-button impact="light" type="button" [disabled]="$isSavingName()" (buttonClick)="discardName()">Descartar</app-button>
@@ -39,6 +40,7 @@
           Guardar
         </app-button>
       </div>
+      }
     </div>
   </div>
 
@@ -50,10 +52,10 @@
       [currentUrl]="$business().logoUrl"
       [uploading]="$isUploading()"
       [progress]="$uploadProgress()"
-      [disabled]="$isSavingLogo()"
+      [disabled]="$isSavingLogo() || !$canEdit()"
       (selectionChange)="$logoSelection.set($event)" />
     }
-    @if ($logoSelection().kind !== 'keep') {
+    @if ($logoSelection().kind !== 'keep' && $canEdit()) {
     <div class="mt-3 flex justify-end gap-2">
       <app-button impact="light" type="button" [disabled]="$isSavingLogo()" (buttonClick)="discardLogo()">Descartar</app-button>
       <app-button
@@ -80,7 +82,7 @@
         [attr.aria-checked]="$currentColor() === color.name"
         [attr.aria-label]="color.label"
         [title]="color.label"
-        [disabled]="!!$savingColor()"
+        [disabled]="!!$savingColor() || !$canEdit()"
         class="focus-visible:ring-foreground relative flex size-10 items-center justify-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-transparent transition-transform hover:scale-110 focus-visible:ring-2 disabled:cursor-wait"
         [class.ring-2]="$currentColor() === color.name"
         [class.ring-foreground]="$currentColor() === color.name"

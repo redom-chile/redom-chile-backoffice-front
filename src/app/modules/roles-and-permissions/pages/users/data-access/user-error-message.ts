@@ -1,4 +1,5 @@
 import { ApiError } from 'src/app/core/utils';
+import { getRoleErrorMessage } from '../../roles/data-access/role-error-message';
 
 const BRANCH_NOT_FOUND = 'La sucursal seleccionada no existe en tu restaurante.';
 
@@ -12,6 +13,7 @@ function isBranchNotFound(error: ApiError): boolean {
 
 export function getCreateUserErrorMessage(error: ApiError): string {
   if (isBranchNotFound(error)) return BRANCH_NOT_FOUND;
+  if (error.code === 'ROLE_NOT_ASSIGNABLE') return getRoleErrorMessage(error) ?? '';
   const messages: Record<number, string> = {
     403: 'No puedes asignar alguno de esos roles.',
     404: 'Alguno de los roles ya no existe.',

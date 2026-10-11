@@ -3,7 +3,15 @@
 <div>
   <app-header-dashboard title="Categorías" subtitle="Gestiona las categorías de tu carta">
     @if (!$isEmpty()) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.CATEGORIES.CREATE_CATEGORY"
+      full
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="add"
+      (buttonClick)="handleCreate()">
       Crear categoría
     </app-button>
     <app-button
@@ -33,7 +41,13 @@
     icon="category"
     title="Aún no tienes categorías"
     description="Las categorías organizan tu carta. Crea la primera para empezar a agregar productos.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.CATEGORIES.CREATE_CATEGORY"
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      icon="add"
+      (buttonClick)="handleCreate()">
       Crear categoría
     </app-button>
   </app-empty-state>

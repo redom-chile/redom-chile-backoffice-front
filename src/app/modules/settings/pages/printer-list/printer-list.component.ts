@@ -4,7 +4,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { interval } from 'rxjs';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
 import { readApiError } from 'src/app/core/utils';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import {
   GetAllPrintersService,
@@ -27,11 +29,12 @@ const REFRESH_MS = 30_000;
 @Component({
   selector: 'app-printer-list',
   standalone: true,
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, PrintersTableComponent],
+  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, PrintersTableComponent, CheckPermissionDirective],
   templateUrl: './printer-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrinterListComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);

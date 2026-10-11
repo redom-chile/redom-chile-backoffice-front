@@ -37,9 +37,9 @@ export class CreateUserModalComponent implements OnDestroy {
 
   protected readonly $isLoading = this.$createUserService.$isLoading;
   protected readonly allRoles = this.$allRolesService.$roles;
-  // Solo roles de personal: SUPERADMIN y OWNER no se pueden asignar (el backend los rechaza).
+  // Solo roles de personal del negocio: SUPERADMIN, OWNER y los de Redom (globales) no se pueden asignar.
   protected readonly $staffRoles = computed(() =>
-    (this.allRoles()?.data ?? []).filter((role) => !['SUPERADMIN', 'OWNER'].includes(role.code)),
+    (this.allRoles()?.data ?? []).filter((role) => !role.isGlobal && !['SUPERADMIN', 'OWNER'].includes(role.code)),
   );
   protected readonly $loadingRoles = this.$allRolesService.$isLoading;
   protected readonly $locations = inject(GetAllBusinessLocationsService).$locations;

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { RouterLink } from '@angular/router';
 import { BusinessSettingsService, PosSettings, UpdateBusinessSettingsDto } from 'src/app/core/services/business-settings';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
@@ -18,6 +19,9 @@ const TIP_MODES: readonly TipDistributionMode[] = ['individual', 'equal', 'point
 export class BusinessPosSectionComponent {
   readonly #settings = inject(BusinessSettingsService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la sección queda de solo lectura.
+  protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
 
   readonly #saved = this.#settings.$posSettings;
   // Sin valor guardado se muestra 0 (sin sugerencia), que es el default del backend.

@@ -20,14 +20,25 @@ import {
   ModifierSetProductsModalComponent,
 } from './features';
 import { ModifierSetCardComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-modifier-set-list',
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, SkeletonComponent, ModifierSetCardComponent],
+  imports: [
+    HeaderDashboardComponent,
+    ButtonComponent,
+    IconComponent,
+    EmptyStateComponent,
+    SkeletonComponent,
+    ModifierSetCardComponent,
+    CheckPermissionDirective,
+  ],
   templateUrl: './modifier-set-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModifierSetListComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #service = inject(ModifierSetsService);

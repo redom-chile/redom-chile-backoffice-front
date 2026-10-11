@@ -64,7 +64,7 @@
       <app-toggle
         aria-label="Activar inventario"
         [checked]="view.inventoryEnabled"
-        [disabled]="$isSaving()"
+        [disabled]="$isSaving() || !$canEdit()"
         (changed)="toggle('inventoryEnabled', $event)" />
     </div>
 
@@ -80,7 +80,7 @@
         <app-toggle
           aria-label="Trabajar con ingredientes y recetas"
           [checked]="view.ingredientsEnabled"
-          [disabled]="$isSaving() || !view.inventoryEnabled"
+          [disabled]="$isSaving() || !view.inventoryEnabled || !$canEdit()"
           (changed)="toggle('ingredientsEnabled', $event)" />
       </div>
 
@@ -96,7 +96,7 @@
           <app-toggle
             aria-label="Descontar stock al vender"
             [checked]="view.deductStockOnSale"
-            [disabled]="$isSaving() || !view.inventoryEnabled"
+            [disabled]="$isSaving() || !view.inventoryEnabled || !$canEdit()"
             (changed)="toggle('deductStockOnSale', $event)" />
         </div>
 
@@ -106,7 +106,7 @@
           <select
             id="stock-deduction-moment"
             class="glass-input rounded-md px-3 py-2 text-sm sm:w-64"
-            [disabled]="$isSaving() || !view.inventoryEnabled"
+            [disabled]="$isSaving() || !view.inventoryEnabled || !$canEdit()"
             (change)="changeMoment($event)">
             @for (option of deductionMoments; track option.value) {
             <option [value]="option.value" [selected]="option.value === view.stockDeductionMoment">{{ option.label }}</option>
@@ -166,7 +166,7 @@
         <app-toggle
           aria-label="Permitir stock negativo"
           [checked]="view.allowNegativeStock"
-          [disabled]="$isSaving() || !view.inventoryEnabled"
+          [disabled]="$isSaving() || !view.inventoryEnabled || !$canEdit()"
           (changed)="toggle('allowNegativeStock', $event)" />
       </div>
     </div>

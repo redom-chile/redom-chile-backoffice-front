@@ -3,6 +3,7 @@
 <div>
   <app-header-dashboard title="Mesas" subtitle="Gestiona las mesas de tu restaurante">
     <app-button
+      *appCheckPermission="PERMISSIONS.TABLES.CREATE_TABLE"
       full
       impact="bold"
       tone="primary"

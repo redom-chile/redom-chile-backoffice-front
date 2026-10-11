@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnIni
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import {
   ButtonComponent,
@@ -96,6 +97,9 @@ export class CountNewComponent implements OnInit {
   readonly #inventory = inject(InventoryService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
+  // Sin permiso el formulario se ve, pero no se puede registrar.
+  protected readonly $canSubmit = computed(() => this.#access.can(PERMISSIONS.INVENTORY.CREATE_COUNT));
   protected readonly locationStore = inject(InventoryLocationStore);
 
   readonly notesMax = NOTES_MAX;
@@ -231,6 +235,7 @@ export class CountNewComponent implements OnInit {
   }
 
   handleSubmit() {
+    if (!this.$canSubmit()) return;
     if (this.$isSaving()) return;
     this.$submitted.set(true);
     const location = this.locationStore.$location();

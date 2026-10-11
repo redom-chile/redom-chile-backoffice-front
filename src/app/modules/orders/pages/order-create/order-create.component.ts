@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { ApiError } from 'src/app/core/utils';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ButtonComponent, EmptyStateComponent, IconComponent, ToastService } from 'src/ui';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
@@ -69,6 +70,7 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   private readonly categoriesService = inject(GetAllCategoriesService);
   private readonly staffService = inject(GetServiceStaffService);
   private readonly orderService = inject(GetOrderByIdService);
+  private readonly access = inject(AccessService);
 
   readonly mode: OrderCreateMode = this.route.snapshot.data['mode'] === 'add' ? 'add' : 'create';
   readonly $orderId = signal<number | null>(null);
@@ -103,8 +105,13 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   readonly $isSaving = computed(() =>
     this.mode === 'add' ? (this.addLinesService.$isLoading() ?? false) : (this.createService.$isLoading() ?? false),
   );
+  // Agregar productos actualiza el pedido; confirmar lo crea.
+  readonly $canSave = computed(() =>
+    this.access.can(this.mode === 'add' ? PERMISSIONS.ORDERS.UPDATE_ORDER : PERMISSIONS.ORDERS.CREATE_ORDER),
+  );
   // Qué falta para poder confirmar; se muestra junto al botón.
   readonly $missing = computed(() => {
+    if (!this.$canSave()) return 'No tienes permiso para esta acción';
     if (!this.$cart().length) return 'Agrega al menos un producto';
     if (this.mode === 'create' && !this.$locationId()) return 'Selecciona una sucursal';
     return null;

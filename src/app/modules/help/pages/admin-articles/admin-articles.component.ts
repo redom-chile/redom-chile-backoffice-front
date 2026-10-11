@@ -13,6 +13,8 @@ import {
   resultValue,
   toRemoteResult,
 } from 'src/app/modules/inventory/shared/data-access';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
   getHelpErrorMessage,
@@ -64,6 +66,7 @@ function toQuery(params: ParamMap): AdminArticlesQuery {
     IconComponent,
     SkeletonComponent,
     PaginationTableComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-articles.component.html',
@@ -83,6 +86,8 @@ function toQuery(params: ParamMap): AdminArticlesQuery {
   `,
 })
 export class AdminArticlesComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #help = inject(HelpAdminService);
@@ -129,7 +134,13 @@ export class AdminArticlesComponent {
   readonly $items = linkedSignal<HelpAdminArticleItemDto[]>(() => this.$page()?.data ?? []);
 
   readonly $tooManyToReorder = computed(() => (this.$page()?.pagination.totalItems ?? 0) > REORDER_LIMIT);
-  readonly $dragEnabled = computed(() => this.$canReorder() && !this.$tooManyToReorder() && this.$items().length > 1);
+  readonly $dragEnabled = computed(
+    () =>
+      this.#access.can(PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES) &&
+      this.$canReorder() &&
+      !this.$tooManyToReorder() &&
+      this.$items().length > 1,
+  );
   readonly $isReordering = signal(false);
   readonly $busyId = signal<number | null>(null);
 

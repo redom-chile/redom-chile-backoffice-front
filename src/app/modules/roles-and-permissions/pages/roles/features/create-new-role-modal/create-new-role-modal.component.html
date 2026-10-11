@@ -1,7 +1,7 @@
 @let isLoading = $isLoading();
 <app-modal-card>
   <ng-template app-slot="header">
-    <h1 class="text-primary dark:text-foreground">Crear nuevo rol</h1>
+    <h1 class="text-primary dark:text-foreground">Nuevo rol</h1>
   </ng-template>
   <button mat-icon-button class="close-button" (click)="dialogRef.close()">
     <app-icon class="text-primary">close</app-icon>
@@ -10,16 +10,29 @@
   <form [formGroup]="form">
     <div class="grid grid-cols-3 gap-4 p-2">
       <div class="text-end w-full pt-1">
-        <h3 class="text-foreground">Código</h3>
-      </div>
-      <div class="col-span-2">
-        <input type="text" id="code" formControlName="code" appCase="upper" />
-      </div>
-      <div class="text-end w-full pt-1">
         <h3 class="text-foreground">Nombre</h3>
       </div>
       <div class="col-span-2">
-        <input type="text" id="name" formControlName="name" />
+        <input type="text" id="name" formControlName="name" placeholder="Ej.: Jefe de salón" />
+      </div>
+      <div class="text-end w-full pt-1">
+        <h3 class="text-foreground">Código</h3>
+      </div>
+      <div class="col-span-2">
+        <input type="text" id="code" formControlName="code" appCase="upper" maxlength="50" placeholder="Ej.: JEFE_SALON" />
+      </div>
+      <div class="text-end w-full pt-1">
+        <h3 class="text-foreground">Copiar permisos de</h3>
+      </div>
+      <div class="col-span-2">
+        @let roles = $roleOptions();
+        <select id="copyFromRoleId" formControlName="copyFromRoleId" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm">
+          <option [ngValue]="null">{{ roles === undefined ? 'Cargando roles…' : 'Ninguno (sin permisos)' }}</option>
+          @for (role of roles ?? []; track role.id) {
+          <option [ngValue]="role.id">{{ role.name }}</option>
+          }
+        </select>
+        <p class="text-muted-foreground mt-1 text-xs">Solo se copian los permisos que tú puedes dar.</p>
       </div>
     </div>
   </form>

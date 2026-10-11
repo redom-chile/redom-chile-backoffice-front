@@ -1,7 +1,17 @@
 <div>
   <app-header-dashboard title="Estaciones" subtitle="Dónde se prepara cada producto: cocina, bar, parrilla…">
     @if (!$isEmpty()) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">Agregar estación</app-button>
+    <app-button
+      *appCheckPermission="PERMISSIONS.STATIONS.CREATE_STATION"
+      full
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="add"
+      (buttonClick)="handleCreate()">
+      Agregar estación
+    </app-button>
     }
   </app-header-dashboard>
 
@@ -19,7 +29,15 @@
     icon="soup_kitchen"
     title="Aún no tienes estaciones"
     description="Crea una estación por cada zona de preparación (Cocina, Bar…), asígnale una impresora y los productos que prepara. Así cada comanda llega al lugar correcto.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="handleCreate()">Agregar estación</app-button>
+    <app-button
+      *appCheckPermission="PERMISSIONS.STATIONS.CREATE_STATION"
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      icon="add"
+      (buttonClick)="handleCreate()">
+      Agregar estación
+    </app-button>
   </app-empty-state>
   } @else {
   <app-stations-grid

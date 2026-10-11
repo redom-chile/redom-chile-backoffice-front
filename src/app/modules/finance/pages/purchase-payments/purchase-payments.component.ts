@@ -9,6 +9,8 @@ import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { ButtonComponent, IconComponent, SkeletonComponent } from 'src/ui';
 import { dueLabel, getFinanceErrorMessage, PayableItemDto, PayablesService } from '../../data-access';
 import { formatDay, openPayPayableModal, PayablePaymentsComponent } from '../../features';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import type { PurchasePaymentsState } from '../payables/payables.component';
 
 /** Item que trae la navegación desde Cuentas por pagar (si corresponde a esta compra). */
@@ -23,7 +25,7 @@ function stateItem(id: number): PayableItemDto | null {
  */
 @Component({
   selector: 'app-purchase-payments',
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, PayablePaymentsComponent],
+  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, PayablePaymentsComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './purchase-payments.component.html',
 })
@@ -31,6 +33,8 @@ export class PurchasePaymentsComponent {
   readonly #route = inject(ActivatedRoute);
   readonly #dialog = inject(MatDialog);
   readonly #payables = inject(PayablesService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatDay = formatDay;

@@ -1,16 +1,16 @@
-import { Component, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, effect, inject, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { GetAllRolesDto, GetAllRolesService, UpdateRoleService } from '../../data-access';
-import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { GetAllRolesDto, GetAllRolesService, getRoleErrorMessage, UpdateRoleService } from '../../data-access';
+import { ButtonComponent, CaseTransformDirective, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-update-role-modal',
-  imports: [IconComponent, ModalCardComponent, ButtonComponent, FormsModule, ReactiveFormsModule, SlotDirective],
+  imports: [IconComponent, ModalCardComponent, ButtonComponent, FormsModule, ReactiveFormsModule, SlotDirective, CaseTransformDirective],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './update-role-modal.component.html',
 })
-export class UpdateRoleModalComponent {
+export class UpdateRoleModalComponent implements OnDestroy {
   protected readonly dialogRef = inject(MatDialogRef<UpdateRoleModalComponent>);
   protected readonly $updateRoleService = inject(UpdateRoleService);
   private readonly $toast = inject(ToastService);
@@ -22,40 +22,32 @@ export class UpdateRoleModalComponent {
   private fb = inject(FormBuilder);
 
   form = this.fb.group({
-    id: [{ value: '', disabled: true }, [Validators.required]],
-    name: ['', [Validators.required]],
+    code: [this.data.code, [Validators.required, Validators.maxLength(50)]],
+    name: [this.data.name, [Validators.required]],
   });
 
   constructor() {
-    this.form.patchValue({
-      id: this.data.id.toString(),
-      name: this.data.name,
-    });
-
     effect(() => {
-      if (this.$updateRoleService.$isLoading()) {
-        this.$toast.show(`Actualizando rol...`, 'warning');
-      }
       if (this.$updateRoleService.$success()) {
-        this.$toast.show(`Rol '${this.form.get('id')?.value}' actualizado con éxito`, 'success');
+        this.$toast.show(`Rol "${this.form.value.name}" actualizado.`, 'success');
         this.$getAllRolesService.retry();
         this.dialogRef.close();
       }
-      if (this.$updateRoleService.$hasError()) {
-        this.$toast.show(`Algo salió mal. Por favor, vuelva a intentar.`, 'error');
+      const error = this.$updateRoleService.$error();
+      if (error) {
+        const message = getRoleErrorMessage(error);
+        if (message) this.$toast.show(message, 'error');
       }
     });
   }
 
   submitForm() {
-    const name = this.form.get('name')!.value ?? '';
-
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-
-    this.$updateRoleService.update({ id: this.data.id, name });
+    const { code, name } = this.form.getRawValue();
+    this.$updateRoleService.update({ id: this.data.id, code: (code ?? '').trim().toUpperCase(), name: (name ?? '').trim() });
   }
 
   ngOnDestroy(): void {

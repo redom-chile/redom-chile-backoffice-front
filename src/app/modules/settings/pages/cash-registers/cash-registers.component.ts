@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsService, isPlanError } from 'src/app/core/services/entitlements';
 import {
@@ -12,6 +13,7 @@ import {
   planLimitGate,
 } from 'src/app/shared/components/plan-limit';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { CashRegisterDto, CashService, getCashErrorMessage } from 'src/app/modules/cash/data-access';
 import { formatTime } from 'src/app/modules/cash/ui';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared';
@@ -35,11 +37,13 @@ type LocationOption = Readonly<{ id: number; name: string }>;
     PlanUsageComponent,
     PlanLockedNoticeComponent,
     PlanLockedBadgeComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './cash-registers.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CashRegistersComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #cash = inject(CashService);
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);

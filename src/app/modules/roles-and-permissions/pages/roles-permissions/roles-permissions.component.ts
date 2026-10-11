@@ -2,10 +2,13 @@ import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } 
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
 import { GetAllPermissionsService } from '../permissions/data-access';
 import { GetRolePermissionsService, AssignPermissionsService } from './data-access';
+import { getRoleErrorMessage } from '../roles/data-access';
+import { ActivatedRoute } from '@angular/router';
 import { RoleSelectorComponent } from './ui';
 import { RolesPermissionsCardComponent } from './features';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-roles-permissions',
@@ -21,11 +24,13 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './roles-permissions.component.html',
 })
 export class RolesPermissionsComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   protected readonly $allPermissionsService = inject(GetAllPermissionsService);
   protected readonly $rolePermissionsService = inject(GetRolePermissionsService);
   private readonly assignService = inject(AssignPermissionsService);
   private readonly $toast = inject(ToastService);
   private readonly whoamiService = inject(WhoamiService);
+  readonly #access = inject(AccessService);
 
   selectedRoleId = signal<number | null>(null);
   pendingPermissionIds = signal<Set<number>>(new Set());
@@ -55,28 +60,33 @@ export class RolesPermissionsComponent {
   });
 
   readonly $saving = this.assignService.$isLoading;
+  /** Puede guardar: si no, la pantalla queda de solo lectura. */
+  readonly $canAssign = computed(() => this.#access.can(PERMISSIONS.ROLES_PERMISSIONS.ASSIGN_PERMISSION));
 
   constructor() {
     effect(() => {
-      if (this.assignService.$isLoading()) {
-        this.$toast.show('Guardando permisos...', 'warning');
-      }
-    });
-
-    effect(() => {
       if (this.assignService.$success() && this.lastSavedRoleId() !== null) {
         this.lastSavedRoleId.set(null);
-        this.$toast.show('Permisos actualizados exitosamente', 'success');
+        this.$toast.show('Permisos guardados.', 'success');
+        // Si el usuario conectado tiene este rol, sus permisos cambiaron.
         this.whoamiService.refetch();
         this.retry();
       }
     });
 
     effect(() => {
-      if (this.assignService.$hasError()) {
-        this.$toast.show('Algo salió mal. Por favor, vuelva a intentar.', 'error');
+      const error = this.assignService.$error();
+      if (error) {
+        const message = getRoleErrorMessage(error, 'No se pudieron guardar los permisos. Intenta nuevamente.');
+        if (message) this.$toast.show(message, 'error');
       }
     });
+
+    // El catálogo es compartido con la pantalla Permisos: aquí se ve completo.
+    this.$allPermissionsService.setParams({ searchCode: '', searchName: '' });
+    // Desde el botón "Permisos" de la tabla de roles llega el rol elegido.
+    const roleId = Number(inject(ActivatedRoute).snapshot.queryParamMap.get('roleId'));
+    if (roleId) this.onRoleSelected(roleId);
 
     effect(() => {
       const roleId = this.selectedRoleId();

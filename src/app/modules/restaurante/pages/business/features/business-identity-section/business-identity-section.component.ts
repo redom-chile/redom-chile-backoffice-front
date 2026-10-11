@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { firstValueFrom } from 'rxjs';
 import { THEME_COLORS, ThemeColorName } from 'src/app/core/constants/theme-colors';
 import { BrandColorService } from 'src/app/core/services/brand-color';
@@ -21,6 +22,9 @@ export class BusinessIdentitySectionComponent {
   readonly #settings = inject(BusinessSettingsService);
   readonly #businesses = inject(FindMyBusinessesService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la sección queda de solo lectura.
+  protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
 
   readonly $business = input.required<BusinessDto>({ alias: 'business' });
 
@@ -41,7 +45,7 @@ export class BusinessIdentitySectionComponent {
   }
 
   saveName() {
-    if (!this.$nameChanged() || this.$nameError() || this.$isSavingName()) return;
+    if (!this.$canEdit() || !this.$nameChanged() || this.$nameError() || this.$isSavingName()) return;
     const name = this.$name().trim();
     this.$isSavingName.set(true);
     this.#settings.update({ name }).subscribe({
@@ -103,7 +107,7 @@ export class BusinessIdentitySectionComponent {
   protected readonly $savingColor = signal<ThemeColorName | null>(null);
 
   selectColor(color: ThemeColorName) {
-    if (color === this.$currentColor() || this.$savingColor()) return;
+    if (!this.$canEdit() || color === this.$currentColor() || this.$savingColor()) return;
     this.$savingColor.set(color);
     this.#brandColor.save(this.$business().id, color).subscribe({
       next: () => {

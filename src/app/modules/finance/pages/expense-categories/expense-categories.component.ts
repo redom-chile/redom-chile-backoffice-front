@@ -6,11 +6,13 @@ import { resultError, resultValue, toRemoteResult } from 'src/app/modules/invent
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { ExpenseCategoryDto, ExpensesService, getFinanceErrorMessage } from '../../data-access';
 import { openCategoryModal } from '../../features/category-modal';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /** Categorías de gasto: crear, renombrar y activar/desactivar (las inactivas no se ofrecen en gastos nuevos). */
 @Component({
   selector: 'app-expense-categories',
-  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent],
+  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-header-dashboard title="Categorías de gasto" subtitle="Ordena tus gastos para saber en qué se va la plata.">
@@ -20,6 +22,7 @@ import { openCategoryModal } from '../../features/category-modal';
           <span class="hidden sm:inline">Gastos</span>
         </a>
         <button
+          *appCheckPermission="PERMISSIONS.EXPENSES.MANAGE_CATEGORIES"
           type="button"
           class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
           (click)="handleCreate()">
@@ -64,7 +67,7 @@ import { openCategoryModal } from '../../features/category-modal';
             [class]="category.isActive ? 'bg-green-500/15 text-green-700 dark:text-green-400' : 'bg-[var(--muted)] text-muted-foreground'">
             {{ category.isActive ? 'Activa' : 'Inactiva' }}
           </span>
-          <div class="flex items-center gap-1">
+          <div *appCheckPermission="PERMISSIONS.EXPENSES.MANAGE_CATEGORIES" class="flex items-center gap-1">
             <button
               type="button"
               class="text-muted-foreground hover:text-primary inline-flex h-9 w-9 items-center justify-center rounded-md"
@@ -93,6 +96,8 @@ export class ExpenseCategoriesComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly $includeInactive = signal(true);
   readonly $busyId = signal<number | null>(null);

@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, map, of, startWith } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
@@ -93,6 +94,9 @@ export class TransferNewComponent implements OnInit {
   readonly #inventory = inject(InventoryService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
+  // Sin permiso el formulario se ve, pero no se puede registrar.
+  protected readonly $canSubmit = computed(() => this.#access.can(PERMISSIONS.INVENTORY.CREATE_TRANSFER));
   protected readonly locationStore = inject(InventoryLocationStore);
 
   protected readonly formatMoney = formatMoney;
@@ -216,6 +220,7 @@ export class TransferNewComponent implements OnInit {
   }
 
   handleSubmit() {
+    if (!this.$canSubmit()) return;
     if (this.$isSaving()) return;
     this.$submitted.set(true);
     const { fromLocationId, toLocationId } = this.form.getRawValue();

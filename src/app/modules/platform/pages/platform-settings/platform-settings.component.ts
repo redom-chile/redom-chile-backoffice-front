@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map, startWith } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { formatRut, rutValidator } from 'src/app/shared/validators';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
@@ -49,6 +50,9 @@ const sameList = (a: readonly number[], b: readonly number[]) => a.length === b.
   host: { '(window:beforeunload)': 'handleBeforeUnload($event)' },
 })
 export class PlatformSettingsComponent {
+  readonly #access = inject(AccessService);
+  // Sin permiso los ajustes quedan de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PLATFORM_SETTINGS.UPDATE_SETTINGS));
   readonly #fb = inject(FormBuilder);
   readonly #platform = inject(PlatformService);
   readonly #toast = inject(ToastService);
@@ -198,6 +202,7 @@ export class PlatformSettingsComponent {
   }
 
   handleSubmit() {
+    if (!this.$canEdit()) return;
     if (this.$isSaving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();

@@ -2,6 +2,7 @@
 <app-header-dashboard title="Propinas" subtitle="Lo que se le debe al equipo y cómo se ha pagado.">
   @let np = $newPayoutParams();
   <a
+    *appCheckPermission="PERMISSIONS.TIPS.CREATE_PAYOUT"
     routerLink="/finance/tips/new"
     [queryParams]="{ from: np.from, to: np.to, locationId: np.locationId }"
     class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
@@ -58,6 +59,7 @@
     <p class="text-muted-foreground text-xs">{{ p.payments }} {{ p.payments === 1 ? 'pago' : 'pagos' }} · {{ periodLabel(p.dateFrom, p.dateTo) }}</p>
     @if (p.total > 0) {
     <a
+      *appCheckPermission="PERMISSIONS.TIPS.CREATE_PAYOUT"
       routerLink="/finance/tips/new"
       [queryParams]="{ from: q.from, to: q.to, locationId: q.locationId }"
       class="text-primary mt-3 inline-flex items-center gap-1 text-sm font-semibold hover:underline">

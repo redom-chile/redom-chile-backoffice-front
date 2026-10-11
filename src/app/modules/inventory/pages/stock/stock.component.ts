@@ -9,6 +9,8 @@ import { InventoryDisabledComponent, LocationSelectComponent } from '../../ui';
 import { LoadErrorComponent, readOption, readPage, resultError, resultValue, toRemoteResult } from '../../shared';
 import { ExpiryAlertComponent, LowStockAlertComponent, StockTableComponent } from './features';
 import { StockFilters, StockFiltersComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const PER_PAGE = 25;
 const KINDS: readonly StockKind[] = ['ingredient', 'product'];
@@ -42,11 +44,13 @@ function toQuery(params: ParamMap): StockQuery {
     ExpiryAlertComponent,
     StockFiltersComponent,
     StockTableComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stock.component.html',
 })
 export class StockComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #inventory = inject(InventoryService);

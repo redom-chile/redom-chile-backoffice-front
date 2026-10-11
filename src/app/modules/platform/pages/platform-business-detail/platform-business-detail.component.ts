@@ -3,7 +3,9 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { filter, map, Observable, switchMap } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { formatPlanUsage, PlanLimitCode } from 'src/app/core/services/entitlements';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, ConfirmModalComponent, ConfirmModalData, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
@@ -69,11 +71,17 @@ type EventRow = Readonly<{ event: BillingEventDto; title: string; actor: string;
 /** Detalle de un negocio: suscripción, uso, cobros, pagos, excepciones e historial (la lectura queda auditada). */
 @Component({
   selector: 'app-platform-business-detail',
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent],
+  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-business-detail.component.html',
 })
 export class PlatformBusinessDetailComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
+  // Barra de acciones de la suscripción: se oculta si no queda ningún botón.
+  readonly $canEditSubscription = computed(() =>
+    this.#access.can([PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION, PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_DISCOUNTS]),
+  );
   readonly #route = inject(ActivatedRoute);
   readonly #platform = inject(PlatformService);
   readonly #dialog = inject(MatDialog);

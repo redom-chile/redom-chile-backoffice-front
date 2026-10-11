@@ -1,6 +1,6 @@
 <app-header-dashboard title="Permisos" subtitle="Aquí, puedes gestionar los permisos de cada organización.">
   <app-button
-    *appCheckPermission="'permissions:get-all-permissions'"
+    *appCheckPermission="PERMISSIONS.PERMISSIONS.GET_ALL_PERMISSIONS"
     full
     impact="none"
     tone="primary"
@@ -11,7 +11,7 @@
     <app-icon class="h-6 w-7"> refresh </app-icon>
   </app-button>
   <app-button
-    *appCheckPermission="'permissions:create-permission'"
+    *appCheckPermission="PERMISSIONS.PERMISSIONS.CREATE_PERMISSION"
     full
     impact="bold"
     tone="primary"

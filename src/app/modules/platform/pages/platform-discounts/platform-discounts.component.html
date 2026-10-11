@@ -1,6 +1,7 @@
 @let q = $query();
 <app-header-dashboard title="Descuentos" subtitle="Cupones que escriben los dueños y descuentos que asigna el equipo de Redom.">
   <button
+    *appCheckPermission="PERMISSIONS.DISCOUNTS.CREATE_DISCOUNT"
     type="button"
     class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
     (click)="handleCreate()">
@@ -83,7 +84,7 @@
     @if ($hasFilters()) {
     <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
     } @else {
-    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
+    <button *appCheckPermission="PERMISSIONS.DISCOUNTS.CREATE_DISCOUNT" type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleCreate()">Crear el primero</button>
     }
   </div>
   } @else {
@@ -108,7 +109,7 @@
         @let range = validity(discount);
         <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0">
           <td class="px-4 py-3 text-sm">
-            <button type="button" class="text-foreground flex items-center gap-1 text-left font-medium hover:underline" (click)="handleEdit(discount)">
+            <button type="button" class="text-foreground flex items-center gap-1 text-left font-medium hover:underline disabled:no-underline" [disabled]="!$canUpdate()" (click)="handleEdit(discount)">
               <span class="max-w-[16rem] truncate" [title]="discount.name">{{ discount.name }}</span>
               @if (isLocked(discount)) {
               <app-icon class="text-muted-foreground h-4 w-4 shrink-0" title="Ya se usó: sus términos no cambian">lock</app-icon>
@@ -147,7 +148,7 @@
             </span>
           </td>
           <td class="whitespace-nowrap px-4 py-3 text-right">
-            <div class="flex justify-end gap-1">
+            <div *appCheckPermission="PERMISSIONS.DISCOUNTS.UPDATE_DISCOUNT" class="flex justify-end gap-1">
               <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground rounded-md p-1.5"
@@ -179,7 +180,7 @@
     @let range = validity(discount);
     <li class="px-4 py-3">
       <div class="flex items-start gap-3">
-        <button type="button" class="min-w-0 flex-1 text-left" (click)="handleEdit(discount)">
+        <button type="button" class="min-w-0 flex-1 text-left" [disabled]="!$canUpdate()" (click)="handleEdit(discount)">
           <p class="text-foreground flex items-center gap-1 text-sm font-semibold">
             <span class="truncate">{{ discount.name }}</span>
             @if (isLocked(discount)) {
@@ -209,7 +210,7 @@
         </span>
         <span class="text-muted-foreground">Usos {{ discount.redemptions }} / {{ discount.maxRedemptions ?? '∞' }}</span>
         <span class="text-muted-foreground">· {{ discount.subscriptions }} {{ discount.subscriptions === 1 ? 'suscripción' : 'suscripciones' }}</span>
-        <span class="ml-auto flex gap-1">
+        <span *appCheckPermission="PERMISSIONS.DISCOUNTS.UPDATE_DISCOUNT" class="ml-auto flex gap-1">
           <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" [attr.aria-label]="'Editar ' + discount.name" (click)="handleEdit(discount)">
             <app-icon class="h-5 w-5">edit</app-icon>
           </button>

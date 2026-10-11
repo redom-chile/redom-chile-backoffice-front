@@ -15,6 +15,7 @@ import { PaginationMeta } from 'src/app/core/standarized-response/standardized-p
 import { UpdateModuleModalComponent } from '../update-module-modal/update-module-modal.component';
 import { DeleteModuleModalComponent } from '../delete-module-modal/delete-module-modal.component';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-modules-table',
@@ -33,6 +34,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   styleUrl: './modules-table.component.css',
 })
 export class ModulesTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   readonly $getAllModulesDetail = input.required<GetAllModulesDto[]>({
     alias: 'getAllModulesDetail',

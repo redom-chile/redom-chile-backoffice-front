@@ -10,6 +10,8 @@ import {
   InvoiceStatus,
   PAYMENT_METHOD_LABELS,
 } from 'src/app/modules/billing/data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { readDate, readId, readOption, readPage, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatClp, formatPlatformDate, getPlatformErrorMessage, PlatformInvoiceDto, PlatformInvoiceFiltersDto, PlatformService } from '../../data-access';
@@ -54,11 +56,13 @@ function toQuery(params: ParamMap): InvoicesQuery {
     PaginationTableComponent,
     DiscountBusinessPickerComponent,
     InvoicePaymentsComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-invoices.component.html',
 })
 export class PlatformInvoicesComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #platform = inject(PlatformService);

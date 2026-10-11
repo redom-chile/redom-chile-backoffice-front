@@ -1,4 +1,5 @@
-import { Component, inject, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { GetAllRolesService } from '../../../roles/data-access';
 
 @Component({
@@ -7,16 +8,12 @@ import { GetAllRolesService } from '../../../roles/data-access';
   templateUrl: './role-selector.component.html',
 })
 export class RoleSelectorComponent {
-  protected readonly $rolesService = inject(GetAllRolesService);
+  // Todos los roles sin tocar la vista paginada de la tabla de roles (comparten servicio).
+  protected readonly $roles = toSignal(inject(GetAllRolesService).options());
 
-  readonly isLoading = this.$rolesService.$isLoading;
-
+  /** Rol elegido (ej. al llegar desde el botón "Permisos" de la tabla de roles). */
+  readonly value = input<number | null>(null);
   selectedRoleChange = output<number>();
-
-  // El servicio es compartido con la tabla de roles (paginada): aquí se listan todos sin filtros.
-  constructor() {
-    this.$rolesService.setParams({ page: 1, perPage: 50, searchCode: '', searchName: '' });
-  }
 
   onRoleChange(event: Event) {
     const value = Number((event.target as HTMLSelectElement).value);

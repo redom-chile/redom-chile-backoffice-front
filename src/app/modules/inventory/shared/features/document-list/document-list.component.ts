@@ -3,6 +3,7 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { AccessService, PERMISSIONS, PermissionCode } from 'src/app/core/permissions';
 import { HeaderDashboardComponent, IconComponent } from 'src/ui';
 import {
   ADJUSTMENT_REASONS,
@@ -26,6 +27,7 @@ type ListTexts = Readonly<{
   subtitle: string;
   newLabel: string;
   newLink: string;
+  newPermission: PermissionCode;
   errorTitle: string;
 }>;
 
@@ -35,6 +37,7 @@ const LIST_TEXTS: Record<InventoryDocumentType, ListTexts> = {
     subtitle: 'Facturas y boletas de proveedores. Cada compra suma stock y actualiza el costo promedio.',
     newLabel: 'Nueva compra',
     newLink: '/inventory/purchases/new',
+    newPermission: PERMISSIONS.INVENTORY.CREATE_PURCHASE,
     errorTitle: 'Error al cargar las compras',
   },
   adjustment: {
@@ -42,6 +45,7 @@ const LIST_TEXTS: Record<InventoryDocumentType, ListTexts> = {
     subtitle: 'Mermas, consumo interno, stock inicial y correcciones por conteo.',
     newLabel: 'Nuevo ajuste',
     newLink: '/inventory/adjustments/new',
+    newPermission: PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT,
     errorTitle: 'Error al cargar los ajustes',
   },
   count: {
@@ -49,6 +53,7 @@ const LIST_TEXTS: Record<InventoryDocumentType, ListTexts> = {
     subtitle: 'Conteos físicos del stock. Cada conteo corrige el sistema con lo que realmente hay.',
     newLabel: 'Nuevo conteo',
     newLink: '/inventory/counts/new',
+    newPermission: PERMISSIONS.INVENTORY.CREATE_COUNT,
     errorTitle: 'Error al cargar los conteos',
   },
   transfer: {
@@ -56,6 +61,7 @@ const LIST_TEXTS: Record<InventoryDocumentType, ListTexts> = {
     subtitle: 'Stock enviado entre locales. Sale del origen a su costo promedio y entra al destino a ese mismo costo.',
     newLabel: 'Nueva transferencia',
     newLink: '/inventory/transfers/new',
+    newPermission: PERMISSIONS.INVENTORY.CREATE_TRANSFER,
     errorTitle: 'Error al cargar las transferencias',
   },
   production: {
@@ -63,6 +69,7 @@ const LIST_TEXTS: Record<InventoryDocumentType, ListTexts> = {
     subtitle: 'Preparaciones que consumen ingredientes y suman stock del producto preparado.',
     newLabel: 'Nueva producción',
     newLink: '/inventory/productions/new',
+    newPermission: PERMISSIONS.INVENTORY.CREATE_PRODUCTION,
     errorTitle: 'Error al cargar las producciones',
   },
 };
@@ -97,7 +104,7 @@ function toQuery(params: ParamMap): DocumentListQuery {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-header-dashboard [title]="$texts().title" [subtitle]="$texts().subtitle">
-      @if (!$isDisabled() && !$needsMoreLocations()) {
+      @if (!$isDisabled() && !$needsMoreLocations() && $canCreate()) {
       <a
         [routerLink]="$texts().newLink"
         class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
@@ -154,6 +161,7 @@ export class DocumentListComponent {
   readonly #router = inject(Router);
   readonly #inventory = inject(InventoryService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
   protected readonly locationStore = inject(InventoryLocationStore);
 
   readonly type = input.required<InventoryDocumentType>();
@@ -164,6 +172,7 @@ export class DocumentListComponent {
   readonly $isDisabledBySettings = computed(() => this.#settings.$isLoaded() && !this.#settings.$inventoryEnabled());
 
   readonly $texts = computed(() => LIST_TEXTS[this.type()]);
+  readonly $canCreate = computed(() => this.#access.can(this.$texts().newPermission));
 
   // Transferir requiere al menos dos locales; mientras cargan no se muestra el aviso.
   readonly $needsMoreLocations = computed(

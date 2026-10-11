@@ -2,17 +2,20 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { ButtonComponent, IconComponent } from 'src/ui';
 import { ModifierSetDto } from '../../data-access';
 import { formatModifierPrice } from '../modifier-price';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 // Cuántos productos vinculados se nombran antes de resumir con "y N más".
 const VISIBLE_PRODUCTS = 4;
 
 @Component({
   selector: 'app-modifier-set-card',
-  imports: [ButtonComponent, IconComponent],
+  imports: [ButtonComponent, IconComponent, CheckPermissionDirective],
   templateUrl: './modifier-set-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ModifierSetCardComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly set = input.required<ModifierSetDto>();
   readonly edit = output<ModifierSetDto>();
   readonly products = output<ModifierSetDto>();

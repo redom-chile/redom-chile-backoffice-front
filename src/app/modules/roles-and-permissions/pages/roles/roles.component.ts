@@ -4,6 +4,7 @@ import { GetAllRolesService } from './data-access';
 import { CreateNewRoleModalComponent, RolesTableComponent } from './features';
 import { MatDialog } from '@angular/material/dialog';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-roles',
@@ -13,6 +14,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   styleUrl: './roles.component.css',
 })
 export class RolesComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $getAllRolesService = inject(GetAllRolesService);
 

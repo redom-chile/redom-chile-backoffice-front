@@ -43,7 +43,7 @@
 
       <div class="flex flex-wrap gap-2 md:shrink-0 md:justify-end">
         @if (!$isPaid() && $openItem(); as open) {
-        <app-button type="button" impact="bold" tone="primary" (buttonClick)="pay(open)">Pagar</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PAYABLES.CREATE_PAYMENT" type="button" impact="bold" tone="primary" (buttonClick)="pay(open)">Pagar</app-button>
         }
         <a
           [routerLink]="['/inventory/documents', $id()]"

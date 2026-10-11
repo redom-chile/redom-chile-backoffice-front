@@ -4,13 +4,15 @@ import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/en
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { RegenerateTableQrService, TableDto } from '../../data-access';
 import { createQrDataUrl, printTableQrs, TableQrCodeComponent } from '../../ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 export type TableQrModalResult = 'regenerated' | 'closed';
 
 @Component({
   selector: 'app-table-qr-modal',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, TableQrCodeComponent],
+  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, TableQrCodeComponent, CheckPermissionDirective],
   templateUrl: './table-qr-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -22,6 +24,8 @@ export class TableQrModalComponent implements OnDestroy {
   private readonly upsell = inject(PlanUpsellService);
 
   readonly table = inject<TableDto>(MAT_DIALOG_DATA);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly $qrUrl = signal(this.table.qrUrl);
   readonly $qrCode = signal(this.table.qrCode);
   readonly $confirmRegenerate = signal(false);

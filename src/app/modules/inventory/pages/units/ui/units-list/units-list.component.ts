@@ -2,13 +2,15 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { NgTemplateOutlet } from '@angular/common';
 import { IconComponent } from 'src/ui';
 import { formatQuantity, UnitDto } from '../../../../data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type UnitGroup = Readonly<{ base: UnitDto; subunits: UnitDto[] }>;
 
 /** Unidades agrupadas: cada unidad base con sus subunidades ("1 Kilogramo = 1000 g"). */
 @Component({
   selector: 'app-units-list',
-  imports: [NgTemplateOutlet, IconComponent],
+  imports: [NgTemplateOutlet, IconComponent, CheckPermissionDirective],
   template: `
     <div class="space-y-3">
       @for (group of $groups(); track group.base.id) {
@@ -48,6 +50,7 @@ type UnitGroup = Readonly<{ base: UnitDto; subunits: UnitDto[] }>;
     <ng-template #actions let-unit>
       <div class="flex shrink-0 gap-1">
         <button
+          *appCheckPermission="PERMISSIONS.UNITS.UPDATE_UNIT"
           type="button"
           title="Editar"
           [attr.aria-label]="'Editar ' + unit.actualName"
@@ -56,6 +59,7 @@ type UnitGroup = Readonly<{ base: UnitDto; subunits: UnitDto[] }>;
           <app-icon class="h-5 w-5">edit</app-icon>
         </button>
         <button
+          *appCheckPermission="PERMISSIONS.UNITS.DELETE_UNIT"
           type="button"
           title="Eliminar"
           [attr.aria-label]="'Eliminar ' + unit.actualName"
@@ -69,6 +73,7 @@ type UnitGroup = Readonly<{ base: UnitDto; subunits: UnitDto[] }>;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UnitsListComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly units = input.required<readonly UnitDto[]>();
   readonly edit = output<UnitDto>();
   readonly delete = output<UnitDto>();

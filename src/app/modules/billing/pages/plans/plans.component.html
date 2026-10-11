@@ -157,12 +157,16 @@
         </button>
         } @else if (card.action) {
         <button
+          *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT; else noCheckout"
           type="button"
           class="w-full rounded-full py-2.5 text-sm font-semibold"
           [class]="card.price?.isCurrent ? 'glass-row text-foreground hover:opacity-90' : 'bg-primary text-primary-foreground hover:opacity-90'"
           (click)="handleChoose(card)">
           {{ buttonLabels[card.action] }}
         </button>
+        <ng-template #noCheckout>
+          <p class="text-muted-foreground text-center text-xs">No tienes permiso para cambiar el plan.</p>
+        </ng-template>
         } @else {
         <button type="button" disabled class="glass-row text-muted-foreground w-full cursor-not-allowed rounded-full py-2.5 text-sm font-semibold opacity-70">
           No disponible {{ interval === 'month' ? 'mensual' : 'anual' }}

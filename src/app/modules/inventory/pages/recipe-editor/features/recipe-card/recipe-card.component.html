@@ -74,7 +74,7 @@
   </p>
   }
 
-  @if ($copySources().length && !modifier) {
+  @if ($canEdit() && $copySources().length && !modifier) {
   <div class="mt-3">
     <label class="sr-only" [for]="'copy-' + current.variationId">Copiar receta de otra variación</label>
     <select
@@ -173,6 +173,7 @@
           }
         </div>
         <button
+          *appCheckPermission="PERMISSIONS.RECIPES.UPDATE_RECIPE"
           type="button"
           class="text-muted-foreground hover:text-destructive inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md lg:hidden"
           [attr.aria-label]="'Quitar ' + item.label"
@@ -263,6 +264,7 @@
       <!-- Quitar (escritorio) -->
       <div class="hidden justify-end lg:flex">
         <button
+          *appCheckPermission="PERMISSIONS.RECIPES.UPDATE_RECIPE"
           type="button"
           class="text-muted-foreground hover:text-destructive inline-flex h-10 w-10 items-center justify-center rounded-md"
           [attr.aria-label]="'Quitar ' + item.label"
@@ -286,7 +288,7 @@
   </div>
 
   <!-- Agregar -->
-  <div class="mt-4">
+  <div *appCheckPermission="PERMISSIONS.RECIPES.UPDATE_RECIPE" class="mt-4">
     <app-recipe-ingredient-search
       [inputId]="'add-ingredient-' + current.variationId"
       [excludeProductId]="productId()"
@@ -299,6 +301,7 @@
   <footer class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--border)] pt-3">
     @if ($canProduce()) {
     <a
+      *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_PRODUCTION"
       routerLink="/inventory/productions/new"
       [queryParams]="{ productId: productId(), variationId: current.variationId, locationId: locationId() }"
       class="border-border/60 text-foreground hover:bg-muted/40 mr-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold">
@@ -306,6 +309,7 @@
       Producir
     </a>
     }
+    @if ($canEdit()) {
     <app-button type="button" impact="light" tone="primary" size="small" [disabled]="!dirty || $isSaving()" (buttonClick)="discard()">
       Descartar cambios
     </app-button>
@@ -320,5 +324,6 @@
       (buttonClick)="save()">
       Guardar
     </app-button>
+    }
   </footer>
 </section>

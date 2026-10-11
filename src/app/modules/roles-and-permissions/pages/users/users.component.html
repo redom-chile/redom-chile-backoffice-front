@@ -1,9 +1,9 @@
 <app-header-dashboard
-  *appCheckPermission="'users:see-module'"
+  *appCheckPermission="PERMISSIONS.USERS.SEE_MODULE"
   title="Usuarios"
   subtitle="Gestiona los usuarios del sistema.">
   <app-button
-    *appCheckPermission="'users:get-all-users'"
+    *appCheckPermission="PERMISSIONS.USERS.GET_ALL_USERS"
     full
     impact="none"
     tone="primary"
@@ -13,7 +13,7 @@
     <app-icon class="h-6 w-7"> refresh </app-icon>
   </app-button>
   <app-button
-    *appCheckPermission="'users:create-user'"
+    *appCheckPermission="PERMISSIONS.USERS.CREATE_USER"
     full
     impact="bold"
     tone="primary"
@@ -32,7 +32,7 @@
 @let isLoading = $service.$isLoading(); @let usersResp = $service.$users();
 
 <app-users-table
-  *appCheckPermission="'users:get-all-users'"
+  *appCheckPermission="PERMISSIONS.USERS.GET_ALL_USERS"
   [isLoading]="isLoading"
   [users]="usersResp?.data ?? []"
   [branchNames]="$branchNames()"

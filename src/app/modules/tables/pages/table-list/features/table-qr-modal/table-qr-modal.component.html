@@ -36,7 +36,7 @@
   }
 
   <!-- Regenerar: invalida el QR impreso anterior, por eso pide confirmación -->
-  <div class="mt-5 border-t border-[var(--border)] pt-4">
+  <div *appCheckPermission="PERMISSIONS.TABLES.REGENERATE_QR" class="mt-5 border-t border-[var(--border)] pt-4">
     @if ($confirmRegenerate()) {
     <div class="rounded-lg bg-amber-500/10 p-3">
       <p class="text-sm text-amber-700">El QR actual dejará de funcionar y tendrás que imprimir el nuevo. ¿Continuar?</p>

@@ -23,6 +23,7 @@
           [class.border-red-500]="!!$feePercentError()"
           [value]="$feePercent()"
           [attr.aria-invalid]="!!$feePercentError()"
+          [disabled]="!$canEdit()"
           (input)="onText('feePercent', $event)" />
         <span class="text-muted-foreground pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm"
           >%</span
@@ -51,6 +52,7 @@
           [class.border-red-500]="!!$feeFixedError()"
           [value]="$feeFixed()"
           [attr.aria-invalid]="!!$feeFixedError()"
+          [disabled]="!$canEdit()"
           (input)="onText('feeFixed', $event)" />
       </div>
       @if ($feeFixedError(); as error) {
@@ -59,7 +61,7 @@
     </div>
 
     <div class="flex items-center gap-3 sm:col-span-2">
-      <app-toggle [checked]="$feeVat()" (changed)="$feeVat.set($event)" />
+      <app-toggle [checked]="$feeVat()" [disabled]="!$canEdit()" (changed)="$feeVat.set($event)" />
       <span class="text-foreground text-sm"
         >+ IVA <span class="text-muted-foreground">({{ vatRate() }} % sobre la comisión)</span></span
       >
@@ -78,6 +80,7 @@
         [class.border-red-500]="!!$settlementDaysError()"
         [value]="$settlementDays()"
         [attr.aria-invalid]="!!$settlementDaysError()"
+        [disabled]="!$canEdit()"
         (input)="onText('settlementDays', $event)" />
       @if ($settlementDaysError(); as error) {
       <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
@@ -87,7 +90,7 @@
     </div>
 
     <div class="flex items-center gap-3 sm:pt-6">
-      <app-toggle [checked]="$businessDays()" (changed)="$businessDays.set($event)" />
+      <app-toggle [checked]="$businessDays()" [disabled]="!$canEdit()" (changed)="$businessDays.set($event)" />
       <span class="text-foreground text-sm">Solo días hábiles (lunes a viernes)</span>
     </div>
   </div>
@@ -102,6 +105,7 @@
     </span>
   </p>
 
+  @if ($canEdit()) {
   <div class="mt-4 flex flex-wrap justify-end gap-2">
     @if ($hasChanges()) {
     <app-button impact="light" size="small" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
@@ -116,4 +120,5 @@
       Guardar
     </app-button>
   </div>
+  }
 </section>

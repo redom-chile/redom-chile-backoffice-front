@@ -183,6 +183,13 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
-- Etapa de permisos: guards, constantes y botones (hoy `environment.enforcePermissions = false`).
+- Etapa de permisos (roles y permisos por negocio):
+  - Falta la prueba E2E desde la UI (los 7 casos del prompt del backend). `enforcePermissions` ya está encendido en local y develop; en prod sigue apagado hasta desplegar ese backend.
+  - El menú solo muestra pantallas sin permiso propio si están en `PUBLIC_ROUTES` (`/help`, `/profile`): los ítems de plantilla (Errors, Components, Collaboration, Folders) quedan solo para el SUPERADMIN.
+  - Las constantes de `src/app/core/permissions` son copia de los enums del backend: al agregar un permiso allá, copiarlo aquí.
+  - El mapa de pantalla a permiso (`permission-routes.ts`) tiene supuestos: Ingredientes → `products`, Terminal de salón → `orders`, `/finance/purchases` → `payables`.
+  - "Usuarios y roles" y el selector de "Copiar permisos de" cargan hasta 100 roles.
+  - Las pantallas Módulos y Permisos (plataforma) no se revisaron más allá de los códigos.
+  - Un 403 `PERMISSION_DENIED` muestra un aviso propio; las pantallas que además muestran su error genérico no se ajustaron una por una (el aviso de permiso queda encima).
 - Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
 - Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43–#45. Bloqueante: #39.

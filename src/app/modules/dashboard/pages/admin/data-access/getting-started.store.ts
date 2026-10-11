@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { AccessService } from 'src/app/core/permissions';
 
 const storageKey = (businessId: number) => `redom.gettingStarted.hidden.${businessId}`;
 
@@ -15,10 +16,13 @@ function readHidden(businessId: number): boolean {
 @Injectable({ providedIn: 'root' })
 export class GettingStartedStore {
   readonly #businessId = inject(BusinessSettingsService).$businessId;
+  readonly #isOwner = inject(AccessService).$isOwner;
   // Lo elegido en esta sesión manda sobre lo guardado (por si el navegador no deja guardar).
   readonly #overrides = signal<Record<number, boolean>>({});
 
   readonly $businessId = this.#businessId;
+  // Solo el dueño pone en marcha el negocio: el resto del equipo no ve el checklist.
+  readonly $available = computed(() => !!this.#businessId() && this.#isOwner());
   readonly $hidden = computed(() => {
     const businessId = this.#businessId();
     if (!businessId) return false;

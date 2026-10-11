@@ -3,6 +3,7 @@ import { debounceTime, filter, Subject } from 'rxjs';
 import { FilterTableDto } from 'src/ui/molecules/filters-table/dtos';
 import { ButtonComponent, FiltersTableComponent } from 'src/ui';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-filters-table-user',
@@ -11,6 +12,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './filters-table-user.component.html',
 })
 export class FiltersTableUserComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   @Output() searchNameChange = new EventEmitter<string>();
 
   filtersConfig = signal<FilterTableDto[]>([{ key: 'name', type: 'text', placeholder: 'Buscar por nombre' }]);

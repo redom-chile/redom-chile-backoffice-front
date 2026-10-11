@@ -5,6 +5,8 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { GetCustomersService } from './data-access';
 import { CreateCustomerModalComponent, CreateCustomerModalResult, CustomersTableComponent } from './features';
 
@@ -18,7 +20,7 @@ function toQuery(params: ParamMap) {
 @Component({
   selector: 'app-customer-list',
   standalone: true,
-  imports: [ReactiveFormsModule, HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, CustomersTableComponent],
+  imports: [ReactiveFormsModule, HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, CustomersTableComponent, CheckPermissionDirective],
   templateUrl: './customer-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -29,6 +31,8 @@ export class CustomerListComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly customersService = inject(GetCustomersService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly $query = toSignal(this.route.queryParamMap.pipe(map(toQuery)), {
     initialValue: toQuery(this.route.snapshot.queryParamMap),

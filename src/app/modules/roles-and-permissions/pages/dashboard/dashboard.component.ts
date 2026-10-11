@@ -3,8 +3,9 @@ import { RouterLink } from '@angular/router';
 import { CardMenuRoutesDto } from 'src/app/core/dtos';
 import { CardComponent, HeaderDashboardComponent } from 'src/ui';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PermissionCode, PERMISSIONS } from 'src/app/core/permissions';
 
-type DashboardCard = CardMenuRoutesDto & { permission?: string };
+type DashboardCard = CardMenuRoutesDto & { permission?: PermissionCode };
 
 @Component({
   selector: 'app-dashboard',
@@ -23,37 +24,37 @@ export class DashboardComponent {
         name: 'Módulos',
         description: 'Gestiona los módulos para los permisos.',
         route: `modules`,
-        permission: 'modules:see-module',
+        permission: PERMISSIONS.MODULES.SEE_MODULE,
       },
       {
         name: 'Permisos',
         description: 'Gestiona los permisos existentes en el sistema.',
         route: `permissions`,
-        permission: 'permissions:view',
+        permission: PERMISSIONS.PERMISSIONS.SEE_MODULE,
       },
       {
         name: 'Roles',
         description: 'Gestiona los roles que tendrá el sistema.',
         route: `roles`,
-        permission: 'roles:view',
+        permission: PERMISSIONS.ROLES.SEE_MODULE,
       },
       {
         name: 'Roles y permisos',
         description: 'Administra los roles y sus permisos respectivos.',
         route: `roles-permissions`,
-        permission: 'roles-permissions:view',
+        permission: PERMISSIONS.ROLES_PERMISSIONS.SEE_MODULE,
       },
       {
         name: 'Usuarios y roles',
         description: 'Gestiona los roles que tendrá cada usuario.',
         route: `roles-user`,
-        permission: 'users-roles:view',
+        permission: PERMISSIONS.USER_ROLES.SEE_MODULE,
       },
       {
         name: 'Usuarios',
         description: 'Gestiona los usuarios del sistema.',
         route: `users`,
-        permission: 'users:view',
+        permission: PERMISSIONS.USERS.SEE_MODULE,
       },
     ];
   }

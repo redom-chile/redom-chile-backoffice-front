@@ -3,17 +3,21 @@ import { IconComponent } from 'src/ui';
 import { StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { BookingDto, BookingStatus } from '../../data-access';
 import { BOOKING_STATUS, timeOf } from '../../ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 export type BookingStatusChange = Readonly<{ booking: BookingDto; status: BookingStatus }>;
 
 @Component({
   selector: 'app-booking-agenda',
   standalone: true,
-  imports: [IconComponent, StatusBadgeComponent],
+  imports: [IconComponent, StatusBadgeComponent, CheckPermissionDirective],
   templateUrl: './booking-agenda.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BookingAgendaComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+
   readonly bookings = input.required<BookingDto[]>();
   readonly busyIds = input<ReadonlySet<number>>(new Set());
 

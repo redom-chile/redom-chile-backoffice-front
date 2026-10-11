@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import {
   BusinessSettingsService,
   grossSellPrice,
@@ -30,6 +31,9 @@ const SELL_PRICE_TAX_OPTIONS: ReadonlyArray<{ value: SellPriceTax; label: string
 export class BusinessTaxSectionComponent {
   readonly #settings = inject(BusinessSettingsService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la sección queda de solo lectura.
+  protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
 
   readonly #savedRut = computed(() => this.#settings.$settings()?.taxNumber1?.trim() ?? '');
   readonly #savedVatRate = computed(() => Number(this.#settings.$settings()?.vatRate ?? DEFAULT_VAT_RATE));
