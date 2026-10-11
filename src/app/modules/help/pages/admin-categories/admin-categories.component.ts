@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, linke
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
@@ -22,6 +24,7 @@ import { confirmHelpAction } from '../../features/admin-confirm';
     ButtonComponent,
     IconComponent,
     SkeletonComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-categories.component.html',
@@ -41,6 +44,9 @@ import { confirmHelpAction } from '../../features/admin-confirm';
   `,
 })
 export class AdminCategoriesComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
+  readonly $canManage = computed(() => this.#access.can(PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES));
   readonly #help = inject(HelpAdminService);
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
@@ -72,6 +78,7 @@ export class AdminCategoriesComponent {
   }
 
   handleDrop(event: CdkDragDrop<HelpAdminCategoryDto[]>) {
+    if (!this.$canManage()) return;
     if (event.previousIndex === event.currentIndex) return;
     const previous = this.$items();
     const next = [...previous];

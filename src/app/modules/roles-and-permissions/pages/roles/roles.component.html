@@ -1,9 +1,9 @@
 <app-header-dashboard
-  *appCheckPermission="'roles:see-module'"
+  *appCheckPermission="PERMISSIONS.ROLES.SEE_MODULE"
   title="Roles"
   subtitle="Aquí, puedes gestionar los roles de cada organización.">
   <app-button
-    *appCheckPermission="'roles:get-all-roles'"
+    *appCheckPermission="PERMISSIONS.ROLES.GET_ALL_ROLES"
     full
     impact="none"
     tone="primary"
@@ -14,7 +14,7 @@
     <app-icon class="h-6 w-7"> refresh </app-icon>
   </app-button>
   <app-button
-    *appCheckPermission="'roles:create-role'"
+    *appCheckPermission="PERMISSIONS.ROLES.CREATE_ROLE"
     full
     impact="bold"
     tone="primary"
@@ -29,7 +29,7 @@
 @let isLoading = $getAllRolesService.$isLoading(); @let rolesDetail = $getAllRolesService.$roles(); @if(rolesDetail ||
 isLoading){
 <app-roles-table
-  *appCheckPermission="'roles:get-all-roles'"
+  *appCheckPermission="PERMISSIONS.ROLES.GET_ALL_ROLES"
   [isLoading]="isLoading"
   [getAllRolesDetail]="rolesDetail?.data ?? []"
   [pagination]="

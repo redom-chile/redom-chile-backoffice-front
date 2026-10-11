@@ -3,7 +3,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { Menu } from 'src/app/core/constants/menu';
 import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
-import { environment } from 'src/environments/environment';
+import { AccessService, isPublicUrl, permissionForUrl } from 'src/app/core/permissions';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
@@ -21,6 +21,7 @@ export class MenuService implements OnDestroy {
   private _whoamiService = inject(WhoamiService);
   #businessSettings = inject(BusinessSettingsService);
   #entitlements = inject(EntitlementsService);
+  #access = inject(AccessService);
   #injector = inject(Injector);
 
   // Los locales se piden recién cuando el inventario está activo (el servicio dispara la carga al crearse).
@@ -61,27 +62,26 @@ export class MenuService implements OnDestroy {
     }));
   });
 
+  // Oculta lo que el rol no puede ver: el `see-module` de cada pantalla (permission-routes.ts), o `permission` si el ítem lo fija.
+  // Un grupo con hijos se muestra si queda alguno visible. El plan no oculta: pone el candado (#featureMenu).
   #filteredPagesMenu: Signal<MenuItem[]> = computed(() => {
-    const permissions = this._whoamiService.$permissionsSet();
     const menus = this.#featureMenu();
-    // Con los permisos apagados (environment.enforcePermissions) se muestra el menú completo.
-    if (!environment.enforcePermissions) return menus;
+    if (this.#access.$unrestricted()) return menus;
+    this.#access.$permissions();
+    const allowed = (item: SubMenuItem) => {
+      const permission = item.permission ?? permissionForUrl(item.route);
+      return permission ? this.#access.can(permission) : isPublicUrl(item.route);
+    };
+    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
 
     return menus
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => {
-          if (!item.permission) return true;
-
-          if (item.children) {
-            const filteredChildren = item.children.filter((child) => {
-              if (!child.permission) return true;
-              return permissions.has(child.permission);
-            });
-            return filteredChildren.length > 0;
-          }
-
-          return permissions.has(item.permission);
+        items: group.items.flatMap((item) => {
+          if (!item.children?.length) return allowed(item) ? [item] : [];
+          const children = item.children.filter(allowed);
+          if (!children.length) return [];
+          return children.length === item.children.length ? [item] : [derive(item, { children })];
         }),
       }))
       .filter((group) => group.items.length > 0);

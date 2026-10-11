@@ -1,5 +1,5 @@
 <app-header-dashboard
-  *appCheckPermission="'roles-permissions:see-module'"
+  *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.SEE_MODULE"
   title="Roles y permisos"
   subtitle="Administra los permisos asignados a cada rol.">
   <app-button full impact="none" tone="primary" shape="rounded" size="medium" (buttonClick)="retry()">
@@ -7,12 +7,13 @@
   </app-button>
 </app-header-dashboard>
 
-<div class="flex items-end gap-3 px-2 pb-3" *appCheckPermission="'roles-permissions:see-module'">
+<div class="flex items-end gap-3 px-2 pb-3" *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.SEE_MODULE">
   <div class="flex-1">
     <label class="text-muted-foreground mb-1 block text-xs font-medium">Seleccionar rol</label>
-    <app-role-selector (selectedRoleChange)="onRoleSelected($event)" />
+    <app-role-selector [value]="selectedRoleId()" (selectedRoleChange)="onRoleSelected($event)" />
   </div>
   <app-button
+    *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.ASSIGN_PERMISSION"
     impact="bold"
     tone="primary"
     shape="rounded"
@@ -28,14 +29,15 @@
 @let isLoading = $permissionsLoading(); @let modules = $modules(); @let pendingIds = pendingPermissionIds(); @let roleId
 = selectedRoleId(); @let total = $total();
 
-<div class="mb-2 px-2" *appCheckPermission="'roles-permissions:see-module'">
+<div class="mb-2 px-2" *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.SEE_MODULE">
   <span class="text-muted-foreground text-xs">Total: {{ total }} permiso{{ total !== 1 ? 's' : '' }}</span>
 </div>
 
 <app-roles-permissions-card
-  *appCheckPermission="'roles-permissions:see-module'"
+  *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.SEE_MODULE"
   [modules]="modules"
   [rolePermissionIds]="pendingIds"
   [isLoading]="isLoading"
   [selectedRoleId]="roleId"
+  [canAssign]="$canAssign()"
   (togglePermission)="onTogglePermission($event)" />

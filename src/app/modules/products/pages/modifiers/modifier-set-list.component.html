@@ -1,7 +1,15 @@
 <div class="space-y-4">
   <app-header-dashboard title="Modificadores" subtitle="Agregados, puntos de cocción o extras que se eligen al pedir un producto">
     @if ($sets()?.length) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.MODIFIERS.CREATE_MODIFIER"
+      full
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="add"
+      (buttonClick)="handleCreate()">
       <span #buttonText>Crear set</span>
     </app-button>
     }
@@ -36,7 +44,13 @@
     icon="tune"
     title="Aún no tienes modificadores"
     description="Crea un set con las opciones que se pueden elegir al pedir un producto. Ej: Agregados → Extra queso $800, Sin hielo $0.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.MODIFIERS.CREATE_MODIFIER"
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      icon="add"
+      (buttonClick)="handleCreate()">
       <span #buttonText>Crear set</span>
     </app-button>
   </app-empty-state>

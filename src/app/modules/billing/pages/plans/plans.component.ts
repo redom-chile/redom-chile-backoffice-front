@@ -3,6 +3,7 @@ import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-int
 import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import {
   EntitlementsService,
   formatPlanUsage,
@@ -11,6 +12,7 @@ import {
   PlanLimitCode,
   PublicPlansService,
 } from 'src/app/core/services/entitlements';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { EmptyStateComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { BillingService, CheckoutResultDto, formatClp, INTERVAL_LABELS, PlanInterval } from '../../data-access';
@@ -88,11 +90,13 @@ function formatMoney(amount: number, currency: string): string {
 /** Comparación de planes. El dueño elige un plan (checkout con transferencia); el resto del equipo solo los ve. */
 @Component({
   selector: 'app-plans',
-  imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, EmptyStateComponent],
+  imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, EmptyStateComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './plans.component.html',
 })
 export class PlansComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
   readonly #plans = inject(PublicPlansService);
   readonly #billing = inject(BillingService);
   readonly #entitlements = inject(EntitlementsService);
@@ -208,7 +212,7 @@ export class PlansComponent {
   }
 
   handleChoose(card: PlanCard) {
-    if (!card.price || !this.$isOwner()) return;
+    if (!card.price || !this.$isOwner() || !this.#access.can(PERMISSIONS.SUBSCRIPTION.CHECKOUT)) return;
     openCheckoutModal(this.#dialog, {
       plan: { id: card.plan.id, name: card.plan.name },
       price: card.price,

@@ -5,6 +5,7 @@ import { ModulesTableComponent } from './features/modules-table/modules-table.co
 import { CreateNewModelModalComponent } from './features/create-new-model-modal/create-new-model-modal.component';
 import { MatDialog } from '@angular/material/dialog';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-modules',
@@ -14,6 +15,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   styleUrl: './modules.component.css',
 })
 export class ModulesComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $getAllModulesService = inject(GetAllModulesService);
 

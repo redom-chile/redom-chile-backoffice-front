@@ -19,6 +19,7 @@ import { SetServicePinModalComponent } from '../set-service-pin-modal';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { PlanLockedBadgeComponent } from 'src/app/shared/components/plan-limit';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-users-table',
@@ -38,6 +39,7 @@ import { PlanLockedBadgeComponent } from 'src/app/shared/components/plan-limit';
   templateUrl: './users-table.component.html',
 })
 export class UsersTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   readonly #entitlements = inject(EntitlementsService);
   readonly $users = input.required<UserDto[]>({ alias: 'users' });

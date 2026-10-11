@@ -40,10 +40,24 @@
   </div>
 
   <footer class="mt-auto flex flex-wrap gap-2 border-t border-[var(--border)] pt-3">
-    <app-button type="button" size="small" impact="light" tone="primary" icon="edit" (buttonClick)="edit.emit(modifierSet)">
+    <app-button
+      *appCheckPermission="PERMISSIONS.MODIFIERS.UPDATE_MODIFIER"
+      type="button"
+      size="small"
+      impact="light"
+      tone="primary"
+      icon="edit"
+      (buttonClick)="edit.emit(modifierSet)">
       <span #buttonText>Editar</span>
     </app-button>
-    <app-button type="button" size="small" impact="light" tone="primary" icon="link" (buttonClick)="products.emit(modifierSet)">
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRODUCTS.UPDATE_PRODUCT"
+      type="button"
+      size="small"
+      impact="light"
+      tone="primary"
+      icon="link"
+      (buttonClick)="products.emit(modifierSet)">
       <span #buttonText>Productos</span>
     </app-button>
     @if (showRecipes()) {
@@ -51,7 +65,14 @@
       <span #buttonText>Recetas</span>
     </app-button>
     }
-    <app-button type="button" size="small" impact="none" tone="danger" icon="delete" (buttonClick)="delete.emit(modifierSet)">
+    <app-button
+      *appCheckPermission="PERMISSIONS.MODIFIERS.DELETE_MODIFIER"
+      type="button"
+      size="small"
+      impact="none"
+      tone="danger"
+      icon="delete"
+      (buttonClick)="delete.emit(modifierSet)">
       <span #buttonText>Eliminar</span>
     </app-button>
   </footer>

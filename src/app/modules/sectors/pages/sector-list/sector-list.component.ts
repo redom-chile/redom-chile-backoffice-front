@@ -4,6 +4,8 @@ import { HeaderDashboardComponent, ButtonComponent, IconComponent, ToastService 
 import { SectorsTableComponent, CreateSectorModalComponent } from './features';
 import { GetAllSectorsService, CreateSectorService, UpdateSectorService, DeleteSectorService } from './data-access';
 import { FiltersSectorTableComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-sector-list',
@@ -13,11 +15,15 @@ import { FiltersSectorTableComponent } from './ui';
     IconComponent,
     SectorsTableComponent,
     FiltersSectorTableComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './sector-list.component.html',
 })
 export class SectorListComponent implements OnDestroy {
   private readonly dialog = inject(MatDialog);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
+
   protected readonly $getAll = inject(GetAllSectorsService);
   protected readonly $createService = inject(CreateSectorService);
   protected readonly $updateService = inject(UpdateSectorService);

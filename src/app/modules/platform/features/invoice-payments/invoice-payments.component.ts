@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 import { BillingPaymentDto, PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from 'src/app/modules/billing/data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ButtonComponent, IconComponent } from 'src/ui';
 import { formatClp, formatPlatformDate, PlatformInvoiceDto } from '../../data-access';
 import { PaymentActionsService } from '../payment-actions';
@@ -10,7 +12,7 @@ import { invoiceLabel, isReversible, PaymentTarget, signedAmount } from '../paym
 /** Pagos de un cobro con sus acciones (registrar, confirmar, rechazar y reversar). Emite `changed` tras cada acción. */
 @Component({
   selector: 'app-invoice-payments',
-  imports: [ButtonComponent, IconComponent],
+  imports: [ButtonComponent, IconComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let inv = invoice();
@@ -19,7 +21,16 @@ import { invoiceLabel, isReversible, PaymentTarget, signedAmount } from '../paym
         Pagos <span class="text-muted-foreground font-normal">({{ inv.payments.length }})</span>
       </p>
       @if ($isPayable()) {
-        <app-button type="button" size="small" impact="light" icon="add" [disabled]="$busy()" (buttonClick)="register()">Registrar pago</app-button>
+        <app-button
+          *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REGISTER_PAYMENT"
+          type="button"
+          size="small"
+          impact="light"
+          icon="add"
+          [disabled]="$busy()"
+          (buttonClick)="register()">
+          Registrar pago
+        </app-button>
       }
     </div>
 
@@ -62,10 +73,19 @@ import { invoiceLabel, isReversible, PaymentTarget, signedAmount } from '../paym
               </span>
               <div class="flex flex-wrap gap-2">
                 @if (payment.status === 'pending') {
+                  <ng-container *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REVIEW_PAYMENT">
                   <app-button type="button" size="small" impact="light" tone="danger" [disabled]="$busy()" (buttonClick)="reject(payment)">Rechazar</app-button>
                   <app-button type="button" size="small" impact="bold" tone="success" [disabled]="$busy()" (buttonClick)="confirm(payment)">Confirmar</app-button>
+                  </ng-container>
                 } @else if (reversible(payment)) {
-                  <app-button type="button" size="small" impact="light" tone="danger" [disabled]="$busy()" (buttonClick)="reverse(payment)">Reversar</app-button>
+                  <app-button
+                    *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REVERSE_PAYMENT"
+                    type="button"
+                    size="small"
+                    impact="light"
+                    tone="danger"
+                    [disabled]="$busy()"
+                    (buttonClick)="reverse(payment)">Reversar</app-button>
                 }
               </div>
             </div>
@@ -76,6 +96,7 @@ import { invoiceLabel, isReversible, PaymentTarget, signedAmount } from '../paym
   `,
 })
 export class InvoicePaymentsComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #actions = inject(PaymentActionsService);
   readonly #destroyRef = inject(DestroyRef);
 

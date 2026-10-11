@@ -15,6 +15,8 @@ import {
 } from 'src/app/modules/inventory/shared/data-access';
 import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import {
   EXPENSE_STATUS_CLASSES,
   EXPENSE_STATUS_LABELS,
@@ -54,7 +56,7 @@ function toQuery(params: ParamMap): ExpenseListQuery {
 /** Gastos (salidas que no son inventario) con filtros en la URL. */
 @Component({
   selector: 'app-expense-list',
-  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './expense-list.component.html',
 })
@@ -65,6 +67,8 @@ export class ExpenseListComponent {
   readonly #suppliersService = inject(SuppliersService);
   readonly #destroyRef = inject(DestroyRef);
   protected readonly locationStore = inject(InventoryLocationStore);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly statuses = STATUSES;
   readonly statusLabels = EXPENSE_STATUS_LABELS;

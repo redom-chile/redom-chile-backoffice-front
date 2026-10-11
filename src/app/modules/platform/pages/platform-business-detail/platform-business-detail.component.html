@@ -66,7 +66,7 @@
     <section class="glass rounded-[1rem] p-5 lg:col-span-3">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-foreground text-lg font-semibold">Suscripción</h2>
-        <app-button type="button" size="small" impact="bold" icon="swap_horiz" (buttonClick)="changePlan(d)">{{ s ? 'Cambiar plan' : 'Crear suscripción' }}</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" size="small" impact="bold" icon="swap_horiz" (buttonClick)="changePlan(d)">{{ s ? 'Cambiar plan' : 'Crear suscripción' }}</app-button>
       </div>
 
       @if (!s) {
@@ -133,11 +133,11 @@
               · quedan {{ s.discountPeriodsLeft }} {{ s.discountPeriodsLeft === 1 ? 'cobro' : 'cobros' }}
               }
             </span>
-            <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="assignDiscount(d)">Cambiar</button>
-            <button type="button" class="text-destructive text-xs font-medium hover:underline" (click)="removeDiscount(d)">Quitar</button>
+            <button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_DISCOUNTS" type="button" class="text-primary text-xs font-medium hover:underline" (click)="assignDiscount(d)">Cambiar</button>
+            <button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_DISCOUNTS" type="button" class="text-destructive text-xs font-medium hover:underline" (click)="removeDiscount(d)">Quitar</button>
             } @else {
             <span class="text-muted-foreground">Sin descuento</span>
-            <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="assignDiscount(d)">Asignar descuento</button>
+            <button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_DISCOUNTS" type="button" class="text-primary text-xs font-medium hover:underline" (click)="assignDiscount(d)">Asignar descuento</button>
             }
           </dd>
         </div>
@@ -157,19 +157,21 @@
         <div class="sm:col-span-2">
           <dt class="text-muted-foreground flex items-center gap-2 text-xs">
             Nota interna
-            <button type="button" class="text-primary font-medium hover:underline" (click)="editNotes(d)">{{ s.notes ? 'Editar' : 'Agregar' }}</button>
+            <button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" class="text-primary font-medium hover:underline" (click)="editNotes(d)">{{ s.notes ? 'Editar' : 'Agregar' }}</button>
           </dt>
           <dd class="text-foreground whitespace-pre-line break-words">{{ s.notes || '—' }}</dd>
         </div>
       </dl>
 
+      @if ($canEditSubscription()) {
       <div class="mt-4 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
-        <app-button type="button" size="small" impact="light" icon="event" (buttonClick)="extendTrial(d)">Extender prueba</app-button>
-        <app-button type="button" size="small" impact="light" icon="date_range" (buttonClick)="extendPeriod(d)">Extender período</app-button>
-        <app-button type="button" size="small" impact="light" icon="toggle_on" (buttonClick)="changeStatus(d)">Cambiar estado</app-button>
-        <app-button type="button" size="small" impact="light" icon="sell" (buttonClick)="assignDiscount(d)">{{ s.discount ? 'Cambiar descuento' : 'Asignar descuento' }}</app-button>
-        <app-button type="button" size="small" impact="light" icon="edit_note" (buttonClick)="editNotes(d)">Nota interna</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" size="small" impact="light" icon="event" (buttonClick)="extendTrial(d)">Extender prueba</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" size="small" impact="light" icon="date_range" (buttonClick)="extendPeriod(d)">Extender período</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" size="small" impact="light" icon="toggle_on" (buttonClick)="changeStatus(d)">Cambiar estado</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_DISCOUNTS" type="button" size="small" impact="light" icon="sell" (buttonClick)="assignDiscount(d)">{{ s.discount ? 'Cambiar descuento' : 'Asignar descuento' }}</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.UPDATE_SUBSCRIPTION" type="button" size="small" impact="light" icon="edit_note" (buttonClick)="editNotes(d)">Nota interna</app-button>
       </div>
+      }
       }
     </section>
 
@@ -227,7 +229,7 @@
         <h2 class="text-foreground text-lg font-semibold">Excepciones</h2>
         <p class="text-muted-foreground text-xs">Funciones fuera del plan o límites distintos solo para este negocio.</p>
       </div>
-      <app-button type="button" size="small" impact="bold" icon="add" (buttonClick)="addOverride(d)">Agregar excepción</app-button>
+      <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_OVERRIDES" type="button" size="small" impact="bold" icon="add" (buttonClick)="addOverride(d)">Agregar excepción</app-button>
     </div>
     @if (!d.overrides.length) {
     <p class="text-muted-foreground border-t border-[var(--border)] px-5 py-6 text-center text-sm">Sin excepciones.</p>
@@ -250,7 +252,7 @@
           </p>
         </div>
         @if (override.isActive) {
-        <app-button type="button" size="small" impact="light" tone="danger" (buttonClick)="endOverride(override)">Terminar</app-button>
+        <app-button *appCheckPermission="PERMISSIONS.PLATFORM_BUSINESSES.MANAGE_OVERRIDES" type="button" size="small" impact="light" tone="danger" (buttonClick)="endOverride(override)">Terminar</app-button>
         }
       </li>
       }
@@ -301,7 +303,7 @@
               </td>
               <td class="whitespace-nowrap px-4 py-2 text-right">
                 @if (isPayable(invoice)) {
-                <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="registerPayment(d, invoice)">Registrar pago</button>
+                <button *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REGISTER_PAYMENT" type="button" class="text-primary text-xs font-medium hover:underline" (click)="registerPayment(d, invoice)">Registrar pago</button>
                 }
               </td>
             </tr>
@@ -345,12 +347,12 @@
               </td>
               <td class="whitespace-nowrap px-4 py-2 text-right">
                 @if (payment.status === 'pending') {
-                <div class="flex justify-end gap-3">
+                <div *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REVIEW_PAYMENT" class="flex justify-end gap-3">
                   <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" (click)="rejectPayment(d, payment)">Rechazar</button>
                   <button type="button" class="text-xs font-medium text-green-700 hover:underline dark:text-green-400" (click)="confirmPayment(d, payment)">Confirmar</button>
                 </div>
                 } @else if (isReversible(payment, d)) {
-                <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" (click)="reversePayment(d, payment)">Reversar</button>
+                <button *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REVERSE_PAYMENT" type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" (click)="reversePayment(d, payment)">Reversar</button>
                 }
               </td>
             </tr>

@@ -4,9 +4,11 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { filter, Observable } from 'rxjs';
+import { PERMISSIONS } from 'src/app/core/permissions';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import {
   ButtonComponent,
@@ -62,11 +64,13 @@ const HISTORY_PER_PAGE = 10;
     BankTransferInfoComponent,
     BillingDatePipe,
     InvoicePaymentsComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './subscription.component.html',
 })
 export class SubscriptionComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #billing = inject(BillingService);
   readonly #entitlements = inject(EntitlementsService);
   readonly #whoami = inject(WhoamiService);

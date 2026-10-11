@@ -104,7 +104,9 @@
       </div>
     </div>
 
-    <div class="mt-4 flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-3">
+    <div
+      *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.REVIEW_PAYMENT"
+      class="mt-4 flex flex-wrap justify-end gap-2 border-t border-[var(--border)] pt-3">
       <app-button type="button" impact="light" tone="danger" [disabled]="busy" (buttonClick)="reject(item)">Rechazar</app-button>
       <app-button type="button" impact="bold" tone="success" [disabled]="busy" [isLoading]="busy" (buttonClick)="confirm(item)">Confirmar</app-button>
     </div>

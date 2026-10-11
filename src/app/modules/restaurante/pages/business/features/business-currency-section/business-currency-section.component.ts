@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService, UpdateBusinessSettingsDto } from 'src/app/core/services/business-settings';
 import { TIME_ZONES } from 'src/app/modules/onboarding/pages/create-business/time-zones';
 import { ButtonComponent, CardComponent, IconComponent, ToastService } from 'src/ui';
@@ -17,6 +18,9 @@ export class BusinessCurrencySectionComponent {
   readonly #settings = inject(BusinessSettingsService);
   readonly #currencies = inject(FindAllCurrenciesService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
+  // Sin permiso de edición la sección queda de solo lectura.
+  protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
 
   protected readonly $currencies = computed(() =>
     [...(this.#currencies.$currencies() ?? [])].sort((a, b) => a.currency.localeCompare(b.currency, 'es')),

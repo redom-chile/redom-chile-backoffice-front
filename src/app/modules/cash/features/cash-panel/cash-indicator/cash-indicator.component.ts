@@ -4,6 +4,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { filter, fromEvent, merge } from 'rxjs';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { IconComponent } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { openCashSessionModal } from '../../open-session-modal/open-session-modal.component';
 import { CashContextStore } from '../cash-context.store';
 import { cashSessionLabel } from '../cash-format';
@@ -14,7 +16,7 @@ import { openRegisterPicker } from '../register-picker-modal/register-picker-mod
 @Component({
   selector: 'app-cash-indicator',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, CheckPermissionDirective],
   templateUrl: './cash-indicator.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -22,6 +24,8 @@ export class CashIndicatorComponent {
   private readonly dialog = inject(MatDialog);
   readonly context = inject(CashContextStore);
   readonly #entitlements = inject(EntitlementsService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly $visible = computed(() => this.context.$enabled() && !!this.context.$locationId());
   readonly $label = computed(() => {

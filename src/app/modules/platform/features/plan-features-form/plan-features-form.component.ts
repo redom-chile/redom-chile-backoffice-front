@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { PLAN_FEATURE_LABELS, PlanFeatureCode } from 'src/app/core/services/entitlements';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
@@ -32,10 +33,12 @@ import { confirmPlanAction, planImpactMessage } from '../plan-shared';
       } @else {
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
         <p class="text-muted-foreground text-sm">{{ $selected().size }} de {{ $features().length }} funciones incluidas</p>
+        @if ($canEdit()) {
         <div class="flex gap-3 text-sm font-medium">
           <button type="button" class="text-primary hover:underline" (click)="setAll(true)">Marcar todas</button>
           <button type="button" class="text-primary hover:underline" (click)="setAll(false)">Quitar todas</button>
         </div>
+        }
       </div>
       <ul class="divide-y divide-[var(--border)]">
         @for (feature of $features(); track feature.code) {
@@ -45,6 +48,7 @@ import { confirmPlanAction, planImpactMessage } from '../plan-shared';
               type="checkbox"
               class="mt-1 h-4 w-4 shrink-0 accent-[var(--primary)]"
               [checked]="$selected().has(feature.code)"
+              [disabled]="!$canEdit()"
               (change)="toggle(feature.code)" />
             <span class="min-w-0 flex-1">
               <span class="text-foreground block text-sm font-medium">
@@ -71,12 +75,14 @@ import { confirmPlanAction, planImpactMessage } from '../plan-shared';
           <app-icon class="h-4 w-4">bolt</app-icon>
           Los cambios aplican al instante a los negocios del plan.
         </p>
+        @if ($canEdit()) {
         <div class="flex justify-end gap-3">
           <app-button type="button" impact="light" [disabled]="$isSaving() || !$isDirty()" (buttonClick)="reset()">Descartar</app-button>
           <app-button type="button" impact="bold" [disabled]="$isSaving() || !$isDirty()" [isLoading]="$isSaving()" (buttonClick)="handleSave()">
             Guardar
           </app-button>
         </div>
+        }
       </div>
       }
     </div>
@@ -92,6 +98,9 @@ export class PlanFeaturesFormComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #access = inject(AccessService);
+  // Sin permiso la pestaña queda de solo lectura.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PLANS.UPDATE_PLAN));
 
   readonly catalog = rxResource({ stream: () => this.#platform.getFeatures().pipe(toRemoteResult()) });
   readonly $error = computed(() => resultError(this.catalog.value()));
@@ -139,6 +148,7 @@ export class PlanFeaturesFormComponent {
   }
 
   handleSave() {
+    if (!this.$canEdit()) return;
     if (this.$isSaving() || !this.$isDirty()) return;
     const plan = this.$plan();
     // Orden del catálogo para que el historial quede legible.

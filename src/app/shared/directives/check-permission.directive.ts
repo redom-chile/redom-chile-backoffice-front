@@ -1,37 +1,38 @@
-import { DestroyRef, Directive, inject, Input, OnInit, TemplateRef, ViewContainerRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter, tap } from 'rxjs';
-import { AuthService } from 'src/app/modules/auth/pages/data-access';
-import { environment } from 'src/environments/environment';
+import { Directive, effect, inject, input, TemplateRef, ViewContainerRef } from '@angular/core';
+import { AccessService, PermissionCode } from 'src/app/core/permissions';
 
+/**
+ * Muestra el elemento solo si el usuario tiene el permiso (SUPERADMIN, todos). Con una lista basta uno;
+ * con `all`, todos. `else` muestra otra plantilla en su lugar.
+ * Uso: `*appCheckPermission="PERMISSIONS.ORDERS.CANCEL_ORDER; else: sinPermiso"`.
+ * Se vuelve a evaluar al cambiar los permisos (whoami se refresca cada minuto).
+ */
 @Directive({
   selector: '[appCheckPermission]',
 })
-export class CheckPermissionDirective implements OnInit {
+export class CheckPermissionDirective {
   readonly #templateRef = inject(TemplateRef);
   readonly #viewContainer = inject(ViewContainerRef);
-  readonly #authService = inject(AuthService);
-  readonly #destroyRef = inject(DestroyRef);
+  readonly #access = inject(AccessService);
 
-  @Input({ alias: 'appCheckPermission' }) permission: string | string[] | undefined;
+  /** Sin permiso (undefined o lista vacía) se muestra siempre. */
+  readonly permission = input<PermissionCode | readonly PermissionCode[] | null | undefined>(undefined, {
+    alias: 'appCheckPermission',
+  });
+  readonly all = input(false, { alias: 'appCheckPermissionAll' });
+  readonly elseTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'appCheckPermissionElse' });
 
-  ngOnInit(): void {
-    // Con los permisos apagados (environment.enforcePermissions) se muestra siempre.
-    if (!environment.enforcePermissions || !this.permission || (Array.isArray(this.permission) && this.permission.length === 0)) {
-      this.#viewContainer.createEmbeddedView(this.#templateRef);
-      return;
-    }
+  #shown: TemplateRef<unknown> | null = null;
 
-    const permissions = Array.isArray(this.permission) ? this.permission : [this.permission];
-
-    this.#authService
-      .hasPermission(permissions)
-      .pipe(
-        takeUntilDestroyed(this.#destroyRef),
-        tap(() => this.#viewContainer.clear()),
-        filter((hasAccess) => hasAccess),
-        tap(() => this.#viewContainer.createEmbeddedView(this.#templateRef)),
-      )
-      .subscribe();
+  constructor() {
+    effect(() => {
+      const permission = this.permission();
+      const allowed = !permission || this.#access.can(permission, this.all() ? 'all' : 'any');
+      const template = allowed ? this.#templateRef : this.elseTemplate();
+      if (template === this.#shown) return;
+      this.#viewContainer.clear();
+      if (template) this.#viewContainer.createEmbeddedView(template);
+      this.#shown = template;
+    });
   }
 }

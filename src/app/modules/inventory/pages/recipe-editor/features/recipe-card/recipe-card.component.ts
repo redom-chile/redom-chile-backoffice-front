@@ -43,6 +43,8 @@ import {
   yieldInProductUnits,
 } from '../../data-access';
 import { RecipeIngredientSearchComponent } from '../ingredient-search';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /**
  * Receta de una variación del plato (o de una opción del set): tabla editable de ingredientes,
@@ -50,14 +52,16 @@ import { RecipeIngredientSearchComponent } from '../ingredient-search';
  */
 @Component({
   selector: 'app-recipe-card',
-  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, IconComponent, RecipeIngredientSearchComponent],
+  imports: [ReactiveFormsModule, RouterLink, ButtonComponent, IconComponent, RecipeIngredientSearchComponent, CheckPermissionDirective],
   templateUrl: './recipe-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeCardComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #recipes = inject(RecipesService);
   readonly #unitsService = inject(UnitsService);
   readonly #toast = inject(ToastService);
+  readonly #access = inject(AccessService);
 
   readonly productId = input.required<number>();
   readonly productName = input.required<string>();
@@ -92,6 +96,8 @@ export class RecipeCardComponent {
   readonly #baseline = signal('[]');
   #savedKey: string | null = null;
   protected readonly $isSaving = signal(false);
+  // Sin permiso para guardar la receta queda de solo lectura.
+  protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.RECIPES.UPDATE_RECIPE));
   protected readonly $showErrors = signal(false);
 
   protected readonly $units = computed(() => this.#unitsService.$units() ?? []);
@@ -331,6 +337,11 @@ export class RecipeCardComponent {
     this.yieldQuantity.setValue(variation.recipeYield ? Number(variation.recipeYield) : null, { emitEvent: false });
     this.yieldUnitId.setValue(this.productUnitId(), { emitEvent: false });
     this.yieldQuantity.markAsUntouched();
+    if (!this.$canEdit()) {
+      this.rows.disable({ emitEvent: false });
+      this.yieldQuantity.disable({ emitEvent: false });
+      this.yieldUnitId.disable({ emitEvent: false });
+    }
     this.$showErrors.set(false);
     this.#baseline.set(this.#signature());
     this.#version.update((v) => v + 1);

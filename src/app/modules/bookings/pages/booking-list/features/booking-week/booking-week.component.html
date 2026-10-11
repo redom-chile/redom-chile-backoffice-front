@@ -17,6 +17,8 @@
           type="button"
           class="block w-full rounded-md px-2 py-1 text-left text-xs"
           [class]="chipClass(booking)"
+          [disabled]="!$canEdit()"
+          [attr.title]="$canEdit() ? null : 'No tienes permiso para esta acción'"
           (click)="edit.emit(booking)">
           <span class="font-semibold tabular-nums">{{ timeOf(booking.start) }}</span> {{ booking.customerName }}
           <span class="block opacity-80">{{ booking.partySize }} pers.{{ booking.tableName ? ' · ' + booking.tableName : '' }}</span>

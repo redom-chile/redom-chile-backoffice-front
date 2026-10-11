@@ -15,11 +15,13 @@ import { formatPaidAt } from '../../features/payable-payments/payable-format';
 import { tipPeriodLabel, tipReceiptHtml } from '../../features/tip-receipt-print';
 import type { TipPayoutCreatedState } from '../tip-payout-new/tip-payout-new.component';
 import { openCancelTipPayoutModal } from './cancel-tip-payout-modal.component';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /** Detalle de una liquidación de propinas: datos, reparto por persona, comprobante y anulación. */
 @Component({
   selector: 'app-tip-payout-detail',
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent],
+  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tip-payout-detail.component.html',
 })
@@ -29,6 +31,8 @@ export class TipPayoutDetailComponent {
   readonly #tips = inject(TipsService);
   readonly #settings = inject(BusinessSettingsService);
   readonly #toast = inject(ToastService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatPaidAt = formatPaidAt;

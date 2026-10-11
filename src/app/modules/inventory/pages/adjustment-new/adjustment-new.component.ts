@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnIni
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import {
@@ -70,6 +71,9 @@ export class AdjustmentNewComponent implements OnInit {
   readonly #inventory = inject(InventoryService);
   readonly #units = inject(UnitsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
+  // Sin permiso el formulario se ve, pero no se puede registrar.
+  protected readonly $canSubmit = computed(() => this.#access.can(PERMISSIONS.INVENTORY.CREATE_ADJUSTMENT));
   protected readonly locationStore = inject(InventoryLocationStore);
 
   protected readonly reasons = ADJUSTMENT_REASONS;
@@ -123,6 +127,7 @@ export class AdjustmentNewComponent implements OnInit {
   }
 
   handleSubmit() {
+    if (!this.$canSubmit()) return;
     if (this.$isSaving()) return;
     this.$submitted.set(true);
     const locationId = this.locationStore.$locationId();

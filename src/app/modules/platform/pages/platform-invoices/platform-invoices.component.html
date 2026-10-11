@@ -5,7 +5,13 @@
       <app-icon class="h-5 w-5">fact_check</app-icon>
       <span class="hidden lg:inline">Pagos por revisar</span>
     </a>
-    <app-button type="button" impact="bold" tone="primary" icon="download" (buttonClick)="exportPayments()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.PLATFORM_PAYMENTS.EXPORT_PAYMENTS"
+      type="button"
+      impact="bold"
+      tone="primary"
+      icon="download"
+      (buttonClick)="exportPayments()">
       <span class="hidden sm:inline">Exportar pagos</span>
       <span class="sm:hidden">Exportar</span>
     </app-button>

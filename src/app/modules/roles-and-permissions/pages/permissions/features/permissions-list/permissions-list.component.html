@@ -3,7 +3,7 @@
 <app-permissions-list-skeleton />
 
 } @if (!isLoading()) {
-<div class="space-y-4 p-2" *appCheckPermission="'permissions:get-all-permissions'">
+<div class="space-y-4 p-2" *appCheckPermission="PERMISSIONS.PERMISSIONS.GET_ALL_PERMISSIONS">
   @if ($modules().length > 0) {
   <div class="flex items-center justify-end gap-2">
     <span class="text-muted-foreground text-xs">Expandir todos</span>
@@ -37,12 +37,12 @@
         </div>
         <div class="flex items-center gap-1.5">
           <app-button
-            *appCheckPermission="'permissions:update-permission'"
+            *appCheckPermission="PERMISSIONS.PERMISSIONS.UPDATE_PERMISSION"
             size="small"
             icon="edit_document"
             (click)="updatePermission(permission)"></app-button>
           <app-button
-            *appCheckPermission="'permissions:delete-permission'"
+            *appCheckPermission="PERMISSIONS.PERMISSIONS.DELETE_PERMISSION"
             size="small"
             icon="delete"
             tone="danger"

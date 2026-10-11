@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import {
   formatClp,
@@ -58,6 +59,7 @@ type HistoryRow = PlatformPlanPriceDto & { until: string | null };
         }
       </div>
 
+      @if ($canEdit()) {
       <form class="glass rounded-[1rem] p-4" [formGroup]="form" (ngSubmit)="handleSubmit()">
         <h3 class="text-foreground font-semibold">Nuevo precio</h3>
         <p class="text-muted-foreground mb-3 text-xs">En CLP con IVA incluido. Reemplaza al vigente del intervalo, que queda en el historial.</p>
@@ -105,6 +107,7 @@ type HistoryRow = PlatformPlanPriceDto & { until: string | null };
           <app-button type="submit" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()">Crear precio</app-button>
         </div>
       </form>
+      }
 
       <section class="glass overflow-hidden rounded-[1rem]">
         <h3 class="text-foreground border-b border-[var(--border)] px-4 py-3 font-semibold">Historial</h3>
@@ -149,6 +152,9 @@ export class PlanPricesComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #access = inject(AccessService);
+  // "Nuevo precio" solo con permiso de precios.
+  readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PLANS.MANAGE_PRICES));
 
   readonly intervals = INTERVALS;
   readonly intervalLabels = INTERVAL_LABELS;
@@ -193,6 +199,7 @@ export class PlanPricesComponent {
   }
 
   handleSubmit() {
+    if (!this.$canEdit()) return;
     if (this.$isSaving()) return;
     const { interval, amount } = this.form.getRawValue();
     if (this.form.invalid || amount === null) {

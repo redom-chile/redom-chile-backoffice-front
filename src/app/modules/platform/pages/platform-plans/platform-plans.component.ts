@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, linke
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, RouterLink } from '@angular/router';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { formatClp, getPlatformErrorMessage, PlatformPlanDto, PlatformService } from '../../data-access';
@@ -22,6 +24,7 @@ import { activePlanPrices, PLAN_INTERVAL_SUFFIX, PlanBadgesComponent, subscripti
     IconComponent,
     SkeletonComponent,
     PlanBadgesComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-plans.component.html',
@@ -41,6 +44,10 @@ import { activePlanPrices, PLAN_INTERVAL_SUFFIX, PlanBadgesComponent, subscripti
   `,
 })
 export class PlatformPlansComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly #access = inject(AccessService);
+  // Reordenar es editar los planes.
+  readonly $canReorder = computed(() => this.#access.can(PERMISSIONS.PLANS.UPDATE_PLAN));
   readonly #platform = inject(PlatformService);
   readonly #dialog = inject(MatDialog);
   readonly #router = inject(Router);
@@ -69,6 +76,7 @@ export class PlatformPlansComponent {
   }
 
   handleDrop(event: CdkDragDrop<PlatformPlanDto[]>) {
+    if (!this.$canReorder()) return;
     if (event.previousIndex === event.currentIndex) return;
     const previous = this.$items();
     const next = [...previous];

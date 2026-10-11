@@ -1,17 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { ButtonComponent, ImageThumbComponent, ProgressBarComponent, SlotDirective, TableComponent } from 'src/ui';
 import { CategoryDto } from '../../data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type CategoryRow = { category: CategoryDto; level: number };
 
 @Component({
   selector: 'app-categories-table',
   standalone: true,
-  imports: [TableComponent, SlotDirective, ButtonComponent, ProgressBarComponent, ImageThumbComponent],
+  imports: [
+    TableComponent,
+    SlotDirective,
+    ButtonComponent,
+    ProgressBarComponent,
+    ImageThumbComponent,
+    CheckPermissionDirective,
+  ],
   templateUrl: './categories-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoriesTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly categories = input.required<CategoryDto[]>();
   readonly isLoading = input(false);
   readonly onUpdate = output<CategoryDto>();

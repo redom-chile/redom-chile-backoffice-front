@@ -159,7 +159,7 @@
           <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(item.paidAmount) }}</td>
           <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(item.balance) }}</td>
           <td class="px-4 py-3 text-right">
-            <app-button type="button" size="small" impact="bold" tone="primary" (click)="$event.stopPropagation()" (buttonClick)="pay(item)">Pagar</app-button>
+            <app-button *appCheckPermission="PERMISSIONS.PAYABLES.CREATE_PAYMENT" type="button" size="small" impact="bold" tone="primary" (click)="$event.stopPropagation()" (buttonClick)="pay(item)">Pagar</app-button>
           </td>
         </tr>
         }
@@ -191,7 +191,7 @@
         <p class="text-xs" [class]="item.overdue ? 'font-semibold text-red-600 dark:text-red-400' : 'text-muted-foreground'">
           {{ formatDay(item.dueDate) }} · {{ dueLabel(item.daysToDue) }}
         </p>
-        <button type="button" class="bg-primary shrink-0 rounded-md px-3 py-1 text-sm font-semibold text-white" (click)="pay(item, $event)">Pagar</button>
+        <button *appCheckPermission="PERMISSIONS.PAYABLES.CREATE_PAYMENT" type="button" class="bg-primary shrink-0 rounded-md px-3 py-1 text-sm font-semibold text-white" (click)="pay(item, $event)">Pagar</button>
       </div>
       @if (item.paidAmount > 0) {
       <p class="text-muted-foreground text-xs tabular-nums">Total {{ formatCurrency(item.total) }} · Pagado {{ formatCurrency(item.paidAmount) }}</p>

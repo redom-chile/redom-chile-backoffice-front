@@ -85,6 +85,7 @@
               </a>
               }
               <button
+                *appCheckPermission="PERMISSIONS.PRODUCTS.UPDATE_PRODUCT"
                 type="button"
                 title="Editar"
                 [attr.aria-label]="'Editar ' + product.name"
@@ -93,6 +94,7 @@
                 <app-icon class="h-5 w-5">edit</app-icon>
               </button>
               <button
+                *appCheckPermission="PERMISSIONS.PRODUCTS.DELETE_PRODUCT"
                 type="button"
                 title="Eliminar"
                 [attr.aria-label]="'Eliminar ' + product.name"

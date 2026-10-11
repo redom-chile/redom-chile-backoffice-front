@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { catchError, map, Observable, of, switchMap } from 'rxjs';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ApiError, ApiErrorCode } from 'src/app/core/utils/api-error';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ToastService } from 'src/ui';
 import { CashDeviceStore, CashService } from '../../data-access';
 import { openCashSessionModal } from '../open-session-modal';
@@ -30,6 +31,7 @@ export class CashRetryService {
   readonly #cash = inject(CashService);
   readonly #device = inject(CashDeviceStore);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #access = inject(AccessService);
 
   /** Caja de este equipo para el local (solo con el módulo activo). */
   deviceRegister(locationId: number | null | undefined): number | undefined {
@@ -39,6 +41,10 @@ export class CashRetryService {
 
   resolve(error: ApiError, context: CashRetryContext): Observable<number | null | undefined> {
     if (error.code === ApiErrorCode.CASH_SESSION_REQUIRED) {
+      if (!this.#access.can(PERMISSIONS.CASH.OPEN_SESSION)) {
+        this.#toast.show('La caja está cerrada y no tienes permiso para abrirla', 'warning');
+        return of(null);
+      }
       const registerId = Number(error.details['registerId']) || context.cashRegisterId || null;
       this.#toast.show('La caja está cerrada: ábrela para continuar', 'warning');
       return openCashSessionModal(this.#dialog, {

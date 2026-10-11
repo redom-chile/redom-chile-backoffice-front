@@ -42,10 +42,12 @@
       </app-button>
       }
       <app-button impact="light" tone="primary" shape="rounded" icon="receipt" (buttonClick)="handlePrintBill(order)">Precuenta</app-button>
-      <app-button impact="light" tone="primary" shape="rounded" icon="add" (buttonClick)="handleAddItems(order)">Agregar productos</app-button>
-      <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(order)">Editar</app-button>
+      <ng-container *appCheckPermission="PERMISSIONS.ORDERS.UPDATE_ORDER">
+        <app-button impact="light" tone="primary" shape="rounded" icon="add" (buttonClick)="handleAddItems(order)">Agregar productos</app-button>
+        <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(order)">Editar</app-button>
+      </ng-container>
       <!-- Si tiene pagos vigentes, el backend responde ORDER_HAS_PAYMENTS y se avisa con un toast -->
-      <app-button impact="light" tone="danger" shape="rounded" icon="block" (buttonClick)="handleCancelOrder(order)">
+      <app-button *appCheckPermission="PERMISSIONS.ORDERS.CANCEL_ORDER" impact="light" tone="danger" shape="rounded" icon="block" (buttonClick)="handleCancelOrder(order)">
         Cancelar pedido
       </app-button>
     </div>

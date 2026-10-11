@@ -11,6 +11,8 @@ import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonCompo
 import { dueLabel, getFinanceErrorMessage, PAYABLE_TYPE_LABELS, PayableFiltersDto, PayableItemDto, PayablesService, PayableType } from '../../data-access';
 import { formatDay, localDate, openPayPayableModal } from '../../features';
 import { PayablesHelpComponent } from './payables-help.component';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type DueFilter = 'week' | 'overdue';
 const DUE_FILTERS: readonly DueFilter[] = ['week', 'overdue'];
@@ -38,7 +40,7 @@ export type PurchasePaymentsState = Readonly<{ payable?: PayableItemDto }>;
 /** Cuentas por pagar: gastos y compras con saldo, la que vence primero arriba. Filtros en la URL. */
 @Component({
   selector: 'app-payables',
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PayablesHelpComponent],
+  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PayablesHelpComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './payables.component.html',
 })
@@ -49,6 +51,8 @@ export class PayablesComponent {
   readonly #payables = inject(PayablesService);
   readonly #suppliers = inject(SuppliersService);
   readonly #locations = inject(GetAllBusinessLocationsService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly formatCurrency = formatCurrency;
   readonly formatDay = formatDay;

@@ -18,6 +18,8 @@ import {
 } from '../../shared';
 import { InventoryDisabledComponent } from '../../ui';
 import { CountsTableComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 const PER_PAGE = 20;
 
@@ -44,6 +46,7 @@ function toQuery(params: ParamMap): CountListQuery {
     LoadErrorComponent,
     DocumentsFiltersComponent,
     CountsTableComponent,
+    CheckPermissionDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -52,6 +55,7 @@ function toQuery(params: ParamMap): CountListQuery {
       subtitle="Toma de inventario: cuentas lo que hay en el local y el stock se corrige a lo contado. Las diferencias quedan valorizadas.">
       @if (!$isDisabled()) {
       <a
+        *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_COUNT"
         routerLink="/inventory/counts/new"
         [queryParams]="$query().locationId ? { locationId: $query().locationId } : {}"
         class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
@@ -93,6 +97,7 @@ function toQuery(params: ParamMap): CountListQuery {
   `,
 })
 export class CountListComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #inventory = inject(InventoryService);

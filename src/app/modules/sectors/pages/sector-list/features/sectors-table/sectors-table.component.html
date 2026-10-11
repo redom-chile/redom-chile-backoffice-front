@@ -18,8 +18,8 @@
     </td>
     <td class="w-[90px] text-center">
       <div class="flex items-center justify-center gap-1">
-        <app-button size="small" icon="edit_document" (click)="updateSector(sector)" />
-        <app-button size="small" icon="delete" tone="danger" (click)="deleteSector(sector)" />
+        <app-button *appCheckPermission="PERMISSIONS.SECTORS.UPDATE_SECTOR" size="small" icon="edit_document" (click)="updateSector(sector)" />
+        <app-button *appCheckPermission="PERMISSIONS.SECTORS.DELETE_SECTOR" size="small" icon="delete" tone="danger" (click)="deleteSector(sector)" />
       </div>
     </td>
   </tr>

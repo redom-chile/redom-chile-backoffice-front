@@ -18,6 +18,8 @@ import { printTableQrs } from './ui';
 
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-table-list',
@@ -31,6 +33,7 @@ import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/
     TablesGridComponent,
     BusinessLocationSelector,
     SectorTabsComponent,
+    CheckPermissionDirective,
   ],
 
   templateUrl: './table-list.component.html',
@@ -39,6 +42,9 @@ export class TableListComponent implements OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly access = inject(AccessService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   protected readonly $getAll = inject(GetAllTablesService);
   protected readonly $sectorsService = inject(GetAllSectorsService);
@@ -110,6 +116,10 @@ export class TableListComponent implements OnDestroy {
     if (table.status === 'occupied') {
       this.toast.show(`No se encontró el pedido abierto de ${table.name}`, 'warning');
       this.router.navigate(['/orders'], { queryParams: { location: locationId, table: table.id, status: 'ORDERED' } });
+      return;
+    }
+    if (!this.access.can(PERMISSIONS.ORDERS.CREATE_ORDER)) {
+      this.toast.show('No tienes permiso para crear pedidos', 'warning');
       return;
     }
     this.router.navigate(['/orders/new'], {

@@ -95,7 +95,7 @@
       }
 
       <div>
-        <app-button full impact="bold" tone="primary" shape="rounded" size="large" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        <app-button full impact="bold" tone="primary" shape="rounded" size="large" [disabled]="$isSaving() || !$canSave()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
           {{ mode === 'add' ? 'Agregar al pedido' : 'Confirmar pedido' }}
         </app-button>
         @if ($missing(); as missing) {

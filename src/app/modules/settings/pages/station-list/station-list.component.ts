@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@a
 import { ComponentType } from '@angular/cdk/portal';
 import { MatDialog } from '@angular/material/dialog';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { GetAllPrintersService } from '../printer-list/data-access';
 import { GetAllStationsService, getStationErrorMessage, StationDto } from './data-access';
@@ -18,11 +20,12 @@ import {
 @Component({
   selector: 'app-station-list',
   standalone: true,
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, StationsGridComponent],
+  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, EmptyStateComponent, StationsGridComponent, CheckPermissionDirective],
   templateUrl: './station-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StationListComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly getAllService = inject(GetAllStationsService);

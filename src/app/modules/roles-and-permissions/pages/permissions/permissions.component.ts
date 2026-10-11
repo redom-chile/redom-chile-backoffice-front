@@ -6,6 +6,7 @@ import { CreateNewPermissionModalComponent } from './features';
 import { MatDialog } from '@angular/material/dialog';
 import { PermissionsListComponent } from './features/permissions-list';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-permissions',
@@ -22,6 +23,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   styleUrl: './permissions.component.css',
 })
 export class PermissionsComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $service = inject(GetAllPermissionsService);
 

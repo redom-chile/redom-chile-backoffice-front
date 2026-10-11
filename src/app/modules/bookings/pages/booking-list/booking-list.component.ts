@@ -25,6 +25,8 @@ import {
   UpdateBookingModalComponent,
   UpdateBookingModalData,
 } from './features';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { addDays, BOOKING_STATUS, BOOKING_STATUS_OPTIONS, longDate, startOfWeek, toDateKey, toIsoRange } from './ui';
 
 type BookingView = 'day' | 'week';
@@ -52,6 +54,7 @@ function toQuery(params: ParamMap): { date: string; view: BookingView; status: B
     BusinessLocationSelector,
     BookingAgendaComponent,
     BookingWeekComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './booking-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +67,8 @@ export class BookingListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly bookingsService = inject(GetBookingsService);
   private readonly bookingService = inject(BookingService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly $query = toSignal(this.route.queryParamMap.pipe(map(toQuery)), {
     initialValue: toQuery(this.route.snapshot.queryParamMap),

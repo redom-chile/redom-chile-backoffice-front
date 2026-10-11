@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy, untracked } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { PLAN_LIMIT_REACHED_TOOLTIP, PlanLockedNoticeComponent, PlanUsageComponent, planLimitGate } from 'src/app/shared/components/plan-limit';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { HeaderDashboardComponent, ButtonComponent, EmptyStateComponent, ToastService } from 'src/ui';
 import { BusinessLocationListComponent } from './features/business-location-list';
 import {
@@ -28,12 +30,14 @@ import {
     BusinessLocationListComponent,
     PlanUsageComponent,
     PlanLockedNoticeComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './business-location.component.html',
   styleUrl: './business-location.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BusinessLocationComponent implements OnDestroy {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $getAll = inject(GetAllBusinessLocationsService);
   protected readonly $createService = inject(CreateBusinessLocationService);

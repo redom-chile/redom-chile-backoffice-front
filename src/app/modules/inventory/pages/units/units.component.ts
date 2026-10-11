@@ -16,6 +16,8 @@ import { CreateUnitDto, getInventoryErrorMessage, UnitDto, UnitsService } from '
 import { InventoryDisabledComponent } from '../../ui';
 import { UnitModalComponent, UnitModalData, UnitModalResult } from './features';
 import { UnitsListComponent } from './ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 /** Unidades sugeridas para empezar: unidades base y sus subunidades más comunes. */
 const SUGGESTED_UNITS: ReadonlyArray<Readonly<{ base: CreateUnitDto; subunits: CreateUnitDto[] }>> = [
@@ -40,11 +42,13 @@ const SUGGESTED_UNITS: ReadonlyArray<Readonly<{ base: CreateUnitDto; subunits: C
     SkeletonComponent,
     InventoryDisabledComponent,
     UnitsListComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './units.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UnitsComponent implements OnInit {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #units = inject(UnitsService);

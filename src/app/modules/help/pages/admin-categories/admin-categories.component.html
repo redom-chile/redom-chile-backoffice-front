@@ -5,6 +5,7 @@
       <span class="hidden sm:inline">Artículos</span>
     </a>
     <button
+      *appCheckPermission="PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES"
       type="button"
       class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
       (click)="handleCreate()">
@@ -35,17 +36,18 @@
   <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
     <app-icon class="text-muted-foreground h-10 w-10">category</app-icon>
     <p class="text-foreground font-medium">Todavía no hay categorías</p>
-    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear la primera</button>
+    <button *appCheckPermission="PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES" type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleCreate()">Crear la primera</button>
   </div>
   } @else {
   <ul
     cdkDropList
     cdkDropListLockAxis="y"
     class="divide-y divide-[var(--border)]"
-    [cdkDropListDisabled]="$isReordering()"
+    [cdkDropListDisabled]="$isReordering() || !$canManage()"
     (cdkDropListDropped)="handleDrop($event)">
     @for (category of $items(); track category.id) {
     <li cdkDrag class="glass-row flex items-start gap-3 px-3 py-3 sm:items-center sm:px-4">
+      @if ($canManage()) {
       <button
         type="button"
         cdkDragHandle
@@ -54,6 +56,7 @@
         title="Arrastra para ordenar">
         <app-icon class="h-5 w-5">drag_indicator</app-icon>
       </button>
+      }
       <span
         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
         [class]="category.isActive ? 'bg-primary/10 text-primary' : 'bg-[var(--muted)] text-muted-foreground'"
@@ -82,7 +85,7 @@
         </a>
       </div>
 
-      <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+      <div *appCheckPermission="PERMISSIONS.HELP_CENTER.MANAGE_ARTICLES" class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
         <div class="flex items-center">
           <button
             type="button"

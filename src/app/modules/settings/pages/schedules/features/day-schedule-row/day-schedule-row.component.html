@@ -8,7 +8,7 @@
       }
     </div>
     <label class="flex cursor-pointer items-center gap-2 text-sm">
-      <input type="checkbox" class="h-5 w-5 accent-[var(--primary)]" [checked]="!closed" [disabled]="busy()" (change)="setClosed.emit(!$any($event.target).checked)" />
+      <input type="checkbox" class="h-5 w-5 accent-[var(--primary)]" [checked]="!closed" [disabled]="busy() || !$canToggleClosed()" [attr.title]="$canToggleClosed() ? null : 'No tienes permiso para esta acción'" (change)="setClosed.emit(!$any($event.target).checked)" />
       <span [class]="closed ? 'text-muted-foreground' : 'text-foreground'">{{ closed ? 'Cerrado' : 'Abierto' }}</span>
     </label>
   </div>
@@ -22,22 +22,24 @@
     <ng-container *ngTemplateOutlet="editor" />
     } @else {
     <span class="glass-row inline-flex items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm">
-      <button type="button" class="text-foreground font-medium tabular-nums" [attr.aria-label]="'Editar tramo ' + hhmm(range.openTime) + ' a ' + hhmm(range.closeTime)" [disabled]="busy()" (click)="startEdit(range)">
+      <button type="button" class="text-foreground font-medium tabular-nums" [attr.aria-label]="'Editar tramo ' + hhmm(range.openTime) + ' a ' + hhmm(range.closeTime)" [disabled]="busy() || !$canUpdate()" (click)="startEdit(range)">
         {{ hhmm(range.openTime) }} – {{ hhmm(range.closeTime) }}
         @if (crossesMidnight(range.openTime, range.closeTime)) {
         <span class="text-muted-foreground text-xs">(+1 día)</span>
         }
       </button>
+      @if ($canDelete()) {
       <button type="button" class="text-muted-foreground flex h-6 w-6 items-center justify-center rounded-full hover:bg-red-500/10 hover:text-red-600" [attr.aria-label]="'Eliminar tramo ' + hhmm(range.openTime) + ' a ' + hhmm(range.closeTime)" [disabled]="busy()" (click)="removeRange.emit(range)">
         <app-icon class="h-4 w-4">close</app-icon>
       </button>
+      }
     </span>
     }
     }
 
     @if ($editing() === 'new') {
     <ng-container *ngTemplateOutlet="editor" />
-    } @else if ($editing() === null) {
+    } @else if ($editing() === null && $canCreate()) {
     <button type="button" class="text-primary inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium hover:underline" [disabled]="busy()" (click)="startAdd()">
       <app-icon class="h-4 w-4">add</app-icon>{{ $ranges().length ? 'Agregar tramo' : 'Agregar horario' }}
     </button>

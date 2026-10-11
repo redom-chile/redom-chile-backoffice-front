@@ -84,7 +84,7 @@
   </dl>
 
   <!-- Acciones según el estado -->
-  @if ($canEdit() || $canReceive()) {
+  @if ($canEdit() || $canReceive() || $canChangeStatus()) {
   @let busy = $busyAction();
   <div class="mt-4 flex flex-col gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
     @if ($canReceive()) {
@@ -95,6 +95,7 @@
     @if ($canEdit()) {
     <app-button type="button" impact="light" tone="primary" icon="edit" [disabled]="!!busy" (buttonClick)="handleEdit()">Editar</app-button>
     }
+    @if ($canChangeStatus()) {
     @if (po.status === 'draft') {
     <app-button type="button" impact="light" tone="info" icon="send" [disabled]="!!busy" (buttonClick)="handleStatus('sent')">
       {{ busy === 'sent' ? 'Guardando…' : 'Marcar como enviada' }}
@@ -109,6 +110,7 @@
         {{ busy === 'cancelled' ? 'Anulando…' : 'Anular' }}
       </app-button>
     </div>
+    }
   </div>
   @if (po.status === 'draft' || po.status === 'sent') {
   <p class="text-muted-foreground mt-3 text-xs">

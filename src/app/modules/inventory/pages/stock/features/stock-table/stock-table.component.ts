@@ -4,17 +4,20 @@ import { PaginationMeta } from 'src/app/core/standarized-response';
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatMoney, formatQuantity, formatUnitCost, StockItemDto } from '../../../../data-access';
 import { daysUntil, DEFAULT_EXPIRY_DAYS, expiryDistanceLabel, formatShortDate, variationLabel, wasteLinkParams } from '../../../../shared';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 type ExpiryBadge = Readonly<{ text: string; title: string; tone: string }>;
 
 /** Stock por producto en el local elegido. En móvil se muestran tarjetas. */
 @Component({
   selector: 'app-stock-table',
-  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './stock-table.component.html',
 })
 export class StockTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly items = input.required<readonly StockItemDto[]>();
   readonly locationId = input.required<number | null>();
   readonly loading = input(false);

@@ -1,9 +1,9 @@
 <app-header-dashboard
-  *appCheckPermission="'modules:see-modules'"
+  *appCheckPermission="PERMISSIONS.MODULES.SEE_MODULE"
   title="Módulos"
   subtitle="Aquí, puedes gestionar los módulos para administrar los permisos.">
   <app-button
-    *appCheckPermission="'modules:get-all-modules'"
+    *appCheckPermission="PERMISSIONS.MODULES.GET_ALL_MODULES"
     full
     impact="none"
     tone="primary"
@@ -14,7 +14,7 @@
     <app-icon class="h-6 w-7"> refresh </app-icon>
   </app-button>
   <app-button
-    *appCheckPermission="'modules:create-module'"
+    *appCheckPermission="PERMISSIONS.MODULES.CREATE_MODULE"
     full
     impact="bold"
     tone="primary"

@@ -23,11 +23,17 @@
     </td>
     <td class="w-[60px] text-center">
       <div class="flex items-center justify-center">
+        <!-- El dueño es fijo: nadie le cambia sus roles. -->
+        @if (isOwner(user)) {
+        <span class="text-muted-foreground text-xs" title="Los roles del dueño no se cambian">Dueño</span>
+        } @else {
         <app-button
-          *appCheckPermission="'users-roles:assign-roles'"
+          *appCheckPermission="PERMISSIONS.USER_ROLES.ASSIGN_ROLE"
           size="small"
           icon="admin_panel_settings"
+          title="Cambiar roles"
           (click)="assignRole(user)"></app-button>
+        }
       </div>
     </td>
   </tr>

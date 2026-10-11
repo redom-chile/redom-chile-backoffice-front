@@ -3,6 +3,8 @@ import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-int
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map, Observable } from 'rxjs';
 import { BillingPaymentDto, INTERVAL_LABELS, INVOICE_STATUS_LABELS, INVOICE_STATUS_TONES, PAYMENT_METHOD_LABELS } from 'src/app/modules/billing/data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { readPage, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatClp, formatPlatformDate, getPlatformErrorMessage, PlatformInvoiceDto, PlatformService } from '../../data-access';
@@ -17,11 +19,12 @@ type ReviewItem = Readonly<{ invoice: PlatformInvoiceDto; payment: BillingPaymen
 /** Transferencias informadas por los dueños que esperan confirmación (una tarjeta por pago pendiente). */
 @Component({
   selector: 'app-platform-payments-review',
-  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, HeaderDashboardComponent, ButtonComponent, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './platform-payments-review.component.html',
 })
 export class PlatformPaymentsReviewComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly #route = inject(ActivatedRoute);
   readonly #router = inject(Router);
   readonly #platform = inject(PlatformService);

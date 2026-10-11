@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from 'src/ui';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { OrderDetailDto, OrderLineDto, OrderLineModifierDto } from 'src/app/modules/orders/pages/order-detail/data-access';
 import { CartLine, CartNoteChange, CustomerSelectorComponent, modifierLabel, OrderTicketComponent } from 'src/app/modules/orders/pages/order-create/features';
 import { CustomerDto } from 'src/app/modules/orders/pages/order-create/data-access';
@@ -34,6 +35,14 @@ export class PosOrderPanelComponent {
   readonly sendToKitchenChange = output<boolean>();
   readonly submitOrder = output<void>();
   readonly collect = output<void>();
+
+  private readonly access = inject(AccessService);
+
+  // Con cuenta abierta se agregan líneas (actualiza el pedido); sin ella se crea.
+  readonly $canSubmit = computed(() =>
+    this.access.can(this.order() ? PERMISSIONS.ORDERS.UPDATE_ORDER : PERMISSIONS.ORDERS.CREATE_ORDER),
+  );
+  readonly $canCollect = computed(() => this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT));
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;

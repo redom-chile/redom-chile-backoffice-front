@@ -97,6 +97,7 @@
     </div>
   </div>
   <a
+    *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_COUNT"
     routerLink="/inventory/counts/new"
     [queryParams]="{ locationId: $locationId() ?? undefined }"
     class="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90">
@@ -109,7 +110,7 @@
   <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">info</app-icon>
   <span>
     La variación solo aparece completa si se hizo un conteo en el período.
-    <a routerLink="/inventory/counts/new" [queryParams]="{ locationId: $locationId() ?? undefined }" class="text-primary font-medium hover:underline">Hacer un conteo</a>
+    <a *appCheckPermission="PERMISSIONS.INVENTORY.CREATE_COUNT" routerLink="/inventory/counts/new" [queryParams]="{ locationId: $locationId() ?? undefined }" class="text-primary font-medium hover:underline">Hacer un conteo</a>
   </span>
 </p>
 }
