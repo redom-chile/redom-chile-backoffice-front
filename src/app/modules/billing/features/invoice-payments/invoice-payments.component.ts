@@ -43,7 +43,7 @@ import { BillingDatePipe } from '../billing-format';
           }
         </div>
         @if (payment.status === 'rejected') {
-        <p class="text-destructive mt-1 text-xs font-medium">Rechazada: {{ payment.rejectionReason || 'sin motivo informado' }}</p>
+        <p class="text-destructive mt-1 text-xs font-medium">{{ payment.method === 'flow_card' ? 'Cobro rechazado' : 'Rechazada' }}: {{ payment.rejectionReason || 'sin motivo informado' }}</p>
         }
         @if (payment.comment) {
         <p class="text-muted-foreground mt-1 text-xs">{{ payment.comment }}</p>

@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import {
   BillingService,
@@ -16,7 +18,14 @@ import {
   PlanInterval,
   PlanRef,
 } from '../../data-access';
-import { formatBillingDate, previewCheckout } from '../billing-format';
+import { cardLabel, formatBillingDate, goToFlow, previewCheckout } from '../billing-format';
+
+type CheckoutMethod = 'flow' | 'manual';
+
+const METHODS: ReadonlyArray<Readonly<{ value: CheckoutMethod; label: string; icon: string }>> = [
+  { value: 'flow', label: 'Tarjeta (Flow)', icon: 'credit_card' },
+  { value: 'manual', label: 'Transferencia bancaria', icon: 'account_balance' },
+];
 
 export type CheckoutModalData = Readonly<{
   plan: Pick<PlanRef, 'id' | 'name'>;
@@ -26,7 +35,10 @@ export type CheckoutModalData = Readonly<{
   timeZone: string;
 }>;
 
-/** Confirmar la elección de un plan: resumen de lo que va a pasar, cupón y medio de pago (solo transferencia). */
+/**
+ * Confirmar la elección de un plan: resumen, cupón y medio de pago. Con tarjeta, si no hay una registrada se va al
+ * formulario de Flow; si la hay, se cobra al tiro y el resultado se muestra en "Mi suscripción" (/billing?payment=…).
+ */
 @Component({
   selector: 'app-checkout-modal',
   imports: [ReactiveFormsModule, ButtonComponent, IconComponent, ModalCardComponent, SlotDirective],
@@ -47,7 +59,7 @@ export type CheckoutModalData = Readonly<{
         </div>
 
         <ul class="text-foreground space-y-2 text-sm">
-          @for (line of summary; track $index) {
+          @for (line of $summary(); track $index) {
           <li class="flex items-start gap-2">
             <app-icon class="text-primary mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">check_circle</app-icon>
             <span>{{ line }}</span>
@@ -68,23 +80,39 @@ export type CheckoutModalData = Readonly<{
             class="glass-input w-full rounded-md px-3 py-2 uppercase" />
           <p class="text-muted-foreground mt-1 text-xs">Lo validamos al confirmar y se descuenta de este cobro.</p>
         </div>
+        }
 
         <fieldset>
-          <legend class="mb-1 block text-sm font-medium">Medio de pago</legend>
+          <legend class="mb-1 block text-sm font-medium">{{ charges ? 'Medio de pago' : 'Cómo pagarás desde el próximo período' }}</legend>
           <div class="space-y-2">
-            <label class="border-primary bg-primary/5 flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5">
-              <input type="radio" name="checkout-method" checked class="accent-[var(--primary)]" />
-              <app-icon class="text-primary h-5 w-5" aria-hidden="true">account_balance</app-icon>
-              <span class="text-foreground text-sm font-medium">Transferencia bancaria</span>
+            @for (option of methods; track option.value) {
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition"
+              [class]="$method() === option.value ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:bg-foreground/5'">
+              <input
+                type="radio"
+                name="checkout-method"
+                class="mt-1 accent-[var(--primary)]"
+                [value]="option.value"
+                [checked]="$method() === option.value"
+                [disabled]="$isSaving()"
+                (change)="$method.set(option.value)" />
+              <app-icon class="mt-0.5 h-5 w-5 shrink-0" [class.text-primary]="$method() === option.value" aria-hidden="true">{{ option.icon }}</app-icon>
+              <span class="min-w-0">
+                <span class="text-foreground block text-sm font-medium">{{ option.label }}</span>
+                @if (option.value === 'flow') {
+                <span class="text-muted-foreground block text-xs">
+                  @if (card) {
+                  Se cobra a tu {{ card }}.
+                  }
+                  Ingresas tu tarjeta en el formulario seguro de Flow. Redom solo guarda la marca y los últimos 4 dígitos.
+                </span>
+                }
+              </span>
             </label>
-            <div class="text-muted-foreground flex items-center gap-3 rounded-xl border border-dashed border-[var(--border)] px-3 py-2.5 opacity-70">
-              <input type="radio" name="checkout-method" disabled />
-              <app-icon class="h-5 w-5" aria-hidden="true">credit_card</app-icon>
-              <span class="text-sm">Pago con tarjeta: próximamente</span>
-            </div>
+            }
           </div>
         </fieldset>
-        }
         <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
       </form>
 
@@ -92,7 +120,7 @@ export type CheckoutModalData = Readonly<{
         <div class="flex justify-end gap-3">
           <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="dialogRef.close()">Cancelar</app-button>
           <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleConfirm()">
-            {{ confirmText }}
+            {{ $confirmText() }}
           </app-button>
         </div>
       </ng-template>
@@ -103,31 +131,44 @@ export class CheckoutModalComponent {
   readonly dialogRef = inject<MatDialogRef<CheckoutModalComponent, CheckoutResultDto>>(MatDialogRef);
   readonly data = inject<CheckoutModalData>(MAT_DIALOG_DATA);
   readonly #billing = inject(BillingService);
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #router = inject(Router);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
 
   readonly action = previewCheckout(this.data.subscription, this.data.price);
   readonly actionTitle = CHECKOUT_ACTION_TITLES[this.action];
-  /** scheduled no genera cobro ahora: sin cupón ni medio de pago. */
+  /** scheduled no genera cobro ahora: sin cupón; el medio de pago es para el próximo período. */
   readonly charges = this.action !== 'scheduled';
   readonly intervalLabel = INTERVAL_LABELS[this.data.price.interval].toLowerCase();
   readonly priceLabel = formatClp(this.data.price.amount);
   readonly suffix = INTERVAL_SUFFIX[this.data.price.interval];
-  readonly confirmText = this.charges ? 'Confirmar y pagar por transferencia' : 'Programar cambio';
-  readonly summary = this.#summary();
+  readonly methods = METHODS;
+  /** "Visa •••• 6623" si ya tiene tarjeta registrada. */
+  readonly card = cardLabel(this.data.subscription?.card ?? null);
+
+  readonly $method = signal<CheckoutMethod>(this.card ? 'flow' : 'manual');
+  readonly $confirmText = computed(() => {
+    const flow = this.$method() === 'flow';
+    if (!this.charges) return flow && !this.card ? 'Programar y registrar tarjeta' : 'Programar cambio';
+    if (!flow) return 'Confirmar y pagar por transferencia';
+    return this.card ? 'Confirmar y pagar con tarjeta' : 'Continuar a Flow';
+  });
+  readonly $summary = computed(() => this.#summary(this.$method()));
 
   readonly coupon = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(40)] });
   readonly $isSaving = signal(false);
 
   handleConfirm() {
     if (this.$isSaving()) return;
+    const method = this.$method();
     const couponCode = this.charges ? this.coupon.value.trim().toUpperCase() : '';
     this.$isSaving.set(true);
     this.#billing
-      .checkout({ priceId: this.data.price.id, method: 'manual', ...(couponCode ? { couponCode } : {}) })
+      .checkout({ priceId: this.data.price.id, method, ...(couponCode ? { couponCode } : {}) })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
-        next: (result) => this.dialogRef.close(result),
+        next: (result) => this.#handleResult(result),
         error: (error: unknown) => {
           this.$isSaving.set(false);
           this.#toast.show(getBillingErrorMessage(error, 'No se pudo cambiar el plan'), 'error');
@@ -135,33 +176,60 @@ export class CheckoutModalComponent {
       });
   }
 
-  #summary(): string[] {
+  /** Con tarjeta el modal resuelve todo; quien lo abrió solo maneja transferencia y cambios programados. */
+  #handleResult(result: CheckoutResultDto) {
+    if (result.redirectUrl) {
+      this.#toast.show('Te llevamos a Flow para registrar tu tarjeta', 'success');
+      this.dialogRef.close(result);
+      goToFlow(result.redirectUrl);
+      return;
+    }
+    this.dialogRef.close(result);
+    const charge = result.charge;
+    if (!charge) return;
+    this.#entitlements.refresh();
+    this.#router.navigate(['/billing'], {
+      queryParams: { payment: charge.status, ...(result.invoice ? { invoice: result.invoice.id } : {}) },
+      state: { chargeMessage: charge.message },
+    });
+  }
+
+  #summary(method: CheckoutMethod): string[] {
     const { plan, subscription, timeZone } = this.data;
+    const flow = method === 'flow';
+    const target = this.card ? `tu ${this.card}` : 'la tarjeta que registres en Flow';
     const periodEnd = formatBillingDate(subscription?.currentPeriodEnd, timeZone);
     switch (this.action) {
       case 'purchase':
         return [
-          `Te generamos un cobro de ${this.priceLabel} que pagas por transferencia dentro de 7 días.`,
+          flow
+            ? `Cobramos ${this.priceLabel} a ${target}.`
+            : `Te generamos un cobro de ${this.priceLabel} que pagas por transferencia dentro de 7 días.`,
           subscription?.status === 'trialing'
-            ? `El plan ${plan.name} empieza cuando confirmemos tu pago, y en ese momento termina tu prueba.`
-            : `El plan ${plan.name} empieza cuando confirmemos tu pago.`,
+            ? `El plan ${plan.name} empieza cuando se confirme tu pago, y en ese momento termina tu prueba.`
+            : `El plan ${plan.name} empieza cuando se confirme tu pago.`,
           'Si tenías un cobro sin pagar de otro plan, este lo reemplaza.',
         ];
       case 'renewal':
         return [
-          `Pagas por adelantado tu próximo período, que empieza el ${periodEnd}.`,
+          flow
+            ? `Cobramos a ${target} tu próximo período, que empieza el ${periodEnd}.`
+            : `Pagas por adelantado tu próximo período, que empieza el ${periodEnd}.`,
           ...(subscription?.scheduledPlan ? [`Se deshace el cambio programado a ${subscription.scheduledPlan.name}.`] : []),
         ];
       case 'upgrade':
         return [
           `Cambias a ${plan.name} al tiro.`,
-          `Se cobra la diferencia prorrateada por lo que queda de tu período (hasta el ${periodEnd}), a pagar en 3 días.`,
+          flow
+            ? `Cobramos a ${target} la diferencia prorrateada por lo que queda de tu período (hasta el ${periodEnd}).`
+            : `Se cobra la diferencia prorrateada por lo que queda de tu período (hasta el ${periodEnd}), a pagar en 3 días.`,
           `Desde el ${periodEnd} pagas ${this.priceLabel}${this.suffix}.`,
         ];
       case 'scheduled':
         return [
           `Tu plan cambia a ${plan.name} ${this.intervalLabel} el ${periodEnd}, al terminar tu período actual.`,
           'Hasta entonces sigues con tu plan de ahora. No se cobra nada hoy.',
+          ...(flow && !this.card ? ['Registra tu tarjeta en Flow para que el próximo período se cobre ahí.'] : []),
         ];
     }
   }

@@ -5,6 +5,7 @@ import { StandardizedPagination } from 'src/app/core/standarized-response';
 import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
 import {
+  CardRedirectDto,
   CheckoutRequestDto,
   CheckoutResultDto,
   InvoiceWithPaymentsDto,
@@ -57,5 +58,23 @@ export class BillingService {
   /** 409 INVOICE_NOT_PAYABLE; 400 si el monto supera lo que falta (contando lo que está en revisión). */
   reportTransfer(invoiceId: number, dto: ManualPaymentRequestDto): Observable<InvoiceWithPaymentsDto> {
     return this.#http.post<InvoiceWithPaymentsDto>(`${BASE}/invoices/${invoiceId}/manual-payment`, dto);
+  }
+
+  /** Registrar o cambiar la tarjeta: redirectUrl del formulario de Flow. */
+  addCard(): Observable<CardRedirectDto> {
+    return this.#http.post<CardRedirectDto>(`${BASE}/card`, {});
+  }
+
+  /** Quita la tarjeta (también en Flow): los próximos cobros pasan a transferencia. */
+  removeCard(): Observable<OwnerSubscriptionDto> {
+    return this.#http.delete<OwnerSubscriptionDto>(`${BASE}/card`);
+  }
+
+  /**
+   * Solo si la plataforma exige tarjeta para la prueba: el negocio parte en Free y la prueba de Pro empieza al
+   * registrar la tarjeta. 400/409 TRIAL_NOT_AVAILABLE si no aplica o ya tuvo prueba.
+   */
+  startTrial(): Observable<CardRedirectDto> {
+    return this.#http.post<CardRedirectDto>(`${BASE}/trial/start`, {});
   }
 }

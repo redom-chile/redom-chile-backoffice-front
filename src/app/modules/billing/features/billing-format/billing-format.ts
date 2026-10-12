@@ -1,4 +1,4 @@
-import { computed, inject, Pipe, PipeTransform, Signal } from '@angular/core';
+import { computed, inject, Pipe, PipeTransform, Signal, signal } from '@angular/core';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { SubscriptionStatus } from 'src/app/core/services/entitlements';
 import { InvoiceWithPaymentsDto, OwnerSubscriptionDto, PlanInterval } from '../../data-access';
@@ -145,4 +145,48 @@ export function previewCheckout(
   if (price.id === current.id) return 'renewal';
   if (price.interval === current.interval && price.amount > current.amount) return 'upgrade';
   return 'scheduled';
+}
+
+/** Ocultar la invitación a la prueba gratis (TRIAL_NOT_AVAILABLE): por negocio y solo en esta sesión. */
+export const TRIAL_HIDDEN_KEY_PREFIX = 'redom.billing.trial-hidden.';
+// Para que la página y el banner se enteren al tiro cuando se oculta.
+const trialHiddenVersion = signal(0);
+const trialHiddenMemory = new Set<number>();
+
+export function isTrialHidden(businessId: number | null | undefined): boolean {
+  if (!businessId) return false;
+  trialHiddenVersion();
+  if (trialHiddenMemory.has(businessId)) return true;
+  try {
+    return sessionStorage.getItem(TRIAL_HIDDEN_KEY_PREFIX + businessId) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function hideTrial(businessId: number | null | undefined) {
+  if (!businessId) return;
+  trialHiddenMemory.add(businessId);
+  trialHiddenVersion.update((value) => value + 1);
+  try {
+    sessionStorage.setItem(TRIAL_HIDDEN_KEY_PREFIX + businessId, '1');
+  } catch {
+    // Sin sessionStorage: queda oculto mientras la página siga abierta.
+  }
+}
+
+/** Plan Free sin prueba en curso: puede activar la prueba de Pro con tarjeta (trialRequiresCard). */
+export function canOfferTrial(planCode: string | null | undefined, status: SubscriptionStatus | null | undefined): boolean {
+  return planCode === 'free' && (status === 'active' || status === null || status === undefined);
+}
+
+/** "Visa •••• 6623". */
+export function cardLabel(card: OwnerSubscriptionDto['card']): string | null {
+  if (!card?.last4) return null;
+  return `${card.brand || 'Tarjeta'} •••• ${card.last4}`;
+}
+
+/** Llevar el navegador al formulario de Flow. */
+export function goToFlow(redirectUrl: string) {
+  window.location.href = redirectUrl;
 }

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signa
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { filter, Observable } from 'rxjs';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
@@ -23,6 +23,7 @@ import {
 } from 'src/ui';
 import {
   BillingService,
+  CheckoutResultDto,
   formatClp,
   getBillingErrorMessage,
   INTERVAL_LABELS,
@@ -35,12 +36,17 @@ import {
 import { BankTransferInfoComponent } from '../../features/bank-transfer-info';
 import {
   BillingDatePipe,
+  canOfferTrial,
+  cardLabel,
   DISCOUNT_DURATION_LABELS,
   formatBillingDate,
+  goToFlow,
+  hideTrial,
   injectBillingTimeZone,
   invoiceBalance,
   invoiceReportable,
   invoiceTitle,
+  isTrialHidden,
   SUBSCRIPTION_STATUS_LABELS,
   SUBSCRIPTION_STATUS_TONES,
 } from '../../features/billing-format';
@@ -48,8 +54,37 @@ import { InvoicePaymentsComponent } from '../../features/invoice-payments';
 import { openReportTransferModal } from '../../features/report-transfer-modal';
 
 const HISTORY_PER_PAGE = 10;
+/** Pago en proceso en Flow: se vuelve a consultar una vez. */
+const PENDING_RECHECK_MS = 60_000;
 
-/** Mi suscripción (solo el dueño): plan, próximo cobro, cobros pendientes con transferencia, cupón, historial y cancelación. */
+type Busy = 'coupon' | 'cancel' | 'resume' | 'card' | 'remove-card' | 'trial' | `pay-${number}`;
+
+/** Aviso arriba de la página tras volver de Flow o cobrar con tarjeta. */
+type FlowNotice = Readonly<{
+  tone: 'success' | 'warning' | 'danger';
+  icon: string;
+  title: string;
+  text: string | null;
+  /** Rechazo: reintentar con otra tarjeta o pagar por transferencia. */
+  retry: boolean;
+}>;
+
+const NOTICE_TONES: Record<FlowNotice['tone'], string> = {
+  success: 'border-green-500/30 bg-green-500/10 text-green-800 dark:text-green-300',
+  warning: 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
+  danger: 'border-destructive/30 bg-destructive/10 text-destructive',
+};
+
+const CARD_ERRORS: Record<string, string> = {
+  rejected: 'No se registró la tarjeta (cancelaste o no es válida)',
+  expired: 'El enlace venció. Inténtalo de nuevo',
+  provider: 'Flow no respondió. Inténtalo más tarde',
+};
+
+/**
+ * Mi suscripción (solo el dueño): plan, medio de pago (tarjeta en Flow o transferencia), cobros pendientes, cupón,
+ * historial y cancelación. Flow vuelve acá con el resultado en la query (/billing?card=…&payment=…).
+ */
 @Component({
   selector: 'app-subscription',
   imports: [
@@ -76,7 +111,10 @@ export class SubscriptionComponent {
   readonly #whoami = inject(WhoamiService);
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
+  readonly #router = inject(Router);
+  readonly #route = inject(ActivatedRoute);
   readonly #destroyRef = inject(DestroyRef);
+  #recheckTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly $timeZone = injectBillingTimeZone();
   readonly statusLabels = SUBSCRIPTION_STATUS_LABELS;
@@ -140,7 +178,27 @@ export class SubscriptionComponent {
   });
 
   readonly coupon = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(40)] });
-  readonly $busy = signal<'coupon' | 'cancel' | 'resume' | null>(null);
+  readonly $busy = signal<Busy | null>(null);
+  /** El navegador va camino a Flow: todo deshabilitado. */
+  readonly $redirecting = signal(false);
+  readonly $notice = signal<FlowNotice | null>(null);
+  readonly noticeTones = NOTICE_TONES;
+
+  readonly #businessId = computed(() => this.#whoami.$whoami()?.user.restaurantId ?? null);
+  readonly $card = computed(() => cardLabel(this.$subscription()?.card ?? null));
+
+  /** Invitación a la prueba de Pro con tarjeta (plan Free sin prueba; se oculta ante TRIAL_NOT_AVAILABLE). */
+  readonly $showTrial = computed(() => {
+    const entitlements = this.#entitlements.$entitlements();
+    if (!entitlements || !this.#entitlements.$isOwner() || this.#entitlements.$isSuperAdmin()) return false;
+    const sub = this.$subscription();
+    return canOfferTrial(entitlements.plan.code, sub ? sub.status : null) && !isTrialHidden(this.#businessId());
+  });
+
+  constructor() {
+    this.#destroyRef.onDestroy(() => this.#clearRecheck());
+    this.#readFlowReturn();
+  }
 
   invoiceTitle(invoice: InvoiceWithPaymentsDto): string {
     return invoiceTitle(invoice, INTERVAL_LABELS);
@@ -207,7 +265,7 @@ export class SubscriptionComponent {
   }
 
   #run(
-    kind: 'coupon' | 'cancel' | 'resume',
+    kind: Busy,
     request: Observable<OwnerSubscriptionDto>,
     success: string,
     fallback: string,
@@ -232,5 +290,171 @@ export class SubscriptionComponent {
   #afterChange() {
     this.reload();
     this.#entitlements.refresh();
+  }
+
+  handleAddCard() {
+    if (this.$busy() || this.$redirecting()) return;
+    this.$busy.set('card');
+    this.#billing
+      .addCard()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: ({ redirectUrl }) => this.#redirect(redirectUrl),
+        error: (error: unknown) => {
+          this.$busy.set(null);
+          this.#toast.show(getBillingErrorMessage(error, 'No pudimos abrir el formulario de Flow'), 'error');
+        },
+      });
+  }
+
+  handleRemoveCard() {
+    if (this.$busy() || this.$redirecting()) return;
+    this.#dialog
+      .open<ConfirmModalComponent, ConfirmModalData, boolean>(ConfirmModalComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        data: {
+          title: 'Quitar tarjeta',
+          message: 'Los próximos cobros pasarán a transferencia. Puedes agregar una tarjeta cuando quieras.',
+          confirmText: 'Quitar tarjeta',
+          cancelText: 'Volver',
+          tone: 'danger',
+        },
+      })
+      .afterClosed()
+      .pipe(filter(Boolean), takeUntilDestroyed(this.#destroyRef))
+      .subscribe(() =>
+        this.#run('remove-card', this.#billing.removeCard(), 'Quitamos tu tarjeta: los próximos cobros son por transferencia', 'No se pudo quitar la tarjeta'),
+      );
+  }
+
+  /** Vuelve a cobrar el período pendiente a la tarjeta registrada (checkout del mismo precio). */
+  handlePayWithCard(invoice: InvoiceWithPaymentsDto) {
+    if (this.$busy() || this.$redirecting()) return;
+    const priceId = this.$subscription()?.price?.id ?? invoice.priceId;
+    this.$busy.set(`pay-${invoice.id}`);
+    this.#billing
+      .checkout({ priceId, method: 'flow' })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (result) => this.#handleCardCheckout(result),
+        error: (error: unknown) => {
+          this.$busy.set(null);
+          this.#toast.show(getBillingErrorMessage(error, 'No se pudo cobrar a tu tarjeta'), 'error');
+        },
+      });
+  }
+
+  handleStartTrial() {
+    if (this.$busy() || this.$redirecting()) return;
+    this.$busy.set('trial');
+    this.#billing
+      .startTrial()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: ({ redirectUrl }) => this.#redirect(redirectUrl),
+        error: (error: unknown) => {
+          this.$busy.set(null);
+          if (hasApiErrorCode(error, 'TRIAL_NOT_AVAILABLE')) hideTrial(this.#businessId());
+          this.#toast.show(getBillingErrorMessage(error, 'No pudimos activar la prueba'), 'error');
+        },
+      });
+  }
+
+  /** "Pagar por transferencia" del aviso de rechazo: lleva a los cobros pendientes. */
+  scrollToOpenInvoices() {
+    this.$notice.set(null);
+    document.getElementById('sub-open-invoices')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  dismissNotice() {
+    this.$notice.set(null);
+  }
+
+  #redirect(redirectUrl: string) {
+    this.$redirecting.set(true);
+    goToFlow(redirectUrl);
+  }
+
+  #handleCardCheckout(result: CheckoutResultDto) {
+    if (result.redirectUrl) {
+      this.#toast.show('Te llevamos a Flow para registrar tu tarjeta', 'success');
+      this.#redirect(result.redirectUrl);
+      return;
+    }
+    this.$busy.set(null);
+    this.#subscriptionResource.set({ ok: true, value: result.subscription });
+    if (result.charge) this.#showPayment(result.charge.status, result.charge.message);
+    this.#afterChange();
+  }
+
+  /** Lee la vuelta desde Flow (o desde el checkout con tarjeta), avisa y limpia la query. */
+  #readFlowReturn() {
+    const query = this.#route.snapshot.queryParamMap;
+    const card = query.get('card');
+    const payment = query.get('payment');
+    const trial = query.get('trial');
+    if (!card && !payment && !trial) return;
+    const state = (typeof history !== 'undefined' ? history.state : null) as { chargeMessage?: string | null } | null;
+
+    if (card === 'error') {
+      const text = CARD_ERRORS[query.get('reason') ?? ''] ?? 'No se registró la tarjeta. Inténtalo de nuevo';
+      this.#toast.show(text, 'error');
+      this.$notice.set({ tone: 'danger', icon: 'credit_card_off', title: text, text: null, retry: false });
+    } else if (trial === 'started') {
+      const text = 'Tu prueba gratis de 15 días del plan Pro comenzó';
+      this.#toast.show(text, 'success');
+      this.$notice.set({ tone: 'success', icon: 'rocket_launch', title: text, text: 'Ya puedes usar todas las funciones de Pro.', retry: false });
+    } else if (payment === 'paid' || payment === 'rejected' || payment === 'pending') {
+      this.#showPayment(payment, state?.chargeMessage ?? null);
+    } else if (card === 'ok') {
+      this.#toast.show('Tarjeta registrada', 'success');
+    }
+
+    this.#entitlements.refresh();
+    this.#router.navigate([], { relativeTo: this.#route, queryParams: {}, replaceUrl: true });
+  }
+
+  #showPayment(status: 'paid' | 'rejected' | 'pending', message: string | null) {
+    switch (status) {
+      case 'paid':
+        this.#toast.show('¡Listo! Tu plan está activo', 'success');
+        this.$notice.set({ tone: 'success', icon: 'verified', title: '¡Listo! Tu plan está activo', text: null, retry: false });
+        return;
+      case 'rejected':
+        this.#toast.show(message ? `El banco rechazó el cobro: ${message}` : 'El banco rechazó el cobro', 'error');
+        this.$notice.set({
+          tone: 'danger',
+          icon: 'credit_card_off',
+          title: 'El banco rechazó el cobro',
+          text: message ?? 'Prueba con otra tarjeta o paga por transferencia.',
+          retry: true,
+        });
+        return;
+      case 'pending':
+        this.#toast.show('Pago en proceso: te avisaremos cuando se confirme', 'warning');
+        this.$notice.set({
+          tone: 'warning',
+          icon: 'hourglass_top',
+          title: 'Pago en proceso',
+          text: 'Flow todavía está procesando el cobro. Te avisaremos cuando se confirme.',
+          retry: false,
+        });
+        this.#scheduleRecheck();
+        return;
+    }
+  }
+
+  #scheduleRecheck() {
+    this.#clearRecheck();
+    this.#recheckTimer = setTimeout(() => {
+      this.#recheckTimer = null;
+      this.#afterChange();
+    }, PENDING_RECHECK_MS);
+  }
+
+  #clearRecheck() {
+    if (this.#recheckTimer) clearTimeout(this.#recheckTimer);
+    this.#recheckTimer = null;
   }
 }

@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsDto, EntitlementsService } from 'src/app/core/services/entitlements';
+import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { IconComponent } from 'src/ui';
+import { canOfferTrial, isTrialHidden } from '../billing-format';
 
 const DEFAULT_TIME_ZONE = 'America/Santiago';
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -52,7 +54,7 @@ function validTimeZone(zone: string | null | undefined): string {
 }
 
 /**
- * Avisos de la suscripción arriba del contenido: prueba, pago atrasado, plan Free y fin de la suscripción
+ * Avisos de la suscripción arriba del contenido: prueba (y la invitación a activarla), pago atrasado, plan Free y fin de la suscripción
  * (solo al dueño), y usuario en solo lectura (a cualquier rol). Nunca a SUPERADMIN.
  */
 @Component({
@@ -101,6 +103,7 @@ function validTimeZone(zone: string | null | undefined): string {
 export class SubscriptionBannerComponent {
   readonly #entitlements = inject(EntitlementsService);
   readonly #settings = inject(BusinessSettingsService);
+  readonly #whoami = inject(WhoamiService);
 
   readonly tones = TONES;
   /** El dueño va a "Mi suscripción" (ahí elige plan y paga); el resto, a la comparación de planes. */
@@ -167,6 +170,16 @@ export class SubscriptionBannerComponent {
         icon: 'inventory_2',
         text: 'Estás en el plan Free. Tus datos están guardados: mejora tu plan para volver a usar todas las funciones.',
         action: 'Ver planes',
+        dismissible: true,
+      });
+    } else if (canOfferTrial(value.plan.code, value.status) && !isTrialHidden(this.#whoami.$whoami()?.user.restaurantId)) {
+      // Negocio nuevo en Free (la plataforma exige tarjeta para la prueba): la invitación está en "Mi suscripción".
+      banners.push({
+        key: 'trial-offer',
+        tone: 'primary',
+        icon: 'rocket_launch',
+        text: 'Activa tu prueba gratis de 15 días del plan Pro.',
+        action: 'Activar prueba',
         dismissible: true,
       });
     } else if (trialActive) {
