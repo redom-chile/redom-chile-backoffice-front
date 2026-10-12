@@ -351,6 +351,18 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 ---
 
+### 49. 🟡 Desplegar `billing` en AWS: falta desarrollo
+
+> Producción resuelta: el API Gateway nuevo `redom-chile-common-api` (`7t7c2w8zzf`) responde `/auth/api`, `/restaurant/api` y `/billing/api`. El front ya apunta ahí (`environment.prod.ts` y `projects/landing/netlify.toml`).
+
+**Problema:** el API Gateway de desarrollo (`8wsrt1c4dk`, el de `environment.develop.ts`) responde `/auth/api` y `/restaurant/api`, pero `/billing/api/*` da 404 del propio API Gateway (igual que una ruta inexistente): falta la ruta `ANY /billing/{proxy+}` y la Lambda `redom-chile-billing` en ese ambiente.
+
+**Se pide:** aplicar en desarrollo lo mismo que en producción (prompt en `docs/backend-prompts/despliegue-billing-aws.md`). En producción, poner los precios de los planes desde Plataforma: hoy `plans/public` los devuelve sin precios.
+
+**Front mientras tanto:** en desarrollo, sin entitlements no se restringe nada y las pantallas de cobros fallan.
+
+---
+
 ## Resueltas
 
 ### 49. 🟡 Crear un proveedor pide el permiso de clientes
