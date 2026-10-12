@@ -28,6 +28,11 @@ const isOwner = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code ===
 /**
  * Con negocio: ¿falta el paso "Tu local"? undefined si whoami no trae locationsCount (hay que consultar los locales).
  */
+export const isSuperAdmin = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code === 'SUPERADMIN');
+
+/** Inicio del equipo de Redom (SUPERADMIN) cuando no tiene negocio propio. */
+export const SUPERADMIN_HOME = '/platform/summary';
+
 export function needsLocationStep(whoami: WhoamiDto): boolean | undefined {
   if (!isOwner(whoami)) return false;
   const count = whoami.user.locationsCount;
@@ -113,10 +118,13 @@ export class WhoamiService implements OnDestroy {
   }
 
   // Adónde ir después de iniciar sesión: sin negocio o sin local → onboarding.
+  // SUPERADMIN sin negocio → Plataforma (no se le pide crear uno; puede entrar a /onboarding si quiere).
   homeRoute(): Observable<string> {
     return this.load().pipe(
-      switchMap((whoami) => this.needsOnboarding(whoami)),
-      map((pending) => (pending ? '/onboarding' : '/dashboard/admin')),
+      switchMap((whoami) => {
+        if (whoami && isSuperAdmin(whoami) && !whoami.user.restaurantId) return of(SUPERADMIN_HOME);
+        return this.needsOnboarding(whoami).pipe(map((pending) => (pending ? '/onboarding' : '/dashboard/admin')));
+      }),
     );
   }
 

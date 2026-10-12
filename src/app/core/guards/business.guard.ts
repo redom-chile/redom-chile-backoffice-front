@@ -3,19 +3,22 @@ import { CanActivateFn, Router } from '@angular/router';
 import { map, switchMap } from 'rxjs';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
 import { WhoamiDto } from '../services/whoami/dtos';
-import { needsLocationStep, WhoamiService } from '../services/whoami/whoami.service';
+import { isSuperAdmin, needsLocationStep, SUPERADMIN_HOME, WhoamiService } from '../services/whoami/whoami.service';
 
 // Con sesión pero sin negocio, o dueño sin ningún local activo → onboarding (sin negocio el backend responde 403 en casi todo).
 // Si whoami no trae locationsCount (respuesta antigua), solo se exige el negocio.
-// Excepción: el equipo de Redom (SUPERADMIN) administra el centro de ayuda y la plataforma aunque no tenga negocio.
+// Excepción: el equipo de Redom (SUPERADMIN) no necesita negocio. Sin negocio usa la plataforma y el centro de ayuda,
+// y las pantallas del restaurante (que exigen negocio en el backend) lo llevan a Plataforma, no al onboarding.
 export const businessGuard: CanActivateFn = (_route, state) => {
   if (!inject(AuthService).isLogin()) return true; // authGuard de cada ruta se encarga.
   const router = inject(Router);
   const whoamiService = inject(WhoamiService);
-  const isHelpAdmin = (whoami: WhoamiDto) =>
-    (state.url.startsWith('/help/admin') || state.url.startsWith('/platform')) && whoami.roles.some((role) => role.code === 'SUPERADMIN');
-  const allow = (whoami: WhoamiDto) =>
-    !isHelpAdmin(whoami) && (!whoami.user.restaurantId || needsLocationStep(whoami) === true) ? router.parseUrl('/onboarding') : true;
+  const allow = (whoami: WhoamiDto) => {
+    if (isSuperAdmin(whoami) && !whoami.user.restaurantId) {
+      return state.url.startsWith('/platform') || state.url.startsWith('/help') ? true : router.parseUrl(SUPERADMIN_HOME);
+    }
+    return !whoami.user.restaurantId || needsLocationStep(whoami) === true ? router.parseUrl('/onboarding') : true;
+  };
   const known = whoamiService.$whoami();
   if (known) return allow(known);
   return whoamiService.load().pipe(map((whoami) => (whoami ? allow(whoami) : true)));
