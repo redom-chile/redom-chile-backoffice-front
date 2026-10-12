@@ -6,6 +6,7 @@ import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
 import { PlanLimitCode } from 'src/app/core/services/entitlements';
 import {
+  BillingJobSummaryDto,
   PlatformInvoiceDto,
   PlatformInvoiceFiltersDto,
   RegisterPaymentDto,
@@ -159,5 +160,10 @@ export class PlatformService {
   /** CSV (UTF-8 con BOM) de pagos y reversos; por defecto el mes actual, máx. 366 días. Va con Bearer (interceptor). */
   exportPayments(range: { from?: string; to?: string }): Observable<Blob> {
     return this.#http.get(`${BASE}/payments/export`, { params: toHttpParams(range), responseType: 'blob' });
+  }
+
+  /** Proceso diario de cobros (normalmente a las 09:00 UTC). Correrlo dos veces el mismo día no duplica cobros ni correos. */
+  runDailyJob(): Observable<BillingJobSummaryDto> {
+    return this.#http.post<BillingJobSummaryDto>(`${ApiPathEnum.BILLING}/platform/jobs/billing-daily`, {});
   }
 }

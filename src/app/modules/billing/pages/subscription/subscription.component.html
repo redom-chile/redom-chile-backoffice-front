@@ -117,9 +117,26 @@
       </li>
       }
       @if (sub.status === 'expired' || sub.status === 'cancelled') {
-      <li class="text-muted-foreground flex items-center gap-2">
-        <app-icon class="h-4 w-4" aria-hidden="true">info</app-icon>
-        Tus datos siguen guardados. Elige un plan para volver a usar todas las funciones.
+      <li class="flex flex-col gap-2 rounded-xl border border-[var(--border)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <span class="text-foreground flex items-start gap-2">
+          <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+          <span>
+            @if (sub.status === 'cancelled') {
+            Tu suscripción terminó el {{ (sub.currentPeriodEnd ?? sub.trialEndsAt ?? sub.updatedAt) | billingDate: tz }}. Estás en Free.
+            } @else {
+            Tu plan venció. Estás en Free.
+            }
+            Tus datos siguen guardados.
+          </span>
+        </span>
+        <span class="flex shrink-0 gap-2" *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT">
+          @if (sub.status === 'expired' && sub.price) {
+          <button type="button" class="bg-primary text-primary-foreground rounded-full px-4 py-1.5 text-sm font-semibold hover:opacity-90" (click)="handleReactivate()">
+            Reactivar
+          </button>
+          }
+          <a routerLink="/billing/plans" class="glass-row rounded-full px-4 py-1.5 text-sm font-medium">Elegir un plan</a>
+        </span>
       </li>
       }
       @if (sub.scheduledPlan; as scheduled) {

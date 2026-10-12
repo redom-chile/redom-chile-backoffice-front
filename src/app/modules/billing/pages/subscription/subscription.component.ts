@@ -52,6 +52,7 @@ import {
 } from '../../features/billing-format';
 import { InvoicePaymentsComponent } from '../../features/invoice-payments';
 import { openReportTransferModal } from '../../features/report-transfer-modal';
+import { openCheckoutModal } from '../../features/checkout-modal';
 
 const HISTORY_PER_PAGE = 10;
 /** Pago en proceso en Flow: se vuelve a consultar una vez. */
@@ -207,6 +208,21 @@ export class SubscriptionComponent {
   /** Un cobro con una transferencia rechazada y nada en revisión: se puede informar de nuevo. */
   hasRejected(invoice: InvoiceWithPaymentsDto): boolean {
     return invoice.payments.some((payment) => payment.status === 'rejected');
+  }
+
+  /** Plan vencido: compra nueva del mismo plan y precio (action purchase). */
+  handleReactivate() {
+    const sub = this.$subscription();
+    if (!sub?.price) return;
+    openCheckoutModal(this.#dialog, { plan: sub.plan, price: sub.price, subscription: sub, timeZone: this.$timeZone() })
+      .pipe(filter(Boolean), takeUntilDestroyed(this.#destroyRef))
+      .subscribe((result) => {
+        // Con tarjeta el modal ya llevó a Flow o recargó esta página con el resultado del cobro.
+        if (result.redirectUrl || result.charge) return;
+        this.#entitlements.refresh();
+        this.#toast.show('Generamos tu cobro. Transfiere y avísanos con "Ya transferí".', 'success');
+        this.reload();
+      });
   }
 
   reload() {

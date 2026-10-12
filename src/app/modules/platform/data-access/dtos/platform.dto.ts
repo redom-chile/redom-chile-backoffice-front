@@ -323,3 +323,23 @@ export type RegisterPaymentDto = Readonly<{
   receiptFileId?: string | null;
   comment?: string | null;
 }>;
+
+// --- Proceso diario (fase 6) ---
+
+/** ran false: ya había una ejecución en curso. errors > 0: algunas suscripciones fallaron (ver logs). */
+export type BillingJobSummaryDto = Readonly<{
+  startedAt: string;
+  finishedAt: string;
+  ran: boolean;
+  purchasesVoided: number;
+  trialsEnded: number;
+  renewals: number;
+  cardCharges: Readonly<{ paid: number; rejected: number; pending: number }>;
+  pastDue: number;
+  expired: number;
+  cancelled: number;
+  invoicesOverdue: number;
+  emails: number;
+  overridesExpired: number;
+  errors: number;
+}>;
