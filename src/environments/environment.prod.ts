@@ -1,5 +1,5 @@
 // Backend de producción aún no desplegado: confirmar la URL cuando exista.
-const baseUrl = 'https://3rns8qoa8g.execute-api.us-east-1.amazonaws.com';
+const baseUrl = 'https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com';
 
 export const environment = {
   production: true,
