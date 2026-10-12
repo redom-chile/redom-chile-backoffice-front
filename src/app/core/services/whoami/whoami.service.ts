@@ -30,8 +30,12 @@ const isOwner = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code ===
  */
 export const isSuperAdmin = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code === 'SUPERADMIN');
 
-/** Inicio del equipo de Redom (SUPERADMIN) cuando no tiene negocio propio. */
+/** Inicio del equipo de Redom (SUPERADMIN): la plataforma, no la gestión de un negocio. */
 export const SUPERADMIN_HOME = '/platform/summary';
+
+/** Lo único que usa el SUPERADMIN: plataforma (suscripciones y planes), centro de ayuda y su perfil. */
+export const isSuperAdminUrl = (url: string | null | undefined) =>
+  !!url && ['/platform', '/help', '/profile'].some((prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`));
 
 export function needsLocationStep(whoami: WhoamiDto): boolean | undefined {
   if (!isOwner(whoami)) return false;
@@ -118,11 +122,11 @@ export class WhoamiService implements OnDestroy {
   }
 
   // Adónde ir después de iniciar sesión: sin negocio o sin local → onboarding.
-  // SUPERADMIN sin negocio → Plataforma (no se le pide crear uno; puede entrar a /onboarding si quiere).
+  // SUPERADMIN → Plataforma: no gestiona negocios.
   homeRoute(): Observable<string> {
     return this.load().pipe(
       switchMap((whoami) => {
-        if (whoami && isSuperAdmin(whoami) && !whoami.user.restaurantId) return of(SUPERADMIN_HOME);
+        if (whoami && isSuperAdmin(whoami)) return of(SUPERADMIN_HOME);
         return this.needsOnboarding(whoami).pipe(map((pending) => (pending ? '/onboarding' : '/dashboard/admin')));
       }),
     );

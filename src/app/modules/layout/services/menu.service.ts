@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs';
 import { Menu } from 'src/app/core/constants/menu';
 import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
 import { AccessService, isPublicUrl, permissionForUrl } from 'src/app/core/permissions';
-import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
+import { isSuperAdminUrl, WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { EntitlementsService, planFeaturesForUrl } from 'src/app/core/services/entitlements';
@@ -50,6 +50,12 @@ export class MenuService implements OnDestroy {
     const isLocked = (route: string | null | undefined) => !this.#entitlements.hasFeatures(planFeaturesForUrl(route));
     // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
     const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
+    // El SUPERADMIN no gestiona negocios: solo ve la plataforma y el centro de ayuda.
+    if (roles.has('SUPERADMIN')) {
+      return this._pagesMenu()
+        .map((group) => ({ ...group, items: group.items.filter((item) => isVisible(item) && isSuperAdminUrl(item.route)) }))
+        .filter((group) => group.items.length > 0);
+    }
     return this._pagesMenu().map((group) => ({
       ...group,
       items: group.items.filter(isVisible).map((item) => {
