@@ -9,10 +9,24 @@
     [currentImageUrl]="product.imageUrl"
     [uploading]="$isUploading()"
     [uploadProgress]="$uploadProgress()"
+    [inventoryEnabled]="$inventoryEnabled()"
+    [ingredientsEnabled]="$ingredientsEnabled()"
+    [units]="$units()"
     (imageChange)="onImageChange($event)" [autoSuggestSku]="false" />
 
   <ng-template app-slot="footer">
-    <div class="flex justify-end gap-3">
+    <div class="flex flex-wrap items-center justify-end gap-3">
+      @if ($canConfigureRecipe()) {
+      <button
+        type="button"
+        class="text-primary mr-auto inline-flex items-center gap-1 text-sm font-medium hover:underline disabled:opacity-50"
+        title="Abre el editor de recetas (los cambios sin guardar de este formulario se pierden)"
+        [disabled]="$isLoading()"
+        (click)="handleConfigureRecipe()">
+        <app-icon class="h-5 w-5">menu_book</app-icon>
+        Configurar receta
+      </button>
+      }
       <app-button type="button" impact="light" [disabled]="$isLoading()" (buttonClick)="handleCancel()"> Cancelar </app-button>
       <app-button type="button" impact="bold" [disabled]="$isLoading()" [isLoading]="$isLoading()" (buttonClick)="handleSubmit()">
         Guardar cambios

@@ -1,9 +1,10 @@
-import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
 import { UpdateRoleDto } from './dtos';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiPathEnum } from 'src/environments';
+import { ApiError, readApiError } from 'src/app/core/utils';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +13,7 @@ export class UpdateRoleService {
   readonly #httpClient = inject(HttpClient);
 
   readonly #isLoading$ = new BehaviorSubject(false);
-  readonly #error$ = new Subject<HttpStatusCode | undefined>();
+  readonly #error$ = new Subject<ApiError | undefined>();
   readonly #submit$ = new Subject<UpdateRoleDto>();
   readonly #success$ = new Subject<boolean>();
 
@@ -29,6 +30,7 @@ export class UpdateRoleService {
         switchMap((input) =>
           this.#httpClient
             .patch(`${ApiPathEnum.AUTH}/roles-and-permissions/roles/${input.id}`, {
+              code: input.code,
               name: input.name,
             })
             .pipe(
@@ -36,8 +38,8 @@ export class UpdateRoleService {
                 this.#success$.next(true);
                 this.#isLoading$.next(false);
               }),
-              catchError((error: HttpErrorResponse) => {
-                this.#error$.next(error.status);
+              catchError((error: unknown) => {
+                this.#error$.next(readApiError(error));
                 this.#success$.next(false);
                 this.#isLoading$.next(false);
                 return EMPTY;

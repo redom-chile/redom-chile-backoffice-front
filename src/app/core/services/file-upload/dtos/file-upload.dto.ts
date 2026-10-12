@@ -1,4 +1,6 @@
-export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images';
+// expense_documents: boletas y facturas de gastos (imagen o PDF, hasta 10 MB).
+// billing_receipts: comprobantes de transferencias de la suscripción (imagen o PDF, hasta 10 MB).
+export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images' | 'expense_documents' | 'billing_receipts';
 
 export type RequestUploadUrlDto = Readonly<{
   folder: StorageFolder;

@@ -3,6 +3,7 @@ import { ButtonComponent, HeaderDashboardComponent, IconComponent } from 'src/ui
 import { GetAllUsersWithRolesService } from './data-access';
 import { RolesUserTableComponent } from './features';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-roles-user',
@@ -17,6 +18,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './roles-user.component.html',
 })
 export class RolesUserComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   protected readonly $service = inject(GetAllUsersWithRolesService);
 
   page = 1;

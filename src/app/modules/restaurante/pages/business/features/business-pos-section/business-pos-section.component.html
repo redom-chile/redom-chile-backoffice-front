@@ -1,0 +1,129 @@
+<app-card>
+  <div class="border-border border-b border-dashed p-4">
+    <h2 class="text-foreground text-base font-semibold">Punto de venta</h2>
+    <p class="text-muted-foreground mt-0.5 text-xs">Cómo tomas y cobras los pedidos en el POS.</p>
+  </div>
+
+  <div class="divide-border divide-y divide-dashed">
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Trabajo con mesas</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">Permite asignar una mesa a cada pedido.</p>
+      </div>
+      <app-toggle
+        aria-label="Trabajo con mesas"
+        [checked]="$tablesEnabled()"
+        [disabled]="$isSaving() || !$canEdit()"
+        (changed)="$tablesEnabled.set($event)" />
+    </div>
+
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Uso meseros</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">Permite indicar qué mesero atiende cada pedido.</p>
+      </div>
+      <app-toggle
+        aria-label="Uso meseros"
+        [checked]="$waiterEnabled()"
+        [disabled]="$isSaving() || !$canEdit()"
+        (changed)="setWaiterEnabled($event)" />
+    </div>
+
+    <div class="flex items-start justify-between gap-4 p-4" [class.opacity-60]="!$waiterEnabled()">
+      <div>
+        <p class="text-foreground text-sm font-medium">Mesero obligatorio al tomar pedidos</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          @if ($waiterEnabled()) {
+          No se podrá crear un pedido sin elegir mesero.
+          } @else {
+          Activa "Uso meseros" para poder exigirlo.
+          }
+        </p>
+      </div>
+      <app-toggle
+        aria-label="Mesero obligatorio al tomar pedidos"
+        [checked]="$waiterEnabled() && $staffRequired()"
+        [disabled]="$isSaving() || !$waiterEnabled() || !$canEdit()"
+        (changed)="$staffRequired.set($event)" />
+    </div>
+
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Caja y turnos</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">
+          Se abre la caja con un fondo, se cobra dentro del turno y se cierra con arqueo ciego y reporte Z.
+          Apagado, el POS cobra sin caja.
+        </p>
+        @if ($cashEnabled()) {
+        <p class="mt-1 flex flex-wrap gap-x-3 text-xs">
+          <a routerLink="/settings/registers" class="text-primary font-medium hover:underline">Configurar cajas</a>
+          <a routerLink="/cash" class="text-primary font-medium hover:underline">Ver turnos</a>
+        </p>
+        }
+      </div>
+      <app-toggle
+        aria-label="Caja y turnos"
+        [checked]="$cashEnabled()"
+        [disabled]="$isSaving() || !$canEdit()"
+        (changed)="$cashEnabled.set($event)" />
+    </div>
+
+    <div class="p-4 sm:max-w-xs">
+      <label for="business-tip" class="text-foreground mb-1 block text-sm font-medium">Propina sugerida (%)</label>
+      <input
+        id="business-tip"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        max="100"
+        step="0.01"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="$tipError()"
+        [value]="$tipPercent()"
+        [disabled]="$isSaving() || !$canEdit()"
+        [attr.aria-invalid]="!!$tipError()"
+        aria-describedby="business-tip-hint"
+        (input)="onTipInput($event)" />
+      @if ($tipError(); as error) {
+      <p id="business-tip-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
+      } @else {
+      <p id="business-tip-hint" class="text-muted-foreground mt-1 text-xs">Se propone al cobrar y en la precuenta. 0 = sin sugerencia.</p>
+      }
+    </div>
+
+    <div class="p-4 sm:max-w-md">
+      <label for="business-tip-mode" class="text-foreground mb-1 block text-sm font-medium">Reparto de propinas</label>
+      <select
+        id="business-tip-mode"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [disabled]="$isSaving() || !$canEdit()"
+        aria-describedby="business-tip-mode-hint"
+        (change)="onTipModeChange($event)">
+        @for (mode of tipModes; track mode) {
+        <option [value]="mode" [selected]="$tipMode() === mode">{{ tipModeLabels[mode] }}</option>
+        }
+      </select>
+      <p id="business-tip-mode-hint" class="text-muted-foreground mt-1 text-xs">
+        {{ tipModeHints[$tipMode()] }} Es el modo por defecto; puedes cambiarlo en cada
+        <a routerLink="/finance/tips" class="text-primary font-medium hover:underline">liquidación</a>.
+      </p>
+    </div>
+  </div>
+
+  @if ($canEdit()) {
+  <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
+    @if ($hasChanges()) {
+    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()">Descartar</app-button>
+    }
+    <app-button
+      impact="bold"
+      tone="primary"
+      type="button"
+      [disabled]="!$hasChanges() || !$isValid() || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar
+    </app-button>
+  </div>
+  }
+</app-card>

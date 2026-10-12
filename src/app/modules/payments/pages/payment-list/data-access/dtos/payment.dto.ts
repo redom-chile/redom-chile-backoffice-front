@@ -16,6 +16,8 @@ export type PaymentDto = Readonly<{
   cancelledAt: string | null;
   cancelledBy: string | null;
   cancellationReason: string | null;
+  // Productos que cubrió el pago ([] si fue por monto).
+  lines?: ReadonlyArray<{ sellLineId: number; productName?: string; quantity: number; amount: number }>;
 }>;
 
 export type PaymentFiltersDto = Readonly<{

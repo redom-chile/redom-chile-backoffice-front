@@ -1,5 +1,5 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, of, shareReplay, Subject, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, map, Observable, shareReplay, Subject, switchMap, tap, throwError } from 'rxjs';
 import {
   GoogleSessionDto,
   LoginInputDto,
@@ -12,7 +12,6 @@ import {
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiPathEnum } from 'src/environments';
-import { environment } from 'src/environments/environment';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 
 @Injectable({
@@ -264,6 +263,12 @@ export class AuthService {
     localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem(this.userDataKey);
     localStorage.removeItem(this.lastActivityKey);
+    // Conversación con el asistente del centro de ayuda (HELP_CHAT_STORAGE_KEY).
+    try {
+      sessionStorage.removeItem('redom.help-chat');
+    } catch {
+      // Sin sessionStorage no hay nada que borrar.
+    }
     this.token = null;
     this.refreshToken = null;
     this.currentUserLoginOn.next(false);
@@ -276,12 +281,6 @@ export class AuthService {
 
   hasRole(roles: string[]): Observable<boolean> {
     return this.#whoami.roles$.pipe(map((userRoles) => roles.some((role) => userRoles.has(role))));
-  }
-
-  hasPermission(permissions: string[]): Observable<boolean> {
-    // Con los permisos apagados (environment.enforcePermissions) todo está permitido en el front.
-    if (!environment.enforcePermissions) return of(true);
-    return this.#whoami.permissions$.pipe(map((userPermissions) => permissions.some((p) => userPermissions.has(p))));
   }
 
   isLogin() {

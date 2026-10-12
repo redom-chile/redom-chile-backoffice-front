@@ -1,0 +1,118 @@
+@let duplicated = duplicatedNames();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-foreground text-xl font-semibold">{{ isEdit ? 'Editar set de modificadores' : 'Nuevo set de modificadores' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="space-y-4" (ngSubmit)="handleSubmit()">
+    <div>
+      <label for="modifier-set-name" class="text-foreground mb-1 block text-sm font-medium">Nombre del set *</label>
+      <input
+        id="modifier-set-name"
+        type="text"
+        formControlName="name"
+        maxlength="100"
+        placeholder="Ej: Agregados, Punto de la carne"
+        [class]="inputClass"
+        [class.border-red-500]="isInvalid(form.controls.name)" />
+      @if (isInvalid(form.controls.name)) {
+      <p class="mt-1 text-xs text-red-600">Ingresa un nombre.</p>
+      }
+    </div>
+
+    <div>
+      <div class="mb-2 flex items-end justify-between gap-2">
+        <div>
+          <p class="text-foreground text-sm font-medium">Opciones *</p>
+          <p class="text-muted-foreground text-xs">Precio con IVA que se suma al producto. Usa 0 si no tiene costo.</p>
+        </div>
+      </div>
+
+      <div class="max-h-[50vh] space-y-3 overflow-y-auto pr-1" formArrayName="options">
+        @for (option of options.controls; track option; let i = $index) {
+        @let isNew = option.controls.id.value === null;
+        @let isDuplicatedName = isDuplicated(option, duplicated);
+        <div class="glass-row rounded-md p-3" [formGroupName]="i">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <div class="min-w-0 flex-1">
+              <label [for]="'option-name-' + i" class="text-muted-foreground mb-1 block text-xs font-medium">Nombre</label>
+              <input
+                [id]="'option-name-' + i"
+                type="text"
+                formControlName="name"
+                maxlength="100"
+                placeholder="Ej: Extra queso"
+                [class]="inputClass"
+                [class.border-red-500]="isInvalid(option.controls.name) || isDuplicatedName" />
+              @if (isInvalid(option.controls.name)) {
+              <p class="mt-1 text-xs text-red-600">Ingresa un nombre.</p>
+              } @else if (isDuplicatedName) {
+              <p class="mt-1 text-xs text-red-600">Ya hay otra opción con este nombre.</p>
+              }
+            </div>
+            <div class="flex items-start gap-2">
+              <div class="w-full sm:w-32">
+                <label [for]="'option-price-' + i" class="text-muted-foreground mb-1 block text-xs font-medium">Precio ($)</label>
+                <input
+                  [id]="'option-price-' + i"
+                  type="number"
+                  formControlName="price"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="0"
+                  [class]="inputClass"
+                  [class.border-red-500]="isInvalid(option.controls.price)" />
+                @if (isInvalid(option.controls.price)) {
+                <p class="mt-1 text-xs text-red-600">Entero desde 0.</p>
+                }
+              </div>
+              @if (isNew) {
+              <button
+                type="button"
+                title="Quitar opción"
+                [attr.aria-label]="'Quitar opción ' + (i + 1)"
+                class="text-muted-foreground mt-5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50"
+                [disabled]="$isSaving()"
+                (click)="removeOption(i)">
+                <app-icon class="h-5 w-5">delete</app-icon>
+              </button>
+              } @else {
+              <span class="mt-5 inline-flex h-10 w-10 shrink-0" aria-hidden="true"></span>
+              }
+            </div>
+          </div>
+        </div>
+        } @empty {
+        <p class="text-muted-foreground rounded-md border border-dashed border-[var(--border)] p-4 text-center text-sm">
+          Agrega al menos una opción. Ej: Extra queso $800, Sin hielo $0.
+        </p>
+        }
+      </div>
+
+      <button
+        type="button"
+        class="text-primary hover:bg-primary/10 mt-3 inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold disabled:opacity-50"
+        [disabled]="$isSaving()"
+        (click)="addOption()">
+        <app-icon class="h-5 w-5">add</app-icon>
+        Agregar opción
+      </button>
+
+      @if (isEdit) {
+      <p class="text-muted-foreground mt-2 text-xs">
+        Las opciones ya guardadas se pueden editar, pero aún no se pueden eliminar.
+      </p>
+      }
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ isEdit ? 'Guardar cambios' : 'Crear set' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

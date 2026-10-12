@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
-import { businessGuard, terminalModeGuard } from './core';
+import { businessGuard, permissionGuard, terminalModeGuard } from './core';
+import { planFeatureGuard } from './core/services/entitlements';
 
 export const routes: Routes = [
   {
@@ -14,7 +15,8 @@ export const routes: Routes = [
   },
   {
     path: '',
-    canActivateChild: [terminalModeGuard, businessGuard],
+    // Permiso del rol y luego plan del negocio: sin permiso no se ofrece mejorar el plan.
+    canActivateChild: [terminalModeGuard, businessGuard, permissionGuard, planFeatureGuard],
     loadChildren: () => import('./modules/layout/layout.routes'),
   },
   {

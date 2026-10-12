@@ -31,6 +31,8 @@ export class GetAllProductsService {
         return this.#httpClient
           .get<StandardizedPagination<ProductDto>>(`${ApiPathEnum.RESTAURANT}/products`, { params: httpParams })
           .pipe(
+            // Los sets de modificadores también son productos; se administran en Carta → Modificadores.
+            map((page) => ({ ...page, data: page.data.filter((product) => product.type !== 'modifier') })),
             tap(() => this.#isLoading$.next(false)),
             catchError((error: HttpErrorResponse) => {
               this.#error$.next(error.status);

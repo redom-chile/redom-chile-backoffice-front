@@ -1,0 +1,41 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ data.title }}</h2>
+  </ng-template>
+
+  <div class="space-y-3 py-2">
+    @if (data.message) {
+    <p class="text-muted-foreground text-sm">{{ data.message }}</p>
+    }
+    <div class="flex flex-col gap-2" role="radiogroup" aria-label="Caja">
+      @for (register of data.registers; track register.id) {
+      <button
+        type="button"
+        role="radio"
+        class="flex min-h-[52px] items-center gap-3 rounded-lg border-2 px-3 py-2 text-left transition-colors"
+        [class]="$selected() === register.id ? 'border-primary bg-primary/10' : 'glass-row border-transparent'"
+        [attr.aria-checked]="$selected() === register.id"
+        (click)="$selected.set(register.id)">
+        <app-icon class="h-5 w-5 shrink-0" [class.text-primary]="$selected() === register.id">point_of_sale</app-icon>
+        <span class="min-w-0 flex-1">
+          <span class="text-foreground block truncate text-sm font-medium">{{ register.name }}</span>
+          <span class="text-muted-foreground block truncate text-xs">
+            @if (register.openSession; as session) {
+            Abierta{{ session.openedByName ? ' por ' + session.openedByName : '' }}
+            } @else {
+            Cerrada
+            }
+          </span>
+        </span>
+      </button>
+      }
+    </div>
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" (buttonClick)="cancel()">Cancelar</app-button>
+      <app-button type="button" full impact="bold" [disabled]="$selected() === null" (buttonClick)="confirm()">Usar esta caja</app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

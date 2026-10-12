@@ -48,7 +48,17 @@
         @if ($isRunning()) {
         <app-button full impact="light" tone="danger" shape="rounded" icon="stop" (buttonClick)="stop()">Detener</app-button>
         } @else {
-        <app-button full impact="bold" tone="primary" shape="rounded" icon="play_arrow" (buttonClick)="start()">Iniciar</app-button>
+        <app-button
+          full
+          impact="bold"
+          tone="primary"
+          shape="rounded"
+          icon="play_arrow"
+          [disabled]="!$canRun()"
+          [attr.title]="$canRun() ? null : 'No tienes permiso para esta acción'"
+          (buttonClick)="start()">
+          Iniciar
+        </app-button>
         }
         <app-button full impact="light" tone="primary" shape="rounded" icon="print" (buttonClick)="printTest()">Prueba</app-button>
       </div>

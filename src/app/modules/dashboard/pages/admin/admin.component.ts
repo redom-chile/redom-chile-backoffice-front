@@ -7,8 +7,11 @@ import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/page
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { paymentMethodLabel } from 'src/app/modules/payments/pages/payment-list/ui';
-import { GetDashboardMetricsService } from './data-access';
-import { KpiCardComponent, RecentOrdersCardComponent, TopProductsCardComponent } from './features';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
+import { ExpiryAlertComponent, LowStockAlertComponent } from 'src/app/modules/inventory/pages/stock/features';
+import { GetDashboardMetricsService, GettingStartedStore } from './data-access';
+import { GettingStartedComponent, KpiCardComponent, RecentOrdersCardComponent, TopProductsCardComponent } from './features';
 import {
   BreakdownChartComponent,
   BreakdownItem,
@@ -56,6 +59,9 @@ function toQuery(params: ParamMap): DashboardQuery {
     RecentOrdersCardComponent,
     SalesByDayChartComponent,
     BreakdownChartComponent,
+    LowStockAlertComponent,
+    ExpiryAlertComponent,
+    GettingStartedComponent,
   ],
   templateUrl: './admin.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -109,6 +115,18 @@ export class AdminComponent implements OnInit {
     () => this.$locations().find((location) => location.id === this.$locationId())?.name ?? 'Todas las sucursales',
   );
 
+  // Alerta de stock: la sucursal elegida o, con "todas", el local recordado del inventario.
+  private readonly inventoryLocationStore = inject(InventoryLocationStore);
+  readonly $inventoryEnabled = inject(BusinessSettingsService).$inventoryEnabled;
+  readonly $inventoryLocationId = computed(() => this.$locationId() ?? this.inventoryLocationStore.$locationId());
+  readonly $inventoryLocationHint = computed(() => {
+    const name = this.$locations().find((location) => location.id === this.$inventoryLocationId())?.name;
+    return name ? `En ${name}` : 'En el local elegido';
+  });
+
+  // Checklist de primeros pasos: oculto por el usuario (en este navegador) se reabre desde un enlace.
+  readonly gettingStarted = inject(GettingStartedStore);
+
   readonly $comparison = computed(() => comparisonLabel(this.$query().preset));
   readonly $includesToday = computed(() => this.$query().to >= toDateKey(new Date()));
 
@@ -159,6 +177,12 @@ export class AdminComponent implements OnInit {
 
   handleRetry() {
     this.metricsService.retry();
+  }
+
+  handleLowStock() {
+    const locationId = this.$inventoryLocationId();
+    if (locationId) this.inventoryLocationStore.select(locationId);
+    this.router.navigate(['/inventory'], { queryParams: { low: 'true' } });
   }
 
   private navigate(queryParams: Record<string, string | null>) {

@@ -147,6 +147,15 @@
       radial-gradient(ellipse at 85% 70%, var(--body-bg-bottom) 0%, transparent 60%),
       var(--background);
     background-attachment: fixed;
+    /* Texto base del tema: lo que no define color (botones, selects) no queda negro en modo oscuro. */
+    color: var(--foreground);
+  }
+
+  /* Opciones de los <select> nativos según el tema. */
+  select option,
+  select optgroup {
+    background-color: var(--background);
+    color: var(--foreground);
   }
 }
 
@@ -724,30 +733,31 @@ select {
 .redom-glass {
   position: relative;
   z-index: 1;
-  border-radius: 48px;
-  background: rgba(255, 255, 255, 0.42);
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(28px) saturate(170%);
-  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.9),
-    0 40px 80px rgba(28, 24, 21, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 24px 48px -24px rgba(28, 24, 21, 0.25);
   color: #1c1815;
 }
 .dark .redom-glass {
-  background: rgba(251, 248, 243, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(251, 248, 243, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.35),
-    0 40px 80px rgba(0, 0, 0, 0.45);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 24px 48px -24px rgba(0, 0, 0, 0.5);
   color: #f4eee6;
 }
 
 /* Manchas difuminadas detrás del panel; el ají queda detrás del punto del isotipo. */
 .redom-glow {
   position: absolute;
-  inset: -25% -15%;
+  inset: -15% -10%;
   z-index: 0;
+  opacity: 0.45;
   pointer-events: none;
 }
 .redom-glow::before,
@@ -797,4 +807,43 @@ select {
     -webkit-backdrop-filter: none;
   }
   .dark .redom-glass { background: #2a241f; }
+}
+
+/*
+ * Íconos: <app-icon> toma el tamaño que le dan sus clases (h-4 w-4, h-5 w-5…) y el glifo se ajusta a ese
+ * tamaño. Sin clases mide 24 px, como antes. El tamaño por defecto va en base para que las utilidades lo
+ * reemplacen; el ajuste del <mat-icon> va sin capa para ganarle a los estilos de Angular Material.
+ */
+@layer base {
+  app-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    line-height: 1;
+    vertical-align: middle;
+    container-type: size;
+  }
+}
+
+app-icon > .mat-icon {
+  width: 100%;
+  height: 100%;
+  font-size: 100cqmin;
+  line-height: 1;
+}
+
+/* Tooltips con explicación (ej. tarjetas del Resumen): varias líneas y legibles en ambos temas. */
+.redom-tooltip .mdc-tooltip__surface {
+  max-width: 17rem !important;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.5rem !important;
+  background-color: var(--foreground) !important;
+  color: var(--background) !important;
+  font-size: 0.75rem !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  white-space: normal !important;
 }

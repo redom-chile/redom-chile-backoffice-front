@@ -8,6 +8,9 @@
     [categories]="$categories() ?? []"
     [uploading]="$isUploading()"
     [uploadProgress]="$uploadProgress()"
+    [inventoryEnabled]="$inventoryEnabled()"
+    [ingredientsEnabled]="$ingredientsEnabled()"
+    [units]="$units()"
     (imageChange)="onImageChange($event)" />
 
   <ng-template app-slot="footer">

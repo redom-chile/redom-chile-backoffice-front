@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { IconComponent } from 'src/ui';
 import { ScheduleDto } from '../../data-access';
 import { crossesMidnight, hhmm, WeekDay } from '../../ui';
@@ -14,6 +15,15 @@ export type ScheduleRange = Readonly<{ openTime: string; closeTime: string }>;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DayScheduleRowComponent {
+  readonly #access = inject(AccessService);
+  readonly $canCreate = computed(() => this.#access.can(PERMISSIONS.SCHEDULES.CREATE_SCHEDULE));
+  readonly $canUpdate = computed(() => this.#access.can(PERMISSIONS.SCHEDULES.UPDATE_SCHEDULE));
+  readonly $canDelete = computed(() => this.#access.can(PERMISSIONS.SCHEDULES.DELETE_SCHEDULE));
+  // Abrir/cerrar un día elimina tramos y crea el registro de cerrado.
+  readonly $canToggleClosed = computed(() =>
+    this.#access.can([PERMISSIONS.SCHEDULES.CREATE_SCHEDULE, PERMISSIONS.SCHEDULES.DELETE_SCHEDULE], 'all'),
+  );
+
   readonly day = input.required<WeekDay>();
   readonly schedules = input.required<ScheduleDto[]>();
   readonly isToday = input(false);

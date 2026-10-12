@@ -14,6 +14,7 @@ import { UserWithRolesDto } from '../../data-access';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { AssignRoleModalComponent } from '../assign-role-modal';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-roles-user-table',
@@ -32,6 +33,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './roles-user-table.component.html',
 })
 export class RolesUserTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   readonly $users = input.required<UserWithRolesDto[]>({ alias: 'users' });
   readonly isLoading = input<boolean | undefined>(false, { alias: 'isLoading' });
@@ -44,6 +46,10 @@ export class RolesUserTableComponent {
   readonly $pagination = input.required<PaginationMeta>({ alias: 'pagination' });
   headerData = ['Nombre completo', 'Email', 'Roles', 'Acción'];
   readonly perPage = signal(10);
+
+  isOwner(user: UserWithRolesDto): boolean {
+    return user.roles.some((role) => role.code === 'OWNER');
+  }
 
   assignRole(user: UserWithRolesDto) {
     this.dialog.open(AssignRoleModalComponent, {

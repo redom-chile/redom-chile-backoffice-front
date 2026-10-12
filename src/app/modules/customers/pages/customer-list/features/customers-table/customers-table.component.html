@@ -42,7 +42,7 @@
             <p class="text-muted-foreground mt-1 text-sm">
               {{ searching() ? 'No hay clientes con ese nombre o teléfono.' : 'Todavía no hay clientes registrados.' }}
             </p>
-            <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="create.emit()">Crear cliente</button>
+            <button *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER" type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="create.emit()">Crear cliente</button>
           </td>
         </tr>
         } }

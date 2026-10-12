@@ -1,0 +1,304 @@
+@let s = session();
+@if (showHeader()) {
+<!-- Cabecera -->
+<section class="glass mb-4 rounded-[1rem] p-4 sm:p-5">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Turno #{{ s.id }}</p>
+      <h1 class="text-foreground flex flex-wrap items-center gap-2 text-xl font-semibold">
+        {{ s.registerName }}
+        @if ($isOpen()) {
+        <span class="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">Abierta</span>
+        } @else {
+        <span class="text-muted-foreground rounded-full bg-gray-500/15 px-2 py-0.5 text-xs font-semibold">Cerrada</span>
+        }
+      </h1>
+      <p class="text-muted-foreground text-sm">{{ s.locationName }}</p>
+    </div>
+    @if (showPrint()) {
+    <app-button impact="bold" tone="primary" shape="rounded" icon="print" [isLoading]="$isPrinting()" [disabled]="$isPrinting()" (buttonClick)="print()">
+      Imprimir reporte Z
+    </app-button>
+    }
+  </div>
+
+  <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <dt class="text-muted-foreground text-xs">Abierta por</dt>
+      <dd class="text-foreground">{{ s.openedByName ?? s.openedBy ?? '—' }}</dd>
+      <dd class="text-muted-foreground text-xs">{{ formatDateTimeFull(s.openedAt) }}</dd>
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">Cerrada por</dt>
+      @if (s.closedAt) {
+      <dd class="text-foreground">{{ s.closedByName ?? s.closedBy ?? '—' }}</dd>
+      <dd class="text-muted-foreground text-xs">{{ formatDateTimeFull(s.closedAt) }}</dd>
+      } @else {
+      <dd class="text-muted-foreground">Sigue abierta</dd>
+      }
+    </div>
+    <div>
+      <dt class="text-muted-foreground text-xs">Fondo inicial</dt>
+      <dd class="text-foreground font-semibold tabular-nums">{{ formatCurrency(s.openingAmount) }}</dd>
+    </div>
+    @if (s.notes) {
+    <div class="sm:col-span-2 lg:col-span-4">
+      <dt class="text-muted-foreground text-xs">Notas</dt>
+      <dd class="text-foreground whitespace-pre-line">{{ s.notes }}</dd>
+    </div>
+    }
+  </dl>
+</section>
+} @else if (showPrint()) {
+<div class="mb-3 flex justify-end">
+  <app-button impact="bold" tone="primary" shape="rounded" icon="print" [isLoading]="$isPrinting()" [disabled]="$isPrinting()" (buttonClick)="print()">
+    Imprimir reporte Z
+  </app-button>
+</div>
+}
+
+@if (!$showDetail()) {
+<div class="glass flex items-start gap-3 rounded-[1rem] p-4">
+  <app-icon class="text-primary h-6 w-6 shrink-0" aria-hidden="true">visibility_off</app-icon>
+  <div>
+    <p class="text-foreground text-sm font-semibold">El detalle se ve al cerrar</p>
+    <p class="text-muted-foreground text-sm">Mientras el turno está abierto, los montos solo los ve el dueño (arqueo ciego).</p>
+  </div>
+</div>
+} @else {
+@if ($isOpen()) {
+<p class="text-muted-foreground mb-3 text-xs">Totales en vivo: el turno sigue abierto. Lo contado y la diferencia aparecen al cerrar.</p>
+}
+
+<!-- Totales -->
+<div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+  @for (card of $cards(); track card.label) {
+  <div class="glass rounded-[1rem] p-3">
+    <p class="text-muted-foreground text-xs">
+      {{ card.label }}@if (card.count !== undefined) { <span>({{ card.count }})</span> }
+    </p>
+    <p class="text-foreground text-lg font-bold tabular-nums">
+      @if (card.tone === 'minus' && card.value) { − }{{ formatCurrency(card.value) }}
+    </p>
+  </div>
+  }
+</div>
+
+<!-- Efectivo -->
+<section class="glass mb-4 rounded-[1rem] p-4 sm:p-5">
+  <h2 class="text-foreground mb-3 font-semibold">Efectivo en caja</h2>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div>
+      <p class="text-muted-foreground text-xs">Esperado</p>
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatCurrency(s.cashExpected) }}</p>
+    </div>
+    <div>
+      <p class="text-muted-foreground text-xs">Contado</p>
+      @if (s.cashCounted === null) {
+      <p class="text-muted-foreground text-2xl font-bold">—</p>
+      <p class="text-muted-foreground text-xs">{{ $isOpen() ? 'Se cuenta al cerrar' : 'Sin conteo' }}</p>
+      } @else {
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatCurrency(s.cashCounted) }}</p>
+      }
+    </div>
+    <div>
+      <p class="text-muted-foreground text-xs">Diferencia</p>
+      <p class="text-2xl" [class]="$cashDifferenceClass()"><app-cash-difference [value]="s.cashDifference" /></p>
+    </div>
+  </div>
+  <p class="text-muted-foreground mt-3 text-xs">
+    Esperado = fondo + cobros en efectivo (con propina) − devoluciones + ingresos − retiros − gastos y compras pagados en efectivo
+    + anulaciones de esos pagos − propinas pagadas al equipo en efectivo + anulaciones de esas propinas. Las propinas cobradas están en la caja
+    hasta que se pagan, pero son del equipo.
+  </p>
+</section>
+
+<!-- Por medio de pago -->
+<h2 class="text-foreground mb-2 font-semibold">Por medio de pago</h2>
+<div class="glass mb-4 overflow-hidden rounded-[1rem]">
+  @if (!$methods().length) {
+  <p class="text-muted-foreground px-4 py-8 text-center text-sm">Sin cobros en este turno.</p>
+  } @else {
+  <!-- Escritorio -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Medio</th>
+          <th class="px-4 py-3 text-right">Ventas</th>
+          <th class="px-4 py-3 text-right">Propinas</th>
+          <th class="px-4 py-3 text-right">Devoluciones</th>
+          <th class="px-4 py-3 text-right">Esperado</th>
+          <th class="px-4 py-3 text-right">Contado</th>
+          <th class="px-4 py-3 text-right">Diferencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (method of $methods(); track method.method) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td class="text-foreground px-4 py-3 text-sm font-medium">
+            {{ methodLabels[method.method] ?? method.method }}
+            @if (hasDenominations(method)) {
+            <button type="button" class="text-primary ml-2 inline-flex items-center text-xs font-medium hover:underline" [attr.aria-expanded]="$expandedMethod() === method.method" (click)="toggleMethod(method.method)">
+              Billetes y monedas
+              <app-icon class="h-4 w-4">{{ $expandedMethod() === method.method ? 'expand_less' : 'expand_more' }}</app-icon>
+            </button>
+            }
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ formatCurrency(method.sales) }} <span class="text-muted-foreground text-xs">({{ method.salesCount }})</span>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(method.tips) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ formatCurrency(method.refunds) }} <span class="text-muted-foreground text-xs">({{ method.refundsCount }})</span>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatCurrency(method.expected) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(method.counted) }}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-right text-sm"><app-cash-difference [value]="method.difference" [showLabel]="false" /></td>
+        </tr>
+        @if ($expandedMethod() === method.method) {
+        <tr class="border-b border-[var(--border)]">
+          <td colspan="7" class="px-4 pb-3">
+            <ng-container *ngTemplateOutlet="denominationsTpl; context: { $implicit: method }" />
+          </td>
+        </tr>
+        }
+        }
+      </tbody>
+    </table>
+  </div>
+  <!-- Móvil -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (method of $methods(); track method.method) {
+    <li class="px-4 py-3">
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-foreground text-sm font-semibold">{{ methodLabels[method.method] ?? method.method }}</p>
+        <app-cash-difference class="text-sm" [value]="method.difference" />
+      </div>
+      <dl class="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+        <dt class="text-muted-foreground">Ventas ({{ method.salesCount }})</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(method.sales) }}</dd>
+        <dt class="text-muted-foreground">Propinas</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(method.tips) }}</dd>
+        <dt class="text-muted-foreground">Devoluciones ({{ method.refundsCount }})</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(method.refunds) }}</dd>
+        <dt class="text-muted-foreground">Esperado</dt>
+        <dd class="text-foreground text-right font-semibold tabular-nums">{{ formatCurrency(method.expected) }}</dd>
+        <dt class="text-muted-foreground">Contado</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ formatCurrency(method.counted) }}</dd>
+      </dl>
+      @if (hasDenominations(method)) {
+      <button type="button" class="text-primary mt-2 inline-flex items-center text-xs font-medium" [attr.aria-expanded]="$expandedMethod() === method.method" (click)="toggleMethod(method.method)">
+        Billetes y monedas
+        <app-icon class="h-4 w-4">{{ $expandedMethod() === method.method ? 'expand_less' : 'expand_more' }}</app-icon>
+      </button>
+      @if ($expandedMethod() === method.method) {
+      <ng-container *ngTemplateOutlet="denominationsTpl; context: { $implicit: method }" />
+      }
+      }
+    </li>
+    }
+  </ul>
+  }
+</div>
+
+<ng-template #denominationsTpl let-method>
+  <ul class="mt-1 grid max-w-md grid-cols-1 gap-1 text-xs sm:grid-cols-2">
+    @for (denomination of method.denominations ?? []; track denomination.value) {
+    @if (denomination.quantity > 0) {
+    <li class="flex justify-between gap-3 rounded-md bg-gray-500/10 px-2 py-1 tabular-nums">
+      <span class="text-muted-foreground">{{ formatCurrency(denomination.value) }} × {{ denomination.quantity }}</span>
+      <span class="text-foreground">{{ formatCurrency(denomination.value * denomination.quantity) }}</span>
+    </li>
+    }
+    }
+  </ul>
+</ng-template>
+
+<!-- Movimientos -->
+<h2 class="text-foreground mb-2 font-semibold">Movimientos</h2>
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (!$movements().length) {
+  <p class="text-muted-foreground px-4 py-8 text-center text-sm">Sin movimientos.</p>
+  } @else {
+  <!-- Escritorio -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Hora</th>
+          <th class="px-4 py-3">Tipo</th>
+          <th class="px-4 py-3">Medio</th>
+          <th class="px-4 py-3 text-right">Monto</th>
+          <th class="px-4 py-3 text-right">Propina</th>
+          <th class="px-4 py-3">Motivo</th>
+          <th class="px-4 py-3">Boleta</th>
+          <th class="px-4 py-3">Usuario</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (movement of $movements(); track movement.id) {
+        <tr class="border-b border-[var(--border)] last:border-0">
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm tabular-nums">{{ movementTime(movement) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ movementLabels[movement.type] ?? movement.type }}</td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-sm">{{ methodLabels[movement.method] ?? movement.method }}</td>
+          <td
+            class="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums"
+            [class]="isNegative(movement) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
+            {{ isNegative(movement) ? '−' : '+' }}{{ formatCurrency(movement.amount) }}
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ movement.tipAmount ? formatCurrency(movement.tipAmount) : '—' }}
+          </td>
+          <td class="text-muted-foreground px-4 py-3 text-sm">
+            <p class="max-w-[14rem] truncate" [title]="movement.reason ?? ''">{{ movement.reason ?? '—' }}</p>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-sm">
+            @if (movement.transactionId) {
+            <a [routerLink]="['/orders', movement.transactionId]" class="text-primary font-mono font-medium hover:underline">{{ movement.invoiceNo ?? '#' + movement.transactionId }}</a>
+            } @else {
+            <span class="text-muted-foreground font-mono">{{ movement.invoiceNo ?? '—' }}</span>
+            }
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-sm">{{ movement.createdByName ?? movement.createdBy ?? '—' }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <!-- Móvil -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (movement of $movements(); track movement.id) {
+    <li class="px-4 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-foreground text-sm font-semibold">{{ movementLabels[movement.type] ?? movement.type }}</p>
+          <p class="text-muted-foreground text-xs">
+            {{ movementTime(movement) }} · {{ methodLabels[movement.method] ?? movement.method }} · {{ movement.createdByName ?? movement.createdBy ?? '—' }}
+          </p>
+        </div>
+        <div class="text-right">
+          <p class="whitespace-nowrap text-sm font-semibold tabular-nums" [class]="isNegative(movement) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
+            {{ isNegative(movement) ? '−' : '+' }}{{ formatCurrency(movement.amount) }}
+          </p>
+          @if (movement.tipAmount) {
+          <p class="text-muted-foreground text-xs tabular-nums">Propina {{ formatCurrency(movement.tipAmount) }}</p>
+          }
+        </div>
+      </div>
+      @if (movement.reason) {
+      <p class="text-muted-foreground mt-0.5 text-xs">{{ movement.reason }}</p>
+      }
+      @if (movement.transactionId) {
+      <a [routerLink]="['/orders', movement.transactionId]" class="text-primary mt-0.5 inline-block text-xs font-medium hover:underline">
+        Boleta {{ movement.invoiceNo ?? '#' + movement.transactionId }}
+      </a>
+      } @else if (movement.invoiceNo) {
+      <p class="text-muted-foreground mt-0.5 text-xs">Boleta {{ movement.invoiceNo }}</p>
+      }
+    </li>
+    }
+  </ul>
+  }
+</div>
+}

@@ -1,0 +1,166 @@
+@if (panel.$open()) {
+@let tab = panel.$tab();
+<div class="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" aria-hidden="true" (click)="panel.close()"></div>
+
+<aside
+  #dialog
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="help-panel-title"
+  tabindex="-1"
+  class="help-panel glass-overlay fixed inset-y-0 right-0 z-50 flex w-full flex-col outline-none sm:w-[420px] sm:rounded-l-2xl">
+  <!-- Encabezado -->
+  <header class="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
+    <h2 id="help-panel-title" class="text-foreground flex items-center gap-2 text-base font-semibold">
+      <app-icon class="text-primary h-5 w-5">help</app-icon>
+      Ayuda
+    </h2>
+    <button type="button" class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-full p-1.5 transition-colors" aria-label="Cerrar ayuda" (click)="panel.close()">
+      <app-icon class="h-5 w-5">close</app-icon>
+    </button>
+  </header>
+
+  <!-- Pestañas -->
+  <div role="tablist" class="flex gap-1 border-b border-[var(--border)] px-4">
+    <button
+      type="button"
+      role="tab"
+      id="help-panel-tab-articles"
+      aria-controls="help-panel-tabpanel"
+      [attr.aria-selected]="tab === 'articles'"
+      class="-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors"
+      [class]="tab === 'articles' ? 'border-primary text-primary' : 'text-muted-foreground hover:text-foreground border-transparent'"
+      (click)="setTab('articles')">
+      <app-icon class="h-4 w-4">article</app-icon>
+      Ayuda de esta pantalla
+    </button>
+    <button
+      type="button"
+      role="tab"
+      id="help-panel-tab-chat"
+      aria-controls="help-panel-tabpanel"
+      [attr.aria-selected]="tab === 'chat'"
+      class="-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors"
+      [class]="tab === 'chat' ? 'border-primary text-primary' : 'text-muted-foreground hover:text-foreground border-transparent'"
+      (click)="setTab('chat')">
+      <app-icon class="h-4 w-4">support_agent</app-icon>
+      Asistente
+    </button>
+  </div>
+
+  <div id="help-panel-tabpanel" role="tabpanel" [attr.aria-labelledby]="'help-panel-tab-' + tab" class="flex min-h-0 flex-1 flex-col">
+    @if (tab === 'chat') {
+    <app-help-chat class="min-h-0 flex-1" [route]="$route()" (searchRequested)="handleSearchRequested($event)" />
+    } @else if ($articleSlug(); as slug) {
+    <!-- Artículo dentro del panel -->
+    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+      <button type="button" class="text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="closeArticle()">
+        <app-icon class="h-4 w-4">arrow_back</app-icon>
+        Volver
+      </button>
+      @if (article.isLoading()) {
+      <div class="space-y-3">
+        <app-skeleton size="xs" style="width: 70%" />
+        <app-skeleton size="xs" />
+        <app-skeleton size="2xl" />
+      </div>
+      } @else if ($articleError(); as message) {
+      <div class="flex flex-col items-center gap-3 py-10 text-center">
+        <app-icon class="text-muted-foreground h-10 w-10">search_off</app-icon>
+        <p class="text-muted-foreground text-sm">{{ message }}</p>
+        <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="closeArticle()">Ver otros artículos</button>
+      </div>
+      } @else if ($article(); as item) {
+      <article>
+        <p class="text-primary text-xs font-medium">{{ item.categoryName }}</p>
+        <h3 class="text-foreground mt-1 text-lg font-semibold leading-snug">{{ item.title }}</h3>
+        @if (item.summary) {
+        <p class="text-muted-foreground mt-1 text-sm">{{ item.summary }}</p>
+        }
+        <app-markdown class="mt-4" [content]="item.body" />
+      </article>
+      <div class="mt-6 border-t border-[var(--border)] pt-4">
+        <app-article-feedback [articleId]="item.id" [initial]="item.userFeedback" />
+      </div>
+      <a [routerLink]="['/help', item.slug]" class="text-primary mt-4 inline-flex items-center gap-1 text-sm font-medium hover:underline">
+        Abrir en el centro de ayuda
+        <app-icon class="h-4 w-4">open_in_new</app-icon>
+      </a>
+      }
+    </div>
+    } @else {
+    <!-- Artículos de la pantalla -->
+    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+      <div class="relative">
+        <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" aria-hidden="true">search</app-icon>
+        <input
+          type="search"
+          aria-label="Buscar en la ayuda"
+          placeholder="Buscar en la ayuda"
+          class="glass-input text-foreground w-full rounded-md py-2 pl-10 pr-3 text-sm"
+          [value]="$search()"
+          (input)="handleSearch($event)" />
+      </div>
+
+      <p class="text-muted-foreground mb-2 mt-4 text-xs font-medium uppercase tracking-wider">
+        {{ $searchQuery() ? 'Resultados' : 'Sugeridos para esta pantalla' }}
+      </p>
+
+      @if (articles.isLoading()) {
+      <div class="space-y-3">
+        @for (row of skeletonRows; track row) {
+        <app-skeleton size="sm" />
+        }
+      </div>
+      } @else if ($articlesError()) {
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <p class="text-muted-foreground text-sm">No se pudieron cargar los artículos.</p>
+        <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="articles.reload()">Reintentar</button>
+      </div>
+      } @else if (!$articles().length) {
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <app-icon class="text-muted-foreground h-10 w-10">search_off</app-icon>
+        <p class="text-muted-foreground text-sm">No encontramos artículos{{ $searchQuery() ? ' para tu búsqueda' : '' }}.</p>
+        <button type="button" class="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="setTab('chat')">
+          <app-icon class="h-4 w-4">support_agent</app-icon>
+          Pregúntale al asistente
+        </button>
+      </div>
+      } @else {
+      <ul class="divide-y divide-[var(--border)] overflow-hidden rounded-xl border border-[var(--border)]">
+        @for (item of $articles(); track item.id) {
+        <li>
+          <button type="button" class="glass-row flex w-full items-start gap-3 px-3 py-3 text-left" (click)="openArticle(item.slug)">
+            <app-icon class="text-primary mt-0.5 h-5 w-5 shrink-0">article</app-icon>
+            <span class="min-w-0 flex-1">
+              <span class="text-foreground block text-sm font-medium">{{ item.title }}</span>
+              <span class="text-muted-foreground line-clamp-2 block text-xs">{{ item.summary }}</span>
+            </span>
+            <app-icon class="text-muted-foreground h-5 w-5 shrink-0">chevron_right</app-icon>
+          </button>
+        </li>
+        }
+      </ul>
+      }
+
+      <div class="mt-5 flex flex-col gap-2">
+        <button
+          type="button"
+          class="bg-primary/10 text-primary hover:bg-primary/15 flex items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors"
+          (click)="setTab('chat')">
+          <app-icon class="h-6 w-6 shrink-0">support_agent</app-icon>
+          <span class="min-w-0">
+            <span class="block text-sm font-semibold">¿No encuentras lo que buscas?</span>
+            <span class="block text-xs opacity-80">Pregúntale al asistente</span>
+          </span>
+        </button>
+        <a routerLink="/help" class="text-primary inline-flex items-center gap-1 self-start text-sm font-medium hover:underline">
+          Ver todo el centro de ayuda
+          <app-icon class="h-4 w-4">arrow_forward</app-icon>
+        </a>
+      </div>
+    </div>
+    }
+  </div>
+</aside>
+}

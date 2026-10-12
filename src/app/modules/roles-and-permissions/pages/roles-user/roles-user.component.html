@@ -1,5 +1,5 @@
 <app-header-dashboard
-  *appCheckPermission="'users-roles:see-module'"
+  *appCheckPermission="PERMISSIONS.USER_ROLES.SEE_MODULE"
   title="Usuarios y roles"
   subtitle="Gestiona los roles que tendrá cada usuario.">
   <app-button full impact="none" tone="primary" shape="rounded" size="medium" (buttonClick)="retry()">
@@ -10,7 +10,7 @@
 @let isLoading = $service.$isLoading(); @let usersResp = $service.$users();
 
 <app-roles-user-table
-  *appCheckPermission="'users-roles:see-module'"
+  *appCheckPermission="PERMISSIONS.USER_ROLES.SEE_MODULE"
   [isLoading]="isLoading"
   [users]="usersResp?.data ?? []"
   [pagination]="usersResp?.pagination ?? { page: 1, perPage: 10, totalItems: 0, totalPages: 0 }"

@@ -1,7 +1,17 @@
 <div>
   <app-header-dashboard title="Impresoras" subtitle="Impresoras de comandas y boletas de tu local">
     @if (!$isEmpty()) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">Agregar impresora</app-button>
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRINTERS.CREATE_PRINTER"
+      full
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="add"
+      (buttonClick)="handleCreate()">
+      Agregar impresora
+    </app-button>
     }
   </app-header-dashboard>
 
@@ -19,7 +29,15 @@
     icon="print"
     title="Aún no tienes impresoras"
     description="Agrega las impresoras de tu local y asígnalas a las estaciones (Cocina, Bar…) para imprimir las comandas automáticamente.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="handleCreate()">Agregar impresora</app-button>
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRINTERS.CREATE_PRINTER"
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      icon="add"
+      (buttonClick)="handleCreate()">
+      Agregar impresora
+    </app-button>
   </app-empty-state>
   } @else {
   <app-printers-table

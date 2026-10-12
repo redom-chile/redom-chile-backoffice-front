@@ -1,0 +1,164 @@
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (loading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 90px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 90px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla con scroll horizontal propio -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="bg-background/80 sticky left-0 z-10 px-4 py-3 backdrop-blur" [attr.aria-sort]="ariaSort('itemName')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('itemName')">
+              Ítem <app-icon class="h-4 w-4">{{ sortIcon('itemName') }}</app-icon>
+            </button>
+          </th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Inicial</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Compras</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Transf.</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Ajustes</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right" [attr.aria-sort]="ariaSort('theoreticalValue')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('theoreticalValue')">
+              Consumo teórico <app-icon class="h-4 w-4">{{ sortIcon('theoreticalValue') }}</app-icon>
+            </button>
+          </th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Mermas</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Dif. conteo</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Consumo real</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right">Final</th>
+          <th class="whitespace-nowrap px-3 py-3 text-right" [attr.aria-sort]="ariaSort('variance')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('variance')">
+              Variación <app-icon class="h-4 w-4">{{ sortIcon('variance') }}</app-icon>
+            </button>
+          </th>
+          <th class="whitespace-nowrap px-4 py-3 text-right" [attr.aria-sort]="ariaSort('varianceValue')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('varianceValue')">
+              Variación $ <app-icon class="h-4 w-4">{{ sortIcon('varianceValue') }}</app-icon>
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody class="text-sm tabular-nums">
+        @for (item of $rows(); track item.variationId) {
+        @let unit = item.unitName;
+        <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0">
+          <td class="bg-background/80 sticky left-0 z-10 px-4 py-3 backdrop-blur">
+            <a
+              routerLink="/inventory/kardex"
+              [queryParams]="kardexParams(item)"
+              class="text-foreground hover:text-primary inline-flex max-w-[16rem] items-center gap-1 font-medium hover:underline"
+              [title]="'Ver kardex de ' + item.itemName">
+              <span class="truncate">{{ item.itemName }}</span>
+              <app-icon class="text-muted-foreground h-4 w-4 shrink-0">history</app-icon>
+            </a>
+            @if (unit) {
+            <p class="text-muted-foreground text-xs">en {{ unit }}</p>
+            }
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-3 py-3 text-right">{{ formatQuantity(item.opening, unit) }}</td>
+          <td class="text-foreground whitespace-nowrap px-3 py-3 text-right">{{ formatQuantity(item.purchases, unit) }}</td>
+          <td class="whitespace-nowrap px-3 py-3 text-right">
+            @if (item.transfersIn || item.transfersOut) {
+            <p class="text-foreground" title="Transferencias recibidas">+{{ formatQuantity(item.transfersIn, unit) }}</p>
+            <p class="text-muted-foreground" title="Transferencias enviadas">−{{ formatQuantity(item.transfersOut, unit) }}</p>
+            } @else {
+            <span class="text-muted-foreground">—</span>
+            }
+          </td>
+          <td class="whitespace-nowrap px-3 py-3 text-right">
+            <span class="text-foreground">{{ formatSignedQuantity(item.adjustments, unit) }}</span>
+            @if (item.produced) {
+            <p class="text-muted-foreground text-xs">Producido +{{ formatQuantity(item.produced, unit) }}</p>
+            }
+            @if (item.usedInProduction) {
+            <p class="text-muted-foreground text-xs">En producción −{{ formatQuantity(item.usedInProduction, unit) }}</p>
+            }
+          </td>
+          <td class="whitespace-nowrap px-3 py-3 text-right">
+            <p class="text-foreground font-medium">{{ formatQuantity(item.theoreticalConsumption, unit) }}</p>
+            <p class="text-muted-foreground text-xs">{{ formatMoney(item.theoreticalValue) }}</p>
+          </td>
+          <td class="whitespace-nowrap px-3 py-3 text-right" [class]="item.waste ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'">
+            {{ formatQuantity(item.waste, unit) }}
+          </td>
+          <td class="whitespace-nowrap px-3 py-3 text-right" [class]="countClass(item.countDifference)">{{ formatSignedQuantity(item.countDifference, unit) }}</td>
+          <td class="text-foreground whitespace-nowrap px-3 py-3 text-right font-medium">{{ formatQuantity(item.realConsumption, unit) }}</td>
+          <td class="text-muted-foreground whitespace-nowrap px-3 py-3 text-right">{{ formatQuantity(item.closing, unit) }}</td>
+          <td class="whitespace-nowrap px-3 py-3 text-right font-medium" [class]="varianceClass(item.variance)">{{ formatSignedQuantity(item.variance, unit) }}</td>
+          <td class="whitespace-nowrap px-4 py-3 text-right font-bold" [class]="varianceClass(item.varianceValue)">{{ formatMoney(item.varianceValue) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <div class="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 md:hidden">
+    <label for="consumption-sort" class="text-muted-foreground text-sm">Ordenar por</label>
+    <select id="consumption-sort" class="glass-input rounded-md px-3 py-1.5 text-sm" (change)="onSortSelect($event)">
+      @for (option of sortOptions; track option.key) {
+      <option [value]="option.key + ':' + (option.key === 'itemName' ? 'asc' : 'desc')" [selected]="sort().key === option.key">{{ option.label }}</option>
+      }
+    </select>
+  </div>
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (item of $rows(); track item.variationId) {
+    @let unit = item.unitName;
+    <li class="px-4 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-foreground truncate text-sm font-semibold">{{ item.itemName }}</p>
+          <p class="text-muted-foreground text-xs">Teórico {{ formatQuantity(item.theoreticalConsumption, unit) }} · Real {{ formatQuantity(item.realConsumption, unit) }}</p>
+        </div>
+        <div class="shrink-0 text-right tabular-nums">
+          <p class="text-sm font-bold" [class]="varianceClass(item.varianceValue)">{{ formatMoney(item.varianceValue) }}</p>
+          <p class="text-xs" [class]="varianceClass(item.variance)">{{ formatSignedQuantity(item.variance, unit) }}</p>
+        </div>
+      </div>
+      <details class="mt-2 text-xs">
+        <summary class="text-primary cursor-pointer font-medium">Detalle</summary>
+        <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 tabular-nums">
+          <dt class="text-muted-foreground">Inicial</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.opening, unit) }}</dd>
+          <dt class="text-muted-foreground">Compras</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.purchases, unit) }}</dd>
+          <dt class="text-muted-foreground">Transf. recibidas</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.transfersIn, unit) }}</dd>
+          <dt class="text-muted-foreground">Transf. enviadas</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.transfersOut, unit) }}</dd>
+          <dt class="text-muted-foreground">Ajustes</dt>
+          <dd class="text-foreground text-right">{{ formatSignedQuantity(item.adjustments, unit) }}</dd>
+          @if (item.produced) {
+          <dt class="text-muted-foreground">Producido</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.produced, unit) }}</dd>
+          }
+          @if (item.usedInProduction) {
+          <dt class="text-muted-foreground">Usado en producción</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.usedInProduction, unit) }}</dd>
+          }
+          <dt class="text-muted-foreground">Consumo teórico</dt>
+          <dd class="text-foreground text-right">{{ formatMoney(item.theoreticalValue) }}</dd>
+          <dt class="text-muted-foreground">Mermas</dt>
+          <dd class="text-right" [class]="item.waste ? 'text-amber-700 dark:text-amber-400' : 'text-foreground'">{{ formatQuantity(item.waste, unit) }}</dd>
+          <dt class="text-muted-foreground">Dif. conteo</dt>
+          <dd class="text-right" [class]="countClass(item.countDifference)">{{ formatSignedQuantity(item.countDifference, unit) }}</dd>
+          <dt class="text-muted-foreground">Final</dt>
+          <dd class="text-foreground text-right">{{ formatQuantity(item.closing, unit) }}</dd>
+        </dl>
+        <a routerLink="/inventory/kardex" [queryParams]="kardexParams(item)" class="bg-primary/10 text-primary mt-2 inline-flex w-full items-center justify-center gap-1 rounded-md py-1.5 font-medium">
+          <app-icon class="h-4 w-4">history</app-icon>Ver kardex
+        </a>
+      </details>
+    </li>
+    }
+  </ul>
+  }
+</div>

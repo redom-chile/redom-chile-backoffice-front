@@ -36,7 +36,7 @@
   }
 
   <!-- Regenerar: invalida el QR impreso anterior, por eso pide confirmación -->
-  <div class="mt-5 border-t border-[var(--border)] pt-4">
+  <div *appCheckPermission="PERMISSIONS.TABLES.REGENERATE_QR" class="mt-5 border-t border-[var(--border)] pt-4">
     @if ($confirmRegenerate()) {
     <div class="rounded-lg bg-amber-500/10 p-3">
       <p class="text-sm text-amber-700">El QR actual dejará de funcionar y tendrás que imprimir el nuevo. ¿Continuar?</p>
@@ -48,8 +48,12 @@
       </div>
     </div>
     } @else {
-    <button type="button" class="text-muted-foreground hover:text-primary inline-flex items-center gap-1 text-sm" (click)="$qrCode() ? $confirmRegenerate.set(true) : regenerate()">
-      <app-icon class="h-4 w-4">autorenew</app-icon>{{ $qrCode() ? 'Regenerar QR' : 'Generar QR' }}
+    <button
+      type="button"
+      class="text-muted-foreground hover:text-primary inline-flex items-center gap-1 text-sm"
+      [attr.title]="$canRegenerate() ? null : 'Disponible con la carta digital con QR'"
+      (click)="askRegenerate()">
+      <app-icon class="h-4 w-4">{{ $canRegenerate() ? 'autorenew' : 'lock' }}</app-icon>{{ $qrCode() ? 'Regenerar QR' : 'Generar QR' }}
     </button>
     }
   </div>

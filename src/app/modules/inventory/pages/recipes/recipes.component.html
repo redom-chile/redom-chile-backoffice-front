@@ -1,0 +1,269 @@
+@let tab = $tab();
+@let statuses = $statuses();
+<div class="space-y-4">
+  <app-header-dashboard title="Recetas" subtitle="Qué ingredientes descuenta cada plato y cada opción de modificador al venderse, y cómo se elaboran las preparaciones." />
+
+  @if (!$settingsLoaded()) {
+  @if ($settingsError()) {
+  <div class="flex flex-col items-center gap-4 py-16 text-center">
+    <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+    <p class="text-foreground font-semibold">No se pudo cargar la configuración de inventario</p>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retrySettings()">Reintentar</app-button>
+  </div>
+  } @else {
+  <div class="glass space-y-3 rounded-[1rem] p-4" aria-busy="true">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  }
+  } @else if (!$inventoryEnabled()) {
+  <app-inventory-disabled />
+  } @else if (!$ingredientsEnabled()) {
+  <app-empty-state
+    icon="menu_book"
+    title="Las recetas no están activadas"
+    description="Activa &quot;Trabajar con ingredientes y recetas&quot; para indicar qué ingredientes consume cada plato y descontarlos al vender.">
+    <a
+      routerLink="/business"
+      [queryParams]="{ tab: 'inventario' }"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">settings</app-icon>
+      Ir a la configuración
+    </a>
+  </app-empty-state>
+  } @else {
+  <!-- Ayuda -->
+  <details class="glass rounded-[1rem] p-4 text-sm">
+    <summary class="text-foreground cursor-pointer font-medium">¿Cómo funcionan las recetas?</summary>
+    <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+      <li>
+        Una receta indica qué ingredientes consume <strong>una unidad vendida</strong> de un plato (por cada variación). Al vender,
+        se descuentan del stock si "Descontar stock al vender" está activo.
+      </li>
+      <li><strong>Merma %:</strong> lo que se pierde al preparar. 150 g de carne con 10 % de merma descuentan 165 g.</li>
+      <li>
+        Las <strong>opciones de modificador</strong> también pueden tener receta: "Extra queso" suma 30 g de queso y "Sin cebolla"
+        puede <strong>quitar</strong> la cebolla que el plato iba a consumir.
+      </li>
+      <li>Solo los platos con control de stock "Por receta" usan receta. Puedes cambiarlo en Carta → Productos.</li>
+      <li>
+        Las <strong>preparaciones</strong> son ingredientes que se elaboran en el local (salsas, masas, caldos): su receta es por
+        tanda e indica cuánto rinde. Los platos las descuentan al vender y su stock se carga
+        <a routerLink="/inventory/productions" class="text-primary font-medium hover:underline">produciéndolas</a>.
+      </li>
+    </ul>
+  </details>
+
+  <!-- Pestañas + búsqueda -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="glass inline-flex max-w-full self-start overflow-x-auto rounded-lg p-1" role="tablist" aria-label="Tipo de receta">
+      <button
+        type="button"
+        role="tab"
+        class="rounded-md px-3 py-1.5 text-sm font-medium"
+        [class]="tab === 'platos' ? 'bg-primary text-white' : 'glass-row'"
+        [attr.aria-selected]="tab === 'platos'"
+        (click)="setTab('platos')">
+        Platos
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="ml-1 rounded-md px-3 py-1.5 text-sm font-medium"
+        [class]="tab === 'opciones' ? 'bg-primary text-white' : 'glass-row'"
+        [attr.aria-selected]="tab === 'opciones'"
+        (click)="setTab('opciones')">
+        Opciones de modificador
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="ml-1 rounded-md px-3 py-1.5 text-sm font-medium"
+        [class]="tab === 'preparaciones' ? 'bg-primary text-white' : 'glass-row'"
+        [attr.aria-selected]="tab === 'preparaciones'"
+        (click)="setTab('preparaciones')">
+        Preparaciones
+      </button>
+    </div>
+
+    <div class="relative w-full sm:max-w-sm">
+      <app-icon class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2">search</app-icon>
+      <input
+        type="search"
+        [formControl]="search"
+        [placeholder]="tab === 'platos' ? 'Buscar plato…' : tab === 'opciones' ? 'Buscar set u opción…' : 'Buscar ingrediente…'"
+        aria-label="Buscar"
+        class="glass-input w-full rounded-md py-2.5 pr-3 pl-10" />
+    </div>
+  </div>
+
+  @if (tab === 'platos') {
+  <!-- Platos -->
+  @if ($dishesError(); as error) {
+  <app-inventory-load-error [error]="error" title="No se pudieron cargar los platos" (retry)="loadDishes()" />
+  } @else if ($dishes() === null) {
+  <div class="glass space-y-3 rounded-[1rem] p-4" aria-busy="true">
+    @for (row of [1, 2, 3, 4, 5]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  } @else if (!$dishes()!.length) {
+  <app-empty-state
+    icon="menu_book"
+    title="Aún no tienes platos por receta"
+    description="Para armar la receta de un plato, cambia su control de stock a &quot;Por receta&quot; en Carta → Productos (al editar el producto).">
+    <a
+      routerLink="/products"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">restaurant_menu</app-icon>
+      Ir a Productos
+    </a>
+  </app-empty-state>
+  } @else {
+  <div class="glass overflow-hidden rounded-[1rem]">
+    <ul class="divide-y divide-[var(--border)]">
+      @for (dish of $visibleDishes(); track dish.id) {
+      <li>
+        <a
+          [routerLink]="['/inventory/recipes', dish.id]"
+          class="glass-row flex items-center gap-3 px-4 py-3 transition-colors"
+          [class.opacity-60]="dish.isInactive">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400">
+            <app-icon class="h-5 w-5">restaurant</app-icon>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground truncate font-medium">{{ dish.name }}</p>
+            <p class="text-muted-foreground truncate text-xs">{{ dish.sku }} · {{ variationsLabel(dish) }}</p>
+            <app-recipe-status-badge class="mt-1 block sm:hidden" [status]="statuses[dish.id]" />
+          </div>
+          <app-recipe-status-badge class="hidden shrink-0 sm:block" [status]="statuses[dish.id]" />
+          <app-icon class="text-muted-foreground hidden h-5 w-5 shrink-0 sm:block">chevron_right</app-icon>
+        </a>
+      </li>
+      } @empty {
+      <li class="px-4 py-12 text-center">
+        <p class="text-foreground font-medium">Sin resultados</p>
+        <p class="text-muted-foreground mt-1 text-sm">No hay platos por receta con ese nombre.</p>
+      </li>
+      }
+    </ul>
+  </div>
+  @if ($filteredDishes().length > $visibleDishes().length) {
+  <div class="flex justify-center">
+    <app-button type="button" impact="light" tone="primary" shape="rounded" (buttonClick)="showMore()">
+      Mostrar más ({{ $filteredDishes().length - $visibleDishes().length }})
+    </app-button>
+  </div>
+  }
+  }
+  } @else if (tab === 'preparaciones') {
+  <!-- Preparaciones (ingredientes) -->
+  @let page = $preparationsResult();
+  @if ($preparationsError(); as error) {
+  <app-inventory-load-error [error]="error" title="No se pudieron cargar los ingredientes" (retry)="preparations.reload()" />
+  } @else if (!page || preparations.isLoading()) {
+  <div class="glass space-y-3 rounded-[1rem] p-4" aria-busy="true">
+    @for (row of [1, 2, 3, 4, 5]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  } @else if (!page.data.length && !$preparationsName()) {
+  <app-empty-state
+    icon="soup_kitchen"
+    title="Aún no tienes ingredientes"
+    description="Crea el ingrediente de la preparación (ej. &quot;Salsa de tomate&quot;) y luego arma su receta por tanda.">
+    <a
+      routerLink="/inventory/ingredients"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">eco</app-icon>
+      Ir a Ingredientes
+    </a>
+  </app-empty-state>
+  } @else {
+  <p class="text-muted-foreground text-xs">
+    Cualquier ingrediente puede ser una preparación: ábrelo y arma su receta por tanda. Los que no tienen receta se compran tal cual.
+  </p>
+  <div class="glass overflow-hidden rounded-[1rem]">
+    <ul class="divide-y divide-[var(--border)]">
+      @for (ingredient of page.data; track ingredient.id) {
+      <li>
+        <a [routerLink]="['/inventory/recipes', ingredient.id]" class="glass-row flex items-center gap-3 px-4 py-3 transition-colors">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            <app-icon class="h-5 w-5">soup_kitchen</app-icon>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground truncate font-medium">{{ ingredient.name }}</p>
+            <p class="text-muted-foreground truncate text-xs">{{ ingredient.sku }} · {{ variationsLabel(ingredient) }}</p>
+            <app-recipe-status-badge class="mt-1 block sm:hidden" [status]="statuses[ingredient.id]" [isPreparation]="true" />
+          </div>
+          <app-recipe-status-badge class="hidden shrink-0 sm:block" [status]="statuses[ingredient.id]" [isPreparation]="true" />
+          <app-icon class="text-muted-foreground hidden h-5 w-5 shrink-0 sm:block">chevron_right</app-icon>
+        </a>
+      </li>
+      } @empty {
+      <li class="px-4 py-12 text-center">
+        <p class="text-foreground font-medium">Sin resultados</p>
+        <p class="text-muted-foreground mt-1 text-sm">No hay ingredientes con ese nombre.</p>
+      </li>
+      }
+    </ul>
+    @if (page.pagination.totalItems > 0) {
+    <div class="border-t border-[var(--border)] px-4 pb-3">
+      <app-pagination-table [pagination]="page.pagination" (pageChange)="setPreparationsPage($event)" />
+    </div>
+    }
+  </div>
+  }
+  } @else {
+  <!-- Opciones de modificador -->
+  @if ($setsError(); as error) {
+  <app-inventory-load-error [error]="error" title="No se pudieron cargar los modificadores" (retry)="reloadSets()" />
+  } @else if ($setsLoading() || $sets() === null) {
+  <div class="glass space-y-3 rounded-[1rem] p-4" aria-busy="true">
+    @for (row of [1, 2, 3]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  } @else if (!$sets()!.length) {
+  <app-empty-state
+    icon="tune"
+    title="Aún no tienes modificadores"
+    description="Crea sets como &quot;Agregados&quot; en Carta → Modificadores; luego podrás indicar qué ingredientes suma o quita cada opción.">
+    <a
+      routerLink="/products/modifiers"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">tune</app-icon>
+      Ir a Modificadores
+    </a>
+  </app-empty-state>
+  } @else {
+  <div class="glass overflow-hidden rounded-[1rem]">
+    <ul class="divide-y divide-[var(--border)]">
+      @for (set of $filteredSets(); track set.id) {
+      <li>
+        <a [routerLink]="['/inventory/recipes', set.id]" class="glass-row flex items-center gap-3 px-4 py-3 transition-colors">
+          <span class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+            <app-icon class="h-5 w-5">tune</app-icon>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground truncate font-medium">{{ set.name }}</p>
+            <p class="text-muted-foreground line-clamp-2 break-words text-xs">{{ optionNames(set) }}</p>
+            <app-recipe-status-badge class="mt-1 block sm:hidden" [status]="statuses[set.id]" [isModifier]="true" />
+          </div>
+          <app-recipe-status-badge class="hidden shrink-0 sm:block" [status]="statuses[set.id]" [isModifier]="true" />
+          <app-icon class="text-muted-foreground hidden h-5 w-5 shrink-0 sm:block">chevron_right</app-icon>
+        </a>
+      </li>
+      } @empty {
+      <li class="px-4 py-12 text-center">
+        <p class="text-foreground font-medium">Sin resultados</p>
+        <p class="text-muted-foreground mt-1 text-sm">No hay sets ni opciones con ese nombre.</p>
+      </li>
+      }
+    </ul>
+  </div>
+  }
+  }
+  }
+</div>

@@ -1,0 +1,87 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="text-foreground truncate text-xl font-semibold">{{ data.name }}</h2>
+        <p class="text-muted-foreground text-sm font-normal tabular-nums">{{ formatCurrency(data.basePrice) }}@if ($pricing().excludesVat) { <span class="text-xs">+IVA</span> }</p>
+      </div>
+      <button type="button" class="text-muted-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-md" aria-label="Cerrar" (click)="handleCancel()">
+        <app-icon class="h-5 w-5">close</app-icon>
+      </button>
+    </div>
+  </ng-template>
+
+  <div class="space-y-4 px-1 pb-1">
+    @for (set of sets; track set.id) {
+    <fieldset>
+      <legend class="text-foreground mb-2 text-sm font-semibold">{{ set.name }}</legend>
+      <ul class="space-y-1.5">
+        @for (option of set.options; track option.variationId) {
+        @let times = timesOf(option);
+        <li class="glass-row flex min-h-12 items-center gap-2 rounded-lg border-2 px-3 py-1.5" [class.border-primary]="times > 0" [class.border-transparent]="times === 0">
+          <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-1">
+            <input type="checkbox" class="h-5 w-5 shrink-0 accent-[var(--primary)]" [checked]="times > 0" (change)="toggle(option)" />
+            <span class="text-foreground min-w-0 flex-1 truncate text-sm">{{ option.name }}</span>
+            @if (option.price > 0) {
+            <span class="text-muted-foreground shrink-0 text-sm tabular-nums">+{{ formatCurrency(option.price) }}</span>
+            }
+          </label>
+          @if (times > 0) {
+          <div class="flex shrink-0 items-center gap-1" role="group" [attr.aria-label]="'Veces de ' + option.name">
+            <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="times <= 1" [attr.aria-label]="'Una vez menos ' + option.name" (click)="changeTimes(option, -1)">
+              <app-icon class="h-4 w-4">remove</app-icon>
+            </button>
+            <span class="text-foreground w-10 text-center text-xs font-semibold tabular-nums">{{ times }}x</span>
+            <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="times >= maxTimes" [attr.aria-label]="'Una vez más ' + option.name" (click)="changeTimes(option, 1)">
+              <app-icon class="h-4 w-4">add</app-icon>
+            </button>
+          </div>
+          }
+        </li>
+        }
+      </ul>
+    </fieldset>
+    }
+
+    <div>
+      <p class="text-foreground mb-2 text-sm font-semibold">Nota para cocina</p>
+      <div class="mb-2 flex flex-wrap gap-1.5">
+        @for (quick of quickNotes; track quick) {
+        <button type="button" class="glass-row rounded-full px-3 py-1.5 text-xs font-medium" (click)="addQuickNote(quick)">{{ quick }}</button>
+        }
+      </div>
+      <input
+        type="text"
+        maxlength="120"
+        placeholder="Ej: sin palta"
+        [attr.aria-label]="'Nota para ' + data.name"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        [value]="$note()"
+        (input)="onNote($event)" />
+    </div>
+
+    <div class="flex items-center justify-between gap-3">
+      <span class="text-foreground text-sm font-semibold">Cantidad</span>
+      <div class="flex items-center gap-1">
+        <button type="button" class="glass-row flex h-10 w-10 items-center justify-center rounded-md disabled:opacity-40" aria-label="Restar uno" [disabled]="$quantity() <= 1" (click)="changeQuantity(-1)">
+          <app-icon class="h-5 w-5">remove</app-icon>
+        </button>
+        <span class="text-foreground w-10 text-center text-lg font-semibold tabular-nums">{{ $quantity() }}</span>
+        <button type="button" class="glass-row flex h-10 w-10 items-center justify-center rounded-md disabled:opacity-40" aria-label="Sumar uno" [disabled]="$quantity() >= maxQuantity" (click)="changeQuantity(1)">
+          <app-icon class="h-5 w-5">add</app-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="mb-3 flex items-baseline justify-between gap-2">
+      <span class="text-muted-foreground text-sm">Total estimado{{ $pricing().excludesVat ? ' con IVA' : '' }}</span>
+      <span class="text-foreground text-lg font-bold tabular-nums">{{ formatCurrency($total()) }}</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" (buttonClick)="handleCancel()">Cancelar</app-button>
+      <app-button type="button" full impact="bold" (buttonClick)="handleConfirm()">{{ isEditing ? 'Guardar' : 'Agregar' }}</app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

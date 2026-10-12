@@ -34,7 +34,7 @@
       </p>
     </div>
 
-    <div class="flex flex-wrap gap-2">
+    <div *appCheckPermission="PERMISSIONS.BOOKINGS.UPDATE_BOOKING" class="flex flex-wrap gap-2">
       @if (cancelled) {
       <button type="button" class="glass-row h-10 rounded-md px-3 text-sm font-medium" [disabled]="busyIds().has(booking.id)" (click)="changeStatus.emit({ booking, status: 'booked' })">Reactivar</button>
       } @else {

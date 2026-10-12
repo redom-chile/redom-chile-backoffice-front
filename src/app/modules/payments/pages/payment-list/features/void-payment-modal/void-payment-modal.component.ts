@@ -1,9 +1,20 @@
-import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy, untracked } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { Router } from '@angular/router';
+import { ApiErrorCode } from 'src/app/core/utils';
+import { openCashSessionModal } from 'src/app/modules/cash/features/open-session-modal';
+import {
+  ButtonComponent,
+  ConfirmModalComponent,
+  ConfirmModalData,
+  IconComponent,
+  ModalCardComponent,
+  SlotDirective,
+  ToastService,
+} from 'src/ui';
 import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
-import { CancelPaymentService, getPaymentErrorMessage, PaymentDto } from '../../data-access';
+import { CancelPaymentService, getPaymentErrorMessage, PaymentDto, tipPayoutIdOf } from '../../data-access';
 import { paymentMethodLabel } from '../../ui';
 
 export type VoidPaymentResult = 'voided' | 'dismissed';
@@ -19,6 +30,8 @@ export class VoidPaymentModalComponent implements OnDestroy {
   private readonly dialogRef = inject<MatDialogRef<VoidPaymentModalComponent, VoidPaymentResult>>(MatDialogRef);
   private readonly toast = inject(ToastService);
   private readonly cancelService = inject(CancelPaymentService);
+  private readonly dialog = inject(MatDialog);
+  private readonly router = inject(Router);
 
   readonly payment = inject<PaymentDto>(MAT_DIALOG_DATA);
   readonly $isLoading = this.cancelService.$isLoading;
@@ -33,8 +46,21 @@ export class VoidPaymentModalComponent implements OnDestroy {
       if (this.cancelService.$success()) this.dialogRef.close('voided');
     });
     effect(() => {
-      const status = this.cancelService.$error();
-      if (status) this.toast.show(getPaymentErrorMessage(status), 'error');
+      const error = this.cancelService.$error();
+      if (!error) return;
+      // Pago en efectivo con la caja cerrada: hay que abrirla para devolver el dinero.
+      if (error.code === ApiErrorCode.CASH_SESSION_REQUIRED) {
+        const registerId = Number(error.details['registerId']);
+        untracked(() => this.openCashAndRetry(Number.isFinite(registerId) && registerId > 0 ? registerId : null));
+        return;
+      }
+      // La propina ya se pagó al equipo: primero hay que anular esa liquidación.
+      const payoutId = tipPayoutIdOf(error);
+      if (payoutId) {
+        untracked(() => this.offerTipPayout(payoutId, getPaymentErrorMessage(error)));
+        return;
+      }
+      this.toast.show(getPaymentErrorMessage(error), 'error');
     });
   }
 
@@ -46,6 +72,36 @@ export class VoidPaymentModalComponent implements OnDestroy {
       return;
     }
     this.cancelService.cancel({ id: this.payment.id, reason });
+  }
+
+  private openCashAndRetry(registerId: number | null) {
+    this.toast.show('Abre la caja para devolver el efectivo', 'warning');
+    openCashSessionModal(this.dialog, {
+      registerId,
+      message: 'Para anular un pago en efectivo la caja debe estar abierta: el dinero sale de ella.',
+    }).subscribe((opened) => {
+      if (opened) this.handleConfirm();
+    });
+  }
+
+  private offerTipPayout(payoutId: number, message: string) {
+    this.toast.show(message, 'warning');
+    this.dialogRef.close('dismissed');
+    this.dialog
+      .open<ConfirmModalComponent, ConfirmModalData, boolean>(ConfirmModalComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        data: {
+          title: 'Propina ya liquidada',
+          message: `Para anular este pago, primero anula la liquidación de propinas #${payoutId}.`,
+          confirmText: `Ver liquidación #${payoutId}`,
+          cancelText: 'Volver',
+        },
+      })
+      .afterClosed()
+      .subscribe((go) => {
+        if (go) this.router.navigate(['/finance/tips/payouts', payoutId]);
+      });
   }
 
   handleCancel() {

@@ -23,7 +23,7 @@ import { APP_LINKS } from '../ui/links';
           </p>
           <h1 class="mt-5 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">Tu restaurante, en un solo lugar.</h1>
           <p class="mx-auto mt-5 max-w-xl text-base font-light text-white/85 sm:text-lg lg:mx-0">
-            Toma pedidos, coordina la cocina, administra mesas y reservas, cobra y revisa tus ventas. Todo desde el navegador, sin instalar nada.
+            Toma pedidos, coordina la cocina, cuadra la caja, controla tu inventario y tus gastos, y revisa tus ventas. Todo desde el navegador, sin instalar nada.
           </p>
           <div class="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
             <a [href]="app.signUp" class="text-primary inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 font-semibold shadow-lg transition hover:bg-white/90 sm:w-auto">
@@ -69,7 +69,7 @@ import { APP_LINKS } from '../ui/links';
 })
 export class Hero {
   protected readonly app = APP_LINKS;
-  protected readonly chips = ['POS y mesas', 'Cocina en pantalla', 'Carta con QR'];
+  protected readonly chips = ['POS y mesas', 'Cocina en pantalla', 'Caja e inventario', 'Asistente con IA'];
   protected readonly tables = [
     { name: 'Mesa 1', busy: true },
     { name: 'Mesa 2', busy: false },

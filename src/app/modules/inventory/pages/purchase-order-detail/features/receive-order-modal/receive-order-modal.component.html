@@ -1,0 +1,198 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div>
+      <h2 class="text-xl font-semibold">Recibir orden #{{ order.id }}</h2>
+      <p class="text-muted-foreground text-sm font-normal">
+        Se registra una compra con lo recibido: suma stock en {{ order.locationName }} y actualiza el costo promedio.
+      </p>
+    </div>
+  </ng-template>
+
+  <form [formGroup]="header" (ngSubmit)="handleSubmit()" class="space-y-4 p-2">
+    <!-- Datos de la recepción -->
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <label for="receive-reference" class="mb-1 block text-sm font-medium">N° de factura</label>
+        <input
+          id="receive-reference"
+          type="text"
+          maxlength="100"
+          formControlName="referenceNo"
+          placeholder="Opcional"
+          class="glass-input w-full rounded-md px-3 py-2" />
+      </div>
+      <div>
+        <label for="receive-date" class="mb-1 block text-sm font-medium">Fecha *</label>
+        <input
+          id="receive-date"
+          type="date"
+          formControlName="documentDate"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="header.controls.documentDate.invalid && ($submitted() || header.controls.documentDate.touched)" />
+        @if (header.controls.documentDate.invalid && ($submitted() || header.controls.documentDate.touched)) {
+        <p class="text-destructive mt-1 text-xs">Elige la fecha.</p>
+        }
+      </div>
+      <div>
+        <label for="receive-vat" class="mb-1 block text-sm font-medium">IVA de la factura (se suma al neto)</label>
+        <input
+          id="receive-vat"
+          type="number"
+          inputmode="decimal"
+          min="0"
+          step="any"
+          formControlName="vatAmount"
+          class="glass-input w-full rounded-md px-3 py-2 text-right tabular-nums"
+          [class.border-red-500]="header.controls.vatAmount.invalid && ($submitted() || header.controls.vatAmount.touched)" />
+        @if (header.controls.vatAmount.invalid && ($submitted() || header.controls.vatAmount.touched)) {
+        <p class="text-destructive mt-1 text-xs">El IVA no puede ser negativo.</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">
+          Sugerido: {{ formatMoney($suggestedVat()) }} ({{ $vatRate() }} %).
+          @if ($vatAmount() !== $suggestedVat()) {
+          <button type="button" class="text-primary ml-1 font-medium hover:underline" (click)="resetVat()">Usar sugerido</button>
+          }
+        </p>
+        }
+      </div>
+      <div>
+        <label for="receive-due" class="mb-1 block text-sm font-medium">Vence</label>
+        <input id="receive-due" type="date" formControlName="dueDate" class="glass-input w-full rounded-md px-3 py-2" />
+        <p class="text-muted-foreground mt-1 text-xs">Opcional. Vacío = según las condiciones de pago del proveedor.</p>
+      </div>
+      <p class="text-muted-foreground flex items-start gap-1 text-xs sm:col-span-2">
+        La recepción queda como deuda con el proveedor: se paga después en Cuentas por pagar.
+      </p>
+      <div class="sm:col-span-2">
+        <label for="receive-notes" class="mb-1 block text-sm font-medium">Notas</label>
+        <textarea
+          id="receive-notes"
+          rows="2"
+          maxlength="1000"
+          formControlName="notes"
+          placeholder="Opcional"
+          class="glass-input w-full rounded-md px-3 py-2"></textarea>
+      </div>
+    </div>
+
+    <!-- Líneas -->
+    <div>
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 class="text-foreground text-sm font-semibold">¿Qué llegó?</h3>
+        @if (hasPendingLines) {
+        <label class="text-muted-foreground flex cursor-pointer items-center gap-2 text-xs">
+          <input type="checkbox" class="accent-primary h-4 w-4" [checked]="$showAll()" (change)="toggleShowAll()" />
+          Mostrar también las líneas completas (recibir de más)
+        </label>
+        }
+      </div>
+      <p class="text-muted-foreground mb-3 text-xs">
+        Cantidad en la unidad de la línea, precargada con lo pendiente. El costo es neto (sin IVA) por esa unidad.
+      </p>
+
+      <ul class="space-y-3">
+        @for (row of $visibleRows(); track row.line.id) {
+        @let rowForm = row.form;
+        @let included = rowForm.controls.include.value;
+        @let unit = unitName(row);
+        <li class="rounded-lg border border-[var(--border)] p-3" [class.opacity-60]="!included" [formGroup]="rowForm">
+          <label class="flex cursor-pointer items-start gap-3">
+            <input type="checkbox" formControlName="include" class="accent-primary mt-0.5 h-4 w-4 shrink-0" />
+            <span class="min-w-0 flex-1">
+              <span class="text-foreground block text-sm font-semibold">{{ row.line.itemName }}</span>
+              <span class="text-muted-foreground block text-xs">
+                Pedido {{ formatQuantity(row.line.quantity, unit) }} · Pendiente
+                {{ formatQuantity(row.line.pendingBaseQuantity, row.line.baseUnitName) }}
+                @if (row.line.unitName && row.line.unitName !== row.line.baseUnitName && row.line.pendingBaseQuantity > 0) {
+                ({{ formatQuantity(row.pending, unit) }})
+                }
+              </span>
+            </span>
+          </label>
+
+          @if (included) {
+          <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <label [for]="'receive-qty-' + row.line.id" class="mb-1 block text-xs font-medium">Cantidad *</label>
+              <div class="flex items-center gap-1">
+                <input
+                  [id]="'receive-qty-' + row.line.id"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="any"
+                  formControlName="quantity"
+                  class="glass-input w-full min-w-0 rounded-md px-2 py-1.5 text-right tabular-nums"
+                  [class.border-red-500]="showRowErrors(row) && quantityError(row)" />
+                @if (unit) {
+                <span class="text-muted-foreground shrink-0 text-xs">{{ unit }}</span>
+                }
+              </div>
+              @if (showRowErrors(row) && quantityError(row); as error) {
+              <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+              } @else if (isOver(row)) {
+              <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">Más de lo pendiente.</p>
+              }
+            </div>
+            <div>
+              <label [for]="'receive-cost-' + row.line.id" class="mb-1 block text-xs font-medium">Costo unitario</label>
+              <input
+                [id]="'receive-cost-' + row.line.id"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="any"
+                formControlName="unitCost"
+                [placeholder]="formatMoney(row.line.unitCost)"
+                class="glass-input w-full rounded-md px-2 py-1.5 text-right tabular-nums"
+                [class.border-red-500]="showRowErrors(row) && costError(row)" />
+              @if (showRowErrors(row) && costError(row); as error) {
+              <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+              }
+            </div>
+            <div>
+              <label [for]="'receive-lot-' + row.line.id" class="mb-1 block text-xs font-medium">Lote</label>
+              <input
+                [id]="'receive-lot-' + row.line.id"
+                type="text"
+                maxlength="100"
+                formControlName="lotNumber"
+                placeholder="Opcional"
+                class="glass-input w-full rounded-md px-2 py-1.5" />
+            </div>
+            <div>
+              <label [for]="'receive-expiry-' + row.line.id" class="mb-1 block text-xs font-medium">Vencimiento</label>
+              <input
+                [id]="'receive-expiry-' + row.line.id"
+                type="date"
+                formControlName="expiryDate"
+                class="glass-input w-full rounded-md px-2 py-1.5" />
+            </div>
+          </div>
+          }
+        </li>
+        } @empty {
+        <li class="text-muted-foreground py-6 text-center text-sm">No hay líneas pendientes.</li>
+        }
+      </ul>
+    </div>
+
+    <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-muted-foreground text-sm">
+        {{ $included().length }} {{ $included().length === 1 ? 'línea' : 'líneas' }} · Neto
+        <span class="tabular-nums">{{ formatMoney($total()) }}</span> · Total con IVA
+        <span class="text-foreground font-semibold tabular-nums">{{ formatMoney($grossTotal()) }}</span>
+      </p>
+      <div class="flex justify-end gap-3">
+        <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>
+        <app-button type="button" impact="bold" icon="inventory" [disabled]="$isSaving()" (buttonClick)="handleSubmit()">
+          {{ $isSaving() ? 'Registrando…' : 'Registrar recepción' }}
+        </app-button>
+      </div>
+    </div>
+  </ng-template>
+</app-modal-card>

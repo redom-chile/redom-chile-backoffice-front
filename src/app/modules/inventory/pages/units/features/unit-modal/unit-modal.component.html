@@ -1,0 +1,89 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-foreground text-xl font-semibold">{{ isEdit ? 'Editar unidad' : 'Nueva unidad' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="grid grid-cols-1 gap-4 sm:grid-cols-2" (ngSubmit)="handleSubmit()">
+    <div>
+      <label for="unit-name" class="text-foreground mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="unit-name"
+        type="text"
+        formControlName="actualName"
+        placeholder="Ej: Kilogramo"
+        [class]="inputClass"
+        [ngClass]="{ 'border-red-500': isInvalid('actualName') }" />
+    </div>
+
+    <div>
+      <label for="unit-short" class="text-foreground mb-1 block text-sm font-medium">Abreviatura *</label>
+      <input
+        id="unit-short"
+        type="text"
+        formControlName="shortName"
+        maxlength="10"
+        placeholder="Ej: kg"
+        [class]="inputClass"
+        [ngClass]="{ 'border-red-500': isInvalid('shortName') }" />
+    </div>
+
+    <label class="glass-row flex cursor-pointer items-center justify-between gap-4 rounded-md px-3 py-3 sm:col-span-2">
+      <span>
+        <span class="text-foreground block text-sm font-medium">Permite decimales</span>
+        <span class="text-muted-foreground block text-xs">Actívalo si se puede usar 1,5 (kilos, litros). Apágalo para cosas que se cuentan enteras (cajas, unidades).</span>
+      </span>
+      <input type="checkbox" formControlName="allowDecimal" class="h-5 w-5 accent-[var(--primary)]" />
+    </label>
+
+    <div class="sm:col-span-2">
+      <label for="unit-base" class="text-foreground mb-1 block text-sm font-medium">Es subunidad de</label>
+      <select id="unit-base" formControlName="baseUnitId" [class]="inputClass">
+        <option [ngValue]="null">Ninguna (es una unidad base)</option>
+        @for (base of baseUnits; track base.id) {
+        <option [ngValue]="base.id">{{ base.actualName }} ({{ base.shortName }})</option>
+        }
+      </select>
+      <p class="text-muted-foreground mt-1 text-xs">
+        @if (hasSubunits) {
+        Esta unidad tiene subunidades, por eso debe seguir siendo una unidad base.
+        } @else {
+        El stock se guarda en la unidad base; las subunidades sirven para comprar o ajustar en otra medida.
+        Ej: Kilogramo = 1000 Gramo; Caja = 12 Unidad.
+        }
+      </p>
+    </div>
+
+    @if ($baseUnit(); as base) {
+    <div class="sm:col-span-2">
+      <label for="unit-multiplier" class="text-foreground mb-1 block text-sm font-medium">Equivale a *</label>
+      <div class="flex items-center gap-2">
+        <span class="text-muted-foreground whitespace-nowrap text-sm">1 {{ $name() }} =</span>
+        <input
+          id="unit-multiplier"
+          type="number"
+          formControlName="baseUnitMultiplier"
+          min="0"
+          step="any"
+          inputmode="decimal"
+          placeholder="1000"
+          class="glass-input w-32 rounded-md px-3 py-2"
+          [ngClass]="{ 'border-red-500': showMultiplierError() }"
+          (blur)="$multiplierTouched.set(true)" />
+        <span class="text-muted-foreground text-sm">{{ base.actualName }} ({{ base.shortName }})</span>
+      </div>
+      @if (showMultiplierError()) {
+      <p class="mt-1 text-xs text-red-600">Ingresa un número mayor a 0.</p>
+      }
+    </div>
+    }
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="handleCancel()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ isEdit ? 'Guardar cambios' : 'Crear unidad' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

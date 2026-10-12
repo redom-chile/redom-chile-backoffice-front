@@ -1,0 +1,69 @@
+<app-header-dashboard title="Kardex" subtitle="Cada entrada y salida de stock, con su costo y el saldo que dejó. Cantidades en la unidad base." />
+
+@if ($isDisabled()) {
+<app-inventory-disabled />
+} @else {
+@let q = $query();
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+  <select aria-label="Filtrar por local" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onLocation($event)">
+    <option value="" [selected]="!q.locationId">Todos los locales</option>
+    @for (location of locationStore.$locations(); track location.id) {
+    <option [value]="location.id" [selected]="q.locationId === location.id">{{ location.name }}</option>
+    }
+  </select>
+
+  <select aria-label="Filtrar por tipo" class="glass-input rounded-md px-3 py-2 sm:w-52" (change)="onType($event)">
+    <option value="" [selected]="!q.type">Todos los tipos</option>
+    @for (option of typeOptions; track option.value) {
+    <option [value]="option.value" [selected]="q.type === option.value">{{ option.label }}</option>
+    }
+  </select>
+
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12 sm:w-auto">Desde</span>
+    <input type="date" aria-label="Desde" class="glass-input flex-1 rounded-md px-3 py-2" [value]="q.from ?? ''" [max]="q.to ?? ''" (change)="onDate('from', $event)" />
+  </label>
+  <label class="flex items-center gap-2 text-sm">
+    <span class="text-muted-foreground w-12 sm:w-auto">Hasta</span>
+    <input type="date" aria-label="Hasta" class="glass-input flex-1 rounded-md px-3 py-2" [value]="q.to ?? ''" [min]="q.from ?? ''" (change)="onDate('to', $event)" />
+  </label>
+
+  @if ($hasFilters()) {
+  <button type="button" class="text-primary self-start text-sm font-medium hover:underline sm:self-auto" (click)="clearFilters()">Limpiar filtros</button>
+  }
+</div>
+
+@if ($productChip() || q.documentId) {
+<div class="mb-4 flex flex-wrap gap-2">
+  @if ($productChip(); as product) {
+  <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm font-medium">
+    Producto: {{ product }}
+    <button type="button" aria-label="Quitar filtro de producto" class="hover:bg-primary/20 inline-flex h-6 w-6 items-center justify-center rounded-full" (click)="removeProduct()">
+      <app-icon class="h-4 w-4">close</app-icon>
+    </button>
+  </span>
+  }
+  @if (q.documentId) {
+  <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm font-medium">
+    Documento #{{ q.documentId }}
+    <button type="button" aria-label="Quitar filtro de documento" class="hover:bg-primary/20 inline-flex h-6 w-6 items-center justify-center rounded-full" (click)="removeDocument()">
+      <app-icon class="h-4 w-4">close</app-icon>
+    </button>
+  </span>
+  }
+</div>
+}
+
+@if ($error(); as error) {
+<app-inventory-load-error [error]="error" title="Error al cargar el kardex" (retry)="movements.reload()" />
+} @else {
+<app-movements-table
+  [movements]="$page()?.data ?? []"
+  [loading]="movements.isLoading()"
+  [pagination]="$page()?.pagination ?? null"
+  [hasFilters]="$hasFilters()"
+  emptyText="Todavía no hay movimientos. Registra una compra o un ajuste para empezar."
+  (pageChange)="handlePageChange($event)"
+  (clearFilters)="clearFilters()" />
+}
+}

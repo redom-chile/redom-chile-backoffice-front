@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { IconComponent } from 'src/ui';
 import { formatCurrency, KITCHEN_STATUS, StatusBadgeComponent } from '../../../order-list/ui';
-import { OrderLineDto } from '../../data-access';
+import { formatQuantity } from 'src/app/modules/payments/pages/payment-list/ui';
+import { linePaidState, modifierLabel, OrderLineDto, orderVariationLabel } from '../../data-access';
 
 @Component({
   selector: 'app-order-lines-table',
@@ -21,8 +22,11 @@ export class OrderLinesTableComponent {
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;
 
-  // Los productos sin variaciones reales usan la variación "DUMMY", que no se muestra.
+  readonly modifierLabel = modifierLabel;
+  readonly paidState = linePaidState;
+  readonly formatQuantity = formatQuantity;
+
   variationLabel(line: OrderLineDto): string | null {
-    return line.variationName && line.variationName !== 'DUMMY' ? line.variationName : null;
+    return orderVariationLabel(line.variationName);
   }
 }

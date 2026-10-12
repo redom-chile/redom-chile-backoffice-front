@@ -6,11 +6,13 @@ import { ButtonComponent, ConfirmModalComponent, ConfirmModalData, IconComponent
 import { formatCurrency, formatDateTime, ORDER_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { CustomerDetailDto, CustomerService } from './data-access';
 import { UpdateCustomerModalComponent } from './features';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent],
+  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent, CheckPermissionDirective],
   templateUrl: './customer-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -20,6 +22,8 @@ export class CustomerDetailComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
   private readonly customerService = inject(CustomerService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly orderStatus = ORDER_STATUS;
   readonly formatCurrency = formatCurrency;

@@ -1,4 +1,5 @@
-import { Component, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
@@ -6,7 +7,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
-import { GetAllRolesService } from '../../../roles/data-access';
+import { GetAllRolesService, getRoleErrorMessage } from '../../../roles/data-access';
+import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { AssignRoleToUserService, UserRoleItemDto, GetAllUsersWithRolesService } from '../../data-access';
 
 @Component({
@@ -32,27 +34,33 @@ export class AssignRoleModalComponent {
   private readonly assignService = inject(AssignRoleToUserService);
   private readonly $toast = inject(ToastService);
   private readonly $usersService = inject(GetAllUsersWithRolesService);
+  readonly #whoami = inject(WhoamiService);
 
   protected readonly data: { userId: string; userRoles: UserRoleItemDto[] } = inject(MAT_DIALOG_DATA);
 
-  protected readonly allRoles = this.$allRolesService.$roles;
-  protected readonly $loadingRoles = this.$allRolesService.$isLoading;
+  // Solo los roles que se pueden asignar: el dueño y los de Redom (globales) no.
+  readonly #roleOptions = toSignal(this.$allRolesService.options());
+  protected readonly allRoles = computed(() => this.#roleOptions()?.filter((role) => !role.isGlobal && role.code !== 'OWNER'));
+  protected readonly $loadingRoles = computed(() => this.#roleOptions() === undefined);
   protected readonly $saving = this.assignService.$isLoading;
 
   rolesControl = new FormControl<number[]>(this.data.userRoles.map((r) => r.id));
 
   constructor() {
     this.assignService.reset();
-    this.$allRolesService.setParams({ page: 1, perPage: 50, searchCode: '', searchName: '' });
 
     effect(() => {
       if (this.assignService.$success()) {
-        this.$toast.show('Roles asignados exitosamente', 'success');
+        this.$toast.show('Roles guardados.', 'success');
         this.$usersService.retry();
+        // Si se cambió los roles a sí mismo, sus permisos cambiaron.
+        if (this.data.userId === this.#whoami.$whoami()?.user.code) this.#whoami.refetch();
         this.dialogRef.close();
       }
-      if (this.assignService.$hasError()) {
-        this.$toast.show('Algo salió mal. Por favor, vuelva a intentar.', 'error');
+      const error = this.assignService.$error();
+      if (error) {
+        const message = getRoleErrorMessage(error, 'No se pudieron guardar los roles. Intenta nuevamente.');
+        if (message) this.$toast.show(message, 'error');
       }
     });
   }

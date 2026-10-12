@@ -33,7 +33,7 @@
           [for]="inputId"
           class="border-border hover:border-primary hover:text-primary focus-within:ring-primary inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-within:ring-2"
           [class.pointer-events-none]="$disabled() || $uploading()">
-          <app-icon class="text-base">{{ $hasImage() ? 'sync' : 'upload' }}</app-icon>
+          <app-icon class="h-4 w-4">{{ $hasImage() ? 'sync' : 'upload' }}</app-icon>
           {{ $hasImage() ? 'Cambiar' : 'Elegir imagen' }}
           <input
             [id]="inputId"
@@ -50,7 +50,7 @@
           class="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
           [disabled]="$disabled() || $uploading()"
           (click)="remove()">
-          <app-icon class="text-base">delete</app-icon>
+          <app-icon class="h-4 w-4">delete</app-icon>
           Quitar
         </button>
         } @if ($isChanged()) {
@@ -59,7 +59,7 @@
           class="text-muted-foreground hover:text-primary inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
           [disabled]="$disabled() || $uploading()"
           (click)="undo()">
-          <app-icon class="text-base">undo</app-icon>
+          <app-icon class="h-4 w-4">undo</app-icon>
           Deshacer
         </button>
         }

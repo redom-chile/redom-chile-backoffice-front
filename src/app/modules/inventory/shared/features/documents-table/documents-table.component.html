@@ -1,0 +1,193 @@
+@let listType = type();
+@let headers = $headers();
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (loading()) {
+  <!-- Skeleton -->
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 90px" />
+      <app-skeleton size="xs" style="width: 140px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 160px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (documents().length === 0) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">{{ $emptyTitle() }}</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ hasFilters() ? 'No hay documentos que coincidan con los filtros.' : 'Todavía no hay documentos registrados.' }}
+    </p>
+    @if (hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters.emit()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Fecha</th>
+          @if (!listType) {
+          <th class="px-4 py-3">Tipo</th>
+          }
+          <th class="px-4 py-3">{{ headers.location }}</th>
+          @if (listType === 'purchase') {
+          <th class="px-4 py-3">Proveedor</th>
+          <th class="px-4 py-3">N° factura</th>
+          <th class="px-4 py-3">Pago</th>
+          } @else if (listType === 'adjustment') {
+          <th class="px-4 py-3">Motivo</th>
+          <th class="px-4 py-3">Notas</th>
+          } @else {
+          <th class="px-4 py-3">Notas</th>
+          }
+          <th class="px-4 py-3 text-right">{{ headers.lines }}</th>
+          <th class="px-4 py-3 text-right">{{ headers.total }}</th>
+          <th class="hidden px-4 py-3 lg:table-cell">Creado por</th>
+          <th class="px-4 py-3"><span class="sr-only">Abrir</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (document of documents(); track document.id) {
+        <tr class="glass-row cursor-pointer border-b border-[var(--border)] transition-colors last:border-0" (click)="open(document)">
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">{{ formatDate(document.documentDate) }}</td>
+          @if (!listType) {
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
+            {{ typeLabels[document.type] ?? document.type }}@if (document.reason) { · {{ reasonLabels[document.reason] }} }
+            @if (document.type === 'purchase' && document.paymentStatus) {
+            <span class="block"><ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" /></span>
+            }
+            @if (document.purchaseOrderId) {
+            <a
+              [routerLink]="['/inventory/purchase-orders', document.purchaseOrderId]"
+              class="text-primary block text-xs font-medium hover:underline"
+              (click)="$event.stopPropagation()">
+              Orden de compra #{{ document.purchaseOrderId }}
+            </a>
+            }
+          </td>
+          }
+          <td class="text-foreground px-4 py-3 text-sm">{{ locationLabel(document) }}</td>
+          @if (listType === 'purchase') {
+          <td class="text-foreground px-4 py-3 text-sm">
+            {{ document.supplierName ?? '—' }}
+            @if (document.purchaseOrderId) {
+            <a
+              [routerLink]="['/inventory/purchase-orders', document.purchaseOrderId]"
+              class="text-primary block text-xs font-medium hover:underline"
+              (click)="$event.stopPropagation()">
+              Orden de compra #{{ document.purchaseOrderId }}
+            </a>
+            }
+          </td>
+          <td class="text-muted-foreground px-4 py-3 font-mono text-sm">{{ document.referenceNo ?? '—' }}</td>
+          <td class="px-4 py-3 text-sm">
+            <ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" />
+          </td>
+          } @else if (listType === 'adjustment') {
+          <td class="text-foreground px-4 py-3 text-sm">{{ document.reason ? reasonLabels[document.reason] : '—' }}</td>
+          <td class="text-muted-foreground px-4 py-3 text-sm">
+            <p class="max-w-[16rem] truncate" [title]="document.notes ?? ''">{{ document.notes ?? '—' }}</p>
+          </td>
+          } @else {
+          <td class="text-muted-foreground px-4 py-3 text-sm">
+            <p class="max-w-[16rem] truncate" [title]="document.notes ?? ''">{{ document.notes ?? '—' }}</p>
+          </td>
+          }
+          <td class="text-muted-foreground px-4 py-3 text-right text-sm tabular-nums">
+            {{ listType ? itemsCount(document) : itemsLabel(document) }}
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
+            @if (document.type === 'purchase') {
+            {{ formatMoney(grossTotal(document)) }}
+            @if (document.vatAmount) {
+            <span class="text-muted-foreground block text-xs font-normal">Neto {{ formatMoney(document.totalCost) }} · IVA {{ formatMoney(document.vatAmount) }}</span>
+            }
+            } @else {
+            {{ formatMoney(document.totalCost) }}
+            }
+          </td>
+          <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">{{ userLabel(document) }}</td>
+          <td class="px-4 py-3 text-right">
+            <a
+              [routerLink]="['/inventory/documents', document.id]"
+              [state]="{ document }"
+              [attr.aria-label]="'Ver documento ' + document.id"
+              class="text-muted-foreground hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-md"
+              (click)="$event.stopPropagation()">
+              <app-icon class="h-5 w-5">chevron_right</app-icon>
+            </a>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (document of documents(); track document.id) {
+    <li>
+      <a [routerLink]="['/inventory/documents', document.id]" [state]="{ document }" class="glass-row flex items-start gap-3 px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground truncate text-sm font-semibold">
+            @if (showTypePrefix(document)) { {{ typeLabels[document.type] }} · }@if (!listType && document.type === 'production' && document.notes) { Producción · }{{ title(document) }}
+          </p>
+          <p class="text-muted-foreground truncate text-xs">
+            {{ formatDate(document.documentDate) }}@if (document.type !== 'transfer') { · {{ document.locationName }} }
+            @if (document.type === 'purchase' && document.referenceNo) { · N° {{ document.referenceNo }} }
+          </p>
+          @if (document.notes && document.type !== 'purchase') {
+          <p class="text-muted-foreground truncate text-xs">{{ document.notes }}</p>
+          }
+          <p class="text-muted-foreground text-xs">{{ itemsLabel(document) }}</p>
+          @if (document.type === 'purchase' && document.paymentStatus) {
+          <div class="mt-1"><ng-container *ngTemplateOutlet="paymentInfo; context: { $implicit: document }" /></div>
+          }
+        </div>
+        <span class="text-foreground whitespace-nowrap text-right text-sm font-semibold tabular-nums">
+          {{ formatMoney(document.type === 'purchase' ? grossTotal(document) : document.totalCost) }}
+          @if (document.type === 'purchase' && document.vatAmount) {
+          <span class="text-muted-foreground block text-xs font-normal">con IVA</span>
+          }
+        </span>
+      </a>
+      @if (document.purchaseOrderId) {
+      <a
+        [routerLink]="['/inventory/purchase-orders', document.purchaseOrderId]"
+        class="text-primary -mt-2 inline-flex items-center gap-1 px-4 pb-3 text-xs font-medium hover:underline">
+        <app-icon class="h-4 w-4">receipt_long</app-icon>Orden de compra #{{ document.purchaseOrderId }}
+      </a>
+      }
+    </li>
+    }
+  </ul>
+  }
+
+  @if (pagination(); as meta) { @if (meta.totalItems > 0 && !loading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="pageChange.emit($event)" />
+  </div>
+  } }
+</div>
+
+<!-- Estado de pago de una compra: chip + vencimiento (rojo si está vencida y sin pagar). -->
+<ng-template #paymentInfo let-document>
+  @if (document.paymentStatus) {
+  <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" [class]="paymentClass(document)">
+      {{ paymentLabel(document) }}
+    </span>
+    @if (document.dueDate && document.paymentStatus !== 'paid') {
+    <span class="whitespace-nowrap text-xs" [class]="isOverdue(document) ? 'font-medium text-red-600 dark:text-red-400' : 'text-muted-foreground'">
+      {{ isOverdue(document) ? 'Venció' : 'Vence' }} {{ formatDate(document.dueDate) }}
+    </span>
+    }
+  </span>
+  } @else {
+  <span class="text-muted-foreground">—</span>
+  }
+</ng-template>

@@ -1,8 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
-import { ConfirmModalComponent, ConfirmModalData, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
+import { RouterLink } from '@angular/router';
+import { ApiError } from 'src/app/core/utils';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
+import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
 import { GetAllTablesService, TableDto } from 'src/app/modules/tables/pages/table-list/data-access';
@@ -19,19 +24,22 @@ import {
   CustomerDto,
   getOrderSaveErrorMessage,
   GetMenuProductsService,
+  isModifierNotAvailableError,
   OrderProductDto,
 } from 'src/app/modules/orders/pages/order-create/data-access';
 import {
-  addToCart,
+  addProductToCart,
   CartLine,
   CartNoteChange,
   changeCartQuantity,
+  editCartLine,
   ProductPickerComponent,
   quantitiesByProduct,
   removeFromCart,
   setCartNote,
   toOrderProducts,
 } from 'src/app/modules/orders/pages/order-create/features';
+import { CashContextStore, CashIndicatorComponent } from 'src/app/modules/cash/features/cash-panel';
 import { PosSessionService, PosWaiter } from './data-access';
 import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent } from './features';
 
@@ -40,11 +48,14 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
   standalone: true,
   imports: [RedomLogoComponent, 
     IconComponent,
+    EmptyStateComponent,
+    RouterLink,
     BusinessLocationSelector,
     WaiterLoginComponent,
     PosTablesPanelComponent,
     PosOrderPanelComponent,
     ProductPickerComponent,
+    CashIndicatorComponent,
   ],
   templateUrl: './pos-terminal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,6 +71,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(ToastService);
+  private readonly entitlements = inject(EntitlementsService);
+  private readonly upsell = inject(PlanUpsellService);
   private readonly session = inject(PosSessionService);
   private readonly tablesService = inject(GetAllTablesService);
   private readonly sectorsService = inject(GetAllSectorsService);
@@ -68,6 +81,28 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(GetOrderByIdService);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
+  // Caja del equipo (solo con el módulo de caja activo).
+  private readonly cashContext = inject(CashContextStore);
+
+  // Sin sucursales no se puede vender: se muestra cómo crear la primera (no aplica a la terminal, que tiene la suya).
+  private readonly locationsService = inject(GetAllBusinessLocationsService);
+  readonly $noLocations = computed(() => !this.terminalMode() && this.locationsService.$locations()?.length === 0);
+
+  // Opciones del POS (Mi negocio → Punto de venta). Sin configurar (negocios antiguos), el POS se muestra completo.
+  private readonly businessSettings = inject(BusinessSettingsService);
+  readonly $showTables = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return !pos.configured || pos.tablesEnabled;
+  });
+  // La terminal de salón siempre trabaja con meseros (PIN).
+  readonly $useWaiters = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return this.terminalMode() || !pos.configured || pos.waiterEnabled;
+  });
+  readonly $waiterRequired = computed(() => {
+    const pos = this.businessSettings.$posSettings();
+    return pos.configured && pos.waiterEnabled && pos.isServiceStaffRequired;
+  });
 
   readonly $waiter = this.session.$waiter;
   readonly $isReady = computed(() => !!this.$waiter() || this.session.$isAnonymous());
@@ -102,6 +137,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly $panelTitle = computed(() => this.$table()?.name ?? 'Venta sin mesa');
 
   constructor() {
+    // Sin meseros: se entra directo al POS, sin la pantalla "¿Quién atiende?".
+    effect(() => {
+      if (!this.$useWaiters() && !this.$isReady()) this.session.startAnonymous();
+    });
+
     effect(() => {
       const created = this.createService.$created();
       if (!created) return;
@@ -119,12 +159,12 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.createService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, false), 'error');
+      if (error) this.handleSaveError(error, false);
     });
 
     effect(() => {
       const error = this.addLinesService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, true), 'error');
+      if (error) this.handleSaveError(error, true);
     });
   }
 
@@ -161,6 +201,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.createService.reset();
     this.addLinesService.reset();
+    this.cashContext.clear();
   }
 
   // --- Mesero ---
@@ -209,6 +250,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   handleLocationChange(locationId: number) {
     if (this.$locationId() === locationId) return;
     this.$locationId.set(locationId);
+    this.cashContext.setLocation(locationId);
     this.tablesService.setParams(locationId);
     this.sectorsService.setParams({ locationId });
     this.selectCounter();
@@ -246,7 +288,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   }
 
   handleAdd(product: ProductDto) {
-    this.$cart.update((cart) => addToCart(cart, product));
+    addProductToCart(this.dialog, this.$cart, product);
+  }
+
+  handleEdit(key: string) {
+    editCartLine(this.dialog, this.$cart, key, this.$products());
   }
 
   handleIncrement(key: string) {
@@ -269,6 +315,11 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   handleSubmit() {
     const locationId = this.$locationId();
     if (!this.$cart().length || !locationId) return;
+    // Local sobre el límite del plan: solo lectura, no vende.
+    if (!this.$orderId() && this.entitlements.isLocked('locations', locationId)) {
+      this.upsell.open({ resource: 'locations' });
+      return;
+    }
     // Cada producto lleva su nota; la nota general solo existe al abrir la cuenta.
     const products: OrderProductDto[] = toOrderProducts(this.$cart());
 
@@ -336,6 +387,15 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     this.$cart.set([]);
     this.$kitchenNote.set('');
     this.selectCounter();
+  }
+
+  // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
+  private handleSaveError(error: ApiError, adding: boolean) {
+    // Error de plan (p. ej. local en solo lectura): ya lo muestra el modal global.
+    if (error.code?.startsWith('PLAN_')) return;
+    const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
+    this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
+    if (isModifierNotAvailableError(error)) this.menuService.reload();
   }
 
   private loadProducts() {

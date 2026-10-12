@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { formatCurrency, formatDateTime } from 'src/app/modules/orders/pages/order-list/ui';
 import { PaymentDto } from '../../data-access';
-import { paymentMethodIcon, paymentMethodLabel } from '../../ui';
+import { paymentLinesLabel, paymentMethodIcon, paymentMethodLabel } from '../../ui';
 
 @Component({
   selector: 'app-payments-table',
@@ -22,6 +23,10 @@ export class PaymentsTableComponent {
   readonly showOrder = input(true);
   readonly canVoid = input(true);
 
+  private readonly access = inject(AccessService);
+  // Anular también exige el permiso del rol.
+  readonly $canVoid = computed(() => this.canVoid() && this.access.can(PERMISSIONS.PAYMENTS.CANCEL_PAYMENT));
+
   readonly voidPayment = output<PaymentDto>();
   readonly pageChange = output<number>();
   readonly clearFilters = output<void>();
@@ -31,4 +36,5 @@ export class PaymentsTableComponent {
   readonly formatDateTime = formatDateTime;
   readonly methodLabel = paymentMethodLabel;
   readonly methodIcon = paymentMethodIcon;
+  readonly linesLabel = paymentLinesLabel;
 }

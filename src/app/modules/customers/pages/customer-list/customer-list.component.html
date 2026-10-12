@@ -1,13 +1,13 @@
 <div class="space-y-4">
   <app-header-dashboard title="Clientes" subtitle="Tus clientes y su historial de pedidos">
     @if (!$isEmpty()) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="person_add" (buttonClick)="handleCreate()">Nuevo cliente</app-button>
+    <app-button *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER" full impact="bold" tone="primary" shape="rounded" size="medium" icon="person_add" (buttonClick)="handleCreate()">Nuevo cliente</app-button>
     }
   </app-header-dashboard>
 
   @if ($isEmpty()) {
   <app-empty-state icon="groups" title="Aún no tienes clientes" description="Crea clientes aquí o al tomar un pedido en el POS. Solo necesitas nombre y teléfono.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="person_add" (buttonClick)="handleCreate()">Nuevo cliente</app-button>
+    <app-button *appCheckPermission="PERMISSIONS.CUSTOMERS.CREATE_CUSTOMER" impact="bold" tone="primary" shape="rounded" icon="person_add" (buttonClick)="handleCreate()">Nuevo cliente</app-button>
   </app-empty-state>
   } @else {
   <div class="relative">

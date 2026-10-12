@@ -19,7 +19,7 @@
 }@else {
 <button [disabled]="disabled()" [type]="type()" (click)="onButtonClick()" [ngClass]="classes()">
   @if($icon()){
-  <app-icon class="h-6 w-6" [ngClass]="{ 'mr-2': hasText() }">
+  <app-icon [ngClass]="[iconSizeClasses[size()], hasText() ? 'mr-2' : '']">
     {{ $icon() }}
   </app-icon>
   }

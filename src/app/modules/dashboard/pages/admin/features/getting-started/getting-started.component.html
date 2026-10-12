@@ -1,0 +1,100 @@
+@if ($isResolving()) {
+<div class="glass-tile-soft h-16 animate-pulse rounded-2xl" aria-hidden="true"></div>
+} @else if ($collapsed()) {
+<!-- Todo lo esencial listo: queda como chip -->
+<div class="glass-tile-soft inline-flex max-w-full items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 text-sm">
+  <app-icon class="h-5 w-5 shrink-0 text-green-600 dark:text-green-400">check_circle</app-icon>
+  <span class="text-foreground font-medium">¡Todo listo!</span>
+  <span class="text-muted-foreground tabular-nums">{{ $done() }} de {{ $total() }}</span>
+  <button type="button" class="text-primary rounded-full px-2 py-1 font-medium hover:underline" (click)="$expanded.set(true)">Ver</button>
+  <button type="button" class="text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-full" aria-label="Ocultar primeros pasos" (click)="handleHide()">
+    <app-icon class="h-4 w-4">close</app-icon>
+  </button>
+</div>
+} @else {
+<section class="glass-tile-soft rounded-2xl p-4 sm:p-5" aria-labelledby="getting-started-title">
+  <div class="flex items-start gap-3">
+    <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+      <app-icon class="h-5 w-5">rocket_launch</app-icon>
+    </span>
+    <div class="min-w-0 flex-1">
+      <h2 id="getting-started-title" class="text-foreground text-base font-semibold">Primeros pasos</h2>
+      <p class="text-muted-foreground text-sm">Deja tu restaurante listo para vender.</p>
+    </div>
+    <div class="flex shrink-0 items-center gap-1">
+      @if ($allEssentialDone()) {
+      <button type="button" class="text-muted-foreground hover:text-foreground rounded-full px-2 py-1 text-sm" (click)="$expanded.set(false)">Contraer</button>
+      }
+      <button type="button" class="text-muted-foreground hover:text-foreground rounded-full px-2 py-1 text-sm" (click)="handleHide()">Ocultar</button>
+    </div>
+  </div>
+
+  @if ($hasError()) {
+  <!-- Sin estado: no se marca ningún paso -->
+  <div class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-500/10 px-3 py-2.5 text-sm" role="alert">
+    <app-icon class="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400">help</app-icon>
+    <p class="text-foreground min-w-0 flex-1">No pudimos verificar tu avance.</p>
+    <button type="button" class="text-primary inline-flex items-center gap-1 rounded-full px-3 py-1 font-medium hover:bg-primary/10 disabled:opacity-60" [disabled]="$isLoading()" (click)="handleRetry()">
+      <app-icon class="h-4 w-4" [class.animate-spin]="$isLoading()">refresh</app-icon>Reintentar
+    </button>
+  </div>
+  } @else {
+  <!-- Progreso -->
+  <div class="mt-4 flex items-center gap-3">
+    <div class="bg-primary/15 h-2 flex-1 overflow-hidden rounded-full" role="progressbar" aria-label="Progreso de primeros pasos" aria-valuemin="0" [attr.aria-valuemax]="$total()" [attr.aria-valuenow]="$done()">
+      <div class="bg-primary h-full rounded-full transition-all" [style.width.%]="$progress()"></div>
+    </div>
+    <span class="text-foreground text-sm font-medium tabular-nums">{{ $done() }} de {{ $total() }}</span>
+  </div>
+  }
+
+  <ul class="mt-4 grid grid-cols-1 gap-2 lg:grid-cols-2">
+    @for (step of $steps(); track step.key) {
+    @let isNext = step.key === $nextKey();
+    <li
+      class="flex items-center gap-3 rounded-xl px-3 py-2.5"
+      [class]="isNext ? 'bg-primary/10 ring-primary/30 ring-1 lg:col-span-2' : 'glass-row'">
+      <!-- Estado del paso -->
+      @switch (step.status) {
+      @case ('done') {
+      <app-icon class="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" aria-label="Listo">check_circle</app-icon>
+      }
+      @case ('unknown') {
+      <app-icon class="text-muted-foreground h-5 w-5 shrink-0" aria-label="No se pudo verificar" title="No pudimos verificar este paso">help</app-icon>
+      }
+      @default {
+      <app-icon class="h-5 w-5 shrink-0" [class]="isNext ? 'text-primary' : 'text-muted-foreground'" aria-label="Pendiente">radio_button_unchecked</app-icon>
+      }
+      }
+
+      <div class="min-w-0 flex-1">
+        <p class="flex flex-wrap items-center gap-x-2 text-sm font-medium" [class]="step.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'">
+          {{ step.title }}
+          @if (levelLabel[step.level]; as level) {
+          <span class="text-muted-foreground bg-muted rounded-full px-2 py-0.5 text-[11px] font-normal no-underline">{{ level }}</span>
+          }
+        </p>
+        @if (step.status !== 'done') {
+        <p class="text-muted-foreground text-xs">
+          {{ step.description }}
+          @if (step.extra; as extra) {
+          <a [routerLink]="extra.link" class="text-primary font-medium hover:underline">{{ extra.label }}</a>
+          }
+        </p>
+        }
+      </div>
+
+      @if (isNext) {
+      <a [routerLink]="step.link" class="bg-primary inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-4 text-sm font-medium text-white hover:opacity-90">
+        {{ step.cta }}<app-icon class="hidden h-4 w-4 sm:inline-block">arrow_forward</app-icon>
+      </a>
+      } @else if (step.status !== 'done') {
+      <a [routerLink]="step.link" class="text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-primary/10" [attr.aria-label]="step.cta">
+        <app-icon class="h-5 w-5">chevron_right</app-icon>
+      </a>
+      }
+    </li>
+    }
+  </ul>
+</section>
+}

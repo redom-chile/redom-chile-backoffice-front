@@ -1,5 +1,6 @@
 import { HttpStatusCode } from '@angular/common/http';
 import { ApiError, ApiErrorCode } from 'src/app/core/utils';
+import { isNotEnoughStockError, notEnoughStockMessage } from 'src/app/core/utils/stock-error';
 
 // Mensajes por código de negocio del backend (tienen prioridad sobre el status HTTP).
 const ORDER_ERROR_BY_CODE: Partial<Record<string, string>> = {
@@ -10,6 +11,8 @@ const ORDER_ERROR_BY_CODE: Partial<Record<string, string>> = {
 
 /** Acepta el error normalizado (`readApiError`) o, por compatibilidad, solo el status HTTP. */
 export function getOrderErrorMessage(error: ApiError | HttpStatusCode | undefined): string {
+  // PATCH /orders/:id (p. ej. un descuento que deja el pedido pagado) puede fallar por falta de stock.
+  if (typeof error === 'object' && isNotEnoughStockError(error)) return notEnoughStockMessage(error);
   const { status, code } = typeof error === 'object' ? error : { status: error, code: null };
   const byCode = code ? ORDER_ERROR_BY_CODE[code] : undefined;
   if (byCode) return byCode;

@@ -1,0 +1,151 @@
+@let q = $query();
+<app-header-dashboard title="Centro de ayuda" subtitle="Guías paso a paso para usar Redom en tu negocio." />
+
+<!-- Buscador + asistente -->
+<div class="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+  <div class="glass rounded-[1rem] p-4 sm:p-5">
+    <label for="help-search" class="text-foreground mb-2 block text-base font-semibold sm:text-lg">¿Qué necesitas saber?</label>
+    <div class="relative">
+      <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-6 w-6 -translate-y-1/2" aria-hidden="true">search</app-icon>
+      <input
+        id="help-search"
+        type="search"
+        placeholder="Ej.: abrir la caja, registrar un gasto, dividir la cuenta"
+        class="glass-input text-foreground w-full rounded-xl py-3 pl-11 pr-3 text-base"
+        [value]="$search()"
+        (input)="handleSearch($event)" />
+    </div>
+  </div>
+  <button
+    type="button"
+    class="bg-primary/10 text-primary hover:bg-primary/15 flex items-center gap-3 rounded-[1rem] p-4 text-left transition-colors sm:p-5 lg:max-w-xs"
+    (click)="openAssistant()">
+    <span class="bg-primary text-primary-foreground flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+      <app-icon class="h-6 w-6">support_agent</app-icon>
+    </span>
+    <span class="min-w-0">
+      <span class="block font-semibold">Pregúntale al asistente</span>
+      <span class="block text-sm opacity-80">Responde tus dudas con los artículos de ayuda.</span>
+    </span>
+  </button>
+</div>
+
+@if (!$filtering()) {
+<!-- Categorías -->
+<h2 class="text-foreground mb-3 text-sm font-semibold">Explora por tema</h2>
+@if (categories.isLoading()) {
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  @for (card of skeletonCards; track card) {
+  <div class="glass rounded-[1rem] p-4"><app-skeleton size="lg" /></div>
+  }
+</div>
+} @else if ($categoriesError()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar la ayuda</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="categories.reload()">Reintentar</app-button>
+</div>
+} @else if (!$categories().length) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-muted-foreground h-12 w-12">menu_book</app-icon>
+  <p class="text-muted-foreground text-sm">Aún no hay artículos publicados. Mientras tanto, puedes preguntarle al asistente.</p>
+</div>
+} @else {
+<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  @for (category of $categories(); track category.id) {
+  <button
+    type="button"
+    class="glass hover:border-primary/40 group flex items-start gap-3 rounded-[1rem] p-4 text-left transition-colors"
+    (click)="selectCategory(category.id)">
+    <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+      <app-icon class="h-5 w-5">{{ category.icon || 'menu_book' }}</app-icon>
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="text-foreground group-hover:text-primary block font-semibold transition-colors">{{ category.name }}</span>
+      @if (category.description) {
+      <span class="text-muted-foreground mt-0.5 line-clamp-2 block text-sm">{{ category.description }}</span>
+      }
+      <span class="text-muted-foreground mt-2 block text-xs">{{ category.articlesCount === 1 ? '1 artículo' : category.articlesCount + ' artículos' }}</span>
+    </span>
+  </button>
+  }
+</div>
+}
+} @else {
+<!-- Resultados -->
+<div class="mb-3 flex flex-wrap items-center gap-2">
+  @if ($category(); as category) {
+  <span class="bg-primary/10 text-primary inline-flex max-w-full items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm font-medium">
+    <span class="truncate">{{ category.name }}</span>
+    <button type="button" class="hover:bg-primary/15 rounded-full p-0.5" aria-label="Quitar categoría" (click)="selectCategory(null)">
+      <app-icon class="h-4 w-4">close</app-icon>
+    </button>
+  </span>
+  }
+  @if (q.search) {
+  <span class="text-muted-foreground min-w-0 truncate text-sm">Resultados para "{{ q.search }}"</span>
+  }
+  <button type="button" class="text-primary ml-auto text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+</div>
+
+@if ($articlesError()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los artículos</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="articles.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (articles.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="space-y-2 px-4 py-4">
+      <app-skeleton size="xs" style="width: 40%" />
+      <app-skeleton size="xs" style="width: 80%" />
+    </div>
+    }
+  </div>
+  } @else if (!$page()?.data?.length) {
+  <div class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground h-12 w-12">search_off</app-icon>
+    <div>
+      <p class="text-foreground font-medium">No encontramos artículos</p>
+      <p class="text-muted-foreground mt-1 text-sm">Prueba con otras palabras o pregúntale directamente al asistente.</p>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <app-button type="button" impact="bold" tone="primary" icon="support_agent" (buttonClick)="openAssistant()"><span #buttonText>Pregúntale al asistente</span></app-button>
+      <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleClearFilters()">Limpiar filtros</button>
+    </div>
+  </div>
+  } @else {
+  <ul class="divide-y divide-[var(--border)]">
+    @for (article of $page()!.data; track article.id) {
+    <li>
+      <a [routerLink]="['/help', article.slug]" class="glass-row flex items-start gap-3 px-4 py-4">
+        <app-icon class="text-primary mt-0.5 h-5 w-5 shrink-0">article</app-icon>
+        <div class="min-w-0 flex-1">
+          <p class="text-foreground font-semibold">{{ article.title }}</p>
+          <p class="text-muted-foreground mt-0.5 line-clamp-2 text-sm">{{ article.summary }}</p>
+          <span class="bg-muted text-muted-foreground mt-2 inline-block max-w-full truncate rounded-full px-2 py-0.5 text-xs font-medium">{{ article.categoryName }}</span>
+        </div>
+        <app-icon class="text-muted-foreground h-5 w-5 shrink-0">chevron_right</app-icon>
+      </a>
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalPages > 1 && !articles.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}
+}

@@ -31,8 +31,17 @@
     <td class="text-muted-foreground text-center">{{ row.category.description || '-' }}</td>
     <td class="w-[90px] text-center">
       <div class="flex items-center justify-center gap-1">
-        <app-button size="small" icon="edit_document" (buttonClick)="handleUpdate(row.category)" />
-        <app-button size="small" icon="delete" tone="danger" (buttonClick)="handleDelete(row.category)" />
+        <app-button
+          *appCheckPermission="PERMISSIONS.CATEGORIES.UPDATE_CATEGORY"
+          size="small"
+          icon="edit_document"
+          (buttonClick)="handleUpdate(row.category)" />
+        <app-button
+          *appCheckPermission="PERMISSIONS.CATEGORIES.DELETE_CATEGORY"
+          size="small"
+          icon="delete"
+          tone="danger"
+          (buttonClick)="handleDelete(row.category)" />
       </div>
     </td>
   </tr>

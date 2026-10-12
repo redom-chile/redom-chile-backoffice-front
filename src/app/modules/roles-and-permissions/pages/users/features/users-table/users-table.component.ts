@@ -17,6 +17,9 @@ import { UpdateUserModalComponent } from '../update-user-modal';
 import { DeleteUserModalComponent } from '../delete-user-modal';
 import { SetServicePinModalComponent } from '../set-service-pin-modal';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
+import { PlanLockedBadgeComponent } from 'src/app/shared/components/plan-limit';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-users-table',
@@ -30,12 +33,15 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
     ProgressBarComponent,
     FiltersTableUserComponent,
     CheckPermissionDirective,
+    PlanLockedBadgeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './users-table.component.html',
 })
 export class UsersTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
+  readonly #entitlements = inject(EntitlementsService);
   readonly $users = input.required<UserDto[]>({ alias: 'users' });
   readonly isLoading = input<boolean | undefined>(false, { alias: 'isLoading' });
   // id de sucursal -> nombre, para mostrar la sucursal de cada usuario.
@@ -87,6 +93,10 @@ export class UsersTableComponent {
       width: '90%',
       data: item,
     });
+  }
+
+  isLocked(user: UserDto): boolean {
+    return this.#entitlements.isLocked('users', user.code);
   }
 
   getFullName(user: UserDto): string {

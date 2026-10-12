@@ -9,7 +9,8 @@
       class="glass-input w-full rounded-md py-2.5 pl-10 pr-3" />
   </div>
 
-  <div class="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Categorías">
+  @let parent = $selectedParent();
+  <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" [class.mb-3]="!parent?.subcategories?.length" role="tablist" aria-label="Categorías">
     <button
       type="button"
       role="tab"
@@ -20,43 +21,114 @@
       Todos
     </button>
     @for (category of categories(); track category.id) {
+    @let active = parent?.id === category.id;
     <button
       type="button"
       role="tab"
-      class="shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors"
-      [class]="selectedCategoryId() === category.id ? 'bg-primary text-white' : 'glass-row text-foreground'"
-      [attr.aria-selected]="selectedCategoryId() === category.id"
+      class="inline-flex shrink-0 items-center gap-1 rounded-full px-4 py-2 text-sm font-medium transition-colors"
+      [class]="active ? 'bg-primary text-white' : 'glass-row text-foreground'"
+      [attr.aria-selected]="active"
+      [attr.aria-expanded]="category.subcategories?.length ? active : null"
       (click)="categoryChange.emit(category.id)">
       {{ category.name }}
+      @if (category.subcategories?.length) {
+      <app-icon class="h-4 w-4 transition-transform" [class.rotate-180]="active">expand_more</app-icon>
+      }
     </button>
     }
   </div>
+
+  <!-- Subcategorías de la categoría elegida: llevan directo al grupo de productos. -->
+  @if (parent?.subcategories?.length) {
+  <div class="-mx-1 mb-3 mt-2 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" [attr.aria-label]="'Subcategorías de ' + parent!.name">
+    <button
+      type="button"
+      role="tab"
+      class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+      [class]="selectedCategoryId() === parent!.id ? 'border-primary bg-primary/10 text-primary' : 'border-[var(--border)] text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="selectedCategoryId() === parent!.id"
+      (click)="categoryChange.emit(parent!.id)">
+      Todo {{ parent!.name }}
+    </button>
+    @for (sub of parent!.subcategories; track sub.id) {
+    <button
+      type="button"
+      role="tab"
+      class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+      [class]="selectedCategoryId() === sub.id ? 'border-primary bg-primary/10 text-primary' : 'border-[var(--border)] text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="selectedCategoryId() === sub.id"
+      (click)="categoryChange.emit(sub.id)">
+      {{ sub.name }}
+    </button>
+    }
+  </div>
+  }
 
   @if (loading()) {
   <app-progress-bar />
   }
 
-  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+  <!-- Columnas automáticas: cada card mantiene un ancho mínimo (~120 px) y no se aprieta en el panel del POS. -->
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
     @for (product of products(); track product.id) {
     @let quantity = quantities()[product.id] ?? 0;
+    @let options = hasOptions(product);
     <button
       type="button"
-      class="glass-row relative flex min-h-[96px] flex-col items-start justify-between gap-2 rounded-xl border-2 p-3 text-left transition-transform active:scale-95"
-      [class.border-primary]="quantity > 0"
-      [class.border-transparent]="quantity === 0"
-      [attr.aria-label]="'Agregar ' + product.name"
+      class="group bg-background/60 relative flex flex-col overflow-hidden rounded-xl border text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] active:scale-[0.98]"
+      [class]="quantity > 0 ? 'border-primary ring-primary/30 ring-2' : 'border-[var(--border)]'"
+      [attr.aria-label]="'Agregar ' + product.name + (options ? ' (con opciones)' : '')"
       (click)="add.emit(product)">
-      @if (quantity > 0) {
-      <span class="bg-primary absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white">
-        {{ quantity }}
+      <!-- Imagen o inicial del producto -->
+      <span class="bg-primary/10 relative block aspect-[16/10] w-full overflow-hidden">
+        @if (product.imageUrl && !brokenImages().has(product.id)) {
+        <img
+          [src]="product.imageUrl"
+          [alt]="product.name"
+          loading="lazy"
+          class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          (error)="markBroken(product.id)" />
+        } @else {
+        <span class="text-primary/70 flex h-full w-full items-center justify-center text-2xl font-semibold uppercase">
+          {{ initial(product.name) }}
+        </span>
+        }
+        @if (quantity > 0) {
+        <span
+          class="bg-primary absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white shadow"
+          [attr.aria-label]="quantity + ' en el pedido'">
+          {{ quantity }}
+        </span>
+        }
+        @if (options) {
+        <span class="text-foreground absolute bottom-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-[var(--background)]/90 px-1.5 py-0.5 text-[10px] font-medium shadow-sm backdrop-blur">
+          <app-icon class="text-primary h-3 w-3">tune</app-icon>
+          Opciones
+        </span>
+        }
       </span>
-      }
-      <span class="text-foreground line-clamp-2 text-sm font-medium">{{ product.name }}</span>
-      <span class="text-primary text-sm font-semibold tabular-nums">{{ formatCurrency(price(product)) }}</span>
+
+      <!-- Nombre y precio -->
+      <span class="flex flex-1 flex-col gap-1.5 p-2">
+        <span class="text-foreground line-clamp-2 min-h-[2rem] text-xs font-medium leading-4">{{ product.name }}</span>
+        <span class="mt-auto flex items-center justify-between gap-2">
+          <span class="text-foreground text-sm font-semibold tabular-nums">
+            {{ formatCurrency(price(product)) }}@if ($pricesExcludeVat()) {<span class="text-muted-foreground ml-0.5 text-[10px] font-medium">+IVA</span>}
+          </span>
+          <span
+            class="bg-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-transform group-hover:scale-110"
+            aria-hidden="true">
+            <app-icon class="h-4 w-4">add</app-icon>
+          </span>
+        </span>
+      </span>
     </button>
     } @empty {
     @if (!loading()) {
-    <p class="text-muted-foreground col-span-full py-10 text-center text-sm">No hay productos disponibles para esta búsqueda.</p>
+    <div class="text-muted-foreground col-span-full flex flex-col items-center gap-2 py-12 text-center text-sm">
+      <app-icon class="h-10 w-10 opacity-60">search_off</app-icon>
+      No hay productos disponibles para esta búsqueda.
+    </div>
     }
     }
   </div>

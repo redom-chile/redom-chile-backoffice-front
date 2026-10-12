@@ -7,7 +7,14 @@ export type KitchenTicketData = Readonly<{
   waiterName: string | null;
   staffNote: string | null;
   createdAt: string | Date;
-  items: ReadonlyArray<{ productName: string | null; variationName: string | null; quantity: number | null; notes: string | null }>;
+  items: ReadonlyArray<{
+    productName: string | null;
+    variationName: string | null;
+    quantity: number | null;
+    notes: string | null;
+    // Modificadores ya formateados ("Extra queso", "2 x Sin hielo").
+    modifiers?: ReadonlyArray<string> | null;
+  }>;
 }>;
 
 export type BillTicketData = Readonly<{
@@ -15,7 +22,8 @@ export type BillTicketData = Readonly<{
   invoiceNo: string;
   tableName: string | null;
   waiterName: string | null;
-  lines: ReadonlyArray<{ name: string; quantity: number; total: number }>;
+  // total: producto + sus modificadores. modifiers: ya formateados, se imprimen bajo el producto.
+  lines: ReadonlyArray<{ name: string; quantity: number; total: number; modifiers?: ReadonlyArray<string> | null }>;
   subtotal: number;
   discount: number;
   total: number;
@@ -24,6 +32,9 @@ export type BillTicketData = Readonly<{
   remaining: number;
   // Propina sugerida en porcentaje (0 para no mostrarla).
   suggestedTipPercent: number;
+  // Título y nota opcionales (p. ej. precuenta por persona al dividir la cuenta).
+  title?: string;
+  note?: string;
 }>;
 
 const time = (date: string | Date) =>
@@ -32,6 +43,9 @@ const dateTime = (date: Date) =>
   date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const money = (amount: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(amount);
+// Modificadores bajo el producto: en comanda destacados (mod), en precuenta discretos (sub).
+const modifierLines = (modifiers: ReadonlyArray<string> | null | undefined, cssClass: 'mod' | 'sub' = 'mod') =>
+  (modifiers ?? []).map((modifier) => `<div class="${cssClass}">+ ${escapeHtml(modifier)}</div>`).join('');
 const variation = (name: string | null) => (name && name !== 'DUMMY' ? ` (${escapeHtml(name)})` : '');
 
 // Comanda para cocina/bar: grande y sin precios.
@@ -39,6 +53,7 @@ export function kitchenTicketHtml(ticket: KitchenTicketData): string {
   const items = ticket.items
     .map(
       (item) => `<div class="item"><span class="qty">${item.quantity ?? 1}x</span><span>${escapeHtml(item.productName)}${variation(item.variationName)}</span></div>
+      ${modifierLines(item.modifiers)}
       ${item.notes ? `<div class="note">» ${escapeHtml(item.notes)}</div>` : ''}`,
     )
     .join('');
@@ -61,12 +76,15 @@ const brand = (heightMm: number) => `<div class="center" style="margin:1mm 0"><s
 
 export function billTicketHtml(bill: BillTicketData): string {
   const lines = bill.lines
-    .map((line) => `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>`)
+    .map(
+      (line) =>
+        `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>${modifierLines(line.modifiers, 'sub')}`,
+    )
     .join('');
   const tip = Math.round((bill.total * bill.suggestedTipPercent) / 100);
   return `
     <h2>${escapeHtml(bill.businessName)}</h2>
-    <div class="center big">PRECUENTA</div>
+    <div class="center big">${escapeHtml(bill.title ?? 'PRECUENTA')}</div>
     <div class="center muted">${dateTime(new Date())}</div>
     <div class="row muted"><span>${escapeHtml(bill.invoiceNo)}</span><span>${escapeHtml(bill.tableName ?? 'Sin mesa')}</span></div>
     ${bill.waiterName ? `<div class="muted">Atendido por: ${escapeHtml(bill.waiterName)}</div>` : ''}
@@ -80,6 +98,7 @@ export function billTicketHtml(bill: BillTicketData): string {
     ${bill.paid > 0 ? `<div class="row"><span>Pagado</span><span>${money(bill.paid)}</span></div><div class="row total"><span>SALDO</span><span>${money(bill.remaining)}</span></div>` : ''}
     ${bill.suggestedTipPercent > 0 ? `<div class="sep"></div><div class="row"><span>Propina sugerida ${bill.suggestedTipPercent}%</span><span>${money(tip)}</span></div><div class="row"><span>Total con propina</span><span>${money(bill.remaining + tip)}</span></div>` : ''}
     <div class="sep"></div>
+    ${bill.note ? `<div class="center muted">${escapeHtml(bill.note)}</div>` : ''}
     <div class="center muted">Documento no válido como boleta</div>
     <div class="center">¡Gracias por su visita!</div>
     ${brand(3.5)}`;

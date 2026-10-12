@@ -58,9 +58,29 @@ const routes: Routes = [
     loadChildren: () => import('../payments/payments.routes'),
   },
   {
+    path: 'cash',
+    component: LayoutComponent,
+    loadChildren: () => import('../cash/cash.routes'),
+  },
+  {
+    path: 'help',
+    component: LayoutComponent,
+    loadChildren: () => import('../help/help.routes'),
+  },
+  {
+    path: 'finance',
+    component: LayoutComponent,
+    loadChildren: () => import('../finance/finance.routes'),
+  },
+  {
     path: 'products',
     component: LayoutComponent,
     loadChildren: () => import('../products/products.routes'),
+  },
+  {
+    path: 'inventory',
+    component: LayoutComponent,
+    loadChildren: () => import('../inventory/inventory.routes'),
   },
   {
     path: 'customers',
@@ -76,6 +96,16 @@ const routes: Routes = [
     path: 'settings',
     component: LayoutComponent,
     loadChildren: () => import('../settings/settings.routes'),
+  },
+  {
+    path: 'platform',
+    component: LayoutComponent,
+    loadChildren: () => import('../platform/platform.routes'),
+  },
+  {
+    path: 'billing',
+    component: LayoutComponent,
+    loadChildren: () => import('../billing/billing.routes'),
   },
   {
     path: 'profile',

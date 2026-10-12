@@ -1,0 +1,147 @@
+<ng-template #warnings let-item>
+  @if (item.missingRecipe) {
+  <a
+    [routerLink]="['/inventory/recipes', item.productId]"
+    class="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700 hover:underline dark:text-red-400"
+    title="El plato no tiene ingredientes en su receta: su costo es 0">
+    <app-icon class="h-3.5 w-3.5" aria-hidden="true">menu_book</app-icon>Sin receta
+  </a>
+  }
+  @if (item.missingCost) {
+  <p class="mt-1 flex items-start gap-1 text-xs text-amber-700 dark:text-amber-400" title="El food cost % está subestimado hasta que registres una compra con costo de los insumos que faltan.">
+    <app-icon class="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true">warning</app-icon>
+    <span>Costo incompleto: falta registrar una compra con costo. El % está subestimado.</span>
+  </p>
+  }
+</ng-template>
+
+<ng-template #kind let-item>
+  <span
+    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+    [class]="item.stockMode === 'recipe' ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400' : 'bg-primary/10 text-primary'">
+    <app-icon class="h-3.5 w-3.5" aria-hidden="true">{{ item.stockMode === 'recipe' ? 'restaurant' : 'inventory_2' }}</app-icon>
+    {{ item.stockMode === 'recipe' ? 'Plato' : 'Stock propio' }}
+  </span>
+</ng-template>
+
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (loading()) {
+  <div class="divide-y divide-[var(--border)]" aria-busy="true">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 80px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 80px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 60px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (items().length === 0) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin resultados</p>
+    <p class="text-muted-foreground mt-1 text-sm">No hay platos ni productos que coincidan con los filtros.</p>
+    @if (hasFilters()) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="clearFilters.emit()">Limpiar filtros</button>
+    }
+  </div>
+  } @else {
+  <!-- Escritorio: tabla -->
+  <div class="hidden overflow-x-auto md:block">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3" [attr.aria-sort]="ariaSort('name')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('name')">
+              Producto <app-icon class="h-4 w-4" aria-hidden="true">{{ sortIcon('name') }}</app-icon>
+            </button>
+          </th>
+          <th class="px-4 py-3 text-right">Precio</th>
+          <th class="px-4 py-3 text-right">Precio sin IVA</th>
+          <th class="px-4 py-3 text-right">Costo</th>
+          <th class="px-4 py-3 text-right" [attr.aria-sort]="ariaSort('percent')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('percent')">
+              Food cost <app-icon class="h-4 w-4" aria-hidden="true">{{ sortIcon('percent') }}</app-icon>
+            </button>
+          </th>
+          <th class="px-4 py-3 text-right" [attr.aria-sort]="ariaSort('margin')">
+            <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" (click)="sortChange.emit('margin')">
+              Margen <app-icon class="h-4 w-4" aria-hidden="true">{{ sortIcon('margin') }}</app-icon>
+            </button>
+          </th>
+          <th class="px-4 py-3"><span class="sr-only">Abrir</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.variationId) {
+        <tr class="glass-row border-b border-[var(--border)] align-top transition-colors last:border-0">
+          <td class="max-w-md px-4 py-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <a [routerLink]="link(item)" [queryParams]="linkParams(item)" class="text-foreground text-sm font-medium hover:underline">{{ item.itemName }}</a>
+              <ng-container [ngTemplateOutlet]="kind" [ngTemplateOutletContext]="{ $implicit: item }" />
+            </div>
+            <p class="text-muted-foreground text-xs">{{ item.categoryName ?? 'Sin categoría' }}</p>
+            <div class="mt-1"><ng-container [ngTemplateOutlet]="warnings" [ngTemplateOutletContext]="{ $implicit: item }" /></div>
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ item.priceIncTax === null ? '—' : formatMoney(item.priceIncTax) }}
+          </td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ item.netPrice === null ? '—' : formatMoney(item.netPrice) }}
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">
+            {{ formatMoney(item.cost) }}@if (item.missingCost) {<span class="text-amber-600" title="Costo incompleto"> *</span>}
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right">
+            <span class="inline-flex rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums" [class]="percentClass(item)">{{ percentText(item) }}</span>
+          </td>
+          <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums" [class]="(item.margin ?? 0) < 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'">
+            {{ item.margin === null ? '—' : formatMoney(item.margin) }}
+          </td>
+          <td class="whitespace-nowrap px-2 py-3 text-right">
+            <a
+              [routerLink]="link(item)"
+              [queryParams]="linkParams(item)"
+              [title]="item.stockMode === 'recipe' ? 'Ver receta' : 'Ver kardex'"
+              [attr.aria-label]="linkLabel(item)"
+              class="text-muted-foreground hover:bg-primary/10 hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-md">
+              <app-icon class="h-5 w-5">{{ item.stockMode === 'recipe' ? 'menu_book' : 'history' }}</app-icon>
+            </a>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Móvil: tarjetas -->
+  <ul class="divide-y divide-[var(--border)] md:hidden">
+    @for (item of items(); track item.variationId) {
+    <li class="px-4 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <a [routerLink]="link(item)" [queryParams]="linkParams(item)" class="text-foreground break-words text-sm font-medium hover:underline">{{ item.itemName }}</a>
+          <p class="text-muted-foreground text-xs">{{ item.categoryName ?? 'Sin categoría' }}</p>
+        </div>
+        <span class="inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-sm font-semibold tabular-nums" [class]="percentClass(item)">{{ percentText(item) }}</span>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <ng-container [ngTemplateOutlet]="kind" [ngTemplateOutletContext]="{ $implicit: item }" />
+      </div>
+      <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+        <dt class="text-muted-foreground">Precio</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ item.priceIncTax === null ? '—' : formatMoney(item.priceIncTax) }}</dd>
+        <dt class="text-muted-foreground">Precio sin IVA</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ item.netPrice === null ? '—' : formatMoney(item.netPrice) }}</dd>
+        <dt class="text-muted-foreground">Costo</dt>
+        <dd class="text-foreground text-right tabular-nums">{{ formatMoney(item.cost) }}</dd>
+        <dt class="text-muted-foreground">Margen</dt>
+        <dd class="text-right font-semibold tabular-nums" [class]="(item.margin ?? 0) < 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'">
+          {{ item.margin === null ? '—' : formatMoney(item.margin) }}
+        </dd>
+      </dl>
+      <div class="mt-2"><ng-container [ngTemplateOutlet]="warnings" [ngTemplateOutletContext]="{ $implicit: item }" /></div>
+    </li>
+    }
+  </ul>
+  }
+</div>

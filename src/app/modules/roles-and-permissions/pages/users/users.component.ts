@@ -5,14 +5,30 @@ import { CreateUserModalComponent, UsersTableComponent } from './features';
 import { MatDialog } from '@angular/material/dialog';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
+import {
+  PLAN_LIMIT_REACHED_TOOLTIP,
+  PlanLockedNoticeComponent,
+  PlanUsageComponent,
+  planLimitGate,
+} from 'src/app/shared/components/plan-limit';
+import { PERMISSIONS } from 'src/app/core/permissions';
 
 @Component({
   selector: 'app-users',
-  imports: [HeaderDashboardComponent, ButtonComponent, IconComponent, UsersTableComponent, CheckPermissionDirective],
+  imports: [
+    HeaderDashboardComponent,
+    ButtonComponent,
+    IconComponent,
+    UsersTableComponent,
+    CheckPermissionDirective,
+    PlanUsageComponent,
+    PlanLockedNoticeComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   templateUrl: './users.component.html',
 })
 export class UsersComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
   private readonly dialog = inject(MatDialog);
   protected readonly $service = inject(GetAllUsersService);
   private readonly $locationsService = inject(GetAllBusinessLocationsService);
@@ -21,6 +37,9 @@ export class UsersComponent {
   protected readonly $branchNames = computed(() =>
     Object.fromEntries((this.$locationsService.$locations() ?? []).map((location) => [location.id, location.name])),
   );
+
+  protected readonly limitGate = planLimitGate('max_users');
+  protected readonly limitTooltip = PLAN_LIMIT_REACHED_TOOLTIP;
 
   page = 1;
 
@@ -34,6 +53,7 @@ export class UsersComponent {
   }
 
   createUser() {
+    if (!this.limitGate.allow()) return;
     this.dialog.open(CreateUserModalComponent, {
       width: '90%',
       data: {},

@@ -23,8 +23,38 @@
             @if (variationLabel(line); as variation) {
             <p class="text-muted-foreground text-xs">{{ variation }}</p>
             }
+            @if (line.modifiers?.length) {
+            <ul class="mt-1 space-y-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
+              @for (modifier of line.modifiers; track modifier.lineId) {
+              <li class="text-foreground/80 flex items-baseline gap-2 text-sm">
+                <span class="min-w-0 break-words">+ {{ modifierLabel(line, modifier) }}</span>
+                @if (modifier.unitPriceIncTax > 0) {
+                <span class="text-muted-foreground shrink-0 text-xs tabular-nums">
+                  {{ formatCurrency(modifier.unitPriceIncTax * modifier.quantity) }}
+                </span>
+                }
+              </li>
+              }
+            </ul>
+            }
             @if (line.sellLineNote) {
             <p class="mt-0.5 text-xs italic text-amber-600">“{{ line.sellLineNote }}”</p>
+            }
+            <!-- Pago por productos (dividir la cuenta) -->
+            @switch (paidState(line)) {
+            @case ('paid') {
+            <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+              <app-icon class="h-3.5 w-3.5">check_circle</app-icon>Pagado
+            </span>
+            }
+            @case ('partial') {
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                Pagado {{ formatQuantity(line.paidQuantity ?? 0) }} de {{ formatQuantity(line.quantity) }}
+              </span>
+              <span class="text-muted-foreground text-xs tabular-nums">Pendiente {{ formatCurrency(line.pendingAmount) }}</span>
+            </div>
+            }
             }
           </td>
           <td class="text-foreground px-4 py-3 text-center font-semibold tabular-nums">{{ line.quantity }}</td>
@@ -32,7 +62,7 @@
             {{ formatCurrency(line.unitPriceIncTax) }}
           </td>
           <td class="text-foreground px-4 py-3 text-right font-medium tabular-nums">
-            {{ formatCurrency(line.unitPriceIncTax * line.quantity) }}
+            {{ formatCurrency(line.lineTotal) }}
           </td>
           @if (showKitchenStatus()) {
           <td class="px-4 py-3 text-center">

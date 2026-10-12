@@ -13,15 +13,19 @@
     @if ($isLoadingAssigned()) {
     <app-progress-bar />
     } @else if (!$assigned().length) {
-    <p class="text-muted-foreground rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-center text-sm">Aún no hay productos. Agrégalos desde la lista de abajo.</p>
+    <p class="text-muted-foreground rounded-lg border border-dashed border-[var(--border)] px-3 py-4 text-center text-sm">
+      Aún no hay productos.{{ $canAssign() ? ' Agrégalos desde la lista de abajo.' : '' }}
+    </p>
     } @else {
     <div class="flex max-h-32 flex-wrap gap-2 overflow-y-auto">
       @for (product of $assigned(); track product.productId) {
       <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full py-1 pl-3 pr-1 text-sm">
         {{ product.productName }}
+        @if ($canAssign()) {
         <button type="button" class="hover:bg-primary/20 flex h-6 w-6 items-center justify-center rounded-full" [attr.aria-label]="'Quitar ' + product.productName" [disabled]="$pendingIds().has(product.productId)" (click)="toggle({ id: product.productId, name: product.productName, sku: product.sku })">
           <app-icon class="h-4 w-4">close</app-icon>
         </button>
+        }
       </span>
       }
     </div>
@@ -29,6 +33,7 @@
   </div>
 
   <!-- Catálogo -->
+  @if ($canAssign()) {
   <div class="relative mb-2">
     <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2">search</app-icon>
     <input type="search" [formControl]="search" placeholder="Buscar producto para agregar…" aria-label="Buscar producto" class="glass-input w-full rounded-md py-2 pl-10 pr-3" />
@@ -60,6 +65,7 @@
     }
     }
   </ul>
+  }
 
   <ng-template app-slot="footer">
     <div class="flex justify-end">

@@ -1,4 +1,4 @@
-<app-table *appCheckPermission="'users:get-all-users'">
+<app-table *appCheckPermission="PERMISSIONS.USERS.GET_ALL_USERS">
   <ng-template app-slot="filters">
     <app-filters-table-user (searchNameChange)="onSearchNameChange($event)" />
   </ng-template>
@@ -14,7 +14,12 @@
 
   @if (!isLoading()) { @for (user of $users(); track user.code) {
   <tr class="glass-row h-10">
-    <td class="text-center">{{ getFullName(user) }}</td>
+    <td class="text-center">
+      {{ getFullName(user) }}
+      @if (isLocked(user)) {
+      <div class="mt-1"><app-plan-locked-badge /></div>
+      }
+    </td>
     <td class="text-center">{{ user.email }}</td>
     <td class="text-center">
       @if (getBranchName(user); as branchName) {
@@ -44,19 +49,19 @@
     <td class="w-[130px] text-center">
       <div class="flex items-center justify-center gap-1">
         <app-button
-          *appCheckPermission="'users:update-user'"
+          *appCheckPermission="PERMISSIONS.USERS.UPDATE_USER"
           size="small"
           icon="edit_document"
           (click)="updateUser(user)"></app-button>
         <app-button
-          *appCheckPermission="'users:update-user'"
+          *appCheckPermission="PERMISSIONS.USERS.SET_STAFF_PIN"
           size="small"
           icon="dialpad"
           [attr.aria-label]="(user.hasPin ? 'Cambiar PIN del POS de ' : 'Asignar PIN del POS a ') + user.name"
           [attr.title]="user.hasPin ? 'Cambiar PIN del POS' : 'Asignar PIN del POS'"
           (click)="setServicePin(user)"></app-button>
         <app-button
-          *appCheckPermission="'users:delete-user'"
+          *appCheckPermission="PERMISSIONS.USERS.DELETE_USER"
           size="small"
           icon="delete"
           tone="danger"

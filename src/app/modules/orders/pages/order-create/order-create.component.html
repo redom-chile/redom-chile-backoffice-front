@@ -20,6 +20,13 @@
     }
   </div>
 
+  @if ($noLocations()) {
+  <app-empty-state icon="storefront" title="Primero crea tu local" description="Para tomar pedidos necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
+    <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+      <app-icon class="h-4 w-4">add_business</app-icon>Crear local
+    </a>
+  </app-empty-state>
+  } @else {
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
     <div class="lg:col-span-2">
       <app-product-picker
@@ -39,7 +46,7 @@
         @if (!$locationId()) {
         <div class="col-span-2">
           <label class="text-foreground mb-1 block text-sm font-medium">Sucursal *</label>
-          <app-business-location-selector (selectedLocationChange)="handleLocationChange($event)" />
+          <app-business-location-selector forSale (selectedLocationChange)="handleLocationChange($event)" />
         </div>
         }
         <div>
@@ -73,7 +80,8 @@
         (increment)="handleIncrement($event)"
         (decrement)="handleDecrement($event)"
         (remove)="handleRemove($event)"
-        (noteChange)="handleNote($event)" />
+        (noteChange)="handleNote($event)"
+        (edit)="handleEdit($event)" />
 
       @if (mode === 'create') {
       <!-- Al agregar productos no hay nota general: cada producto lleva la suya -->
@@ -87,7 +95,7 @@
       }
 
       <div>
-        <app-button full impact="bold" tone="primary" shape="rounded" size="large" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        <app-button full impact="bold" tone="primary" shape="rounded" size="large" [disabled]="$isSaving() || !$canSave()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
           {{ mode === 'add' ? 'Agregar al pedido' : 'Confirmar pedido' }}
         </app-button>
         @if ($missing(); as missing) {
@@ -96,4 +104,5 @@
       </div>
     </aside>
   </div>
+  }
 </div>

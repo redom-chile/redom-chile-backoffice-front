@@ -9,4 +9,6 @@ export type BusinessLocationDto = Readonly<{
   city: string;
   zipCode: string;
   createdAt: Date;
+  /** Inactivo: no cuenta para el límite de locales del plan. */
+  isActive?: boolean;
 }>;

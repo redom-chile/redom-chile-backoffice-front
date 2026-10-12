@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, OnInit, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, OnInit, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { IconComponent, ProgressBarComponent } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { CategoryDto } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
+import { hasModifierSets, productPrice } from '../cart-line';
 
 @Component({
   selector: 'app-product-picker',
@@ -28,7 +30,18 @@ export class ProductPickerComponent implements OnInit {
   readonly add = output<ProductDto>();
 
   readonly search = new FormControl('', { nonNullable: true });
+
+  // Categoría padre activa: la elegida o la que contiene la subcategoría elegida.
+  readonly $selectedParent = computed(() => {
+    const id = this.selectedCategoryId();
+    if (id === null) return null;
+    return this.categories().find((c) => c.id === id || c.subcategories?.some((sub) => sub.id === id)) ?? null;
+  });
+  // URLs firmadas que vencieron o fallaron: se muestra la inicial.
+  readonly brokenImages = signal<ReadonlySet<number>>(new Set());
   readonly formatCurrency = formatCurrency;
+  // Precios netos: la tarjeta muestra el del catálogo con la marca "+IVA".
+  readonly $pricesExcludeVat = inject(BusinessSettingsService).$pricesExcludeVat;
 
   ngOnInit(): void {
     this.search.valueChanges
@@ -37,6 +50,18 @@ export class ProductPickerComponent implements OnInit {
   }
 
   price(product: ProductDto): number {
-    return product.variations[0]?.sellPriceIncTax ?? 0;
+    return productPrice(product);
+  }
+
+  hasOptions(product: ProductDto): boolean {
+    return hasModifierSets(product);
+  }
+
+  initial(name: string): string {
+    return name.trim().charAt(0) || '?';
+  }
+
+  markBroken(productId: number) {
+    this.brokenImages.update((ids) => new Set(ids).add(productId));
   }
 }

@@ -5,7 +5,7 @@
       <p class="text-muted-foreground text-xs">Dónde ubicarte si hace falta.</p>
     </div>
     <app-button impact="light" tone="primary" size="small" type="button" (buttonClick)="edit.emit()">
-      <app-icon class="text-base">{{ $rows().length ? 'edit' : 'add' }}</app-icon> {{ $rows().length ? 'Editar' : 'Agregar' }}
+      <app-icon class="h-4 w-4">{{ $rows().length ? 'edit' : 'add' }}</app-icon> {{ $rows().length ? 'Editar' : 'Agregar' }}
     </app-button>
   </header>
 
@@ -14,7 +14,7 @@
     @for (row of $rows(); track row.label) {
     <div class="flex items-start gap-3">
       <span class="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg" aria-hidden="true">
-        <app-icon class="text-base">{{ row.icon }}</app-icon>
+        <app-icon class="h-4 w-4">{{ row.icon }}</app-icon>
       </span>
       <div class="min-w-0">
         <dt class="text-muted-foreground text-xs">{{ row.label }}</dt>

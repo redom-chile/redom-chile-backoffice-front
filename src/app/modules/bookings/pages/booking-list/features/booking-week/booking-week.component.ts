@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BookingDto } from '../../data-access';
 import { addDays, dateKeyOf, fromDateKey, timeOf, toDateKey } from '../../ui';
 
@@ -17,6 +18,10 @@ export class BookingWeekComponent {
 
   readonly selectDay = output<string>();
   readonly edit = output<BookingDto>();
+
+  private readonly access = inject(AccessService);
+  // Sin permiso de edición la reserva se sigue viendo, pero no abre el modal.
+  protected readonly $canEdit = computed(() => this.access.can(PERMISSIONS.BOOKINGS.UPDATE_BOOKING));
 
   readonly timeOf = timeOf;
 

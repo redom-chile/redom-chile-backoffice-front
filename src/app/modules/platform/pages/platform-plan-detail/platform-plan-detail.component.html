@@ -1,0 +1,77 @@
+<a routerLink="/platform/plans" class="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Planes
+</a>
+
+@if (plans.isLoading() && !$plans().length) {
+<div class="space-y-3">
+  <app-skeleton size="xs" style="width: 220px" />
+  <app-skeleton size="xs" style="width: 140px" />
+  <div class="glass mt-4 h-64 rounded-[1rem]"></div>
+</div>
+} @else if ($error(); as error) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+  <p class="text-foreground font-medium">No se pudo cargar el plan</p>
+  <p class="text-muted-foreground text-sm">{{ errorMessage(error) }}</p>
+  <app-button type="button" impact="bold" (buttonClick)="plans.reload()">Reintentar</app-button>
+</div>
+} @else if (!$plan()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-muted-foreground h-10 w-10">search_off</app-icon>
+  <p class="text-foreground font-medium">El plan no existe</p>
+  <a routerLink="/platform/plans" class="text-primary text-sm font-medium hover:underline">Volver a los planes</a>
+</div>
+} @else {
+@let plan = $plan()!;
+<header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+  <div class="min-w-0">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <h1 class="text-foreground truncate text-xl font-semibold">{{ plan.name }}</h1>
+      <app-plan-badges [plan]="plan" />
+    </div>
+    <p class="text-muted-foreground font-mono text-xs">{{ plan.code }}</p>
+    @if (plan.description) {
+    <p class="text-muted-foreground mt-1 text-sm">{{ plan.description }}</p>
+    }
+  </div>
+  <p class="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-sm">
+    <app-icon class="h-5 w-5">storefront</app-icon>
+    {{ subscriptionsLabel(plan.subscriptions) }} {{ plan.subscriptions === 1 ? 'vigente' : 'vigentes' }}
+  </p>
+</header>
+
+<div class="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+  <div class="glass inline-flex rounded-lg p-1" role="tablist" aria-label="Secciones del plan">
+    @for (tab of tabs; track tab.id) {
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium"
+      [class]="$tab() === tab.id ? 'bg-primary text-white' : 'glass-row text-foreground'"
+      [class.ml-1]="!$first"
+      [attr.aria-selected]="$tab() === tab.id"
+      (click)="selectTab(tab.id)">
+      <app-icon class="h-4 w-4">{{ tab.icon }}</app-icon>
+      {{ tab.label }}
+    </button>
+    }
+  </div>
+</div>
+
+<div role="tabpanel">
+  @switch ($tab()) {
+  @case ('features') {
+  <app-plan-features-form [plan]="plan" [plans]="$plans()" (saved)="handleSaved($event)" />
+  }
+  @case ('limits') {
+  <app-plan-limits-form [plan]="plan" (saved)="handleSaved($event)" />
+  }
+  @case ('prices') {
+  <app-plan-prices [plan]="plan" (saved)="handleSaved($event)" />
+  }
+  @default {
+  <app-plan-data-form [plan]="plan" (saved)="handleSaved($event)" />
+  }
+  }
+</div>
+}

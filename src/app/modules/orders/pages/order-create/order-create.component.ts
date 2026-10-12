@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
+import { MatDialog } from '@angular/material/dialog';
+import { ApiError } from 'src/app/core/utils';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { ButtonComponent, EmptyStateComponent, IconComponent, ToastService } from 'src/ui';
+import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllCategoriesService } from 'src/app/modules/products/pages/categories/data-access';
@@ -14,14 +19,16 @@ import {
   CustomerDto,
   getOrderSaveErrorMessage,
   GetMenuProductsService,
+  isModifierNotAvailableError,
   OrderProductDto,
 } from './data-access';
 import {
-  addToCart,
+  addProductToCart,
   CartLine,
   CartNoteChange,
   changeCartQuantity,
   CustomerSelectorComponent,
+  editCartLine,
   OrderTicketComponent,
   ProductPickerComponent,
   quantitiesByProduct,
@@ -40,6 +47,7 @@ type OrderCreateMode = 'create' | 'add';
     RouterLink,
     ButtonComponent,
     IconComponent,
+    EmptyStateComponent,
     BusinessLocationSelector,
     ProductPickerComponent,
     OrderTicketComponent,
@@ -52,6 +60,9 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly entitlements = inject(EntitlementsService);
+  private readonly upsell = inject(PlanUpsellService);
+  private readonly dialog = inject(MatDialog);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
   private readonly menuService = inject(GetMenuProductsService);
@@ -59,10 +70,14 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   private readonly categoriesService = inject(GetAllCategoriesService);
   private readonly staffService = inject(GetServiceStaffService);
   private readonly orderService = inject(GetOrderByIdService);
+  private readonly access = inject(AccessService);
 
   readonly mode: OrderCreateMode = this.route.snapshot.data['mode'] === 'add' ? 'add' : 'create';
   readonly $orderId = signal<number | null>(null);
   readonly $locationId = signal<number | null>(null);
+  // Sin sucursales no se puede abrir un pedido: se muestra cómo crear la primera.
+  private readonly locationsService = inject(GetAllBusinessLocationsService);
+  readonly $noLocations = computed(() => this.mode === 'create' && this.locationsService.$locations()?.length === 0);
 
   readonly $products = this.menuService.$products;
   readonly $isLoadingProducts = computed(() => this.menuService.$isLoading() ?? false);
@@ -90,8 +105,13 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   readonly $isSaving = computed(() =>
     this.mode === 'add' ? (this.addLinesService.$isLoading() ?? false) : (this.createService.$isLoading() ?? false),
   );
+  // Agregar productos actualiza el pedido; confirmar lo crea.
+  readonly $canSave = computed(() =>
+    this.access.can(this.mode === 'add' ? PERMISSIONS.ORDERS.UPDATE_ORDER : PERMISSIONS.ORDERS.CREATE_ORDER),
+  );
   // Qué falta para poder confirmar; se muestra junto al botón.
   readonly $missing = computed(() => {
+    if (!this.$canSave()) return 'No tienes permiso para esta acción';
     if (!this.$cart().length) return 'Agrega al menos un producto';
     if (this.mode === 'create' && !this.$locationId()) return 'Selecciona una sucursal';
     return null;
@@ -117,12 +137,12 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.createService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, false), 'error');
+      if (error) this.handleSaveError(error, false);
     });
 
     effect(() => {
       const error = this.addLinesService.$error();
-      if (error) this.toast.show(getOrderSaveErrorMessage(error, true), 'error');
+      if (error) this.handleSaveError(error, true);
     });
 
     effect(() => {
@@ -172,7 +192,11 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
   }
 
   handleAdd(product: ProductDto) {
-    this.$cart.update((cart) => addToCart(cart, product));
+    addProductToCart(this.dialog, this.$cart, product);
+  }
+
+  handleEdit(key: string) {
+    editCartLine(this.dialog, this.$cart, key, this.$products());
   }
 
   handleIncrement(key: string) {
@@ -205,6 +229,11 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.entitlements.isLocked('locations', this.$locationId())) {
+      this.upsell.open({ resource: 'locations' });
+      return;
+    }
+
     const { resTableId, resWaiterId, isKitchenOrder, kitchenNote } = this.form.getRawValue();
     this.createService.create({
       locationId: this.$locationId()!,
@@ -215,6 +244,15 @@ export class OrderCreateComponent implements OnInit, OnDestroy {
       isKitchenOrder: !!isKitchenOrder,
       staffNote: kitchenNote?.trim() || undefined,
     });
+  }
+
+  // El carrito se conserva; si una opción ya no existe se recarga la carta para volver a elegirla.
+  private handleSaveError(error: ApiError, adding: boolean) {
+    // Error de plan (p. ej. local en solo lectura): ya lo muestra el modal global.
+    if (error.code?.startsWith('PLAN_')) return;
+    const productName = (productId: number) => this.$cart().find((line) => line.productId === productId)?.name;
+    this.toast.show(getOrderSaveErrorMessage(error, adding, productName), 'error');
+    if (isModifierNotAvailableError(error)) this.menuService.reload();
   }
 
   private loadProducts() {

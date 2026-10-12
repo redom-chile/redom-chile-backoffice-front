@@ -1,0 +1,50 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ isEdit ? 'Renombrar caja' : 'Nueva caja' }}</h2>
+  </ng-template>
+
+  <form class="grid grid-cols-1 gap-4 p-1" (submit)="$event.preventDefault(); submit()">
+    @if (isEdit) {
+    <p class="text-muted-foreground text-sm">Local: <span class="text-foreground">{{ data.register?.locationName }}</span></p>
+    } @else {
+    <div>
+      <label for="register-location" class="text-foreground mb-1 block text-sm font-medium">Local *</label>
+      <select
+        id="register-location"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="$touched() && $locationInvalid()"
+        [disabled]="$isSaving()"
+        (change)="onLocation($event)">
+        <option value="" [selected]="!$locationId()">Elige un local</option>
+        @for (location of data.locations; track location.id) {
+        <option [value]="location.id" [selected]="$locationId() === location.id">{{ location.name }}</option>
+        }
+      </select>
+    </div>
+    }
+
+    <div>
+      <label for="register-name" class="text-foreground mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="register-name"
+        autocomplete="off"
+        placeholder="Ej: Caja barra"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="$touched() && $nameInvalid()"
+        [value]="$name()"
+        [attr.maxlength]="maxLength"
+        [disabled]="$isSaving()"
+        (input)="onName($event)" />
+      <p class="text-muted-foreground mt-1 text-right text-xs tabular-nums">{{ $name().length }}/{{ maxLength }}</p>
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$isSaving()" (buttonClick)="cancel()">Cancelar</app-button>
+      <app-button type="button" impact="bold" [disabled]="$isSaving()" [isLoading]="$isSaving()" (buttonClick)="submit()">
+        {{ isEdit ? 'Guardar' : 'Crear caja' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

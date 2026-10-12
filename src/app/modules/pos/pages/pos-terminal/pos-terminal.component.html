@@ -1,3 +1,10 @@
+@if ($noLocations()) {
+<app-empty-state icon="storefront" title="Primero crea tu local" description="Para tomar pedidos en el POS necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
+  <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+    <app-icon class="h-4 w-4">add_business</app-icon>Crear local
+  </a>
+</app-empty-state>
+} @else {
 <div class="flex flex-col gap-3">
   <!-- Barra superior: sucursal y mesero. En /pos se ve también en la pantalla de PIN: la sucursal define qué meseros aparecen -->
   @if ($isReady() || !terminalMode()) {
@@ -7,10 +14,10 @@
     </h1>
     @if (!terminalMode()) {
     <div class="w-52">
-      <app-business-location-selector (selectedLocationChange)="handleLocationChange($event)" />
+      <app-business-location-selector forSale (selectedLocationChange)="handleLocationChange($event)" />
     </div>
     }
-    @if ($isReady()) {
+    @if ($isReady() && $useWaiters()) {
     <div class="ml-auto flex items-center gap-2">
       <span class="glass-row inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
         <app-icon class="h-4 w-4">badge</app-icon>{{ $waiter()?.name ?? 'Sin mesero' }}
@@ -27,15 +34,20 @@
   </div>
   }
 
+  @if ($isReady()) {
+  <app-cash-indicator />
+  }
+
   @if (!$isReady()) {
   <app-waiter-login
-    [allowAnonymous]="!terminalMode()"
+    [allowAnonymous]="!terminalMode() && !$waiterRequired()"
     [variant]="terminalMode() ? 'screen' : 'card'"
     [locationName]="locationName()"
     [locationId]="$locationId()"
     (loggedIn)="handleLogin($event)" (continueWithoutWaiter)="handleAnonymous()" />
   } @else {
   <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
+    @if ($showTables()) {
     <div class="lg:col-span-3">
       <app-pos-tables-panel
         [tables]="$tables()"
@@ -45,8 +57,9 @@
         (selectTable)="handleSelectTable($event)"
         (selectCounter)="selectCounter()" />
     </div>
+    }
 
-    <div class="lg:col-span-6">
+    <div [class]="$showTables() ? 'lg:col-span-6' : 'lg:col-span-9'">
       <app-product-picker
         [products]="$products()"
         [categories]="$categories()"
@@ -71,6 +84,7 @@
         (decrement)="handleDecrement($event)"
         (remove)="handleRemove($event)"
         (noteChange)="handleNote($event)"
+        (edit)="handleEdit($event)"
         [kitchenNote]="$kitchenNote()"
         (kitchenNoteChange)="$kitchenNote.set($event)"
         (customerChange)="$customer.set($event)"
@@ -81,3 +95,4 @@
   </div>
   }
 </div>
+}

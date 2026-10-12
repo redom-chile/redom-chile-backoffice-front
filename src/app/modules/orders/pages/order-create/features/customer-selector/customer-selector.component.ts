@@ -2,12 +2,14 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IconComponent, ToastService } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { CreateCustomerService, CustomerDto, SearchCustomersService } from '../../data-access';
 
 @Component({
   selector: 'app-customer-selector',
   standalone: true,
-  imports: [ReactiveFormsModule, IconComponent],
+  imports: [ReactiveFormsModule, IconComponent, CheckPermissionDirective],
   templateUrl: './customer-selector.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -15,6 +17,8 @@ export class CustomerSelectorComponent {
   private readonly toast = inject(ToastService);
   private readonly searchService = inject(SearchCustomersService);
   private readonly createService = inject(CreateCustomerService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly selected = input<CustomerDto | null>(null);
   readonly selectedChange = output<CustomerDto | null>();

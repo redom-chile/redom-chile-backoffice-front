@@ -1,0 +1,147 @@
+@let q = $query();
+@let data = $usage();
+<app-header-dashboard title="Uso y costos del asistente" subtitle="Preguntas al asistente con IA y su costo en dólares, por día y por negocio.">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <a routerLink="/help/admin/review" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium" title="Revisión del asistente">
+      <app-icon class="h-5 w-5">rate_review</app-icon>
+      <span class="hidden lg:inline">Revisión</span>
+    </a>
+  </div>
+</app-header-dashboard>
+
+<!-- Período -->
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+  <div class="flex flex-wrap gap-2" role="group" aria-label="Períodos rápidos">
+    @for (preset of presets; track preset.value) {
+    <button
+      type="button"
+      class="rounded-full border px-3 py-1.5 text-sm font-medium transition"
+      [class]="$preset() === preset.value ? 'bg-primary text-primary-foreground border-transparent' : 'text-foreground border-[var(--border)] hover:bg-primary/10'"
+      [attr.aria-pressed]="$preset() === preset.value"
+      (click)="handlePreset(preset.value)">
+      {{ preset.label }}
+    </button>
+    }
+  </div>
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-muted-foreground w-12">Desde</span>
+      <input type="date" aria-label="Desde" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.from ?? data?.from ?? ''" [max]="q.to ?? ''" (change)="handleDate('from', $event)" />
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+      <span class="text-muted-foreground w-12">Hasta</span>
+      <input type="date" aria-label="Hasta" class="glass-input min-w-0 flex-1 rounded-md px-3 py-2" [value]="q.to ?? data?.to ?? ''" [min]="q.from ?? ''" (change)="handleDate('to', $event)" />
+    </label>
+  </div>
+</div>
+
+@if ($rangeError(); as rangeError) {
+<div class="glass rounded-[1rem] px-4 py-8 text-center">
+  <p class="text-foreground font-medium">Rango de fechas inválido</p>
+  <p class="text-muted-foreground mt-1 text-sm">{{ rangeError }}</p>
+  <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handlePreset('thisMonth')">Ver este mes</button>
+</div>
+} @else if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar el uso del asistente</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <button type="button" class="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90" (click)="usage.reload()">
+    Reintentar
+  </button>
+</div>
+} @else if (usage.isLoading() || !data) {
+<div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+  @for (card of skeletonCards; track card) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 60%" />
+    <app-skeleton size="sm" style="width: 80%" />
+  </div>
+  }
+</div>
+<div class="glass rounded-[1rem] p-4"><app-skeleton size="xs" style="width: 100%; height: 240px" /></div>
+} @else {
+<p class="text-muted-foreground mb-3 text-sm">
+  Del <span class="text-foreground font-medium">{{ formatDate(data.from) }}</span> al
+  <span class="text-foreground font-medium">{{ formatDate(data.to) }}</span> (hora de Chile).
+</p>
+
+<!-- Totales -->
+<div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Preguntas</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatInteger(data.totals.questions) }}</p>
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Costo</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums" [title]="formatUsd(data.totals.costUsd)">{{ formatUsdTotal(data.totals.costUsd) }}</p>
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Costo por pregunta</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ $averageCost() === null ? '—' : formatUsd($averageCost(), 4) }}</p>
+  </div>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">👍 Útiles</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatInteger(data.totals.helpful) }}</p>
+  </div>
+  <a
+    routerLink="/help/admin/review"
+    [queryParams]="{ helpful: 'false', from: data.from, to: data.to }"
+    class="glass glass-row block rounded-[1rem] p-4"
+    title="Ver las respuestas no útiles">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">👎 No útiles</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatInteger(data.totals.notHelpful) }}</p>
+  </a>
+  <div class="glass rounded-[1rem] p-4">
+    <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Fallidas</p>
+    <p class="text-foreground mt-1 text-2xl font-semibold tabular-nums">{{ formatInteger(data.totals.failed) }}</p>
+    <p class="text-muted-foreground mt-0.5 text-xs">No cuentan para el límite</p>
+  </div>
+</div>
+
+<!-- Por día -->
+<div class="mb-4">
+  <app-usage-by-day-chart [days]="data.byDay" />
+</div>
+
+<!-- Por negocio -->
+<section class="glass overflow-hidden rounded-[1rem]">
+  <h2 class="text-foreground border-b border-[var(--border)] px-4 py-3 font-semibold">Por negocio</h2>
+  @if (!$businesses().length) {
+  <p class="text-muted-foreground px-4 py-10 text-center text-sm">Nadie le preguntó al asistente en este período.</p>
+  } @else {
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead>
+        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+          <th class="px-4 py-3">Negocio</th>
+          <th class="px-4 py-3 text-right">Preguntas</th>
+          <th class="px-4 py-3 text-right">Costo</th>
+          <th class="px-4 py-3 text-right">Por pregunta</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (business of $businesses(); track business.businessId) {
+        <tr class="glass-row border-b border-[var(--border)] transition-colors last:border-0">
+          <td class="text-foreground px-4 py-3 text-sm">
+            <a
+              routerLink="/help/admin/review"
+              [queryParams]="{ businessId: business.businessId, from: data.from, to: data.to }"
+              class="font-medium hover:underline"
+              title="Ver sus preguntas">
+              {{ business.businessName ?? 'Negocio #' + business.businessId }}
+            </a>
+          </td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatInteger(business.questions) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right text-sm font-semibold tabular-nums">{{ formatUsd(business.costUsd, 4) }}</td>
+          <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ averageOf(business.costUsd, business.questions) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+</section>
+}

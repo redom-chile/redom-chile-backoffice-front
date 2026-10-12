@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { IconComponent } from 'src/ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { KitchenOrderDto } from '../../data-access';
 
 // Minutos a partir de los cuales la comanda se marca como demorada.
@@ -9,11 +11,13 @@ const LATE_MINUTES = 20;
 @Component({
   selector: 'app-kitchen-ticket',
   standalone: true,
-  imports: [IconComponent],
+  imports: [IconComponent, CheckPermissionDirective],
   templateUrl: './kitchen-ticket.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KitchenTicketComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+
   readonly order = input.required<KitchenOrderDto>();
   // Reloj compartido de la pantalla, para que todas las comandas avancen juntas.
   readonly now = input.required<number>();
@@ -40,7 +44,8 @@ export class KitchenTicketComponent {
   });
   readonly $itemCount = computed(() => this.order().lineOrders.reduce((sum, line) => sum + line.quantity, 0));
 
-  variationLabel(name: string): string | null {
+  // null o "DUMMY": producto sin variaciones reales, no se muestra.
+  variationLabel(name: string | null): string | null {
     return name && name !== 'DUMMY' ? name : null;
   }
 }

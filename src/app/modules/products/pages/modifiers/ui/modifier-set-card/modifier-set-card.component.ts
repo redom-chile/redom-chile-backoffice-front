@@ -1,0 +1,35 @@
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ButtonComponent, IconComponent } from 'src/ui';
+import { ModifierSetDto } from '../../data-access';
+import { formatModifierPrice } from '../modifier-price';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
+
+// Cuántos productos vinculados se nombran antes de resumir con "y N más".
+const VISIBLE_PRODUCTS = 4;
+
+@Component({
+  selector: 'app-modifier-set-card',
+  imports: [ButtonComponent, IconComponent, CheckPermissionDirective],
+  templateUrl: './modifier-set-card.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class ModifierSetCardComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+  readonly set = input.required<ModifierSetDto>();
+  readonly edit = output<ModifierSetDto>();
+  readonly products = output<ModifierSetDto>();
+  readonly delete = output<ModifierSetDto>();
+  // Qué ingredientes suma o quita cada opción (solo con ingredientes y recetas activos).
+  readonly showRecipes = input(false);
+  readonly recipes = output<ModifierSetDto>();
+
+  readonly formatPrice = formatModifierPrice;
+
+  readonly $productsLabel = computed(() => {
+    const products = this.set().modifierProducts;
+    const names = products.slice(0, VISIBLE_PRODUCTS).map((product) => product.name).join(', ');
+    const rest = products.length - VISIBLE_PRODUCTS;
+    return rest > 0 ? `${names} y ${rest} más` : names;
+  });
+}

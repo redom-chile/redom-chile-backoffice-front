@@ -12,12 +12,35 @@ export type ProductVariationDto = Readonly<{
   isActive: boolean;
 }>;
 
+/** Opción de un set de modificadores ("Extra queso"): una variación del producto de tipo modifier. */
+export type ProductModifierOptionDto = Readonly<{
+  variationId: number;
+  name: string;
+  // IVA incluido, por cada vez que se aplica a una unidad del producto.
+  price: number;
+}>;
+
+/** Set de modificadores vinculado al producto ("Agregados"), con sus opciones. */
+export type ProductModifierSetDto = Readonly<{
+  id: number;
+  name: string;
+  options: ProductModifierOptionDto[];
+}>;
+
+/** none: sin control · direct: stock propio · recipe: descuenta ingredientes por receta. */
+export type ProductStockMode = 'none' | 'direct' | 'recipe';
+
 export type ProductDto = Readonly<{
   id: number;
   name: string;
   businessId: number;
+  // 'ingredient' para ingredientes (GET /products sin type ya no los devuelve); 'modifier' para sets de modificadores.
   type: string | null;
+  stockMode?: ProductStockMode;
+  // Unidad base del stock (obligatoria en ingredientes, opcional en productos con stock propio).
   unitId: number | null;
+  // Stock mínimo en la unidad base.
+  alertQuantity?: number | null;
   brandId: number | null;
   categoryId: number | null;
   subCategoryId: number | null;
@@ -33,6 +56,8 @@ export type ProductDto = Readonly<{
   notForSelling: boolean;
   preparationTimeInMinutes: number | null;
   variations: ProductVariationDto[];
+  // Sets de modificadores que ofrece el producto ([] si no tiene).
+  modifierSets?: ProductModifierSetDto[];
 }>;
 
 export type ProductFiltersDto = Readonly<{

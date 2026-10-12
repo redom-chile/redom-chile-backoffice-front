@@ -25,12 +25,12 @@
     <td class="text-center">
       <div class="flex items-center justify-end gap-2">
         <app-button
-          *appCheckPermission="'modules:update-module'"
+          *appCheckPermission="PERMISSIONS.MODULES.UPDATE_MODULE"
           size="small"
           icon="edit_document"
           (click)="updateModule(item)"></app-button>
         <app-button
-          *appCheckPermission="'modules:delete-module'"
+          *appCheckPermission="PERMISSIONS.MODULES.DELETE_MODULE"
           size="small"
           icon="delete"
           tone="danger"

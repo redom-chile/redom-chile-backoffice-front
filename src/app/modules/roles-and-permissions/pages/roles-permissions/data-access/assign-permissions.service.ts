@@ -1,15 +1,16 @@
-import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, EMPTY } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { AssignPermissionsDto } from './dtos';
+import { ApiError, readApiError } from 'src/app/core/utils';
 
 @Injectable({ providedIn: 'root' })
 export class AssignPermissionsService {
   readonly #httpClient = inject(HttpClient);
 
   readonly #isLoading = signal(false);
-  readonly #error = signal<HttpStatusCode | undefined>(undefined);
+  readonly #error = signal<ApiError | undefined>(undefined);
   readonly #success = signal(false);
 
   readonly $isLoading = this.#isLoading.asReadonly();
@@ -27,8 +28,8 @@ export class AssignPermissionsService {
         permissionIds,
       } satisfies AssignPermissionsDto)
       .pipe(
-        catchError((error: HttpErrorResponse) => {
-          this.#error.set(error.status);
+        catchError((error: unknown) => {
+          this.#error.set(readApiError(error));
           this.#isLoading.set(false);
           return EMPTY;
         }),

@@ -1,0 +1,42 @@
+<a routerLink="/cash" class="text-muted-foreground hover:text-primary mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Cajas
+</a>
+
+@if (!$isValidId() || $isNotFound()) {
+<div class="glass rounded-[1rem] px-6 py-12 text-center">
+  <p class="text-foreground font-semibold">No encontramos ese turno</p>
+  <a routerLink="/cash" class="text-primary mt-2 inline-block text-sm font-medium hover:underline">Volver a Cajas</a>
+</div>
+} @else if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar el turno</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="session.reload()">Reintentar</app-button>
+</div>
+} @else if ($session(); as s) {
+@if (s.status === 'open') {
+<div class="mb-4 flex items-start gap-3 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-4">
+  <app-icon class="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true">info</app-icon>
+  <p class="text-foreground text-sm">
+    Este turno sigue abierto. Se cierra desde el
+    <a routerLink="/pos" class="text-primary font-medium hover:underline">POS</a>, contando el efectivo de la caja.
+  </p>
+</div>
+}
+<app-cash-z-report [session]="s" />
+} @else {
+<section class="glass space-y-3 rounded-[1rem] p-5">
+  <app-skeleton size="xs" style="width: 120px" />
+  <app-skeleton size="sm" style="width: 220px" />
+  <app-skeleton size="xs" style="width: 60%" />
+</section>
+<div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+  @for (card of [1, 2, 3, 4, 5, 6]; track card) {
+  <div class="glass rounded-[1rem] p-3"><app-skeleton size="sm" style="width: 80%" /></div>
+  }
+</div>
+}

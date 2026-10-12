@@ -1,7 +1,15 @@
 <div>
   <app-header-dashboard title="Productos" subtitle="Gestiona los productos de tu carta">
     @if (!$isEmpty()) {
-    <app-button full impact="bold" tone="primary" shape="rounded" size="medium" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRODUCTS.CREATE_PRODUCT"
+      full
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="add"
+      (buttonClick)="handleCreate()">
       Crear producto
     </app-button>
     <app-button full impact="light" tone="primary" shape="rounded" size="medium" icon="refresh" (buttonClick)="handleRetry()">
@@ -24,7 +32,13 @@
     icon="restaurant_menu"
     title="Aún no tienes productos"
     description="Agrega los productos de tu carta para poder venderlos en el POS y recibir pedidos.">
-    <app-button impact="bold" tone="primary" shape="rounded" icon="add" (buttonClick)="handleCreate()">
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRODUCTS.CREATE_PRODUCT"
+      impact="bold"
+      tone="primary"
+      shape="rounded"
+      icon="add"
+      (buttonClick)="handleCreate()">
       Crear producto
     </app-button>
   </app-empty-state>
@@ -40,6 +54,8 @@
     [pagination]="$pagination()"
     [categoryNames]="$categoryNames()"
     [hasFilters]="$hasFilters()"
+    [showStockMode]="$inventoryEnabled()"
+    [showRecipe]="$ingredientsEnabled()"
     (edit)="handleUpdate($event)"
     (delete)="handleDelete($event)"
     (pageChange)="handlePageChange($event)"

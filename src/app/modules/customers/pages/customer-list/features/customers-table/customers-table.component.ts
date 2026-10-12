@@ -3,15 +3,19 @@ import { RouterLink } from '@angular/router';
 import { PaginationMeta } from 'src/app/core/standarized-response/standardized-pagination/pagination-meta.dto';
 import { IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { CustomerListItemDto } from '../../data-access';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-customers-table',
   standalone: true,
-  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent],
+  imports: [RouterLink, IconComponent, SkeletonComponent, PaginationTableComponent, CheckPermissionDirective],
   templateUrl: './customers-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomersTableComponent {
+  protected readonly PERMISSIONS = PERMISSIONS;
+
   readonly customers = input.required<CustomerListItemDto[]>();
   readonly loading = input(false);
   readonly pagination = input<PaginationMeta | null>(null);

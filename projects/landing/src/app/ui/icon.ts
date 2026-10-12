@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 export type IconName =
   | 'logo' | 'screen' | 'table' | 'chef' | 'printer' | 'qr' | 'chart' | 'calendar'
-  | 'users' | 'check' | 'menu' | 'close' | 'arrow' | 'device' | 'plus' | 'sun' | 'moon' | 'system' | 'palette';
+  | 'users' | 'check' | 'menu' | 'close' | 'arrow' | 'device' | 'plus' | 'sun' | 'moon' | 'system' | 'palette'
+  | 'sparkles' | 'wallet' | 'receipt' | 'box' | 'recipe' | 'heart';
 
 /** Íconos SVG livianos (sin fuentes externas), se renderizan también en el prerender. */
 @Component({
@@ -31,6 +32,12 @@ export type IconName =
         @case ('moon') { <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" /> }
         @case ('system') { <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" /> }
         @case ('palette') { <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-4-4-7.4-9-7.4z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="14.5" cy="7" r="1" /> }
+        @case ('sparkles') { <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8zM5 2.5l.6 1.4L7 4.5l-1.4.6L5 6.5l-.6-1.4L3 4.5l1.4-.6z" /> }
+        @case ('wallet') { <path d="M4 7a2 2 0 0 1 2-2h11v4" /><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M16 13.5h2" /> }
+        @case ('receipt') { <path d="M6 2h12v20l-3-2-3 2-3-2-3 2z" /><path d="M9 7h6M9 11h6M9 15h4" /> }
+        @case ('box') { <path d="M21 8l-9-5-9 5 9 5z" /><path d="M3 8v8l9 5 9-5V8M12 13v8" /> }
+        @case ('recipe') { <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /> }
+        @case ('heart') { <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /> }
       }
     </svg>
   `,

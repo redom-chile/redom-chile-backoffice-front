@@ -3,6 +3,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { HttpStatusCode } from '@angular/common/http';
 import { ButtonComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { getOrderErrorMessage, GetServiceStaffService } from '../order-list/data-access';
 import {
   formatDateTime,
@@ -12,7 +15,15 @@ import {
   PAYMENT_STATUS,
   StatusBadgeComponent,
 } from '../order-list/ui';
-import { GetOrderByIdService, MarkLineServedService, MarkOrderServedService, OrderDetailDto, OrderLineDto } from './data-access';
+import {
+  GetOrderByIdService,
+  MarkLineServedService,
+  MarkOrderServedService,
+  modifierLabel,
+  OrderDetailDto,
+  OrderLineDto,
+  orderVariationLabel,
+} from './data-access';
 import {
   CancelOrderModalComponent,
   CollectPaymentModalComponent,
@@ -44,6 +55,7 @@ import { OrderTotalsComponent } from './ui';
     OrderLinesTableComponent,
     OrderTotalsComponent,
     PaymentsTableComponent,
+    CheckPermissionDirective,
   ],
   templateUrl: './order-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,6 +72,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private readonly paymentsService = inject(GetOrderPaymentsService);
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
+  private readonly businessSettings = inject(BusinessSettingsService);
+  private readonly access = inject(AccessService);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly orderStatus = ORDER_STATUS;
@@ -84,7 +100,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   });
 
   readonly $isOpen = computed(() => this.$order()?.status === 'ORDERED');
-  readonly $canServe = computed(() => this.$isOpen() && !!this.$order()?.isKitchenOrder);
+  readonly $canServe = computed(
+    () => this.$isOpen() && !!this.$order()?.isKitchenOrder && this.access.can(PERMISSIONS.ORDERS.MARK_SERVED),
+  );
   readonly $hasPendingLines = computed(() =>
     (this.$order()?.lines ?? []).some((line) => line.resLineOrderStatus !== 'served'),
   );
@@ -93,7 +111,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     return result && result.transactionId === this.$orderId() ? result.payments : [];
   });
   readonly $isLoadingPayments = computed(() => this.paymentsService.$isLoading() ?? false);
-  readonly $canCollect = computed(() => this.$isOpen() && (this.$order()?.remaining ?? 0) > 0);
+  readonly $canCollect = computed(
+    () =>
+      this.$isOpen() && (this.$order()?.remaining ?? 0) > 0 && this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT),
+  );
 
   readonly $isMarkingOrder = computed(() => this.markOrderService.$isLoading() ?? false);
 
@@ -149,18 +170,23 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       invoiceNo: order.invoiceNo,
       tableName: order.tableName,
       waiterName: order.waiterName,
-      lines: order.lines.map((line) => ({
-        name: line.productName,
-        quantity: line.quantity,
-        total: line.unitPriceIncTax * line.quantity,
-      })),
+      lines: order.lines.map((line) => {
+        const variation = orderVariationLabel(line.variationName);
+        return {
+          name: variation ? `${line.productName} (${variation})` : line.productName,
+          quantity: line.quantity,
+          // Incluye los modificadores.
+          total: line.lineTotal,
+          modifiers: (line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier)),
+        };
+      }),
       subtotal: order.totalBeforeTax,
       discount: order.totalBeforeTax - order.finalTotal,
       total: order.finalTotal,
       taxAmount: order.taxAmount,
       paid: order.totalPaid,
       remaining: order.remaining,
-      suggestedTipPercent: 10,
+      suggestedTipPercent: this.businessSettings.$suggestedTipPercent(),
     });
     try {
       await printHtml(html, this.printConfig.$config().paperWidth);
@@ -241,11 +267,19 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private handleModalResult(result: OrderModalResult | undefined) {
     const messages: Partial<Record<OrderModalResult, string>> = {
       updated: 'Pedido actualizado',
-      'cancelled-order': 'Pedido cancelado',
+      'cancelled-order': this.stockReturnedOnCancel()
+        ? 'Pedido cancelado. El stock se devolvió al inventario.'
+        : 'Pedido cancelado',
     };
     const message = result ? messages[result] : undefined;
     if (!message) return;
     this.toast.show(message, 'success');
     this.handleRetry();
+  }
+
+  // Con descuento al pedir, cancelar devuelve el stock (lo ya preparado queda como merma).
+  private stockReturnedOnCancel(): boolean {
+    const inventory = this.businessSettings.$inventory();
+    return inventory.inventoryEnabled && inventory.deductStockOnSale && inventory.stockDeductionMoment === 'on_order';
   }
 }

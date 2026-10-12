@@ -1,16 +1,53 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { map } from 'rxjs';
-import { AuthService } from 'src/app/modules/auth/pages/data-access';
-import { environment } from 'src/environments/environment';
+import { CanActivateFn, Router, UrlTree } from '@angular/router';
+import { map, Observable } from 'rxjs';
+import { Menu } from '../constants/menu';
+import { SubMenuItem } from '../models/menu.model';
+import { AccessService, permissionForUrl } from '../permissions';
+import { WhoamiService } from '../services/whoami/whoami.service';
+import { ToastService } from 'src/ui';
 
-export const permissionGuard: CanActivateFn = (route) => {
-  if (!environment.enforcePermissions) return true;
-  const authService = inject(AuthService);
+/** Pantalla sin permiso: siempre se puede entrar (cualquier usuario con sesión). */
+const ALWAYS_ALLOWED = '/profile';
+
+/**
+ * Sin el `see-module` de la pantalla (permission-routes.ts) no se entra. Desde otra pantalla se queda donde está;
+ * al abrir por URL directa (o al iniciar sesión en el Resumen sin permiso) lleva a la primera pantalla del menú que sí puede ver.
+ */
+export const permissionGuard: CanActivateFn = (_route, state): boolean | UrlTree | Observable<boolean | UrlTree> => {
+  const permission = permissionForUrl(state.url);
+  if (!permission) return true;
+  const access = inject(AccessService);
   const router = inject(Router);
-  const permission = route.data['viewPermission'] as string;
+  const whoami = inject(WhoamiService);
+  const toast = inject(ToastService);
 
-  return authService.hasPermission([permission]).pipe(
-    map((has) => has || router.parseUrl('/dashboard/error')),
-  );
+  const decide = (): boolean | UrlTree => {
+    if (access.can(permission)) return true;
+    if (router.navigated) {
+      toast.show('No tienes permiso para ver esta pantalla.', 'error');
+      return false;
+    }
+    return router.parseUrl(firstAllowedRoute(access));
+  };
+  // Los permisos llegan con whoami: se espera la primera respuesta.
+  if (whoami.$whoami() !== undefined) return decide();
+  return whoami.load().pipe(map(() => decide()));
 };
+
+function firstAllowedRoute(access: AccessService): string {
+  const roles = new Set(access.$isSuperAdmin() ? ['SUPERADMIN'] : []);
+  const routes = Menu.pages
+    .flatMap((group) => group.items)
+    .flatMap((item): SubMenuItem[] => (item.children?.length ? item.children : [item]))
+    .filter((item) => !item.role || roles.has(item.role))
+    .map((item) => item.route)
+    .filter((route): route is string => !!route);
+  // Solo pantallas del negocio (con permiso): el menú todavía trae ítems de la plantilla (Errors, Components…).
+  return (
+    routes.find((route) => {
+      const permission = permissionForUrl(route);
+      return !!permission && access.can(permission);
+    }) ?? ALWAYS_ALLOWED
+  );
+}

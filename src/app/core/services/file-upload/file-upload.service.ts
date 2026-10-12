@@ -3,7 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { ImageSelection, StorageFolder, StoredFileDto, UploadedImage, UploadUrlDto } from './dtos';
-import { validateImage } from './image-rules';
+import { validateDocument, validateImage } from './image-rules';
 import { ImageUploadError, StorageForbiddenError } from './upload-error-message';
 
 /**
@@ -26,6 +26,17 @@ export class FileUploadService {
   async uploadImage(file: File, folder: StorageFolder, fileName?: string): Promise<UploadedImage> {
     const invalid = validateImage(file, folder);
     if (invalid) throw new ImageUploadError(invalid);
+    return this.#upload(file, folder, fileName);
+  }
+
+  /** Documento (imagen o PDF), por ejemplo la boleta o factura de un gasto. */
+  async uploadDocument(file: File, folder: StorageFolder, fileName?: string): Promise<UploadedImage> {
+    const invalid = validateDocument(file, folder);
+    if (invalid) throw new ImageUploadError(invalid);
+    return this.#upload(file, folder, fileName);
+  }
+
+  async #upload(file: File, folder: StorageFolder, fileName?: string): Promise<UploadedImage> {
 
     this.#isUploading.set(true);
     this.#progress.set(0);
@@ -43,7 +54,7 @@ export class FileUploadService {
       const stored = await firstValueFrom(
         this.#http.post<StoredFileDto>(`${ApiPathEnum.RESTAURANT}/files/${target.fileId}/confirm`, {}),
       );
-      if (stored.status !== 'UPLOADED') throw new ImageUploadError('La subida de la imagen no se completó. Inténtalo de nuevo.');
+      if (stored.status !== 'UPLOADED') throw new ImageUploadError('La subida del archivo no se completó. Inténtalo de nuevo.');
       return { fileId: stored.id, url: stored.url };
     } finally {
       this.#isUploading.set(false);

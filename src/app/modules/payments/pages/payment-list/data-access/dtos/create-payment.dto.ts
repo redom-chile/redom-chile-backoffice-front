@@ -1,8 +1,28 @@
 import { PaymentMethod } from './payment.dto';
 
+/** Producto (línea del pedido) que cubre un pago; sus modificadores van incluidos. */
+export type PaymentLineInputDto = Readonly<{
+  sellLineId: number;
+  // 0 < quantity ≤ pendingQuantity de la línea.
+  quantity: number;
+}>;
+
+export type PaymentLineDto = Readonly<{
+  sellLineId: number;
+  // Solo en el historial (GET /payments?transactionId=).
+  productName?: string;
+  quantity: number;
+  amount: number;
+}>;
+
 export type CreatePaymentDto = Readonly<{
   transactionId: number;
-  amount: number;
+  // Obligatorio en pagos por monto. Con `lines` se omite: lo calcula el backend.
+  amount?: number;
+  // Pago por productos (dividir la cuenta).
+  lines?: PaymentLineInputDto[];
+  // Caja del dispositivo (con el módulo de caja activo). Sin ella, el backend usa la única caja abierta del local.
+  cashRegisterId?: number;
   method: PaymentMethod;
   tipAmount?: number;
   // Solo para efectivo: debe cubrir amount + tipAmount.
@@ -13,6 +33,11 @@ export type CreatePaymentDto = Readonly<{
 export type CreatePaymentResponseDto = Readonly<{
   id: number;
   success: boolean;
+  // Monto cobrado (el calculado por el backend en pagos por productos).
+  amount?: number;
+  lines?: PaymentLineDto[];
+  // Turno de caja donde quedó el cobro (null fuera de caja).
+  cashSessionId?: number | null;
   changeAmount: number;
   paymentStatus: 'due' | 'partial' | 'paid';
   remaining: number;

@@ -1,15 +1,18 @@
-import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { RegenerateTableQrService, TableDto } from '../../data-access';
 import { createQrDataUrl, printTableQrs, TableQrCodeComponent } from '../../ui';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 export type TableQrModalResult = 'regenerated' | 'closed';
 
 @Component({
   selector: 'app-table-qr-modal',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, TableQrCodeComponent],
+  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, TableQrCodeComponent, CheckPermissionDirective],
   templateUrl: './table-qr-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -17,12 +20,18 @@ export class TableQrModalComponent implements OnDestroy {
   private readonly dialogRef = inject<MatDialogRef<TableQrModalComponent, TableQrModalResult>>(MatDialogRef);
   private readonly toast = inject(ToastService);
   private readonly regenerateService = inject(RegenerateTableQrService);
+  private readonly entitlements = inject(EntitlementsService);
+  private readonly upsell = inject(PlanUpsellService);
 
   readonly table = inject<TableDto>(MAT_DIALOG_DATA);
+
+  protected readonly PERMISSIONS = PERMISSIONS;
   readonly $qrUrl = signal(this.table.qrUrl);
   readonly $qrCode = signal(this.table.qrCode);
   readonly $confirmRegenerate = signal(false);
   readonly $isRegenerating = this.regenerateService.$isLoading;
+  // Regenerar el QR requiere la carta digital en el plan.
+  readonly $canRegenerate = computed(() => this.entitlements.hasFeature('qr_menu'));
   #regenerated = false;
 
   constructor() {
@@ -61,6 +70,15 @@ export class TableQrModalComponent implements OnDestroy {
   async print(url: string) {
     const opened = await printTableQrs([{ name: this.table.name, detail: `${this.table.capacity} personas`, url }]);
     if (!opened) this.toast.show('Permite las ventanas emergentes para imprimir', 'warning');
+  }
+
+  askRegenerate() {
+    if (!this.$canRegenerate()) {
+      this.upsell.open({ features: ['qr_menu'] });
+      return;
+    }
+    if (this.$qrCode()) this.$confirmRegenerate.set(true);
+    else this.regenerate();
   }
 
   regenerate() {

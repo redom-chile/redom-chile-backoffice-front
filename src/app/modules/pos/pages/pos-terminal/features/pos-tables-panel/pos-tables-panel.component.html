@@ -6,11 +6,11 @@
 
   @if (sectors().length > 1) {
   <div class="-mx-1 mb-2 flex gap-1 overflow-x-auto px-1 pb-1">
-    <button type="button" class="shrink-0 rounded-full px-3 py-1 text-xs font-medium" [class]="$sectorId() === null ? 'bg-primary text-white' : 'glass-row'" (click)="$sectorId.set(null)">
+    <button type="button" class="shrink-0 rounded-full px-3 py-1 text-xs font-medium" [class]="$sectorId() === null ? 'bg-primary text-white' : 'glass-row text-foreground'" (click)="$sectorId.set(null)">
       Todos
     </button>
     @for (sector of sectors(); track sector.id) {
-    <button type="button" class="shrink-0 rounded-full px-3 py-1 text-xs font-medium" [class]="$sectorId() === sector.id ? 'bg-primary text-white' : 'glass-row'" (click)="$sectorId.set(sector.id)">
+    <button type="button" class="shrink-0 rounded-full px-3 py-1 text-xs font-medium" [class]="$sectorId() === sector.id ? 'bg-primary text-white' : 'glass-row text-foreground'" (click)="$sectorId.set(sector.id)">
       {{ sector.name }}
     </button>
     }

@@ -1,0 +1,174 @@
+@let data = $data();
+<div class="space-y-4">
+  <app-header-dashboard
+    [title]="data?.productName ?? 'Receta'"
+    [subtitle]="$subtitle()">
+    <a
+      routerLink="/inventory/recipes"
+      [queryParams]="$backLink()"
+      class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm font-medium">
+      <app-icon class="h-5 w-5">arrow_back</app-icon>
+      <span class="hidden sm:inline">Volver a recetas</span>
+      <span class="sm:hidden">Volver</span>
+    </a>
+  </app-header-dashboard>
+
+  @if (!$settingsLoaded()) {
+  @if ($settingsError()) {
+  <div class="flex flex-col items-center gap-4 py-16 text-center">
+    <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+    <p class="text-foreground font-semibold">No se pudo cargar la configuración de inventario</p>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retrySettings()">Reintentar</app-button>
+  </div>
+  } @else {
+  <div class="glass space-y-3 rounded-[1rem] p-4" aria-busy="true">
+    @for (row of [1, 2, 3, 4]; track row) {
+    <app-skeleton size="sm" />
+    }
+  </div>
+  }
+  } @else if (!$inventoryEnabled()) {
+  <app-inventory-disabled />
+  } @else if (!$ingredientsEnabled()) {
+  <app-empty-state
+    icon="menu_book"
+    title="Las recetas no están activadas"
+    description="Activa &quot;Trabajar con ingredientes y recetas&quot; para indicar qué ingredientes consume cada plato.">
+    <a
+      routerLink="/business"
+      [queryParams]="{ tab: 'inventario' }"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">settings</app-icon>
+      Ir a la configuración
+    </a>
+  </app-empty-state>
+  } @else if ($error(); as error) {
+  <app-inventory-load-error [error]="error" title="No se pudo cargar la receta" (retry)="load()" />
+  } @else if ($isLoading() || !data) {
+  <div class="space-y-4" aria-busy="true">
+    @for (card of [1, 2]; track card) {
+    <div class="glass space-y-3 rounded-[1rem] p-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="sm" />
+      <app-skeleton size="sm" />
+    </div>
+    }
+  </div>
+  } @else {
+  <!-- Resumen -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-2">
+      @if ($isProduction()) {
+      <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+        <app-icon class="h-3.5 w-3.5">soup_kitchen</app-icon>
+        Preparación
+      </span>
+      } @else {
+      <span
+        class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+        [class]="$isModifier() ? 'bg-primary/15 text-primary' : 'bg-purple-500/15 text-purple-600 dark:text-purple-400'">
+        <app-icon class="h-3.5 w-3.5">{{ $isModifier() ? 'tune' : 'restaurant' }}</app-icon>
+        {{ $isModifier() ? 'Set de modificadores' : 'Plato' }}
+      </span>
+      }
+      @if ($hasUnsaved()) {
+      <span class="text-xs text-amber-700 dark:text-amber-400">Tienes cambios sin guardar.</span>
+      }
+    </div>
+
+    @if (data.canHaveRecipe && data.variations.length) {
+    <label class="flex w-full items-center gap-2 text-sm sm:w-auto">
+      <app-icon class="text-muted-foreground h-5 w-5" aria-hidden="true">storefront</app-icon>
+      <span class="text-muted-foreground shrink-0">Costos de</span>
+      <select
+        aria-label="Local para calcular los costos"
+        class="glass-input w-full min-w-0 rounded-md px-3 py-2 sm:w-56"
+        [disabled]="$isRefreshing()"
+        (change)="onLocationChange($event)">
+        <option value="0" [selected]="$locationId() === null">Promedio del negocio</option>
+        @for (location of locations.$locations(); track location.id) {
+        <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+        }
+      </select>
+    </label>
+    }
+  </div>
+
+  @if (!data.canHaveRecipe) {
+  <app-empty-state
+    icon="menu_book"
+    title="Este producto no usa receta"
+    description="Para usar receta, cambia el modo de stock del producto a &quot;Por receta&quot; en Carta → Productos.">
+    <a
+      routerLink="/products"
+      [queryParams]="{ search: data.productName }"
+      class="bg-primary text-primary-foreground inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90">
+      <app-icon class="h-5 w-5">restaurant_menu</app-icon>
+      Ir a Productos
+    </a>
+  </app-empty-state>
+  } @else if (!data.variations.length) {
+  <app-empty-state
+    icon="menu_book"
+    [title]="$isModifier() ? 'El set no tiene opciones' : 'El producto no tiene variaciones'"
+    description="Agrega opciones o variaciones para poder armar su receta." />
+  } @else {
+  <div class="space-y-4" [class.opacity-70]="$isRefreshing()" [attr.aria-busy]="$isRefreshing()">
+    @for (variation of data.variations; track variation.variationId) {
+    <app-recipe-card
+      [productId]="data.productId"
+      [productName]="data.productName"
+      [isModifier]="$isModifier()"
+      [variation]="variation"
+      [siblings]="data.variations"
+      [unitCosts]="$unitCosts()"
+      [isProduction]="$isProduction()"
+      [productUnitId]="$productUnitId()"
+      [locationId]="$locationId()"
+      (saved)="onSaved($event)"
+      (dirtyChange)="onDirtyChange(variation.variationId, $event)" />
+    }
+  </div>
+
+  <!-- Ayuda -->
+  @if ($isProduction()) {
+  <div class="text-muted-foreground space-y-1 text-xs">
+    <p>
+      Una <strong>preparación</strong> es un ingrediente que se elabora en el local (salsas, masas, caldos). Su receta es
+      <strong>por tanda</strong> y el <strong>rinde</strong> indica cuánto produce esa tanda.
+    </p>
+    <p>
+      Al vender, los platos descuentan la preparación (no sus ingredientes). Para tener stock de la preparación hay que
+      <a routerLink="/inventory/productions" class="text-primary font-medium hover:underline">producirla</a>.
+    </p>
+    <p>
+      <strong>Producir</strong> consume los ingredientes en proporción: producir 1 l con una receta que rinde 2 l usa media tanda.
+      La preparación entra al stock con el costo de lo consumido.
+    </p>
+    <p>Las cantidades se guardan en la unidad base de cada ingrediente. <strong>Merma %:</strong> lo que se pierde al preparar.</p>
+    <p>
+      <strong>Costo por unidad:</strong> costo de la tanda ÷ rinde, con el costo promedio de los ingredientes en el local elegido.
+    </p>
+    <p>Una preparación puede usar otras preparaciones, pero no puede contenerse a sí misma a través de otra.</p>
+  </div>
+  } @else {
+  <div class="text-muted-foreground space-y-1 text-xs">
+    <p>Las cantidades son por <strong>una unidad vendida</strong> y se guardan en la unidad base del ingrediente (si eliges kg y el ingrediente está en g, el sistema convierte).</p>
+    <p><strong>Merma %:</strong> lo que se pierde al preparar. 150 g de carne con 10 % de merma descuentan 165 g.</p>
+    @if ($isModifier()) {
+    <p><strong>Quita ingrediente:</strong> para opciones como "Sin cebolla", devuelve lo que el plato iba a consumir. El consumo neto nunca baja de 0.</p>
+    }
+    <p>
+      <strong>Costo:</strong> cada fila es cantidad × (1 + merma %) × costo promedio ponderado del ingrediente en el local elegido
+      ("Promedio del negocio" promedia los locales según su stock). El costo de la receta es la suma de las filas.
+    </p>
+    <p>
+      <strong>Food cost %:</strong> costo de la receta ÷ precio sin IVA × 100@if ($isModifier()) { (por opción; sin precio no se calcula)}.
+      Como referencia, se apunta a 25–35 %. Compáralo entre platos en
+      <a routerLink="/inventory/food-cost" class="text-primary font-medium hover:underline">Food cost</a>.
+    </p>
+  </div>
+  }
+  }
+  }
+</div>

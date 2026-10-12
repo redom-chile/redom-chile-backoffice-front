@@ -20,6 +20,8 @@ export type PendingPrintJobDto = Readonly<{
     variationName: string | null;
     quantity: number | null;
     notes: string | null;
+    // Modificadores ya formateados, se imprimen bajo el producto.
+    modifiers?: string[];
   }>;
 }>;
 

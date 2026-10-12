@@ -25,21 +25,30 @@
       }
     </td>
     <td class="text-center">
-      @if (!item.isGlobal) {
       <div class="flex items-center justify-end gap-2">
         <app-button
-          *appCheckPermission="'roles:update-role'"
+          *appCheckPermission="PERMISSIONS.ROLES_PERMISSIONS.GET_ROLE_PERMISSIONS"
+          size="small"
+          icon="key"
+          title="Permisos"
+          (click)="openPermissions(item)"></app-button>
+        <!-- Los roles de Redom (globales) no se editan ni eliminan. -->
+        @if (!item.isGlobal) {
+        <app-button
+          *appCheckPermission="PERMISSIONS.ROLES.UPDATE_ROLE"
           size="small"
           icon="edit_document"
+          title="Editar"
           (click)="updateModule(item)"></app-button>
         <app-button
-          *appCheckPermission="'roles:delete-role'"
+          *appCheckPermission="PERMISSIONS.ROLES.DELETE_ROLE"
           size="small"
           icon="delete"
           tone="danger"
+          title="Eliminar"
           (click)="deleteModule(item)"></app-button>
+        }
       </div>
-      }
     </td>
   </tr>
   } @empty {
