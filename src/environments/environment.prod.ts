@@ -1,5 +1,5 @@
 // Backend de producción aún no desplegado: confirmar la URL cuando exista.
-const baseUrl = 'https://3rns8qoa8g.execute-api.us-east-1.amazonaws.com';
+const baseUrl = 'https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com';
 
 export const environment = {
   production: true,
@@ -11,6 +11,7 @@ export const environment = {
   billingApiUrl: `${baseUrl}/billing/api`,
   // Client ID de Google Identity Services (mismo valor que GOOGLE_CLIENT_ID del backend). Vacío = botón deshabilitado.
   googleClientId: '123525471493-h41blsi8tmhdcrqi0gh9qmdhf1217pgo.apps.googleusercontent.com',
+
   // Permisos en el front (ocultar menús, botones y rutas). Apagado hasta la etapa de permisos; el backend valida igual.
   enforcePermissions: false,
 };

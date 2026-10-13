@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { SupportModeService } from '../support-mode/support-mode.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { WhoamiService } from '../whoami/whoami.service';
 import {
@@ -93,7 +94,9 @@ export class BusinessSettingsService {
   readonly #hasError = signal(false);
   #loadedFor: number | null = null;
 
-  readonly $businessId = computed(() => this.#whoami.$whoami()?.user.restaurantId ?? null);
+  // En modo soporte, el negocio del acceso (el SUPERADMIN no tiene negocio propio).
+  readonly #support = inject(SupportModeService);
+  readonly $businessId = computed(() => this.#support.$businessId() ?? this.#whoami.$whoami()?.user.restaurantId ?? null);
   readonly $settings = this.#settings.asReadonly();
   readonly $isLoading = this.#isLoading.asReadonly();
   readonly $hasError = this.#hasError.asReadonly();

@@ -57,6 +57,7 @@ const PERMISSION_ROUTES: ReadonlyArray<readonly [string, PermissionCode]> = [
   ['/platform/businesses', BILLING.PLATFORM_BUSINESSES.SEE_MODULE],
   ['/platform/plans', BILLING.PLANS.SEE_MODULE],
   ['/platform/discounts', BILLING.DISCOUNTS.SEE_MODULE],
+  ['/platform/support-access', BILLING.PLATFORM_SUPPORT_ACCESS.SEE_MODULE],
   ['/platform/payments-review', BILLING.PLATFORM_PAYMENTS.SEE_MODULE],
   ['/platform/invoices', BILLING.PLATFORM_PAYMENTS.SEE_MODULE],
   ['/platform/settings', BILLING.PLATFORM_SETTINGS.SEE_MODULE],

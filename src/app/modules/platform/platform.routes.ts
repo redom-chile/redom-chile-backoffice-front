@@ -23,6 +23,8 @@ const routes: Routes = [
       { path: 'payments-review', loadComponent: () => import('./pages/platform-payments-review').then((m) => m.PlatformPaymentsReviewComponent) },
       // Query params opcionales: status, businessId, from, to, method, page.
       { path: 'invoices', loadComponent: () => import('./pages/platform-invoices').then((m) => m.PlatformInvoicesComponent) },
+      // Query params opcionales: active (true|false), page.
+      { path: 'support-access', loadComponent: () => import('./pages/platform-support-access').then((m) => m.PlatformSupportAccessComponent) },
       { path: 'settings', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./pages/platform-settings').then((m) => m.PlatformSettingsComponent) },
     ],
   },

@@ -40,6 +40,11 @@ export const BILLING_PERMISSIONS = {
     REVERSE_PAYMENT: 'platform-payments:reverse-payment',
     EXPORT_PAYMENTS: 'platform-payments:export-payments',
   },
+  PLATFORM_SUPPORT_ACCESS: {
+    SEE_MODULE: 'platform-support-access:see-module',
+    GET_ALL_SUPPORT_ACCESS: 'platform-support-access:get-all-support-access',
+    REVOKE_SUPPORT_ACCESS: 'platform-support-access:revoke-support-access',
+  },
   PLATFORM_SETTINGS: {
     SEE_MODULE: 'platform-settings:see-module',
     GET_SETTINGS: 'platform-settings:get-settings',

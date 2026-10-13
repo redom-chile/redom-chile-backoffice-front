@@ -171,13 +171,21 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Mejoras posibles de la fase 3: aviso de cambios sin guardar al cambiar de pestaña en el detalle del plan; nombres de negocios de un descuento exclusivo (falta un endpoint para buscarlos por id sin lectura auditada); el historial muestra priceId/discountId como número.
 - Fase 4 implementada (pago manual): dueño con Mi suscripción (plan, próximo cobro, cobros pendientes con datos para transferir, "Ya transferí" con comprobante, cupón, historial, cancelar/reanudar) y elección de plan con resumen (compra, renovación, mejora con prorrateo o cambio programado); superadmin con Pagos por revisar (confirmar/rechazar, contador en el menú), Cobros (registrar pago, reversar, exportar CSV) y las mismas acciones en el detalle del negocio. Falta probarlo E2E.
 - Mejoras de la fase 4: en el detalle del negocio lo pagado se calcula con los últimos 20 pagos (el backend no envía paidAmount ahí); el contador de pagos por revisar consulta cada 2 minutos aunque no estés en Plataforma.
-- Próxima fase (esperando al backend): fase 5, pago con tarjeta vía Flow.
+- Fase 5 implementada (Flow): medio de pago en Mi suscripción (tarjeta marca •••• últimos 4, cambiar y quitar), elegir tarjeta o transferencia al cambiar de plan, vuelta desde Flow a /billing con mensajes, "Pagar con tarjeta" en cobros pendientes y "Activa tu prueba gratis" cuando la plataforma exige tarjeta. Falta probarlo con el sandbox de Flow.
+- Fase 6 implementada (proceso diario): en Mi suscripción, mensajes para suscripción terminada ("Elegir un plan") y plan vencido ("Reactivar" con el mismo plan); en Plataforma → Resumen, botón "Ejecutar proceso diario" con su resultado. Los avisos se actualizan solos porque whoami (con entitlements) se refresca cada minuto con la pestaña activa. Falta probarlo.
+- Configuración: el `.env` del backend debe tener `BILLING_FRONT_URL=http://localhost:4200` (estaba en 4300, la landing).
+- Por confirmar con el backend: "Pagar con tarjeta" de un cobro de prorrateo usa el checkout del precio actual (como indica el prompt); falta un endpoint para cobrar una factura específica. Con el pago "en proceso" solo se vuelve a consultar una vez a los 60 s.
 - Próximas fases (esperando al backend): checkout (Flow y transferencia), "Mi suscripción", panel Plataforma del superadmin, y en Roles y permisos deshabilitar los módulos fuera del plan (cuando exista el mapa `module_codes`).
 - Detalles menores: el candado no aparece en el tooltip del menú colapsado; los días de prueba del banner no se recalculan sin recargar; los banners también se ven en `/billing/plans`; las pantallas de caja muestran "módulo apagado" según el ajuste del negocio (sus rutas ya exigen la función `cash`); la URL de `billing` en AWS está por confirmar.
 - Decisiones tomadas: prueba de 15 días en Pro (el superadmin activa o desactiva la exigencia de tarjeta), lo no incluido se muestra con candado ofreciendo subir de plan, pago manual + Flow, todos los pagos registrados y la tarjeta solo como marca y últimos 4 dígitos cifrados.
 - Asumido (confirmar): al vencer el pago hay 7 días de gracia y después el negocio baja a Free sin perder datos; los recursos sobre el límite quedan en solo lectura.
 - Por definir: precios de cada plan (mensual y anual) y qué incluye cada uno (hay un borrador en el prompt).
 - Front por hacer cuando responda el backend: Mi negocio → Plan y facturación (comparar, checkout con Flow o transferencia, tarjeta, cupón, cobros, cancelar), banner de prueba o pago vencido, candados en el menú y en Roles y permisos, interceptor de errores `PLAN_*`, grupo Plataforma del superadmin (resumen, negocios, planes, descuentos, cobros, ajustes) y sección de precios en la landing.
+
+## Acceso de soporte (#50)
+
+- Implementado: el dueño autoriza a Redom desde Mi negocio → Soporte (1, 3, 7, 14 o 30 días, nota, extender, terminar, actividad e historial); el superadmin entra en modo soporte desde Plataforma → Negocios o Accesos de soporte (franja fija con Salir, menú y rutas solo de la carta, header `X-Support-Business-Id`, candados con el plan del negocio, sale solo al terminar o vencer). Falta probarlo E2E.
+- Mejoras: filtro por negocio en Accesos de soporte; la actividad del dueño oculta `email_failed` en el front (páginas con menos filas); el superadmin no ve la actividad de un acceso (no hay endpoint de plataforma).
 
 ## Otros pendientes generales
 

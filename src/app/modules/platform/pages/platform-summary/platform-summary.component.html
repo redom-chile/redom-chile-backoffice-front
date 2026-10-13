@@ -11,8 +11,53 @@
       <app-icon class="h-5 w-5">storefront</app-icon>
       <span class="hidden lg:inline">Negocios</span>
     </a>
+    <button
+      *appCheckPermission="PERMISSIONS.PLATFORM_SETTINGS.RUN_JOBS"
+      type="button"
+      class="glass-row inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium disabled:opacity-60"
+      [disabled]="$jobRunning()"
+      title="Ejecutar el proceso diario de cobros (soporte o pruebas)"
+      (click)="handleRunJob()">
+      <app-icon class="h-5 w-5" [class.animate-spin]="$jobRunning()">{{ $jobRunning() ? 'progress_activity' : 'play_circle' }}</app-icon>
+      <span class="hidden sm:inline">{{ $jobRunning() ? 'Ejecutando…' : 'Ejecutar proceso diario' }}</span>
+    </button>
   </div>
 </app-header-dashboard>
+
+@if ($jobResult(); as job) {
+<section class="glass mb-4 rounded-[1rem] p-4" aria-label="Resultado del proceso diario">
+  <div class="flex flex-wrap items-start justify-between gap-2">
+    <div>
+      <h2 class="text-foreground font-semibold">Proceso diario</h2>
+      <p class="text-muted-foreground text-xs">
+        @if (job.ran) {
+        {{ formatJobDate(job.startedAt) }} → {{ formatJobDate(job.finishedAt) }}
+        } @else {
+        No se ejecutó: ya había una ejecución en curso.
+        }
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      @if (job.errors > 0) {
+      <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">{{ job.errors }} con error (ver logs)</span>
+      }
+      <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-8 w-8 items-center justify-center rounded-md" aria-label="Cerrar" (click)="$jobResult.set(null)">
+        <app-icon class="h-5 w-5">close</app-icon>
+      </button>
+    </div>
+  </div>
+  @if (job.ran) {
+  <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+    @for (row of $jobRows(); track row.label) {
+    <div class="flex items-center justify-between gap-2 rounded-lg px-2 py-1" [class.bg-primary/5]="row.value > 0">
+      <dt class="text-muted-foreground text-xs">{{ row.label }}</dt>
+      <dd class="text-foreground text-sm font-semibold tabular-nums">{{ row.value }}</dd>
+    </div>
+    }
+  </dl>
+  }
+</section>
+}
 
 @if ($error()) {
 <div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">

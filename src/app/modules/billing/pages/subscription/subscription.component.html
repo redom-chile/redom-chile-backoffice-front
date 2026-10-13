@@ -2,6 +2,47 @@
 <div class="space-y-4">
   <app-header-dashboard title="Mi suscripción" subtitle="Tu plan, tus cobros y cómo pagarlos" />
 
+  @if ($notice(); as notice) {
+  <div role="status" class="flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-start" [class]="noticeTones[notice.tone]">
+    <div class="flex min-w-0 flex-1 items-start gap-2">
+      <app-icon class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true">{{ notice.icon }}</app-icon>
+      <div class="min-w-0">
+        <p class="font-semibold">{{ notice.title }}</p>
+        @if (notice.text) {
+        <p class="mt-0.5 opacity-90">{{ notice.text }}</p>
+        }
+        @if (notice.retry) {
+        <div class="mt-2 flex flex-wrap gap-2">
+          <app-button
+            *appCheckPermission="PERMISSIONS.SUBSCRIPTION.MANAGE_CARD"
+            type="button"
+            impact="bold"
+            size="small"
+            shape="pill"
+            icon="credit_card"
+            [disabled]="!!$busy() || $redirecting()"
+            [isLoading]="$busy() === 'card'"
+            (buttonClick)="handleAddCard()">
+            {{ $redirecting() ? 'Abriendo Flow…' : 'Reintentar con otra tarjeta' }}
+          </app-button>
+          <app-button type="button" impact="light" size="small" shape="pill" icon="account_balance" (buttonClick)="scrollToOpenInvoices()">
+            Pagar por transferencia
+          </app-button>
+        </div>
+        }
+      </div>
+    </div>
+    <button
+      type="button"
+      class="hover:bg-foreground/10 self-end rounded-full p-1 opacity-70 transition hover:opacity-100 sm:self-start"
+      aria-label="Cerrar aviso"
+      title="Cerrar aviso"
+      (click)="dismissNotice()">
+      <app-icon class="h-4 w-4" aria-hidden="true">close</app-icon>
+    </button>
+  </div>
+  }
+
   @if ($ownerRequired()) {
   <app-empty-state icon="lock" title="Solo el dueño del negocio puede ver la suscripción" description="Puedes revisar qué incluye cada plan.">
     <a routerLink="/billing/plans" class="bg-primary text-primary-foreground rounded-full px-5 py-2.5 text-sm font-semibold hover:opacity-90">Ver planes</a>
@@ -76,9 +117,26 @@
       </li>
       }
       @if (sub.status === 'expired' || sub.status === 'cancelled') {
-      <li class="text-muted-foreground flex items-center gap-2">
-        <app-icon class="h-4 w-4" aria-hidden="true">info</app-icon>
-        Tus datos siguen guardados. Elige un plan para volver a usar todas las funciones.
+      <li class="flex flex-col gap-2 rounded-xl border border-[var(--border)] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <span class="text-foreground flex items-start gap-2">
+          <app-icon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+          <span>
+            @if (sub.status === 'cancelled') {
+            Tu suscripción terminó el {{ (sub.currentPeriodEnd ?? sub.trialEndsAt ?? sub.updatedAt) | billingDate: tz }}. Estás en Free.
+            } @else {
+            Tu plan venció. Estás en Free.
+            }
+            Tus datos siguen guardados.
+          </span>
+        </span>
+        <span class="flex shrink-0 gap-2" *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT">
+          @if (sub.status === 'expired' && sub.price) {
+          <button type="button" class="bg-primary text-primary-foreground rounded-full px-4 py-1.5 text-sm font-semibold hover:opacity-90" (click)="handleReactivate()">
+            Reactivar
+          </button>
+          }
+          <a routerLink="/billing/plans" class="glass-row rounded-full px-4 py-1.5 text-sm font-medium">Elegir un plan</a>
+        </span>
       </li>
       }
       @if (sub.scheduledPlan; as scheduled) {
@@ -115,9 +173,97 @@
     </ul>
   </section>
 
+  <!-- Prueba gratis de Pro (la plataforma exige tarjeta) -->
+  @if ($showTrial()) {
+  <section class="border-primary/25 bg-primary/10 rounded-2xl border p-4 sm:p-5" aria-labelledby="sub-trial-title">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex min-w-0 items-start gap-3">
+        <app-icon class="text-primary mt-0.5 h-6 w-6 shrink-0" aria-hidden="true">rocket_launch</app-icon>
+        <div class="min-w-0">
+          <h2 id="sub-trial-title" class="text-foreground text-base font-semibold">Activa tu prueba gratis de 15 días del plan Pro</h2>
+          <p class="text-muted-foreground mt-0.5 text-sm">
+            Registra tu tarjeta en Flow: no se cobra nada hoy. Al terminar la prueba se cobra el plan Pro mensual, y puedes cancelar antes.
+          </p>
+        </div>
+      </div>
+      <app-button
+        *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT"
+        type="button"
+        impact="bold"
+        shape="pill"
+        icon="rocket_launch"
+        [disabled]="!!$busy() || $redirecting()"
+        [isLoading]="$busy() === 'trial'"
+        (buttonClick)="handleStartTrial()">
+        {{ $redirecting() ? 'Abriendo Flow…' : 'Activar prueba' }}
+      </app-button>
+    </div>
+  </section>
+  }
+
+  <!-- Medio de pago -->
+  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-method-title">
+    <h2 id="sub-method-title" class="text-foreground mb-3 text-base font-semibold">Medio de pago</h2>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <app-icon class="h-5 w-5" aria-hidden="true">{{ $card() ? 'credit_card' : 'account_balance' }}</app-icon>
+        </span>
+        <div class="min-w-0">
+          @if ($card(); as card) {
+          <p class="text-foreground font-semibold">{{ card }}</p>
+          <p class="text-muted-foreground text-xs">
+            Tus cobros se pagan con esta tarjeta en Flow.
+            @if (sub.card?.registeredAt) {
+            Registrada el {{ sub.card?.registeredAt | billingDate: tz }}.
+            }
+          </p>
+          } @else {
+          <p class="text-foreground font-semibold">Pagas por transferencia</p>
+          <p class="text-muted-foreground text-xs">Agrega una tarjeta para que tus cobros se paguen solos.</p>
+          }
+        </div>
+      </div>
+      <div *appCheckPermission="PERMISSIONS.SUBSCRIPTION.MANAGE_CARD" class="flex flex-wrap gap-2">
+        @if ($card()) {
+        <app-button
+          type="button"
+          impact="light"
+          size="small"
+          shape="pill"
+          icon="sync"
+          [disabled]="!!$busy() || $redirecting()"
+          [isLoading]="$busy() === 'card'"
+          (buttonClick)="handleAddCard()">
+          {{ $redirecting() ? 'Abriendo Flow…' : 'Cambiar tarjeta' }}
+        </app-button>
+        <button
+          type="button"
+          class="text-destructive hover:bg-destructive/10 rounded-full px-4 py-1.5 text-sm font-medium disabled:opacity-50"
+          [disabled]="!!$busy() || $redirecting()"
+          (click)="handleRemoveCard()">
+          {{ $busy() === 'remove-card' ? 'Quitando…' : 'Quitar tarjeta' }}
+        </button>
+        } @else {
+        <app-button
+          type="button"
+          impact="bold"
+          size="small"
+          shape="pill"
+          icon="add_card"
+          [disabled]="!!$busy() || $redirecting()"
+          [isLoading]="$busy() === 'card'"
+          (buttonClick)="handleAddCard()">
+          {{ $redirecting() ? 'Abriendo Flow…' : 'Agregar tarjeta' }}
+        </app-button>
+        }
+      </div>
+    </div>
+  </section>
+
   <!-- Cobros pendientes -->
   @if (sub.openInvoices.length) {
-  <section class="glass rounded-2xl p-4 sm:p-5" aria-labelledby="sub-open-title">
+  <section id="sub-open-invoices" class="glass scroll-mt-4 rounded-2xl p-4 sm:p-5" aria-labelledby="sub-open-title">
     <h2 id="sub-open-title" class="text-foreground mb-3 text-base font-semibold">Cobros pendientes</h2>
     <div class="space-y-3">
       @for (invoice of sub.openInvoices; track invoice.id) {
@@ -168,25 +314,43 @@
         </div>
         <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           @if (hasRejected(invoice)) {
-          <p class="text-muted-foreground text-xs">Si tu transferencia fue rechazada, revisa el motivo e infórmala de nuevo.</p>
+          <p class="text-muted-foreground text-xs">Hay un pago rechazado: revisa el motivo y vuelve a intentarlo.</p>
+          } @else if (sub.card) {
+          <p class="text-muted-foreground text-xs">Págalo con tu {{ $card() }} o transfiere {{ clp(left) }} y avísanos.</p>
           } @else {
           <p class="text-muted-foreground text-xs">Transfiere {{ clp(left) }} y avísanos para activar tu pago.</p>
           }
-          <app-button
-            *appCheckPermission="PERMISSIONS.SUBSCRIPTION.REPORT_PAYMENT"
-            type="button"
-            impact="bold"
-            shape="pill"
-            icon="task_alt"
-            (buttonClick)="handleReport(invoice)">
-            Ya transferí
-          </app-button>
+          <div class="flex flex-wrap gap-2">
+            @if (sub.card) {
+            <app-button
+              *appCheckPermission="PERMISSIONS.SUBSCRIPTION.CHECKOUT"
+              type="button"
+              impact="bold"
+              shape="pill"
+              icon="credit_card"
+              [disabled]="!!$busy() || $redirecting()"
+              [isLoading]="$busy() === 'pay-' + invoice.id"
+              (buttonClick)="handlePayWithCard(invoice)">
+              Pagar con tarjeta
+            </app-button>
+            }
+            <app-button
+              *appCheckPermission="PERMISSIONS.SUBSCRIPTION.REPORT_PAYMENT"
+              type="button"
+              [impact]="sub.card ? 'light' : 'bold'"
+              shape="pill"
+              icon="task_alt"
+              [disabled]="$redirecting()"
+              (buttonClick)="handleReport(invoice)">
+              Ya transferí
+            </app-button>
+          </div>
         </div>
         }
 
         @if (invoice.payments.length) {
         <div class="mt-3">
-          <p class="text-muted-foreground mb-1.5 text-xs font-medium">Pagos informados</p>
+          <p class="text-muted-foreground mb-1.5 text-xs font-medium">Pagos e intentos</p>
           <app-invoice-payments [payments]="invoice.payments" [timeZone]="tz" />
         </div>
         }

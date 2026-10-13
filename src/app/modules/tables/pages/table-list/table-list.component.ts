@@ -5,7 +5,15 @@ import { Router } from '@angular/router';
 
 import { HeaderDashboardComponent, ButtonComponent, IconComponent, CardComponent, ToastService } from 'src/ui';
 
-import { TablesTableComponent, TablesGridComponent, CreateTableModalComponent, SectorTabsComponent } from './features';
+import {
+  TablesTableComponent,
+  TablesGridComponent,
+  CreateTableModalComponent,
+  SectorTabsComponent,
+  openCreateTablesBulkModal,
+  TableQrModalComponent,
+  TableQrModalResult,
+} from './features';
 
 import {
   GetAllTablesService,
@@ -20,6 +28,7 @@ import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-l
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { SupportModeService } from 'src/app/core/services/support-mode';
 
 @Component({
   selector: 'app-table-list',
@@ -43,6 +52,8 @@ export class TableListComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly access = inject(AccessService);
+  // En modo soporte solo se listan mesas, se regenera el QR y se crean en lote.
+  protected readonly $supportMode = inject(SupportModeService).$active;
 
   protected readonly PERMISSIONS = PERMISSIONS;
 
@@ -91,6 +102,16 @@ export class TableListComponent implements OnDestroy {
     });
   }
 
+  createTablesBulk() {
+    openCreateTablesBulkModal(this.dialog, {
+      sectors: this.$sectors(),
+      sectorId: this.$selectedSectorId(),
+      locationId: this.$getAll.getCurrentLocationId(),
+    }).subscribe((result) => {
+      if (result) this.$getAll.retry();
+    });
+  }
+
   toggleView() {
     this.$viewMode.update((v) => (v === 'grid' ? 'table' : 'grid'));
   }
@@ -102,6 +123,10 @@ export class TableListComponent implements OnDestroy {
   }
 
   onTableSelected(table: TableDto) {
+    if (this.$supportMode()) {
+      this.showQr(table);
+      return;
+    }
     const locationId = this.$getAll.getCurrentLocationId();
     // Con un pedido abierto, la mesa lleva directo a ese pedido (el más reciente si la comparten).
     if (table.currentTransactionId) {
@@ -125,6 +150,15 @@ export class TableListComponent implements OnDestroy {
     this.router.navigate(['/orders/new'], {
       queryParams: { location: locationId, table: table.id },
     });
+  }
+
+  private showQr(table: TableDto) {
+    this.dialog
+      .open<TableQrModalComponent, TableDto, TableQrModalResult>(TableQrModalComponent, { width: '560px', maxWidth: '95vw', data: table })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result === 'regenerated') this.$getAll.retry();
+      });
   }
 
   onSectorSelected(sectorId: number | null) {

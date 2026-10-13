@@ -118,7 +118,7 @@ export type OwnerPlanDto = Readonly<{
  */
 export type CheckoutAction = 'purchase' | 'renewal' | 'upgrade' | 'scheduled';
 
-/** Por ahora solo method 'manual' (flow responde 400 hasta la fase 5). */
+/** manual: transferencia (fase 4). flow: tarjeta registrada en Flow (fase 5). */
 export type CheckoutRequestDto = Readonly<{ priceId: number; couponCode?: string; method: 'manual' | 'flow' }>;
 
 export type CheckoutResultDto = Readonly<{
@@ -127,7 +127,14 @@ export type CheckoutResultDto = Readonly<{
   scheduledChange: Readonly<{ plan: PlanRef; priceId: number; at: string }> | null;
   subscription: OwnerSubscriptionDto;
   bankTransferInfo: BankTransferInfoDto;
+  /** method flow sin tarjeta: llevar el navegador al formulario de Flow (vuelve a /billing?card=…). */
+  redirectUrl?: string | null;
+  /** method flow con tarjeta: resultado del cobro (rejected trae el motivo en message). */
+  charge?: Readonly<{ status: 'paid' | 'pending' | 'rejected'; message: string | null }> | null;
 }>;
+
+/** Formulario de Flow para registrar la tarjeta (la tarjeta nunca pasa por Redom). */
+export type CardRedirectDto = Readonly<{ redirectUrl: string }>;
 
 /** El dueño informa su transferencia (queda pending hasta que Redom la confirma). */
 export type ManualPaymentRequestDto = Readonly<{

@@ -31,7 +31,9 @@ export function getBillingErrorMessage(error: unknown, fallback = 'No se pudo co
     case 'INVOICE_NOT_PAYABLE':
       return 'Este cobro ya no está pendiente.';
     case 'PAYMENT_PROVIDER_ERROR':
-      return 'El pago con tarjeta todavía no está disponible. Usa transferencia.';
+      return 'No pudimos conectar con el medio de pago. Inténtalo de nuevo.';
+    case 'TRIAL_NOT_AVAILABLE':
+      return 'La prueba gratis ya no está disponible para este negocio.';
   }
   if (api.status === 404 && /file|receipt/i.test(api.message)) return 'El comprobante no se subió bien. Vuelve a adjuntarlo.';
   if (api.status === 400 && /amount/i.test(api.message)) return 'El monto supera lo que falta pagar (incluye las transferencias en revisión).';

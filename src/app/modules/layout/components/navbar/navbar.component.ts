@@ -7,7 +7,7 @@ import { NavbarMobileComponent } from './navbar-mobile/navbar-mobilecomponent';
 import { ProfileMenuComponent } from './profile-menu/profile-menu.component';
 import { IconComponent, RedomLogoComponent } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
-import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
+import { WhoamiService, isSuperAdmin } from 'src/app/core/services/whoami/whoami.service';
 import { HelpPanelService } from 'src/app/modules/help/features/help-panel/help-panel.service';
 
 @Component({
@@ -23,7 +23,12 @@ export class NavbarComponent implements OnInit {
   protected readonly helpPanel = inject(HelpPanelService);
 
   // Nombre del negocio: el de la configuración (se actualiza al editarlo en Mi negocio) o el de whoami mientras carga.
-  readonly $businessName = computed(() => this.#settings.$settings()?.name || this.#whoami.$whoami()?.user.businessName || null);
+  // El SUPERADMIN no gestiona un negocio: no se muestra el chip.
+  readonly $businessName = computed(() => {
+    const whoami = this.#whoami.$whoami();
+    if (whoami && isSuperAdmin(whoami)) return null;
+    return this.#settings.$settings()?.name || whoami?.user.businessName || null;
+  });
 
   constructor(private menuService: MenuService) {}
 

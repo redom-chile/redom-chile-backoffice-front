@@ -87,7 +87,7 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-/** Comparación de planes. El dueño elige un plan (checkout con transferencia); el resto del equipo solo los ve. */
+/** Comparación de planes. El dueño elige un plan (checkout con tarjeta o transferencia); el resto del equipo solo los ve. */
 @Component({
   selector: 'app-plans',
   imports: [RouterLink, HeaderDashboardComponent, IconComponent, SkeletonComponent, EmptyStateComponent, CheckPermissionDirective],
@@ -224,6 +224,8 @@ export class PlansComponent {
   }
 
   #afterCheckout(result: CheckoutResultDto) {
+    // Con tarjeta el modal ya llevó a Flow o a "Mi suscripción" con el resultado del cobro.
+    if (result.redirectUrl || result.charge) return;
     this.#entitlements.refresh();
     if (result.action === 'scheduled' || !result.invoice) {
       const change = result.scheduledChange;

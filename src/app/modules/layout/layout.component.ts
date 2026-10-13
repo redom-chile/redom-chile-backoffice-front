@@ -7,13 +7,14 @@ import { BottomNavbarComponent } from 'src/ui';
 import { HelpPanelComponent } from 'src/app/modules/help/features/help-panel/help-panel.component';
 import { HelpFabComponent } from 'src/app/modules/help/features/help-fab';
 import { SubscriptionBannerComponent } from 'src/app/modules/billing/features/subscription-banner';
+import { SupportModeBannerComponent } from 'src/app/modules/platform/features/support-mode-banner';
 
 @Component({
   selector: 'app-layout',
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, BottomNavbarComponent, HelpPanelComponent, HelpFabComponent, SubscriptionBannerComponent],
+  imports: [SidebarComponent, NavbarComponent, RouterOutlet, FooterComponent, BottomNavbarComponent, HelpPanelComponent, HelpFabComponent, SubscriptionBannerComponent, SupportModeBannerComponent],
 })
 export class LayoutComponent implements OnInit {
   private mainContent: HTMLElement | null = null;
