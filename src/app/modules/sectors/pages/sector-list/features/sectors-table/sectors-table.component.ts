@@ -1,4 +1,5 @@
 import { Component, EventEmitter, input, Output, signal, inject } from '@angular/core';
+import { SupportModeService } from 'src/app/core/services/support-mode';
 import { MatDialog } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ProgressBarComponent, SlotDirective, TableComponent } from 'src/ui';
 import { SectorDto } from '../../data-access';
@@ -14,6 +15,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
   templateUrl: './sectors-table.component.html',
 })
 export class SectorsTableComponent {
+  protected readonly $supportMode = inject(SupportModeService).$active;
   private readonly dialog = inject(MatDialog);
 
   protected readonly PERMISSIONS = PERMISSIONS;

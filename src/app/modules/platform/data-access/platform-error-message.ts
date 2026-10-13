@@ -42,6 +42,8 @@ export function getPlatformErrorMessage(error: unknown, fallback = 'No se pudo c
       return 'El cobro ya está pagado o anulado.';
     case 'PAYMENT_NOT_REVERSIBLE':
       return 'Solo se puede reversar un pago confirmado que no tenga reverso.';
+    case 'SUPPORT_ACCESS_NOT_FOUND':
+      return 'Ese acceso de soporte ya terminó.';
     case 'SUBSCRIPTION_NOT_FOUND':
       return 'El negocio no tiene suscripción.';
   }

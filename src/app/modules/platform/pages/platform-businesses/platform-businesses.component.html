@@ -102,6 +102,12 @@
               {{ business.name }}
             </a>
             <span class="text-muted-foreground block font-mono text-xs">{{ business.taxNumber || 'Sin RUT' }}</span>
+            @if (business.supportAccess; as support) {
+            <span class="mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300" [title]="support.note ?? ''">
+              <app-icon class="h-3.5 w-3.5" aria-hidden="true">support_agent</app-icon>
+              Soporte hasta {{ formatDate(support.expiresAt) }}
+            </span>
+            }
           </td>
           <td class="px-4 py-3 text-sm">
             <span class="text-foreground block max-w-[14rem] truncate">{{ business.owner?.name || '—' }}</span>
@@ -147,6 +153,12 @@
             <span class="text-foreground font-medium">{{ business.plan?.name ?? 'Plan de respaldo' }}</span>
             @if (key) {
             <span class="text-muted-foreground">· {{ key.label }} {{ formatDate(key.date) }}</span>
+            }
+            @if (business.supportAccess; as support) {
+            <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-300">
+              <app-icon class="h-3.5 w-3.5" aria-hidden="true">support_agent</app-icon>
+              Soporte hasta {{ formatDate(support.expiresAt) }}
+            </span>
             }
           </div>
           <p class="text-muted-foreground mt-1 text-xs">

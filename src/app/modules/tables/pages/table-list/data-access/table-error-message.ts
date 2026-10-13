@@ -7,6 +7,8 @@ const TABLE_ERROR_BY_CODE: Partial<Record<string, string>> = {
     'La mesa tiene un pedido abierto: su estado cambia solo cuando el pedido se cierra o se cancela.',
   [ApiErrorCode.TABLE_STATUS_AUTOMATIC]: 'Una mesa queda ocupada al recibir un pedido; no se puede marcar a mano.',
   [ApiErrorCode.TABLE_BLOCKED]: 'La mesa está bloqueada.',
+  // Aún no está en ApiErrorCode (core).
+  TABLE_NAME_TAKEN: 'Ya existe una mesa con ese nombre en el local. Cambia el prefijo.',
 };
 
 export function getTableErrorMessage(error: ApiError | undefined): string {

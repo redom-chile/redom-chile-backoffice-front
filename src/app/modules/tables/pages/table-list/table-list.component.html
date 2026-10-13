@@ -2,6 +2,7 @@
 
 <div>
   <app-header-dashboard title="Mesas" subtitle="Gestiona las mesas de tu restaurante">
+    @if (!$supportMode()) {
     <app-button
       *appCheckPermission="PERMISSIONS.TABLES.CREATE_TABLE"
       full
@@ -12,6 +13,19 @@
       icon="add"
       (buttonClick)="createTable()">
       Crear mesa
+    </app-button>
+    }
+
+    <app-button
+      *appCheckPermission="PERMISSIONS.TABLES.CREATE_TABLE"
+      full
+      [impact]="$supportMode() ? 'bold' : 'light'"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="library_add"
+      (buttonClick)="createTablesBulk()">
+      Crear varias
     </app-button>
 
     <app-button

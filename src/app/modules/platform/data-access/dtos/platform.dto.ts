@@ -165,6 +165,8 @@ export type PlatformBusinessItemDto = Readonly<{
   overdueAmount: number;
   locations: number;
   users: number;
+  /** Acceso de soporte vigente (el dueño autorizó a Redom a gestionar su carta). */
+  supportAccess?: BusinessSupportAccessDto | null;
 }>;
 
 export type PlatformBusinessFiltersDto = Readonly<{
@@ -256,7 +258,15 @@ export type BillingEventDto = Readonly<{
 
 /** Lectura auditada (muestra datos de cobro). */
 export type PlatformBusinessDetailDto = Readonly<{
-  business: Readonly<{ id: number; name: string; taxNumber: string | null; timeZone: string; createdAt: string; owner: BusinessOwnerDto | null }>;
+  business: Readonly<{
+    id: number;
+    name: string;
+    taxNumber: string | null;
+    timeZone: string;
+    createdAt: string;
+    owner: BusinessOwnerDto | null;
+    supportAccess?: BusinessSupportAccessDto | null;
+  }>;
   subscription: SubscriptionDetailDto | null;
   entitlements: EntitlementsDto;
   invoices: InvoiceDto[];
@@ -342,4 +352,25 @@ export type BillingJobSummaryDto = Readonly<{
   emails: number;
   overridesExpired: number;
   errors: number;
+}>;
+
+// --- Accesos de soporte (#50) ---
+
+/** Acceso vigente de un negocio (en la lista y el detalle de negocios). */
+export type BusinessSupportAccessDto = Readonly<{ grantId: number; expiresAt: string; note: string | null }>;
+
+export type PlatformSupportAccessDto = Readonly<{
+  grantId: number;
+  businessId: number;
+  businessName: string;
+  ownerName: string | null;
+  scopes: string[];
+  note: string | null;
+  grantedAt: string;
+  expiresAt: string;
+  firstUsedAt: string | null;
+  endedAt: string | null;
+  endReason: 'revoked' | 'expired' | null;
+  active: boolean;
+  changes: Readonly<{ created: number; updated: number; deleted: number }>;
 }>;

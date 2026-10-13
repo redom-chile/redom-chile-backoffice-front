@@ -15,7 +15,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46 |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -364,6 +364,20 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 ---
 
 ## Resueltas
+
+### 50. 🟢 Acceso de soporte: el dueño autoriza a Redom a gestionar su carta (resuelta)
+
+> Resuelta: backend implementado (`libs/restaurant/support-access`, header `X-Support-Business-Id`, alcance `catalog` con `@SupportScope`, auditoría, correos con plantilla y vencimiento). Front: pestaña Soporte del dueño (`/business?tab=soporte`), modo soporte del superadmin (franja, menú de la carta, plan del negocio) y Plataforma → Accesos de soporte.
+
+**Problema:** un restaurante pide ayuda para armar su carta, pero el SUPERADMIN no gestiona negocios (no tiene negocio y el front lo deja solo en Plataforma). No hay forma segura de que el dueño autorice a Redom sin compartir su contraseña.
+
+**Se pide** (prompt completo en `docs/backend-prompts/acceso-soporte.md`):
+- acceso de soporte autorizado por el dueño, con alcance `catalog`: productos, categorías, marcas, unidades, modificadores, imágenes, ingredientes, preparaciones y recetas (food cost de lectura);
+- 7 días por defecto (o 1, 3, 14 o 30), revocable y auditado por cambio;
+- el superadmin entra con el header `X-Support-Business-Id`, validado contra el acceso vigente y una lista blanca de rutas;
+- correos de constancia con las plantillas existentes (`libs/emails/common/templates`): al autorizar, al primer uso y al terminar (con el resumen de cambios).
+
+**Front mientras tanto:** nada; cuando responda, se hace la pantalla del dueño (Mi negocio → Acceso de soporte, con el historial) y el modo soporte del superadmin (desde Plataforma → Negocios, con franja fija y menú solo de la carta).
 
 ### 49. 🟡 Crear un proveedor pide el permiso de clientes
 

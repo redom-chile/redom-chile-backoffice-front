@@ -39,6 +39,7 @@ import {
   summarizeEvent,
 } from '../../features/business-shared';
 import { openBusinessStatusModal } from '../../features/business-status-modal';
+import { SupportAccessActionsService } from '../../features/support-access-actions';
 import { PaymentActionsService } from '../../features/payment-actions';
 import { invoiceAmounts, invoiceLabel, isReversible, PaymentTarget } from '../../features/payment-shared';
 
@@ -87,6 +88,7 @@ export class PlatformBusinessDetailComponent {
   readonly #dialog = inject(MatDialog);
   readonly #toast = inject(ToastService);
   readonly #paymentActions = inject(PaymentActionsService);
+  readonly #supportActions = inject(SupportAccessActionsService);
 
   readonly formatClp = formatClp;
   readonly formatDate = formatPlatformDate;
@@ -238,6 +240,24 @@ export class PlatformBusinessDetailComponent {
           this.detail.reload();
         },
         error: (error: unknown) => this.#toast.show(getPlatformErrorMessage(error, 'No se pudo terminar la excepción'), 'error'),
+      });
+  }
+
+  // --- Acceso de soporte (#50) ---
+
+  enterSupport(detail: PlatformBusinessDetailDto) {
+    const support = detail.business.supportAccess;
+    if (!support) return;
+    this.#supportActions.enter({ grantId: support.grantId, businessId: detail.business.id, businessName: detail.business.name, expiresAt: support.expiresAt });
+  }
+
+  endSupport(detail: PlatformBusinessDetailDto) {
+    const support = detail.business.supportAccess;
+    if (!support) return;
+    this.#supportActions
+      .end({ grantId: support.grantId, businessId: detail.business.id, businessName: detail.business.name, expiresAt: support.expiresAt })
+      .subscribe((reload) => {
+        if (reload) this.detail.reload();
       });
   }
 
