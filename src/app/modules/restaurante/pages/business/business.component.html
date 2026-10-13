@@ -5,8 +5,8 @@
 </app-header-dashboard>
 
 @if (business) {
-<div class="mb-4 flex gap-1" role="tablist" aria-label="Secciones de Mi negocio">
-  @for (tab of tabs; track tab.value) {
+<div class="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Secciones de Mi negocio">
+  @for (tab of $tabs(); track tab.value) {
   <button
     type="button"
     role="tab"
@@ -21,6 +21,8 @@
 
 @if ($tab() === 'inventario') {
 <app-inventory-settings />
+} @else if ($tab() === 'soporte') {
+<app-support-access (ownerRequired)="hideSupport()" />
 } @else {
 <app-business-detail [business]="business" />
 }

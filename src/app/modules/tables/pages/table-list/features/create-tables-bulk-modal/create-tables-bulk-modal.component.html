@@ -1,0 +1,94 @@
+@let sector = $sector();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-primary dark:text-foreground text-xl font-semibold">Crear varias mesas</h2>
+  </ng-template>
+  <button mat-icon-button type="button" class="close-button" aria-label="Cerrar" (click)="close()">
+    <app-icon class="text-primary">close</app-icon>
+  </button>
+
+  <form [formGroup]="form" class="space-y-4 py-2" (ngSubmit)="submit()">
+    <div>
+      <label for="bulk-count" class="text-foreground mb-1 block text-sm font-medium">¿Cuántas mesas? *</label>
+      <input
+        id="bulk-count"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        max="100"
+        step="1"
+        formControlName="count"
+        placeholder="De 1 a 100"
+        class="glass-input h-11 w-full rounded-md px-3 text-lg tabular-nums"
+        [class.border-red-500]="showCountError()"
+        [attr.aria-invalid]="showCountError()"
+        aria-describedby="bulk-count-error" />
+      @if (showCountError()) {
+      <p id="bulk-count-error" class="text-destructive mt-1 text-xs">Ingresa cuántas mesas quieres crear (de 1 a 100)</p>
+      }
+    </div>
+
+    <div>
+      <label for="bulk-sector" class="text-foreground mb-1 block text-sm font-medium">Sector *</label>
+      <select id="bulk-sector" formControlName="sectorId" class="glass-input h-11 w-full rounded-md px-3">
+        <option [ngValue]="null" disabled>Elige un sector</option>
+        @for (option of sectors; track option.id) {
+        <option [ngValue]="option.id">{{ option.name }}</option>
+        }
+      </select>
+      @if (sectors.length === 0) {
+      <p class="text-muted-foreground mt-1 text-xs">Primero crea un sector en este local.</p>
+      }
+    </div>
+
+    @if ($needsLocation()) {
+    <div>
+      <label for="bulk-location" class="text-foreground mb-1 block text-sm font-medium">Local *</label>
+      <select id="bulk-location" formControlName="locationId" class="glass-input h-11 w-full rounded-md px-3">
+        <option [ngValue]="null" disabled>Elige un local</option>
+        @for (location of $locations(); track location.id) {
+        <option [ngValue]="location.id">{{ location.name }}</option>
+        }
+      </select>
+      <p class="text-muted-foreground mt-1 text-xs">Este sector no tiene local asignado.</p>
+    </div>
+    }
+
+    <div>
+      <label for="bulk-prefix" class="text-foreground mb-1 block text-sm font-medium">Nombre</label>
+      <input
+        id="bulk-prefix"
+        type="text"
+        maxlength="150"
+        formControlName="prefix"
+        [placeholder]="sector?.name ?? 'Opcional'"
+        class="glass-input h-11 w-full rounded-md px-3" />
+      <p class="text-muted-foreground mt-1 text-xs">
+        Quedarán como {{ $prefixExample() }} 1, {{ $prefixExample() }} 2… (sigue con los números libres)
+      </p>
+    </div>
+
+    <div>
+      <label for="bulk-capacity" class="text-foreground mb-1 block text-sm font-medium">Capacidad</label>
+      <input
+        id="bulk-capacity"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        step="1"
+        formControlName="capacity"
+        placeholder="4 personas"
+        class="glass-input h-11 w-full rounded-md px-3"
+        [class.border-red-500]="form.controls.capacity.invalid && form.controls.capacity.touched" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="grid grid-cols-2 gap-2">
+      <app-button type="button" full impact="light" (buttonClick)="close()">Cancelar</app-button>
+      <app-button type="button" full impact="bold" [disabled]="!$canSubmit()" [isLoading]="$isLoading()" (buttonClick)="submit()">
+        Crear mesas
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

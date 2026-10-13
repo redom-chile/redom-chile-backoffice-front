@@ -205,6 +205,7 @@ export class Menu {
             { label: 'Pagos por revisar', route: '/platform/payments-review' },
             { label: 'Cobros', route: '/platform/invoices' },
             { label: 'Descuentos', route: '/platform/discounts' },
+            { label: 'Accesos de soporte', route: '/platform/support-access' },
             { label: 'Ajustes', route: '/platform/settings' },
           ],
         },

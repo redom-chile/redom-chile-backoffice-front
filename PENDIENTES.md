@@ -182,6 +182,11 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Por definir: precios de cada plan (mensual y anual) y qué incluye cada uno (hay un borrador en el prompt).
 - Front por hacer cuando responda el backend: Mi negocio → Plan y facturación (comparar, checkout con Flow o transferencia, tarjeta, cupón, cobros, cancelar), banner de prueba o pago vencido, candados en el menú y en Roles y permisos, interceptor de errores `PLAN_*`, grupo Plataforma del superadmin (resumen, negocios, planes, descuentos, cobros, ajustes) y sección de precios en la landing.
 
+## Acceso de soporte (#50)
+
+- Implementado: el dueño autoriza a Redom desde Mi negocio → Soporte (1, 3, 7, 14 o 30 días, nota, extender, terminar, actividad e historial); el superadmin entra en modo soporte desde Plataforma → Negocios o Accesos de soporte (franja fija con Salir, menú y rutas solo de la carta, header `X-Support-Business-Id`, candados con el plan del negocio, sale solo al terminar o vencer). Falta probarlo E2E.
+- Mejoras: filtro por negocio en Accesos de soporte; la actividad del dueño oculta `email_failed` en el front (páginas con menos filas); el superadmin no ve la actividad de un acceso (no hay endpoint de plataforma).
+
 ## Otros pendientes generales
 
 - Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).

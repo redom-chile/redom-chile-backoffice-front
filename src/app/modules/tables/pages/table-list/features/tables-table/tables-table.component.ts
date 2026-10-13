@@ -18,6 +18,7 @@ import { TableQrModalComponent, TableQrModalResult } from '../table-qr-modal';
 
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
+import { SupportModeService } from 'src/app/core/services/support-mode';
 
 @Component({
   selector: 'app-tables-table',
@@ -30,6 +31,8 @@ export class TablesTableComponent {
   private readonly dialog = inject(MatDialog);
 
   protected readonly PERMISSIONS = PERMISSIONS;
+  // En modo soporte no se edita ni elimina (el backend responde 403).
+  protected readonly $supportMode = inject(SupportModeService).$active;
 
   readonly $tables = input.required<TableDto[]>({
     alias: 'tables',

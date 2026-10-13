@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
+import { isSupportUrl, SUPPORT_HOME, SupportModeService } from '../services/support-mode';
 import { WhoamiDto } from '../services/whoami/dtos';
 import { isSuperAdmin, isSuperAdminUrl, needsLocationStep, SUPERADMIN_HOME, WhoamiService } from '../services/whoami/whoami.service';
 
@@ -13,8 +14,13 @@ export const businessGuard: CanActivateFn = (_route, state) => {
   if (!inject(AuthService).isLogin()) return true; // authGuard de cada ruta se encarga.
   const router = inject(Router);
   const whoamiService = inject(WhoamiService);
+  const support = inject(SupportModeService);
   const allow = (whoami: WhoamiDto) => {
-    if (isSuperAdmin(whoami)) return isSuperAdminUrl(state.url) ? true : router.parseUrl(SUPERADMIN_HOME);
+    if (isSuperAdmin(whoami)) {
+      // En modo soporte también puede abrir la carta del negocio que lo autorizó.
+      if (support.$active() && isSupportUrl(state.url)) return true;
+      return isSuperAdminUrl(state.url) ? true : router.parseUrl(support.$active() ? SUPPORT_HOME : SUPERADMIN_HOME);
+    }
     return !whoami.user.restaurantId || needsLocationStep(whoami) === true ? router.parseUrl('/onboarding') : true;
   };
   const known = whoamiService.$whoami();

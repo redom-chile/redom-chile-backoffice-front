@@ -1,0 +1,254 @@
+<ng-template #grantForm let-submitLabel="submitLabel">
+  <fieldset class="space-y-2">
+    <legend class="text-foreground text-sm font-semibold">¿Por cuántos días?</legend>
+    <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Días de acceso">
+      @for (days of dayOptions; track days) {
+      <button
+        type="button"
+        role="radio"
+        class="rounded-full px-4 py-1.5 text-sm font-medium"
+        [class]="$days() === days ? 'bg-primary text-white' : 'glass-row text-foreground'"
+        [attr.aria-checked]="$days() === days"
+        [disabled]="$isSaving()"
+        (click)="$days.set(days)">
+        {{ days === 1 ? '1 día' : days + ' días' }}
+      </button>
+      }
+    </div>
+  </fieldset>
+
+  <div class="mt-4">
+    <label for="support-note" class="text-foreground text-sm font-semibold">¿Qué necesitas? <span class="text-muted-foreground font-normal">(opcional)</span></label>
+    <textarea
+      id="support-note"
+      rows="3"
+      class="glass-input mt-1 w-full resize-y rounded-md px-3 py-2 text-sm"
+      placeholder="Ej. Cargar la carta de invierno con sus fotos"
+      [attr.maxlength]="noteMaxLength"
+      [value]="$note()"
+      [disabled]="$isSaving()"
+      (input)="updateNote($event)"></textarea>
+    <p class="text-muted-foreground text-right text-xs">{{ $note().length }}/{{ noteMaxLength }}</p>
+  </div>
+
+  <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+    @if ($active()) {
+    <app-button type="button" impact="none" tone="primary" shape="rounded" [disabled]="$isSaving()" (buttonClick)="cancelExtend()">Cancelar</app-button>
+    }
+    <app-button type="button" impact="bold" tone="primary" shape="rounded" [isLoading]="$isSaving()" [disabled]="$isSaving()" (buttonClick)="grant()">
+      {{ submitLabel }}
+    </app-button>
+  </div>
+</ng-template>
+
+@if ($isOwnerRequired()) {
+<app-card>
+  <p class="text-muted-foreground p-6 text-center text-sm">Solo el dueño del negocio puede gestionar el acceso de soporte.</p>
+</app-card>
+} @else if ($hasError()) {
+<app-card>
+  <div class="flex flex-col items-center gap-4 py-12 text-center">
+    <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+    <div>
+      <h2 class="text-foreground text-lg font-semibold">No se pudo cargar el acceso de soporte</h2>
+      <p class="text-muted-foreground mt-1 text-sm">Revisa tu conexión e intenta nuevamente.</p>
+    </div>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retry()">Reintentar</app-button>
+  </div>
+</app-card>
+} @else if (!$state()) {
+<app-card>
+  <div class="space-y-3 p-4" aria-busy="true" aria-label="Cargando acceso de soporte">
+    <app-skeleton size="xs" style="width: 260px" />
+    <app-skeleton size="xs" />
+    <app-skeleton size="sm" style="width: 180px" />
+  </div>
+</app-card>
+} @else {
+<div class="space-y-4">
+  @if ($active(); as active) {
+  <!-- Acceso vigente -->
+  <app-card>
+    <div class="space-y-3 p-4">
+      <div class="flex items-start gap-3">
+        <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <app-icon class="h-5 w-5">support_agent</app-icon>
+        </span>
+        <div class="min-w-0">
+          <p class="text-foreground text-sm font-semibold">Redom puede gestionar tu carta hasta {{ formatDate(active.expiresAt) }}</p>
+          <p class="text-muted-foreground mt-0.5 text-xs">
+            @if (active.firstUsedAt) {
+            Empezó el {{ formatDate(active.firstUsedAt) }}
+            } @else {
+            Redom aún no entra
+            }
+          </p>
+          @if (active.note) {
+          <p class="text-foreground mt-2 text-sm break-words whitespace-pre-line">“{{ active.note }}”</p>
+          }
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-foreground text-lg font-semibold">{{ active.changes.created }}</p>
+          <p class="text-muted-foreground text-xs">Creados</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-foreground text-lg font-semibold">{{ active.changes.updated }}</p>
+          <p class="text-muted-foreground text-xs">Editados</p>
+        </div>
+        <div class="glass-row rounded-lg p-2">
+          <p class="text-foreground text-lg font-semibold">{{ active.changes.deleted }}</p>
+          <p class="text-muted-foreground text-xs">Eliminados</p>
+        </div>
+      </div>
+
+      @if ($isExtending()) {
+      <div class="border-t border-dashed border-[var(--border)] pt-3">
+        <p class="text-muted-foreground mb-3 text-xs">Los días se cuentan desde hoy. Te enviaremos un correo como constancia.</p>
+        <ng-container *ngTemplateOutlet="grantForm; context: { submitLabel: 'Extender acceso' }" />
+      </div>
+      } @else {
+      <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <app-button type="button" impact="light" tone="danger" shape="rounded" [disabled]="$isSaving()" (buttonClick)="confirmRevoke()">
+          Terminar acceso
+        </app-button>
+        <app-button type="button" impact="bold" tone="primary" shape="rounded" [disabled]="$isSaving()" (buttonClick)="startExtend()">
+          <app-icon class="h-5 w-5">more_time</app-icon>
+          Extender
+        </app-button>
+      </div>
+      }
+    </div>
+  </app-card>
+  } @else {
+  <!-- Sin acceso vigente -->
+  <app-card>
+    <div class="p-4">
+      <div class="mb-4 flex items-start gap-3">
+        <span class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+          <app-icon class="h-5 w-5">support_agent</app-icon>
+        </span>
+        <div>
+          <p class="text-foreground text-sm font-semibold">¿Quieres que el equipo de Redom te ayude a armar tu carta?</p>
+          <p class="text-muted-foreground mt-0.5 text-xs">
+            Autoriza a Redom por unos días. Puedes terminar el acceso cuando quieras y te enviaremos un correo como constancia.
+          </p>
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="grantForm; context: { submitLabel: 'Autorizar a Redom' }" />
+    </div>
+  </app-card>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="glass rounded-[1rem] p-4">
+      <p class="text-foreground text-sm font-semibold">Qué incluye</p>
+      <ul class="mt-2 space-y-1.5">
+        @for (item of included; track item) {
+        <li class="text-foreground flex items-start gap-2 text-sm">
+          <app-icon class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400">check</app-icon>
+          {{ item }}
+        </li>
+        }
+      </ul>
+    </div>
+    <div class="glass rounded-[1rem] p-4">
+      <p class="text-foreground text-sm font-semibold">Qué no incluye</p>
+      <ul class="mt-2 space-y-1.5">
+        @for (item of excluded; track item) {
+        <li class="text-muted-foreground flex items-start gap-2 text-sm">
+          <app-icon class="text-destructive h-4 w-4 shrink-0">close</app-icon>
+          {{ item }}
+        </li>
+        }
+      </ul>
+    </div>
+  </div>
+  }
+
+  <!-- Actividad del acceso vigente o del elegido en el historial -->
+  @if ($activityGrant(); as grant) {
+  <app-card>
+    <div class="p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-foreground text-sm font-semibold">
+          Actividad
+          @if ($selectedGrantId() !== null) {
+          <span class="text-muted-foreground font-normal">· acceso del {{ formatDate(grant.grantedAt) }}</span>
+          }
+        </p>
+        @if ($selectedGrantId() !== null) {
+        <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="showActiveActivity()">
+          {{ $active() ? 'Ver acceso vigente' : 'Cerrar' }}
+        </button>
+        }
+      </div>
+
+      @if (events.isLoading() && !$events().length) {
+      <div class="mt-3 space-y-3" aria-busy="true" aria-label="Cargando actividad">
+        @for (row of [1, 2, 3]; track row) {
+        <app-skeleton size="xs" />
+        }
+      </div>
+      } @else if ($eventsError()) {
+      <p class="text-muted-foreground mt-3 text-sm">No se pudo cargar la actividad.</p>
+      } @else if (!$events().length) {
+      <p class="text-muted-foreground mt-3 text-sm">Aún no hay actividad.</p>
+      } @else {
+      <ul class="mt-2 divide-y divide-dashed divide-[var(--border)]" [class.opacity-60]="events.isLoading()">
+        @for (event of $events(); track event.id) {
+        <li class="flex items-start gap-3 py-2.5">
+          <span class="glass-row text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+            <app-icon class="h-4 w-4">{{ eventIcon(event) }}</app-icon>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground text-sm break-words">{{ eventLabel(event) }}</p>
+            <p class="text-muted-foreground text-xs">{{ event.actorName || 'Sistema' }} · {{ formatDate(event.createdAt) }}</p>
+          </div>
+        </li>
+        }
+      </ul>
+      @if ($eventsPagination(); as pagination) {
+      @if (pagination.totalPages > 1) {
+      <app-pagination-table [pagination]="pagination" (pageChange)="changePage($event)" />
+      }
+      }
+      }
+    </div>
+  </app-card>
+  }
+
+  @if ($history().length) {
+  <app-card>
+    <div class="p-4">
+      <p class="text-foreground text-sm font-semibold">Historial</p>
+      <ul class="mt-2 space-y-2">
+        @for (grant of $history(); track grant.id) {
+        <li>
+          <button
+            type="button"
+            class="glass-row flex w-full items-start justify-between gap-3 rounded-lg p-3 text-left"
+            [class.ring-2]="$selectedGrantId() === grant.id"
+            [class.ring-primary]="$selectedGrantId() === grant.id"
+            [attr.aria-pressed]="$selectedGrantId() === grant.id"
+            (click)="selectGrant(grant.id)">
+            <span class="min-w-0">
+              <span class="text-foreground block text-sm font-medium">
+                {{ formatDate(grant.grantedAt) }} → {{ formatDate(grant.endedAt) }}
+              </span>
+              <span class="text-muted-foreground block text-xs">{{ endReason(grant) }} · {{ changesText(grant) }}</span>
+              @if (grant.note) {
+              <span class="text-muted-foreground block truncate text-xs">“{{ grant.note }}”</span>
+              }
+            </span>
+            <app-icon class="text-muted-foreground h-5 w-5 shrink-0">chevron_right</app-icon>
+          </button>
+        </li>
+        }
+      </ul>
+    </div>
+  </app-card>
+  }
+</div>
+}

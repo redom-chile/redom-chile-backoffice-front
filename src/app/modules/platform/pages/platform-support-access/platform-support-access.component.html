@@ -1,0 +1,146 @@
+@let q = $query();
+<app-header-dashboard title="Accesos de soporte" subtitle="Negocios que autorizaron al equipo de Redom a gestionar su carta." />
+
+<details class="glass mb-4 rounded-[1rem] p-4 text-sm">
+  <summary class="text-foreground cursor-pointer font-medium">¿Cómo funciona el acceso de soporte?</summary>
+  <ul class="text-muted-foreground mt-2 list-disc space-y-1 pl-5">
+    <li>El dueño lo autoriza desde la configuración de su negocio, por 1 a 30 días.</li>
+    <li>En <strong>modo soporte</strong> solo puedes gestionar la carta, siempre con el plan del negocio.</li>
+    <li>Cada cambio queda a tu nombre y el dueño recibe un correo con el resumen al terminar el acceso.</li>
+  </ul>
+</details>
+
+<!-- Filtro -->
+<div class="mb-4 flex">
+  <div class="glass-input flex w-full rounded-md p-1 sm:w-auto" role="tablist" aria-label="Filtrar accesos">
+    @for (tab of tabs; track tab.label) {
+    <button
+      type="button"
+      role="tab"
+      class="flex-1 rounded px-3 py-1.5 text-sm font-medium transition sm:flex-none"
+      [attr.aria-selected]="q.all === tab.all"
+      [class.bg-primary]="q.all === tab.all"
+      [class.text-primary-foreground]="q.all === tab.all"
+      [class.text-muted-foreground]="q.all !== tab.all"
+      (click)="handleTab(tab.all)">
+      {{ tab.label }}
+    </button>
+    }
+  </div>
+</div>
+
+@if ($error()) {
+<div class="glass flex flex-col items-center gap-4 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar los accesos</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button type="button" impact="bold" tone="primary" (buttonClick)="accesses.reload()">Reintentar</app-button>
+</div>
+} @else {
+<div class="glass overflow-hidden rounded-[1rem]">
+  @if (accesses.isLoading()) {
+  <div class="divide-y divide-[var(--border)]">
+    @for (row of skeletonRows; track row) {
+    <div class="flex items-center gap-4 px-4 py-4">
+      <app-skeleton size="xs" style="width: 180px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 140px" />
+      <app-skeleton size="xs" class="hidden md:block" style="width: 100px" />
+      <div class="ml-auto"><app-skeleton size="xs" style="width: 80px" /></div>
+    </div>
+    }
+  </div>
+  } @else if (!$page()?.data?.length) {
+  <div class="px-4 py-12 text-center">
+    <p class="text-foreground font-medium">Sin accesos de soporte</p>
+    <p class="text-muted-foreground mt-1 text-sm">
+      {{ q.all ? 'Ningún negocio ha autorizado a Redom todavía.' : 'Ningún negocio tiene un acceso vigente.' }}
+    </p>
+    @if (!q.all) {
+    <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleTab(true)">Ver todos</button>
+    }
+  </div>
+  } @else {
+  <ul class="divide-y divide-[var(--border)]">
+    @for (access of $page()!.data; track access.grantId) {
+    @let st = status(access);
+    <li class="px-4 py-4">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <a [routerLink]="['/platform/businesses', access.businessId]" class="text-foreground truncate text-sm font-semibold hover:underline" [title]="access.businessName">
+              {{ access.businessName }}
+            </a>
+            <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium" [class]="st.tone">{{ st.label }}</span>
+          </div>
+          <p class="text-muted-foreground truncate text-xs">Dueño: {{ access.ownerName || '—' }}</p>
+          @if (access.note) {
+          <p class="text-foreground mt-1 whitespace-pre-line break-words text-sm">{{ access.note }}</p>
+          }
+
+          <dl class="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-xs sm:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <dt class="text-muted-foreground inline">Autorizado:</dt>
+              <dd class="text-foreground inline">{{ formatDate(access.grantedAt, true) }}</dd>
+            </div>
+            <div>
+              @if (access.active) {
+              <dt class="text-muted-foreground inline">Hasta:</dt>
+              <dd class="text-foreground inline font-medium">{{ formatDate(access.expiresAt, true) }}</dd>
+              } @else {
+              <dt class="text-muted-foreground inline">{{ access.endReason === 'revoked' ? 'Terminado:' : 'Venció:' }}</dt>
+              <dd class="text-foreground inline">{{ formatDate(access.endedAt ?? access.expiresAt, true) }}</dd>
+              }
+            </div>
+            <div>
+              @if (access.firstUsedAt) {
+              <dt class="text-muted-foreground inline">Redom entró:</dt>
+              <dd class="text-foreground inline">{{ formatDate(access.firstUsedAt, true) }}</dd>
+              } @else {
+              <dd class="text-amber-700 dark:text-amber-300">{{ access.active ? 'Redom aún no entra' : 'Redom no entró' }}</dd>
+              }
+            </div>
+            <div>
+              <dt class="text-muted-foreground inline">Cambios:</dt>
+              <dd class="text-foreground inline tabular-nums">
+                @if (totalChanges(access)) {
+                {{ access.changes.created }} creados · {{ access.changes.updated }} editados · {{ access.changes.deleted }} eliminados
+                } @else {
+                Ninguno
+                }
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        @if (access.active) {
+        <div class="flex shrink-0 flex-wrap gap-2">
+          <app-button type="button" size="small" impact="bold" icon="login" (buttonClick)="handleEnter(access)">Entrar en modo soporte</app-button>
+          <app-button
+            *appCheckPermission="PERMISSIONS.PLATFORM_SUPPORT_ACCESS.REVOKE_SUPPORT_ACCESS"
+            type="button"
+            size="small"
+            tone="danger"
+            impact="light"
+            icon="block"
+            [isLoading]="$busyId() === access.grantId"
+            [disabled]="$busyId() !== null"
+            (buttonClick)="handleEnd(access)">
+            Terminar acceso
+          </app-button>
+        </div>
+        }
+      </div>
+    </li>
+    }
+  </ul>
+  }
+
+  @if ($page()?.pagination; as meta) { @if (meta.totalItems > 0 && !accesses.isLoading()) {
+  <div class="border-t border-[var(--border)] px-4 pb-3">
+    <app-pagination-table [pagination]="meta" (pageChange)="handlePageChange($event)" />
+  </div>
+  } }
+</div>
+}

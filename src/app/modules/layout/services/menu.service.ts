@@ -5,6 +5,7 @@ import { Menu } from 'src/app/core/constants/menu';
 import { MenuItem, SubMenuItem } from 'src/app/core/models/menu.model';
 import { AccessService, isPublicUrl, permissionForUrl } from 'src/app/core/permissions';
 import { isSuperAdminUrl, WhoamiService } from 'src/app/core/services/whoami/whoami.service';
+import { isSupportUrl, SupportModeService } from 'src/app/core/services/support-mode';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { EntitlementsService, planFeaturesForUrl } from 'src/app/core/services/entitlements';
@@ -21,6 +22,7 @@ export class MenuService implements OnDestroy {
   private _whoamiService = inject(WhoamiService);
   #businessSettings = inject(BusinessSettingsService);
   #entitlements = inject(EntitlementsService);
+  #support = inject(SupportModeService);
   #access = inject(AccessService);
   #injector = inject(Injector);
 
@@ -51,7 +53,22 @@ export class MenuService implements OnDestroy {
     // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
     const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
     // El SUPERADMIN no gestiona negocios: solo ve la plataforma y el centro de ayuda.
+    // En modo soporte, solo la carta del negocio que lo autorizó (con los candados de su plan).
     if (roles.has('SUPERADMIN')) {
+      if (this.#support.$active()) {
+        return this._pagesMenu()
+          .map((group) => ({
+            ...group,
+            items: group.items.flatMap((item) => {
+              if (!item.children) return isSupportUrl(item.route) ? [isLocked(item.route) ? derive(item, { locked: true }) : item] : [];
+              const children = item.children
+                .filter((child) => isVisible(child) && isSupportUrl(child.route))
+                .map((child) => (isLocked(child.route) ? derive(child, { locked: true }) : child));
+              return children.length ? [derive(item, { children })] : [];
+            }),
+          }))
+          .filter((group) => group.items.length > 0);
+      }
       return this._pagesMenu()
         .map((group) => ({ ...group, items: group.items.filter((item) => isVisible(item) && isSuperAdminUrl(item.route)) }))
         .filter((group) => group.items.length > 0);

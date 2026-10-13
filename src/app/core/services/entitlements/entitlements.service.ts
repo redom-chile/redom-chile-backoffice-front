@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, filter, fromEvent } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { WhoamiService } from '../whoami/whoami.service';
+import { SupportModeService } from '../support-mode/support-mode.service';
 import { EntitlementsDto, LockableResource, PlanFeatureCode, PlanLimitCode } from './dtos';
 
 const REFRESH_AFTER_MS = 5 * 60 * 1000;
@@ -22,12 +23,15 @@ export class EntitlementsService {
   readonly #value = signal<EntitlementsDto | null>(null);
   #loadedAt = 0;
 
-  readonly $entitlements = this.#value.asReadonly();
+  // En modo soporte manda el plan del negocio del acceso (el SUPERADMIN ve sus candados, sin upsell).
+  readonly #support = inject(SupportModeService);
+  readonly #current = computed(() => (this.#support.$active() ? this.#support.$entitlements() : this.#value()));
+  readonly $entitlements = this.#current;
   readonly $isSuperAdmin = computed(() => !!this.#whoami.$whoami()?.roles.some((role) => role.code === 'SUPERADMIN'));
   readonly $isOwner = computed(() => !!this.#whoami.$whoami()?.roles.some((role) => role.code === 'OWNER'));
   /** Sin restricciones: superadmin, o todavía no se sabe el plan. */
-  readonly $unrestricted = computed(() => this.$isSuperAdmin() || !this.#value());
-  readonly $features = computed(() => new Set<PlanFeatureCode>(this.#value()?.features ?? []));
+  readonly $unrestricted = computed(() => (this.$isSuperAdmin() && !this.#support.$active()) || !this.#current());
+  readonly $features = computed(() => new Set<PlanFeatureCode>(this.#current()?.features ?? []));
   /** El usuario actual está sobre el límite de usuarios del plan: solo lectura. */
   readonly $currentUserLocked = computed(() => {
     const code = this.#whoami.$whoami()?.user.code;
@@ -72,11 +76,11 @@ export class EntitlementsService {
 
   /** null = ilimitado (o plan desconocido). */
   limitOf(code: PlanLimitCode): number | null {
-    return this.$isSuperAdmin() ? null : (this.#value()?.limits[code] ?? null);
+    return this.$unrestricted() ? null : (this.#current()?.limits[code] ?? null);
   }
 
   usageOf(code: PlanLimitCode): number {
-    return this.#value()?.usage[code] ?? 0;
+    return this.#current()?.usage[code] ?? 0;
   }
 
   canAdd(code: PlanLimitCode): boolean {
@@ -86,7 +90,7 @@ export class EntitlementsService {
 
   isLocked(resource: LockableResource, id: number | string | null | undefined): boolean {
     if (id === null || id === undefined || this.$isSuperAdmin()) return false;
-    return (this.#value()?.lockedResources[resource] as ReadonlyArray<number | string> | undefined)?.includes(id) ?? false;
+    return (this.#current()?.lockedResources[resource] as ReadonlyArray<number | string> | undefined)?.includes(id) ?? false;
   }
 
   #set(value: EntitlementsDto | null) {
