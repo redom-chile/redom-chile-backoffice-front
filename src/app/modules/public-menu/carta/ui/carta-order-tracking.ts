@@ -1,12 +1,17 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, OnInit, output, signal } from '@angular/core';
 import { catchError, forkJoin, map, of, Subscription } from 'rxjs';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
-import { CartaCart, ORDER_POLL_DELAY, orderStatus, OrderStatusView } from '../carta-cart';
+import { RouterLink } from '@angular/router';
+import { CartaCart, ONLINE_ORDER_POLL_DELAY, ORDER_POLL_DELAY, orderStatus, OrderStatusView } from '../carta-cart';
+import { CHANNEL_LABELS, formatScheduled, PAYMENT_LABELS } from '../carta-online';
+import { phoneUrl } from '../carta-utils';
 import { CartaIcon } from './carta-icon';
 import { CartaOrderFeedback } from './carta-order-feedback';
+import { CartaOrderReceipt } from './carta-order-receipt';
 
 /** "13:45" en la zona horaria del local. */
 function formatOrderTime(iso: string, timeZone: string): string {
@@ -26,23 +31,35 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
   bad: 'bg-muted text-foreground',
 };
 
+const isOnline = (o: PublicOrderDto | null) => o?.channel === 'pickup' || o?.channel === 'delivery';
+
 /**
- * "Tu pedido": estado del pedido (GET /orders/{id} cada 5 s), sus productos y el total del servidor. Deja de consultar
- * en los estados finales y mientras la pestaña no está visible. "Cancelar pedido" mientras está pendiente.
+ * "Tu pedido": estado del pedido (GET /orders/{id} cada 5 s; retiro y delivery cada 10 s), sus productos y el total
+ * del servidor. Deja de consultar en los estados finales y mientras la pestaña no está visible. "Cancelar pedido"
+ * mientras está pendiente (en una transferencia, hasta que se sube el comprobante). Retiro y delivery (etapa 5):
+ * local, entrega, hora programada, método de pago, envío y la transferencia con comprobante.
  */
 @Component({
   selector: 'app-carta-order-tracking',
-  imports: [CartaIcon, CartaOrderFeedback],
+  imports: [CartaIcon, CartaOrderFeedback, CartaOrderReceipt],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
     @let o = order();
+    @let online = isOnline(o);
     <div class="px-5 pb-6 pt-5">
-      <h2 class="pr-10 text-xl font-bold tracking-tight">Tu pedido</h2>
+      @if (standalone()) {
+        <h1 class="text-2xl font-bold tracking-tight">Tu pedido</h1>
+      } @else {
+        <h2 class="pr-10 text-xl font-bold tracking-tight">Tu pedido</h2>
+      }
       @if (o) {
         <p class="mt-1 text-sm text-muted-foreground">
           @if (o.table) {
             {{ o.table.name }} ·
+          }
+          @if (online && o.channel) {
+            {{ channelLabel(o) }} ·
           }
           {{ time(o.createdAt) }}
           @if (o.customerName) {
@@ -60,9 +77,22 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
                 <span class="relative inline-flex size-2.5 rounded-full bg-current"></span>
               </span>
             } @else {
-              <app-carta-icon [name]="s.tone === 'bad' ? 'info' : s.tone === 'done' ? 'check' : 'chef-hat'" [size]="18" class="mt-px" />
+              <app-carta-icon
+                [name]="s.tone === 'bad' ? 'info' : s.tone === 'done' ? 'check' : o?.fulfillment === 'on_the_way' ? 'truck' : 'chef-hat'"
+                [size]="18"
+                class="mt-px"
+              />
             }
-            <span class="[overflow-wrap:anywhere]">{{ s.text }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block [overflow-wrap:anywhere]">{{ s.text }}</span>
+              @if (online && o) {
+                @if (o.status === 'accepted' && o.fulfillment === 'ready' && o.channel === 'pickup' && o.location?.address) {
+                  <span class="mt-0.5 block text-sm font-medium [overflow-wrap:anywhere]">Retira en {{ o.location.address }}</span>
+                } @else if ((o.status === 'pending' || o.status === 'accepted') && !o.fulfillment && o.scheduledFor) {
+                  <span class="mt-0.5 block text-sm font-medium">Programado para {{ scheduled(o.scheduledFor) }}</span>
+                }
+              }
+            </span>
           </p>
         } @else if (!error()) {
           <div class="h-12 animate-pulse rounded-2xl bg-muted" aria-label="Cargando el pedido"></div>
@@ -78,6 +108,10 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
         }
       </div>
 
+      @if (o && o.status === 'pending' && o.paymentStatus === 'awaiting_receipt') {
+        <app-carta-order-receipt class="mt-4" [order]="o" (updated)="onReceipt($event)" (refresh)="refreshNow()" />
+      }
+
       @if (o && (askFeedback() || feedbackSent())) {
         <!-- Encuesta (etapa 4): entregado o cerrado y sin respuesta -->
         <app-carta-order-feedback class="mt-4" [orderId]="o.id" (sent)="feedbackSent.set(true)" />
@@ -90,6 +124,50 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
           </span>
           <span><span class="sr-only">Calificaste con {{ f.rating }} de 5. </span>¡Gracias por tu opinión!</span>
         </p>
+      }
+
+      @if (o && online) {
+        <dl class="mt-4 grid gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+          @if (o.location; as l) {
+            <div class="flex items-start justify-between gap-3">
+              <dt class="text-muted-foreground">Local</dt>
+              <dd class="min-w-0 text-right">
+                <span class="block font-semibold [overflow-wrap:anywhere]">{{ l.name }}</span>
+                @if (l.phone) {
+                  <a [href]="tel(l.phone)" class="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 hover:underline">
+                    <app-carta-icon name="phone" [size]="14" />
+                    {{ l.phone }}
+                  </a>
+                }
+              </dd>
+            </div>
+          }
+          @if (o.channel === 'delivery' && o.address; as a) {
+            <div class="flex items-start justify-between gap-3">
+              <dt class="text-muted-foreground">Entrega en</dt>
+              <dd class="min-w-0 text-right font-semibold [overflow-wrap:anywhere]">
+                {{ a.street }}{{ a.number ? ' ' + a.number : '' }}{{ a.details ? ', ' + a.details : '' }}, {{ a.communeName }}
+              </dd>
+            </div>
+          } @else if (o.channel === 'pickup' && o.location?.address) {
+            <div class="flex items-start justify-between gap-3">
+              <dt class="text-muted-foreground">Retiro en</dt>
+              <dd class="min-w-0 text-right font-semibold [overflow-wrap:anywhere]">{{ o.location.address }}</dd>
+            </div>
+          }
+          @if (o.scheduledFor) {
+            <div class="flex items-start justify-between gap-3">
+              <dt class="text-muted-foreground">Para</dt>
+              <dd class="text-right font-semibold first-letter:uppercase">{{ scheduled(o.scheduledFor) }}</dd>
+            </div>
+          }
+          @if (o.paymentMethod) {
+            <div class="flex items-start justify-between gap-3">
+              <dt class="text-muted-foreground">Pago</dt>
+              <dd class="text-right font-semibold">{{ paymentLabels[o.paymentMethod] }}</dd>
+            </div>
+          }
+        </dl>
       }
 
       @if (o) {
@@ -116,12 +194,18 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
         @if (o.note) {
           <p class="mt-3 text-sm text-muted-foreground [overflow-wrap:anywhere]"><span class="font-semibold text-foreground">Nota:</span> {{ o.note }}</p>
         }
-        <div class="mt-4 flex items-baseline justify-between gap-3">
+        @if (o.channel === 'delivery') {
+          <div class="mt-4 flex items-baseline justify-between gap-3 text-sm">
+            <span class="text-muted-foreground">Envío</span>
+            <span class="font-semibold tabular-nums">{{ o.deliveryFee ? format(o.deliveryFee) : 'Gratis' }}</span>
+          </div>
+        }
+        <div class="flex items-baseline justify-between gap-3" [class]="o.channel === 'delivery' ? 'mt-1' : 'mt-4'">
           <span class="text-sm font-semibold">Total</span>
           <span class="text-lg font-bold tabular-nums">{{ format(o.total) }}</span>
         </div>
 
-        @if (o.status === 'pending') {
+        @if (o.status === 'pending' && o.paymentStatus !== 'to_verify') {
           <div class="mt-5">
             @if (confirmCancel()) {
               <p class="text-sm font-medium">¿Quieres cancelar tu pedido?</p>
@@ -156,9 +240,11 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
         }
       }
 
-      <button type="button" class="mt-4 w-full rounded-full px-4 py-2.5 text-sm font-semibold text-primary underline-offset-4 hover:underline" (click)="back.emit()">
-        Seguir viendo la carta
-      </button>
+      @if (backLabel(); as label) {
+        <button type="button" class="mt-4 w-full rounded-full px-4 py-2.5 text-sm font-semibold text-primary underline-offset-4 hover:underline" (click)="back.emit()">
+          {{ label }}
+        </button>
+      }
     </div>
   `,
 })
@@ -167,10 +253,15 @@ export class CartaOrderTracking implements OnInit {
   /** Respuesta del POST (evita la primera consulta). */
   readonly initial = input<PublicOrderDto | null>(null);
   readonly timeZone = input('America/Santiago');
+  /** Página propia (/carta/pedido/{id}): título h1. */
+  readonly standalone = input(false);
+  /** null: sin el botón para volver. */
+  readonly backLabel = input<string | null>('Seguir viendo la carta');
   readonly back = output<void>();
 
   readonly #api = inject(PublicMenuApiService);
-  readonly #cart = inject(CartaCart);
+  /** No está en la página de seguimiento (sin carta). */
+  readonly #cart = inject(CartaCart, { optional: true });
 
   protected readonly order = signal<PublicOrderDto | null>(null);
   protected readonly error = signal<string | null>(null);
@@ -191,6 +282,11 @@ export class CartaOrderTracking implements OnInit {
   protected readonly format = formatMenuPrice;
   protected readonly toneClass = TONE_CLASS;
   protected readonly time = (iso: string) => formatOrderTime(iso, this.timeZone());
+  protected readonly scheduled = (iso: string) => formatScheduled(iso, this.timeZone());
+  protected readonly isOnline = isOnline;
+  protected readonly channelLabel = (o: PublicOrderDto) => (o.channel === 'pickup' || o.channel === 'delivery' ? CHANNEL_LABELS[o.channel] : '');
+  protected readonly paymentLabels = PAYMENT_LABELS;
+  protected readonly tel = phoneUrl;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
   #request: Subscription | null = null;
@@ -218,6 +314,16 @@ export class CartaOrderTracking implements OnInit {
       this.#apply(initial);
       this.#schedule();
     } else this.#fetch();
+  }
+
+  protected onReceipt(order: PublicOrderDto): void {
+    this.notice.set('Recibimos tu comprobante; el local lo está revisando');
+    this.#apply(order);
+    this.#schedule();
+  }
+
+  protected refreshNow(): void {
+    if (!this.#stopped) this.#fetch();
   }
 
   protected cancel(): void {
@@ -269,7 +375,7 @@ export class CartaOrderTracking implements OnInit {
         if (api.status === 404) {
           this.#stopped = true;
           this.error.set('No encontramos este pedido');
-          this.#cart.forgetOrder(this.orderId());
+          this.#cart?.forgetOrder(this.orderId());
           return;
         }
         this.error.set(api.status === 0 ? 'Sin conexión. Reintentaremos en unos segundos' : 'No pudimos actualizar el estado. Reintentaremos en unos segundos');
@@ -281,7 +387,7 @@ export class CartaOrderTracking implements OnInit {
   #schedule(): void {
     this.#clearTimer();
     if (this.#stopped || this.#destroyed || document.visibilityState === 'hidden') return;
-    this.#timer = setTimeout(() => this.#fetch(), ORDER_POLL_DELAY);
+    this.#timer = setTimeout(() => this.#fetch(), isOnline(this.order()) ? ONLINE_ORDER_POLL_DELAY : ORDER_POLL_DELAY);
   }
 
   #clearTimer(): void {
@@ -298,7 +404,7 @@ type OrderRow = Readonly<{ id: string; order: PublicOrderDto | null }>;
 /** "Mis pedidos": los pedidos de esta mesa guardados en el dispositivo (el más nuevo primero). */
 @Component({
   selector: 'app-carta-my-orders',
-  imports: [CartaIcon],
+  imports: [CartaIcon, RouterLink, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -309,15 +415,11 @@ type OrderRow = Readonly<{ id: string; order: PublicOrderDto | null }>;
           <ul class="mt-4 grid gap-2">
             @for (row of list; track row.id) {
               <li>
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition hover:border-foreground/20 focus-visible:outline-2 focus-visible:outline-primary"
-                  (click)="open.emit(row.id)"
-                >
-                  <app-carta-icon name="receipt" [size]="20" class="text-muted-foreground" />
+                <ng-template #rowContent>
+                  <app-carta-icon [name]="row.order?.channel === 'delivery' ? 'truck' : row.order?.channel === 'pickup' ? 'store' : 'receipt'" [size]="20" class="text-muted-foreground" />
                   <span class="min-w-0 flex-1">
                     @if (row.order; as o) {
-                      <span class="block text-sm font-semibold">Pedido de las {{ time(o.createdAt) }} · {{ format(o.total) }}</span>
+                      <span class="block text-sm font-semibold">Pedido {{ day(o.createdAt) }}las {{ time(o.createdAt) }} · {{ format(o.total) }}</span>
                       <span class="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{{ statusText(o) }}</span>
                     } @else {
                       <span class="block text-sm font-semibold">Pedido</span>
@@ -325,12 +427,21 @@ type OrderRow = Readonly<{ id: string; order: PublicOrderDto | null }>;
                     }
                   </span>
                   <app-carta-icon name="chevron-right" [size]="18" class="text-muted-foreground" />
-                </button>
+                </ng-template>
+                @if (linkBase(); as base) {
+                  <a [routerLink]="base + '/' + row.id" [state]="linkState() ?? {}" [class]="rowClass">
+                    <ng-container [ngTemplateOutlet]="rowContent" />
+                  </a>
+                } @else {
+                  <button type="button" [class]="rowClass" (click)="open.emit(row.id)">
+                    <ng-container [ngTemplateOutlet]="rowContent" />
+                  </button>
+                }
               </li>
             }
           </ul>
         } @else {
-          <p class="py-10 text-center text-sm text-muted-foreground">Aún no has hecho pedidos desde esta mesa.</p>
+          <p class="py-10 text-center text-sm text-muted-foreground">{{ emptyText() }}</p>
         }
       } @else {
         <div class="mt-4 grid gap-2" aria-busy="true" aria-label="Cargando tus pedidos">
@@ -345,16 +456,36 @@ type OrderRow = Readonly<{ id: string; order: PublicOrderDto | null }>;
 export class CartaMyOrders implements OnInit {
   readonly ids = input.required<readonly string[]>();
   readonly timeZone = input('America/Santiago');
+  /** Retiro / delivery: cada fila enlaza a {linkBase}/{id} (la página de seguimiento) en vez de emitir (open). */
+  readonly linkBase = input<string | null>(null);
+  readonly linkState = input<Record<string, unknown> | null>(null);
+  readonly emptyText = input('Aún no has hecho pedidos desde esta mesa.');
   readonly open = output<string>();
 
   readonly #api = inject(PublicMenuApiService);
   readonly #cart = inject(CartaCart);
+  protected readonly rowClass =
+    'flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left text-foreground transition hover:border-foreground/20 focus-visible:outline-2 focus-visible:outline-primary';
   readonly #destroyRef = inject(DestroyRef);
 
   protected readonly rows = signal<OrderRow[] | null>(null);
   protected readonly format = formatMenuPrice;
   protected readonly time = (iso: string) => formatOrderTime(iso, this.timeZone());
   protected readonly statusText = (o: PublicOrderDto) => orderStatus(o).text;
+  /** Pedidos de otro día (retiro / delivery): "del 12/10 a ". */
+  protected readonly day = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return 'de ';
+    const fmt = (date: Date) => {
+      try {
+        return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit', timeZone: this.timeZone() }).format(date);
+      } catch {
+        return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit' }).format(date);
+      }
+    };
+    const value = fmt(d);
+    return value === fmt(new Date()) ? 'de ' : `del ${value} a `;
+  };
 
   ngOnInit(): void {
     const ids = this.ids().slice(0, MAX_LISTED);

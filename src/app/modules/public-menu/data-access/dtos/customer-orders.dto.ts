@@ -1,4 +1,5 @@
 /** Carta pública, etapa 3: pedidos desde la mesa. Backend: libs/restaurant/public-menu/src/lib/customer-orders-dto.ts. */
+import { BankAccountDto, OnlineOrderFieldsDto, OnlinePaymentMethod } from './online-orders.dto';
 
 /** Línea del carrito (sessionStorage redom-cart:{qr}). */
 export type CartLineDto = Readonly<{
@@ -18,7 +19,7 @@ export type CartLineDto = Readonly<{
 export type CreatePublicOrderDto = Readonly<{ qrCode: string; items: CartLineDto[]; customerName?: string; note?: string }>;
 
 export type CustomerOrderStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
-export type CustomerOrderProgress = 'preparing' | 'ready' | 'delivered' | 'completed' | 'cancelled';
+export type CustomerOrderProgress = 'preparing' | 'ready' | 'on_the_way' | 'delivered' | 'completed' | 'cancelled';
 
 export type PublicOrderItemDto = Readonly<{
   productId: number;
@@ -32,8 +33,8 @@ export type PublicOrderItemDto = Readonly<{
   note: string | null;
 }>;
 
-/** id: uuid, código de seguimiento público. */
-export type PublicOrderDto = Readonly<{
+/** id: uuid, código de seguimiento público. Etapa 5: suma los campos de retiro y delivery. */
+export type PublicOrderDto = OnlineOrderFieldsDto & Readonly<{
   id: string;
   status: CustomerOrderStatus;
   progress: CustomerOrderProgress | null;
@@ -54,8 +55,10 @@ export type PublicOrderDto = Readonly<{
 export type CustomerOrderDto = PublicOrderDto &
   Readonly<{
     locationId: number;
-    channel: 'table';
     autoAccepted: boolean;
+    /** Etapa 5: comprobante de transferencia (URL temporal) y pago registrado. */
+    receiptUrl?: string | null;
+    paymentId?: number | null;
     decidedBy: string | null;
     transactionId: number | null;
     invoiceNo: string | null;
@@ -73,4 +76,9 @@ export type MenuOrderingSettingsDto = Readonly<{
   tableRequests?: boolean;
   /** Etapa 4: reservas desde la carta (requiere la carta publicada). */
   bookings?: boolean;
+  /** Etapa 5: 5 a 240 (por defecto 20). */
+  prepMinutes?: number;
+  paymentMethods?: OnlinePaymentMethod[];
+  /** transfer_receipt la exige. */
+  bankAccount?: BankAccountDto | null;
 }>;

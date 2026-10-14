@@ -11,7 +11,10 @@ import { CartaStepper } from './carta-stepper';
 const fieldClass =
   'mt-1.5 block w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30';
 
-/** Contenido de la hoja del carrito: líneas, nombre, nota y "Enviar pedido" (POST /orders). */
+/**
+ * Contenido de la hoja del carrito: líneas, nombre, nota y "Enviar pedido" (POST /orders). Sin QR (retiro / delivery),
+ * "Continuar" abre el pago.
+ */
 @Component({
   selector: 'app-carta-cart-sheet',
   imports: [CartaIcon, CartaStepper],
@@ -32,7 +35,7 @@ const fieldClass =
       @if (!m.location.isOpenNow) {
         <p class="mt-4 flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-medium" role="note">
           <app-carta-icon name="clock" [size]="18" class="mt-px" />
-          El local está cerrado
+          {{ online() ? 'El local está cerrado ahora: puedes programar tu pedido' : 'El local está cerrado' }}
         </p>
       }
 
@@ -109,6 +112,7 @@ const fieldClass =
           <p class="mt-2 text-xs text-muted-foreground">Puedes pedir hasta {{ maxLines }} productos distintos por pedido.</p>
         }
 
+        @if (!online()) {
         <div class="mt-5">
           <label for="carta-customer-name" class="text-sm font-semibold">¿A nombre de quién? <span class="font-normal text-muted-foreground">(opcional)</span></label>
           <input
@@ -136,12 +140,15 @@ const fieldClass =
           ></textarea>
           <p id="carta-order-note-count" class="mt-1 text-right text-xs text-muted-foreground">{{ cart.note().length }}/{{ maxOrderNote }}</p>
         </div>
+        }
 
         <div class="mt-4 flex items-baseline justify-between gap-3">
-          <span class="text-sm font-semibold">Total estimado</span>
+          <span class="text-sm font-semibold">{{ online() ? 'Subtotal estimado' : 'Total estimado' }}</span>
           <span class="text-lg font-bold tabular-nums">{{ format(cart.total()) }}</span>
         </div>
-        <p class="text-xs text-muted-foreground">El local confirma el total al recibir tu pedido.</p>
+        <p class="text-xs text-muted-foreground">
+          {{ online() ? 'El envío, si corresponde, se suma en el siguiente paso.' : 'El local confirma el total al recibir tu pedido.' }}
+        </p>
       }
     </div>
 
@@ -155,6 +162,17 @@ const fieldClass =
         } @else if (cart.hasIssues()) {
           <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">Quita los productos marcados para enviar tu pedido</p>
         }
+        @if (online()) {
+          <button
+            type="button"
+            class="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            [disabled]="cart.hasIssues()"
+            (click)="checkout.emit()"
+          >
+            Continuar
+            <app-carta-icon name="chevron-right" [size]="18" />
+          </button>
+        } @else {
         <button
           type="button"
           class="flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -171,13 +189,18 @@ const fieldClass =
             Enviar pedido
           }
         </button>
+        }
       </div>
     }
   `,
 })
 export class CartaCartSheet {
   readonly menu = input.required<PublicLocationMenuDto>();
-  readonly qr = input.required<string>();
+  /** Código de la mesa; null sin QR (retiro / delivery). */
+  readonly qr = input<string | null>(null);
+  /** Etapa 5: sin QR, "Continuar" lleva al pago (checkout) en vez de enviar el pedido. */
+  readonly online = input(false);
+  readonly checkout = output<void>();
   /** Pedido creado (200). */
   readonly ordered = output<PublicOrderDto>();
   /** La carta cambió (producto agotado, fuera de horario...): recargarla. */
@@ -206,7 +229,8 @@ export class CartaCartSheet {
 
   protected send(): void {
     const items = this.cart.items();
-    if (this.sending() || !items.length || items.length > MAX_CART_LINES || this.cart.hasIssues() || !this.menu().location.isOpenNow) return;
+    const qr = this.qr();
+    if (!qr || this.sending() || !items.length || items.length > MAX_CART_LINES || this.cart.hasIssues() || !this.menu().location.isOpenNow) return;
     this.sending.set(true);
     this.error.set(null);
     this.editingNote.set(null);
@@ -214,7 +238,7 @@ export class CartaCartSheet {
     const note = this.cart.note().trim().slice(0, MAX_ORDER_NOTE);
     this.#request = this.#api
       .createOrder({
-        qrCode: this.qr(),
+        qrCode: qr,
         items: items.map(toOrderLine),
         ...(name ? { customerName: name } : {}),
         ...(note ? { note } : {}),

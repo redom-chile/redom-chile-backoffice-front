@@ -1,20 +1,24 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { Router } from '@angular/router';
 import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaCart } from '../carta-cart';
+import { CARTA_BASE_PATH } from '../carta-utils';
 import { CartaCartSheet } from './carta-cart-sheet';
+import { CartaCheckoutSheet } from './carta-checkout-sheet';
 import { CartaDialog } from './carta-dialog';
 import { CartaIcon } from './carta-icon';
 import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
 
 /**
  * Pedidos desde la mesa: botón flotante del carrito, aviso "Agregado" y las hojas (carrito, mis pedidos, tu pedido).
- * Solo se muestra con ?qr= y features.tableOrdering.
+ * Se muestra con ?qr= y features.tableOrdering, o sin QR con retiro / delivery (etapa 5: el carrito lleva al pago y,
+ * tras pedir, a /carta/pedido/{id}).
  */
 @Component({
   selector: 'app-carta-ordering',
-  imports: [CartaDialog, CartaIcon, CartaCartSheet, CartaOrderTracking, CartaMyOrders],
+  imports: [CartaDialog, CartaIcon, CartaCartSheet, CartaCheckoutSheet, CartaOrderTracking, CartaMyOrders],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -57,12 +61,31 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
     @switch (sheetKind()) {
       @case ('cart') {
         <app-carta-dialog label="Tu carrito" (closed)="close('cart')">
-          <app-carta-cart-sheet [menu]="m" [qr]="qr()" (ordered)="onOrdered($event)" (refresh)="refresh.emit()" />
+          <app-carta-cart-sheet
+            [menu]="m"
+            [qr]="qr()"
+            [online]="!qr()"
+            (ordered)="onOrdered($event)"
+            (checkout)="cart.sheet.set({ kind: 'checkout' })"
+            (refresh)="refresh.emit()"
+          />
+        </app-carta-dialog>
+      }
+      @case ('checkout') {
+        <app-carta-dialog label="Finalizar pedido" (closed)="close('checkout')">
+          <app-carta-checkout-sheet [menu]="m" (ordered)="onOrdered($event)" (back)="cart.sheet.set({ kind: 'cart' })" (refresh)="refresh.emit()" />
         </app-carta-dialog>
       }
       @case ('orders') {
         <app-carta-dialog label="Mis pedidos" (closed)="close('orders')">
-          <app-carta-my-orders [ids]="cart.orderIds()" [timeZone]="m.location.timeZone" (open)="cart.sheet.set({ kind: 'order', id: $event, order: null })" />
+          <app-carta-my-orders
+            [ids]="cart.orderIds()"
+            [timeZone]="m.location.timeZone"
+            [linkBase]="qr() ? null : orderPath"
+            [linkState]="linkState()"
+            [emptyText]="qr() ? 'Aún no has hecho pedidos desde esta mesa.' : 'Aún no has hecho pedidos en este local.'"
+            (open)="cart.sheet.set({ kind: 'order', id: $event, order: null })"
+          />
         </app-carta-dialog>
       }
       @case ('order') {
@@ -77,13 +100,19 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
 })
 export class CartaOrdering {
   readonly menu = input.required<PublicLocationMenuDto>();
-  readonly qr = input.required<string>();
+  /** Código de la mesa; null: retiro / delivery. */
+  readonly qr = input<string | null>(null);
   /** false: sin el botón flotante del carrito (lo reemplaza la barra inferior). */
   readonly fab = input(true);
   /** Recargar la carta (un producto se agotó o salió de horario). */
   readonly refresh = output<void>();
 
   protected readonly cart = inject(CartaCart);
+  readonly #router = inject(Router);
+  /** /carta/pedido */
+  protected readonly orderPath = `${inject(CARTA_BASE_PATH)}/pedido`;
+  /** Para volver a esta carta desde el seguimiento. */
+  protected readonly linkState = () => ({ back: typeof location === 'undefined' ? null : location.pathname, timeZone: this.menu().location.timeZone });
   protected readonly format = formatMenuPrice;
 
   protected readonly sheetKind = () => this.cart.sheet()?.kind ?? null;
@@ -93,11 +122,17 @@ export class CartaOrdering {
   };
 
   /** Solo cierra si sigue abierta la misma hoja (al cambiar de hoja, la anterior se destruye). */
-  protected close(kind: 'cart' | 'orders' | 'order'): void {
+  protected close(kind: 'cart' | 'checkout' | 'orders' | 'order'): void {
     if (this.cart.sheet()?.kind === kind) this.cart.sheet.set(null);
   }
 
   protected onOrdered(order: PublicOrderDto): void {
-    this.cart.sheet.set({ kind: 'order', id: order.id, order });
+    if (this.qr()) {
+      this.cart.sheet.set({ kind: 'order', id: order.id, order });
+      return;
+    }
+    // Retiro / delivery: el seguimiento tiene su propia página (la misma de los correos)
+    this.cart.sheet.set(null);
+    void this.#router.navigateByUrl(`${this.orderPath}/${order.id}`, { state: { ...this.linkState(), order } });
   }
 }

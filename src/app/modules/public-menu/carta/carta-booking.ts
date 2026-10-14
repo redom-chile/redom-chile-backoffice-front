@@ -14,18 +14,30 @@ export const BOOKING_LIMITS = {
 
 type Parts = Readonly<{ year: number; month: number; day: number; hour: number; minute: number }>;
 
+/** Crear un Intl.DateTimeFormat es caro: uno por zona (las horas programables de la etapa 5 hacen miles de cálculos). */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 function partsIn(ts: number, timeZone: string): Parts {
   const values: Record<string, number> = {};
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  const formatter = formatterFor(timeZone);
   for (const p of formatter.formatToParts(new Date(ts))) if (p.type !== 'literal') values[p.type] = Number(p.value);
   return { year: values['year'], month: values['month'], day: values['day'], hour: values['hour'] % 24, minute: values['minute'] };
 }

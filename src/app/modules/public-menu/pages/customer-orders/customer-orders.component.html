@@ -1,14 +1,17 @@
 @let tab = $tab();
 @let pendingCount = $pending().length;
 @let requestCount = $requests().length;
-<app-header-dashboard title="Pedidos de clientes" subtitle="Lo que tus clientes piden desde el QR de su mesa.">
+@let activeCount = $active().length;
+<app-header-dashboard
+  title="Pedidos de clientes"
+  [subtitle]="$hasOnline() ? 'Lo que tus clientes piden en la mesa, para retirar o con delivery.' : 'Lo que tus clientes piden desde el QR de su mesa.'">
   @if ($hasFeature() && $locationId() && tab !== 'feedback') {
   <button
     type="button"
     class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium"
     aria-label="Actualizar"
     (click)="refresh()">
-    <app-icon class="h-4 w-4" [class.animate-spin]="pending.isLoading() || history.isLoading() || requests.isLoading()" aria-hidden="true">refresh</app-icon>
+    <app-icon class="h-4 w-4" [class.animate-spin]="pending.isLoading() || active.isLoading() || history.isLoading() || requests.isLoading()" aria-hidden="true">refresh</app-icon>
     <span class="hidden sm:inline">Actualizar</span>
   </button>
   }
@@ -37,6 +40,24 @@
       </span>
       }
     </button>
+    @if ($hasOnline()) {
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
+      [class]="tab === 'active' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === 'active'"
+      (click)="selectTab('active')">
+      En curso
+      @if (activeCount > 0) {
+      <span
+        class="min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums"
+        [class]="tab === 'active' ? 'bg-primary-foreground text-primary' : 'bg-muted text-foreground'">
+        {{ activeCount }}
+      </span>
+      }
+    </button>
+    }
     <button
       type="button"
       role="tab"
@@ -93,7 +114,7 @@
 <div class="mb-4 flex items-center justify-between gap-3 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-800 dark:text-green-300" role="status">
   <span class="min-w-0">
     <app-icon class="mr-1 inline h-4 w-4 align-[-2px]" aria-hidden="true">check_circle</app-icon>
-    Pedido de {{ accepted.table?.name ?? 'Sin mesa' }} aceptado{{ accepted.invoiceNo ? ' · ' + accepted.invoiceNo : '' }}
+    Pedido de {{ label(accepted) }} aceptado{{ accepted.invoiceNo ? ' · ' + accepted.invoiceNo : '' }}
   </span>
   <span class="flex shrink-0 items-center gap-1">
     @if (accepted.transactionId) {
@@ -139,21 +160,73 @@
   <p class="text-foreground font-medium">No hay pedidos pendientes</p>
   <p class="text-muted-foreground max-w-sm text-sm">Se actualiza solo; cuando llegue uno, suena un aviso.</p>
   <p *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE" class="text-muted-foreground max-w-sm text-xs">
-    ¿No llegan? Revisa que "Pedidos desde la mesa" esté activo en
+    ¿No llegan? Revisa que {{ $hasOnline() ? 'los pedidos desde la mesa, el retiro o el delivery estén activos' : '"Pedidos desde la mesa" esté activo' }} en
     <a routerLink="/settings/public-menu" class="text-primary font-medium hover:underline">Carta pública</a>.
   </p>
 </div>
 } @else {
+@if ($hasPendingTransfers()) {
+<p class="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs">
+  <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+  Los pedidos por transferencia esperan que confirmes el pago, aunque tengas la aceptación automática.
+</p>
+}
 <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
   @for (order of $pending(); track order.id) {
   <app-customer-order-card
     [order]="order"
     [now]="$now()"
+    [timeZone]="$timeZone()"
     [canManage]="$canManage()"
     [busy]="$busyId() === order.id"
     [problem]="problemOf(order)"
     (accept)="accept($event)"
+    (confirmPayment)="confirmPayment($event)"
     (reject)="reject($event)" />
+  }
+</div>
+}
+} @else if (tab === 'active') {
+<!-- En curso: retiro y delivery aceptados, sin entregar -->
+@if ($activeError() && $activeLoaded()) {
+<p class="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="status">
+  Sin conexión con el servidor; reintentando…
+</p>
+}
+@if (!$activeLoaded()) {
+@if ($activeError()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <p class="text-muted-foreground text-sm">No se pudieron cargar los pedidos en curso.</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="refresh()">Reintentar</app-button>
+</div>
+} @else {
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="sm" style="width: 40%" />
+    <app-skeleton size="sm" style="width: 100%" />
+  </div>
+  }
+</div>
+}
+} @else if (!activeCount) {
+<div class="glass flex flex-col items-center gap-2 rounded-[1rem] px-5 py-12 text-center">
+  <span class="bg-primary/10 text-primary inline-flex h-12 w-12 items-center justify-center rounded-full">
+    <app-icon class="h-6 w-6" aria-hidden="true">delivery_dining</app-icon>
+  </span>
+  <p class="text-foreground font-medium">No hay pedidos en curso</p>
+  <p class="text-muted-foreground max-w-sm text-sm">Aquí quedan los pedidos de retiro y delivery aceptados hasta que los marques entregados.</p>
+</div>
+} @else {
+<div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (order of $active(); track order.id) {
+  <app-customer-order-card
+    [order]="order"
+    [now]="$now()"
+    [timeZone]="$timeZone()"
+    [canManage]="$canManage()"
+    [busy]="$busyId() === order.id"
+    (advance)="advance($event)" />
   }
 </div>
 }
@@ -262,7 +335,13 @@
 } @else {
 <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
   @for (order of $history(); track order.id) {
-  <app-customer-order-card [order]="order" [now]="$now()" />
+  <app-customer-order-card
+    [order]="order"
+    [now]="$now()"
+    [timeZone]="$timeZone()"
+    [canManage]="$canManage()"
+    [busy]="$busyId() === order.id"
+    (advance)="advance($event)" />
   }
 </div>
 @if ($history().length >= historyLimit) {

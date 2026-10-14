@@ -219,6 +219,28 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           }
         }
 
+        @if (onlineOrdering() && m.online; as o) {
+          <div class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium">
+            <p class="flex min-w-0 flex-1 items-center gap-2">
+              <app-carta-icon [name]="o.delivery ? 'truck' : 'store'" [size]="18" class="text-primary" />
+              <span>{{ o.pickup && o.delivery ? 'Pide para retirar o con delivery' : o.delivery ? 'Pide con delivery' : 'Pide para retirar en el local' }}</span>
+            </p>
+            @if (!bottomBar && cart.orderIds().length) {
+              <button
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-semibold transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                (click)="cart.sheet.set({ kind: 'orders' })"
+              >
+                <app-carta-icon name="receipt" [size]="16" />
+                Mis pedidos
+              </button>
+            }
+          </div>
+          @if (!m.location.isOpenNow) {
+            <p class="mt-2 text-sm text-muted-foreground">El local está cerrado ahora: puedes programar tu pedido.</p>
+          }
+        }
+
         @if (m.location.schedule.length) {
           <div class="mt-4 rounded-2xl border border-border bg-card">
             <button
@@ -417,7 +439,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           [product]="p"
           [tagsByCode]="tagsByCode()"
           [timeZone]="m.location.timeZone"
-          [orderable]="ordering()"
+          [orderable]="canOrder()"
           [blocked]="blockedLabel(p)"
           [cartFull]="cart.full()"
           (add)="addToCart(p, $event)"
@@ -465,8 +487,8 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
       </app-carta-dialog>
     }
 
-    @if (ordering() && qr(); as code) {
-      <app-carta-ordering [menu]="m" [qr]="code" [fab]="!bottomBar" (refresh)="refresh.emit()" />
+    @if (canOrder()) {
+      <app-carta-ordering [menu]="m" [qr]="ordering() ? qr() : null" [fab]="!bottomBar" (refresh)="refresh.emit()" />
     }
     @if (!bottomBar && tableActive()) {
       <app-carta-table-fabs
@@ -516,10 +538,11 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
     @if (bottomBar && !preview()) {
       <app-carta-bottom-bar
         [table]="barTable()"
-        [cartCount]="ordering() ? cart.count() : null"
-        [ordersCount]="ordering() ? cart.orderIds().length : 0"
+        [cartCount]="canOrder() ? cart.count() : null"
+        [cartLabel]="onlineOrdering() ? 'Pedir' : 'Carrito'"
+        [ordersCount]="canOrder() ? cart.orderIds().length : 0"
         [booking]="bookings()"
-        [notice]="ordering() ? cart.notice() : null"
+        [notice]="canOrder() ? cart.notice() : null"
         [status]="tableActive() ? tables.status() : null"
         (action)="onBarAction($event)"
         (dismissStatus)="tables.dismiss($event)"
@@ -549,6 +572,10 @@ export class CartaMenuView {
   protected readonly cart = inject(CartaCart);
   /** Se puede pedir: carta abierta desde el QR de una mesa y el local recibe pedidos desde la mesa. */
   protected readonly ordering = computed(() => !this.preview() && !!this.qr() && this.menu().features.tableOrdering);
+  /** Etapa 5: sin QR de mesa y con retiro o delivery (menu.online). */
+  protected readonly onlineOrdering = computed(() => !this.preview() && !this.qr() && !!this.menu().online);
+  /** Se puede agregar al carrito (mesa o retiro / delivery). */
+  protected readonly canOrder = computed(() => this.ordering() || this.onlineOrdering());
   readonly #blocked = computed(() => blockedProducts(this.menu()));
 
   // --- Etapa 4: servicio en la mesa y reservas ---
@@ -570,7 +597,7 @@ export class CartaMenuView {
       billOpen: !!this.tables.openBill(),
     };
   });
-  protected readonly canAdd = (p: PublicProductDto) => this.ordering() && !this.#blocked().has(p.id);
+  protected readonly canAdd = (p: PublicProductDto) => this.canOrder() && !this.#blocked().has(p.id);
   protected readonly blockedLabel = (p: PublicProductDto) => {
     const block = this.#blocked().get(p.id);
     return block ? BLOCK_LABELS[block] : null;
@@ -701,14 +728,17 @@ export class CartaMenuView {
   #scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    // Carrito de la mesa; con la carta (re)cargada, marca lo que ya no se puede pedir
+    // Carrito de la mesa (o del local, con retiro / delivery); con la carta (re)cargada, marca lo que ya no se puede pedir
     effect(() => {
       const ordering = this.ordering();
+      const online = this.onlineOrdering();
       const qr = this.qr();
       const menu = this.menu();
       untracked(() => {
-        this.cart.init(ordering ? qr : null);
-        if (ordering) this.cart.revalidate(menu);
+        if (ordering && qr) this.cart.init({ kind: 'table', qr });
+        else if (online) this.cart.init({ kind: 'online', business: menu.business.slug, location: menu.location.slug });
+        else this.cart.init(null);
+        if (ordering || online) this.cart.revalidate(menu);
       });
     });
 
@@ -788,7 +818,7 @@ export class CartaMenuView {
   }
 
   protected addToCart(product: PublicProductDto, addition: CartAddition): void {
-    if (!this.ordering() || this.#blocked().has(product.id)) return;
+    if (!this.canOrder() || this.#blocked().has(product.id)) return;
     if (!this.cart.add(addition)) return;
     this.analytics?.track('add_to_cart', product.id);
     this.detail.set(null);

@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
+import { DeliveryZoneDto, OrderFulfillment, SaveDeliveryZoneDto } from './dtos';
 import { CustomerFeedbackSummaryDto, CustomerOrderDto, CustomerOrderStatus, StaffTableRequestDto } from './dtos';
 
 const BASE = `${ApiPathEnum.RESTAURANT}/customer-orders`;
@@ -47,5 +48,34 @@ export class CustomerOrdersService {
   /** from/to: YYYY-MM-DD. */
   getFeedback(filters: { locationId?: number; from?: string; to?: string; limit?: number } = {}): Observable<CustomerFeedbackSummaryDto> {
     return this.#http.get<CustomerFeedbackSummaryDto>(`${ApiPathEnum.RESTAURANT}/customer-feedback`, { params: toHttpParams(filters) });
+  }
+
+  // --- Retiro y delivery (etapa 5) ---
+
+  /** Transferencia con comprobante (to_verify): acepta el pedido y registra el pago. 409 RECEIPT_NOT_VERIFIED. */
+  confirmPayment(id: string): Observable<CustomerOrderDto> {
+    return this.#http.post<CustomerOrderDto>(`${BASE}/${id}/payment/confirm`, {});
+  }
+
+  /** Solo hacia adelante. Retiro: ready → delivered; delivery: ready → on_the_way → delivered. 409 FULFILLMENT_INVALID. */
+  setFulfillment(id: string, status: OrderFulfillment): Observable<CustomerOrderDto> {
+    return this.#http.post<CustomerOrderDto>(`${BASE}/${id}/fulfillment`, { status });
+  }
+
+  getDeliveryZones(locationId?: number): Observable<DeliveryZoneDto[]> {
+    return this.#http.get<DeliveryZoneDto[]>(`${ApiPathEnum.RESTAURANT}/delivery-zones`, { params: toHttpParams({ locationId }) });
+  }
+
+  /** Comunas o radio (400 si ninguno); queda última. */
+  createDeliveryZone(dto: SaveDeliveryZoneDto): Observable<DeliveryZoneDto> {
+    return this.#http.post<DeliveryZoneDto>(`${ApiPathEnum.RESTAURANT}/delivery-zones`, dto);
+  }
+
+  updateDeliveryZone(id: number, dto: SaveDeliveryZoneDto): Observable<DeliveryZoneDto> {
+    return this.#http.patch<DeliveryZoneDto>(`${ApiPathEnum.RESTAURANT}/delivery-zones/${id}`, dto);
+  }
+
+  deleteDeliveryZone(id: number): Observable<void> {
+    return this.#http.delete<void>(`${ApiPathEnum.RESTAURANT}/delivery-zones/${id}`);
   }
 }

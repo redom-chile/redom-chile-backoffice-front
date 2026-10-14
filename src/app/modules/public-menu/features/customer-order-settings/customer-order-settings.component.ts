@@ -9,6 +9,7 @@ import {
   UpdateMenuSettingsDto,
 } from 'src/app/modules/public-menu/data-access';
 import { ButtonComponent, IconComponent, ToastService, ToggleComponent } from 'src/ui';
+import { CustomerOrderOnlineSettingsComponent } from '../customer-order-online-settings';
 
 type OrderingChanges = NonNullable<UpdateMenuSettingsDto['ordering']>;
 type FlagKey = 'tableOrdering' | 'autoAccept' | 'tableRequests' | 'bookings';
@@ -25,13 +26,12 @@ const DEFAULT_ORDERING: MenuOrderingSettingsDto = {
 
 const maxText = (value: number | null) => (value === null ? '' : String(value));
 
-/** Sección Pedidos de la tarjeta del local: pedidos desde la mesa, aceptación automática, total máximo, solicitudes y reservas. */
+/** Sección Pedidos de la tarjeta del local: mesa, aceptación automática, total máximo, solicitudes, reservas, retiro y delivery. */
 @Component({
   selector: 'app-customer-order-settings',
-  imports: [ButtonComponent, IconComponent, ToggleComponent],
+  imports: [ButtonComponent, IconComponent, ToggleComponent, CustomerOrderOnlineSettingsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @let ordering = $ordering();
     @let editable = $canEdit() && $hasFeature();
     <div class="flex flex-col gap-3 border-t border-[var(--border)] pt-4">
       <div class="flex items-center justify-between gap-2">
@@ -125,17 +125,7 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
         }
       </div>
 
-      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        @for (item of comingSoon; track item.key) {
-        <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3 opacity-70">
-          <div class="min-w-0">
-            <p class="text-foreground text-sm font-medium">{{ item.label }}</p>
-            <p class="text-muted-foreground text-xs">Próximamente</p>
-          </div>
-          <app-toggle [checked]="ordering[item.key]" [disabled]="true" />
-        </div>
-        }
-      </div>
+      <app-customer-order-online-settings [settings]="settings()" (changed)="changed.emit($event)" />
     </div>
   `,
 })
@@ -149,11 +139,6 @@ export class CustomerOrderSettingsComponent {
 
   readonly settings = input.required<MenuSettingsDto>();
   readonly changed = output<MenuSettingsDto[]>();
-
-  readonly comingSoon = [
-    { key: 'pickup', label: 'Retiro en el local' },
-    { key: 'delivery', label: 'Despacho a domicilio' },
-  ] as const;
 
   readonly $ordering = computed(() => ({ ...DEFAULT_ORDERING, ...(this.settings().ordering ?? {}) }));
   readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS));
