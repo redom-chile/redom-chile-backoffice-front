@@ -3,6 +3,8 @@ import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import {
+  CreateOnlineOrderDto,
+  ReceiptUploadUrlDto,
   CreatePublicBookingDto,
   OrderFeedbackResultDto,
   PublicBookingDto,
@@ -94,6 +96,24 @@ export class PublicMenuApiService {
   /** 409 FEEDBACK_NOT_ALLOWED / FEEDBACK_ALREADY_SENT. */
   sendOrderFeedback(id: string, dto: { rating: number; comment?: string }): Observable<OrderFeedbackResultDto> {
     return this.#http.post<OrderFeedbackResultDto>(`${this.#base}/orders/${encodeURIComponent(id)}/feedback`, dto);
+  }
+
+  // --- Retiro y delivery (etapa 5) ---
+
+  /** Sin qrCode. Errores: ORDERING_DISABLED, PAYMENT_METHOD_NOT_ACCEPTED, ORDER_SCHEDULE_INVALID, LOCATION_CLOSED,
+   *  OUTSIDE_DELIVERY_AREA, BELOW_MINIMUM_ORDER, más los de la etapa 3. */
+  createOnlineOrder(dto: CreateOnlineOrderDto): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  }
+
+  /** contentType imagen o PDF, ≤ 5 MB. Luego PUT uploadUrl con exactamente los headers recibidos. */
+  createReceiptUploadUrl(id: string, dto: { contentType: string; sizeBytes: number; originalName?: string }): Observable<ReceiptUploadUrlDto> {
+    return this.#http.post<ReceiptUploadUrlDto>(`${this.#base}/orders/${encodeURIComponent(id)}/receipt-upload-url`, dto);
+  }
+
+  /** → paymentStatus to_verify. 409 RECEIPT_NOT_ALLOWED. */
+  confirmReceipt(id: string, fileId: string): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}/receipt/confirm`, { fileId });
   }
 }
 

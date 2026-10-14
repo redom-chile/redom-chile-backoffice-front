@@ -1,5 +1,6 @@
 /** Carta pública por local, etapas 1 y 2. Backend: libs/restaurant/public-menu/src/lib/public-menu.types.ts. */
 import { MenuOrderingSettingsDto } from './customer-orders.dto';
+import { PublicOnlineDto } from './online-orders.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -102,6 +103,8 @@ export type PublicLocationMenuDto = Readonly<{
   marketing?: PublicMarketingDto | null;
   /** Etapa 2: null si el plan no incluye menu_branding. */
   branding?: PublicBrandingDto | null;
+  /** Etapa 5: retiro y delivery (null si no aplica). */
+  online?: PublicOnlineDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */
@@ -134,7 +137,12 @@ export type MenuSettingsDto = Readonly<{
 
 /** Solo los campos que cambian. URLs con https://. ordering: solo cambian las claves enviadas. */
 export type UpdateMenuSettingsDto = {
-  ordering?: Partial<Pick<MenuOrderingSettingsDto, 'tableOrdering' | 'autoAccept' | 'maxOrderTotal' | 'tableRequests' | 'bookings'>>;
+  ordering?: Partial<
+    Pick<
+      MenuOrderingSettingsDto,
+      'tableOrdering' | 'autoAccept' | 'maxOrderTotal' | 'tableRequests' | 'bookings' | 'pickup' | 'delivery' | 'prepMinutes' | 'paymentMethods' | 'bankAccount'
+    >
+  >;
 } & Partial<
   Pick<MenuSettingsDto, 'isPublished' | 'description' | 'address' | 'latitude' | 'longitude' | 'phone' | 'whatsapp' | 'instagram' | 'website' | 'googleReviewUrl' | 'modalFrequency'>
 >;

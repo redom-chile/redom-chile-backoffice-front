@@ -45,6 +45,20 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Podrás opinar cuando recibas tu pedido.';
     case 'FEEDBACK_ALREADY_SENT':
       return 'Ya enviaste tu opinión. ¡Gracias!';
+    case 'PAYMENT_METHOD_NOT_ACCEPTED':
+      return 'Elige otro método de pago.';
+    case 'ORDER_SCHEDULE_INVALID':
+      return 'Elige una hora dentro del plazo permitido.';
+    case 'OUTSIDE_DELIVERY_AREA':
+      return 'No repartimos a esa dirección.';
+    case 'BELOW_MINIMUM_ORDER':
+      return 'El pedido no alcanza el mínimo de tu zona.';
+    case 'RECEIPT_NOT_ALLOWED':
+      return 'Este pedido ya no espera un comprobante.';
+    case 'RECEIPT_NOT_VERIFIED':
+      return 'Primero hay que confirmar el pago de la transferencia.';
+    case 'FULFILLMENT_INVALID':
+      return 'Ese paso no corresponde al estado del pedido.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }

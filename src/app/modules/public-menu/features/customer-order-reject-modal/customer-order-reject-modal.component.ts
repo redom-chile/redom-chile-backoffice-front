@@ -4,11 +4,13 @@ import { Observable } from 'rxjs';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CustomerOrderDto, CustomerOrdersService, getPublicMenuErrorMessage } from 'src/app/modules/public-menu/data-access';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { isOnline, tableLabel } from '../customer-order-card/customer-order-format';
 
 export type CustomerOrderRejectResult = Readonly<{ order?: CustomerOrderDto; alreadyResolved?: boolean }>;
 
 const REASON_MAX = 300;
-const SUGGESTIONS = ['Se acabó', 'Cocina cerrada', 'Mesa equivocada', 'Pedido duplicado'] as const;
+const TABLE_SUGGESTIONS = ['Se acabó', 'Cocina cerrada', 'Mesa equivocada', 'Pedido duplicado'];
+const ONLINE_SUGGESTIONS = ['Se acabó', 'Cocina cerrada', 'Sin repartidor disponible', 'Comprobante no válido', 'Pedido duplicado'];
 
 /** Rechazar un pedido de cliente con el motivo que verá en su celular. */
 @Component({
@@ -23,6 +25,11 @@ const SUGGESTIONS = ['Se acabó', 'Cocina cerrada', 'Mesa equivocada', 'Pedido d
 
       <div class="space-y-3 p-2">
         <p class="text-muted-foreground text-sm">El cliente verá el motivo en su celular.</p>
+        @if ($isTransfer) {
+        <p class="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          El pago por transferencia queda rechazado. Si el cliente ya transfirió, coordina la devolución con él.
+        </p>
+        }
         <div class="flex flex-wrap gap-2" aria-label="Sugerencias">
           @for (suggestion of suggestions; track suggestion) {
           <button
@@ -68,9 +75,10 @@ export class CustomerOrderRejectModalComponent {
   readonly #service = inject(CustomerOrdersService);
   readonly #toast = inject(ToastService);
 
-  readonly suggestions = SUGGESTIONS;
+  readonly suggestions = isOnline(this.#order) ? ONLINE_SUGGESTIONS : TABLE_SUGGESTIONS;
   readonly max = REASON_MAX;
-  readonly $table = this.#order.table?.name ?? 'Sin mesa';
+  readonly $table = tableLabel(this.#order);
+  readonly $isTransfer = this.#order.paymentMethod === 'transfer_receipt' && this.#order.paymentStatus !== 'paid';
 
   readonly $reason = signal('');
   readonly $touched = signal(false);

@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
@@ -392,6 +392,44 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** agregar `createdBy` o `source: 'menu' | 'staff'` al listado de reservas, e incluir las reservas de la carta (`createdBy` null) en lo que ven los roles del local que gestionan reservas.
 
 **Front mientras tanto:** usa la aproximación descrita; en el detalle la detección es exacta (`waiting` + `createdBy === null`).
+
+---
+
+### 54. 🟡 URLs públicas: la carta vive en la landing (redom.cl), no en app.redom.cl
+
+**Problema:** el front publica la carta en la **landing** (`redom.cl/carta/...`, local `http://localhost:4300/carta/...`). El backend arma con `QR_BASE_URL` los QR de las mesas y los enlaces de los correos de seguimiento (`{QR_BASE_URL}/pedido/{id}`), y su valor por defecto es `https://app.redom.cl/carta`, que no existe en el front. Además, en el `.env` local `BILLING_FRONT_URL` apunta a `http://localhost:4300` (la landing), cuando la vuelta de Flow debe ir al backoffice.
+
+**Se pide:**
+- `QR_BASE_URL`: `https://redom.cl/carta` en producción, la URL de la landing de develop en develop y `http://localhost:4300/carta` en local. Regenerar o actualizar los QR ya impresos si apuntaban a otra dirección.
+- `BILLING_FRONT_URL` / `FRONT_URL`: el backoffice (`http://localhost:4200` en local, `https://app.redom.cl` en producción).
+
+**Front:** la carta atiende `/carta/{código de mesa}`, `/carta/{negocio}/{local}` y `/carta/pedido/{id}`.
+
+---
+
+### 55. 🟡 Pedidos online: zona en el pedido y filtros del listado
+
+**Problema:**
+- `GET /customer-orders` (vista del personal) no trae la zona de reparto aplicada (nombre), solo la comuna y el costo de envío.
+- El listado solo filtra por `status`, `locationId` y `limit`. Para la pestaña "En curso" (retiro/delivery aceptados y no entregados) el front pide `status=accepted&limit=100` y filtra en el navegador: un pedido más antiguo que los últimos 100 aceptados no aparece.
+
+**Se pide:** agregar `deliveryZone: { id, name } | null` al pedido, y filtros `channel` y `fulfillment` (o `inProgress=true`) en `GET /customer-orders`.
+
+**Front mientras tanto:** muestra comuna y costo; "En curso" se arma con los últimos 100 aceptados.
+
+---
+
+### 56. 🟡 Carta online: comunas públicas y contexto del pedido
+
+**Problema:**
+- No hay un endpoint público de comunas: la carta solo puede ofrecer las comunas listadas en las zonas. Un local que solo tiene zonas por radio no puede recibir delivery desde la carta, porque `POST /public/v1/orders` exige `communeId`.
+- `GET /public/v1/orders/{id}` no trae la zona horaria ni los slugs del negocio y del local. Una página de seguimiento abierta desde el correo no puede volver a la carta y muestra las horas en America/Santiago por defecto.
+
+**Se pide:**
+- Un `GET /public/v1/communes?search=` (o las comunas de la región del local en `online`), o no exigir `communeId` cuando hay coordenadas dentro de una zona por radio.
+- Agregar `timeZone`, `businessSlug` y `locationSlug` al pedido público.
+
+**Front mientras tanto:** el delivery se ofrece solo si alguna zona tiene comunas; el seguimiento desde el correo usa America/Santiago y no muestra "Volver a la carta".
 
 ---
 

@@ -159,6 +159,8 @@ export class CartaBottomBar {
   readonly table = input<Readonly<{ callOpen: boolean; attended: boolean; billOpen: boolean }> | null>(null);
   /** null: sin pedidos desde la mesa (sin "Carrito"). */
   readonly cartCount = input<number | null>(null);
+  /** "Carrito" en la mesa; "Pedir" con retiro / delivery. */
+  readonly cartLabel = input('Carrito');
   readonly ordersCount = input(0);
   readonly booking = input(false);
   /** "Agregado" del carrito. */
@@ -193,13 +195,14 @@ export class CartaBottomBar {
     if (count != null) {
       list.push({
         action: 'cart',
-        label: 'Carrito',
+        label: this.cartLabel(),
         ariaLabel: count ? `Ver carrito (${count} ${count === 1 ? 'producto' : 'productos'})` : 'Ver carrito (vacío)',
         icon: 'bag',
         badge: count,
         highlight: count > 0,
       });
     }
+    // Mesa: los pedidos se abren en la hoja; retiro / delivery: enlazan a /carta/pedido/{id}
     if (this.ordersCount() > 0) list.push({ action: 'orders', label: 'Pedidos', ariaLabel: 'Mis pedidos', icon: 'receipt' });
     if (this.booking()) list.push({ action: 'booking', label: 'Reservar', ariaLabel: 'Reservar una mesa', icon: 'calendar' });
     return list;

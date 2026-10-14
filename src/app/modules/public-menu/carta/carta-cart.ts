@@ -16,8 +16,10 @@ export const MAX_ORDER_NOTE = 300;
 export const MAX_CUSTOMER_NAME = 80;
 /** Pedidos que se recuerdan por mesa. */
 const MAX_TRACKED_ORDERS = 20;
-/** Seguimiento del pedido. */
+/** Seguimiento del pedido desde la mesa. */
 export const ORDER_POLL_DELAY = 5000;
+/** Seguimiento de un pedido de retiro o delivery (etapa 5). */
+export const ONLINE_ORDER_POLL_DELAY = 10_000;
 
 /** Línea del carrito: lo que se envía (line) y lo que se muestra (precio estimado por unidad). */
 export type CartItem = Readonly<{
@@ -38,12 +40,20 @@ export type CartAddition = Omit<CartItem, 'key' | 'issue'>;
 export type CartaSheet =
   | Readonly<{ kind: 'cart' }>
   | Readonly<{ kind: 'orders' }>
-  | Readonly<{ kind: 'order'; id: string; order: PublicOrderDto | null }>;
+  | Readonly<{ kind: 'order'; id: string; order: PublicOrderDto | null }>
+  /** Etapa 5: retiro o delivery. */
+  | Readonly<{ kind: 'checkout' }>;
+
+/** De dónde es el carrito: una mesa (QR) o la carta sin QR con retiro / delivery (etapa 5). */
+export type CartScope = Readonly<{ kind: 'table'; qr: string }> | Readonly<{ kind: 'online'; business: string; location: string }>;
 
 export const cartStorageKey = (qr: string) => `redom-cart:${qr}`;
 export const ordersStorageKey = (qr: string) => `redom-orders:${qr}`;
+export const onlineCartStorageKey = (business: string, location: string) => `redom-cart:online:${business}/${location}`;
+export const onlineOrdersStorageKey = (business: string, location: string) => `redom-orders:online:${business}/${location}`;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Id público del pedido (uuid). */
+export const ORDER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // --- Disponibilidad en la carta ---
 
@@ -139,7 +149,10 @@ export function readOrderError(error: unknown): OrderSendError {
 
 export type OrderStatusView = Readonly<{ text: string; tone: 'waiting' | 'progress' | 'done' | 'bad'; final: boolean }>;
 
-export function orderStatus(order: Pick<PublicOrderDto, 'status' | 'progress' | 'rejectionReason'>): OrderStatusView {
+export function orderStatus(
+  order: Pick<PublicOrderDto, 'status' | 'progress' | 'rejectionReason' | 'channel' | 'paymentStatus' | 'fulfillment'>,
+): OrderStatusView {
+  if (order.channel === 'pickup' || order.channel === 'delivery') return onlineOrderStatus(order);
   switch (order.status) {
     case 'pending':
       return { text: 'Esperando confirmación del local', tone: 'waiting', final: false };
@@ -159,6 +172,38 @@ export function orderStatus(order: Pick<PublicOrderDto, 'status' | 'progress' | 
       return { text: 'Cuenta cerrada. ¡Gracias!', tone: 'done', final: true };
     case 'cancelled':
       return { text: 'El local anuló la venta', tone: 'bad', final: true };
+    default:
+      return { text: 'En preparación', tone: 'progress', final: false };
+  }
+}
+
+/** Retiro y delivery (etapa 5): el avance lo marca el local (fulfillment). Entregado es final. */
+function onlineOrderStatus(
+  order: Pick<PublicOrderDto, 'status' | 'progress' | 'rejectionReason' | 'channel' | 'paymentStatus' | 'fulfillment'>,
+): OrderStatusView {
+  switch (order.status) {
+    case 'pending':
+      if (order.paymentStatus === 'awaiting_receipt') return { text: 'Falta tu comprobante de transferencia', tone: 'waiting', final: false };
+      if (order.paymentStatus === 'to_verify') return { text: 'Estamos verificando tu transferencia', tone: 'waiting', final: false };
+      return { text: 'Esperando confirmación del local', tone: 'waiting', final: false };
+    case 'rejected': {
+      if (order.paymentStatus === 'rejected') return { text: 'No pudimos verificar tu transferencia', tone: 'bad', final: true };
+      const reason = order.rejectionReason?.trim();
+      return { text: reason ? `No pudimos tomar tu pedido: ${reason}` : 'No pudimos tomar tu pedido', tone: 'bad', final: true };
+    }
+    case 'cancelled':
+      return { text: 'Cancelaste el pedido', tone: 'bad', final: true };
+  }
+  if (order.progress === 'cancelled') return { text: 'El local anuló el pedido', tone: 'bad', final: true };
+  switch (order.fulfillment) {
+    case 'ready':
+      return order.channel === 'pickup'
+        ? { text: '¡Listo para retirar!', tone: 'done', final: false }
+        : { text: 'Listo, pronto sale', tone: 'done', final: false };
+    case 'on_the_way':
+      return { text: 'Va en camino', tone: 'progress', final: false };
+    case 'delivered':
+      return { text: 'Entregado', tone: 'done', final: true };
     default:
       return { text: 'En preparación', tone: 'progress', final: false };
   }
@@ -249,17 +294,24 @@ export function toOrderLine(item: CartItem): CartLineDto {
 }
 
 /**
- * Carrito de una mesa (sessionStorage redom-cart:{qr}) y los pedidos que se siguen (localStorage redom-orders:{qr}).
- * También guarda qué hoja está abierta (carrito, mis pedidos o un pedido). Se provee en la vista de la carta.
+ * Carrito de una mesa (sessionStorage redom-cart:{qr}) o, sin QR y con retiro / delivery, de la carta del local
+ * (localStorage redom-cart:online:{negocio}/{local}), y los pedidos que se siguen (localStorage redom-orders:{qr} o
+ * redom-orders:online:{negocio}/{local}). También guarda qué hoja está abierta (carrito, pago, mis pedidos o un
+ * pedido). Se provee en la vista de la carta.
  */
 @Injectable()
 export class CartaCart {
-  #qr: string | null = null;
+  #scopeId: string | null = null;
+  #cartKey: string | null = null;
+  #ordersKey: string | null = null;
+  #storage: () => Storage = session;
 
+  /** Mesa, retiro / delivery o null (sin pedidos). */
+  readonly mode = signal<CartScope['kind'] | null>(null);
   readonly items = signal<readonly CartItem[]>([]);
   readonly customerName = signal('');
   readonly note = signal('');
-  /** Pedidos de esta mesa, el más nuevo primero. */
+  /** Pedidos de esta mesa (o de este local, sin QR), el más nuevo primero. */
   readonly orderIds = signal<readonly string[]>([]);
   readonly sheet = signal<CartaSheet | null>(null);
   /** Aviso breve ("Agregado al carrito"). */
@@ -278,23 +330,36 @@ export class CartaCart {
     });
   }
 
-  /** Carga el carrito de la mesa (o lo vacía si no hay mesa). */
-  init(qr: string | null): void {
-    if (qr === this.#qr) return;
-    this.#qr = qr;
+  /** Carga el carrito de la mesa o del local (o lo vacía si no se puede pedir). */
+  init(scope: CartScope | null): void {
+    const id = scope ? (scope.kind === 'table' ? `t:${scope.qr}` : `o:${scope.business}/${scope.location}`) : null;
+    if (id === this.#scopeId) return;
+    this.#scopeId = id;
     this.sheet.set(null);
-    if (!qr) {
+    this.mode.set(scope?.kind ?? null);
+    if (!scope) {
+      this.#cartKey = this.#ordersKey = null;
       this.items.set([]);
       this.orderIds.set([]);
       return;
     }
-    const stored = readJson(session, cartStorageKey(qr)) as Record<string, unknown> | null;
+    if (scope.kind === 'table') {
+      this.#storage = session;
+      this.#cartKey = cartStorageKey(scope.qr);
+      this.#ordersKey = ordersStorageKey(scope.qr);
+    } else {
+      // Sin mesa el carrito sobrevive a cerrar la pestaña
+      this.#storage = local;
+      this.#cartKey = onlineCartStorageKey(scope.business, scope.location);
+      this.#ordersKey = onlineOrdersStorageKey(scope.business, scope.location);
+    }
+    const stored = readJson(this.#storage, this.#cartKey) as Record<string, unknown> | null;
     const items = Array.isArray(stored?.['items']) ? (stored['items'] as unknown[]).map(sanitizeItem).filter((i): i is CartItem => !!i) : [];
     this.items.set(items.slice(0, MAX_CART_LINES));
     this.customerName.set(typeof stored?.['customerName'] === 'string' ? stored['customerName'].slice(0, MAX_CUSTOMER_NAME) : '');
     this.note.set(typeof stored?.['note'] === 'string' ? stored['note'].slice(0, MAX_ORDER_NOTE) : '');
-    const ids = readJson(local, ordersStorageKey(qr));
-    this.orderIds.set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string' && UUID.test(id)).slice(0, MAX_TRACKED_ORDERS) : []);
+    const ids = readJson(local, this.#ordersKey);
+    this.orderIds.set(Array.isArray(ids) ? ids.filter((i): i is string => typeof i === 'string' && ORDER_ID_PATTERN.test(i)).slice(0, MAX_TRACKED_ORDERS) : []);
   }
 
   /** false si el carrito ya tiene el máximo de líneas distintas. */
@@ -379,13 +444,13 @@ export class CartaCart {
     this.note.set('');
     this.#persist();
     this.orderIds.update((ids) => [order.id, ...ids.filter((id) => id !== order.id)].slice(0, MAX_TRACKED_ORDERS));
-    if (this.#qr) writeJson(local, ordersStorageKey(this.#qr), this.orderIds());
+    if (this.#ordersKey) writeJson(local, this.#ordersKey, this.orderIds());
   }
 
   /** Pedido que ya no existe (404). */
   forgetOrder(id: string): void {
     this.orderIds.update((ids) => ids.filter((i) => i !== id));
-    if (this.#qr) writeJson(local, ordersStorageKey(this.#qr), this.orderIds().length ? this.orderIds() : null);
+    if (this.#ordersKey) writeJson(local, this.#ordersKey, this.orderIds().length ? this.orderIds() : null);
   }
 
   flash(text: string): void {
@@ -400,8 +465,8 @@ export class CartaCart {
   }
 
   #persist(): void {
-    if (!this.#qr) return;
+    if (!this.#cartKey) return;
     const empty = !this.items().length && !this.customerName() && !this.note();
-    writeJson(session, cartStorageKey(this.#qr), empty ? null : { v: 1, items: this.items(), customerName: this.customerName(), note: this.note() });
+    writeJson(this.#storage, this.#cartKey, empty ? null : { v: 1, items: this.items(), customerName: this.customerName(), note: this.note() });
   }
 }

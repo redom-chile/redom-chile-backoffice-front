@@ -64,6 +64,8 @@ export class MenuLocationCardComponent {
   readonly $isPublishing = signal(false);
   readonly $published = linkedSignal(() => this.settings().isPublished);
   readonly $isSaving = signal(false);
+  readonly $isLocating = signal(false);
+  readonly $canLocate = typeof navigator !== 'undefined' && 'geolocation' in navigator;
 
   // Textos de los inputs.
   readonly $description = linkedSignal(() => this.settings().description ?? '');
@@ -160,6 +162,28 @@ export class MenuLocationCardComponent {
     } catch {
       this.#toast.show('No se pudo generar el QR', 'error');
     }
+  }
+
+  /** Llena latitud y longitud con la ubicación del dispositivo (hay que guardar los datos después). */
+  useCurrentLocation() {
+    if (!this.$canLocate || this.$isLocating()) return;
+    this.$isLocating.set(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        this.$isLocating.set(false);
+        this.$latitude.set(coords.latitude.toFixed(6));
+        this.$longitude.set(coords.longitude.toFixed(6));
+        this.#toast.show('Ubicación lista: revísala y guarda los datos', 'success');
+      },
+      (error) => {
+        this.$isLocating.set(false);
+        this.#toast.show(
+          error.code === error.PERMISSION_DENIED ? 'Permite el acceso a tu ubicación en el navegador' : 'No se pudo obtener tu ubicación',
+          'error',
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
   }
 
   setPublished(isPublished: boolean) {
