@@ -18,7 +18,13 @@
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-2">
         <h3 class="text-foreground truncate font-semibold" [class.line-through]="cancelled">{{ booking.customerName }}</h3>
+        @if (isPendingMenuBooking(booking)) {
+        <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+          <app-icon class="h-3.5 w-3.5" aria-hidden="true">menu_book</app-icon>{{ menuBookingLabel }}
+        </span>
+        } @else {
         <app-status-badge [map]="statusMap" [status]="booking.status" />
+        }
       </div>
       <p class="text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">group</app-icon>{{ booking.partySize }} pers.</span>

@@ -11,6 +11,15 @@
         <p class="text-muted-foreground text-xs">{{ booking.locationName }}</p>
       </div>
     </div>
+    @if (fromMenu) {
+    <div class="bg-primary/10 text-primary flex gap-2 rounded-lg px-3 py-2 text-sm" role="note">
+      <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">menu_book</app-icon>
+      <div>
+        <p class="font-semibold">{{ menuBookingLabel }}</p>
+        <p class="text-foreground/80 text-xs">Para confirmarla, cambia el estado a "Confirmada" y, si quieres, asígnale una mesa.</p>
+      </div>
+    </div>
+    }
     <app-booking-form-fields [form]="form" [tables]="$tables()" [showStatus]="true" />
   </div>
 

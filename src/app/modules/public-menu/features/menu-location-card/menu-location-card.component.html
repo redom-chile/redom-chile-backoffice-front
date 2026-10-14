@@ -187,7 +187,7 @@
       }
     </div>
     <div class="sm:col-span-2">
-      <label [for]="id + '-review'" class="text-foreground mb-1 block text-sm font-medium">Enlace para reseñas en Google</label>
+      <label [for]="id + '-review'" class="text-foreground mb-1 block text-sm font-medium">Link para reseñas de Google</label>
       <input
         [id]="id + '-review'"
         type="url"
@@ -200,6 +200,8 @@
         (input)="onText('googleReviewUrl', $event)" />
       @if (errors.googleReviewUrl; as error) {
       <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Opcional. En la encuesta del pedido, a quien califique con 4 o 5 estrellas le mostramos un botón para dejarte una reseña en Google.</p>
       }
     </div>
   </div>

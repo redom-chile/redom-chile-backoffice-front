@@ -31,6 +31,20 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Una de las opciones elegidas ya no está disponible.';
     case 'MODIFIER_REPEATED':
       return 'Hay una opción repetida en el pedido.';
+    case 'TABLE_REQUESTS_DISABLED':
+      return 'Esta mesa no puede llamar al mesero desde la carta.';
+    case 'BOOKINGS_DISABLED':
+      return 'Este local no recibe reservas por aquí.';
+    case 'BOOKING_INVALID_DATES':
+      return 'Reserva entre 30 minutos y 60 días antes.';
+    case 'BOOKING_OUTSIDE_HOURS':
+      return 'El local está cerrado a esa hora.';
+    case 'BOOKING_CONTACT_OVERLAP':
+      return 'Ya tienes una reserva a esa hora.';
+    case 'FEEDBACK_NOT_ALLOWED':
+      return 'Podrás opinar cuando recibas tu pedido.';
+    case 'FEEDBACK_ALREADY_SENT':
+      return 'Ya enviaste tu opinión. ¡Gracias!';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }

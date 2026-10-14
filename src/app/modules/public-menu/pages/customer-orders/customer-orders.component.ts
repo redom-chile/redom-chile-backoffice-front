@@ -3,15 +3,17 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, injec
 import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { filter, fromEvent, interval, map, merge, scan, Subject, switchMap, timer } from 'rxjs';
+import { filter, fromEvent, interval, merge, Observable, scan, Subject, switchMap, timer } from 'rxjs';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { RemoteResult, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared';
-import { CustomerOrderDto, CustomerOrdersService, getPublicMenuErrorMessage } from 'src/app/modules/public-menu/data-access';
+import { CustomerOrderDto, CustomerOrdersService, getPublicMenuErrorMessage, StaffTableRequestDto } from 'src/app/modules/public-menu/data-access';
 import { CustomerOrderCardComponent, tableLabel } from 'src/app/modules/public-menu/features/customer-order-card';
 import { CustomerOrderCountService } from 'src/app/modules/public-menu/features/customer-order-count';
+import { CustomerOrderFeedbackComponent } from 'src/app/modules/public-menu/features/customer-order-feedback';
+import { CustomerOrderRequestCardComponent, TABLE_REQUEST_TYPES } from 'src/app/modules/public-menu/features/customer-order-request-card';
 import { openCustomerOrderRejectModal } from 'src/app/modules/public-menu/features/customer-order-reject-modal';
 import { MarketingUpsellCardComponent } from 'src/app/modules/public-menu/features/marketing-upsell-card';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
@@ -19,13 +21,15 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { OrderSound } from './order-sound';
 
-type Tab = 'pending' | 'history';
-type PendingState = Readonly<{ locationId: number; orders: CustomerOrderDto[] | null; error: unknown }>;
+type Tab = 'pending' | 'history' | 'requests' | 'feedback';
+type Polled<T> = Readonly<{ locationId: number; items: T[] | null; error: unknown }>;
+
+const TABS: readonly Tab[] = ['pending', 'history', 'requests', 'feedback'];
 
 const POLL_MS = 7000;
 const HISTORY_LIMIT = 50;
 
-/** Pedidos de los clientes desde la mesa: pendientes para aceptar o rechazar (con polling y aviso) e historial. */
+/** Pedidos de los clientes desde la mesa (pendientes con polling y aviso, e historial), solicitudes de las mesas y encuestas. */
 @Component({
   selector: 'app-customer-orders',
   imports: [
@@ -36,6 +40,8 @@ const HISTORY_LIMIT = 50;
     SkeletonComponent,
     CheckPermissionDirective,
     CustomerOrderCardComponent,
+    CustomerOrderRequestCardComponent,
+    CustomerOrderFeedbackComponent,
     MarketingUpsellCardComponent,
   ],
   templateUrl: './customer-orders.component.html',
@@ -65,7 +71,10 @@ export class CustomerOrdersComponent {
   readonly $locations = computed(() => (this.#locationsService.$locations() ?? []).filter((location) => location.isActive !== false));
   readonly $isLoadingLocations = computed(() => !!this.#locationsService.$isLoading() && !this.#locationsService.$locations());
   readonly #query = toSignal(this.#route.queryParamMap, { initialValue: this.#route.snapshot.queryParamMap });
-  readonly $tab = computed<Tab>(() => (this.#query().get('tab') === 'history' ? 'history' : 'pending'));
+  readonly $tab = computed<Tab>(() => {
+    const tab = this.#query().get('tab') as Tab;
+    return TABS.includes(tab) ? tab : 'pending';
+  });
   // El de la URL; si no, la sucursal del usuario; si no, el primero.
   readonly $locationId = computed(() => {
     const locations = this.$locations();
@@ -81,33 +90,42 @@ export class CustomerOrdersComponent {
   /** Hora para "hace X min" (se actualiza sola). */
   readonly $now = signal(Date.now());
 
-  // --- Pendientes: polling con la pestaña visible, también desde Historial para no perder avisos ---
+  // --- Pendientes y solicitudes: polling con la pestaña visible, desde cualquier pestaña para no perder avisos ---
   readonly pending = rxResource({
     params: () => (this.$hasFeature() ? (this.$locationId() ?? undefined) : undefined),
-    stream: ({ params: locationId }) => {
-      const visible = () => this.#document.visibilityState !== 'hidden';
-      return merge(
-        timer(0, POLL_MS).pipe(filter(visible)),
-        fromEvent(this.#document, 'visibilitychange').pipe(filter(visible)),
-        this.#refresh$,
-      ).pipe(
-        switchMap(() => this.#service.list({ locationId, status: ['pending'] }).pipe(toRemoteResult())),
-        // Si un ciclo falla, se mantiene la última lista y se avisa.
-        scan<RemoteResult<CustomerOrderDto[]>, PendingState>(
-          (state, result) => ({ locationId, orders: result.ok ? result.value : state.orders, error: result.ok ? null : result.error }),
-          { locationId, orders: null, error: null },
-        ),
-      );
-    },
+    stream: ({ params: locationId }) => this.#poll(locationId, () => this.#service.list({ locationId, status: ['pending'] })),
+  });
+  readonly requests = rxResource({
+    params: () => (this.$hasFeature() ? (this.$locationId() ?? undefined) : undefined),
+    stream: ({ params: locationId }) => this.#poll(locationId, () => this.#service.getTableRequests({ locationId, status: 'open' })),
   });
   /** Resueltos aquí: se ocultan sin esperar al siguiente ciclo. */
   readonly #resolved = signal<ReadonlySet<string>>(new Set());
   readonly $pending = computed(() => {
     const resolved = this.#resolved();
-    return (this.pending.value()?.orders ?? []).filter((order) => !resolved.has(order.id));
+    return (this.pending.value()?.items ?? []).filter((order) => !resolved.has(order.id));
   });
-  readonly $pendingLoaded = computed(() => !!this.pending.value()?.orders);
+  readonly $pendingLoaded = computed(() => !!this.pending.value()?.items);
   readonly $pendingError = computed(() => this.pending.value()?.error ?? null);
+
+  /** Atendidas aquí: se ocultan sin esperar al siguiente ciclo. */
+  readonly #attended = signal<ReadonlySet<number>>(new Set());
+  readonly $requests = computed(() => {
+    const attended = this.#attended();
+    return (this.requests.value()?.items ?? []).filter((request) => !attended.has(request.id));
+  });
+  readonly $requestsLoaded = computed(() => !!this.requests.value()?.items);
+  readonly $requestsError = computed(() => this.requests.value()?.error ?? null);
+
+  /** Atendidas recientemente (las últimas 100), solo a pedido. */
+  readonly $showAttended = signal(false);
+  readonly attendedRequests = rxResource({
+    params: () =>
+      this.$hasFeature() && this.$tab() === 'requests' && this.$showAttended() ? (this.$locationId() ?? undefined) : undefined,
+    stream: ({ params: locationId }) => this.#service.getTableRequests({ locationId, status: 'attended' }).pipe(toRemoteResult()),
+  });
+  readonly $attendedRequests = computed(() => resultValue(this.attendedRequests.value()) ?? []);
+  readonly $attendedError = computed(() => resultError(this.attendedRequests.value()));
 
   // --- Historial ---
   readonly history = rxResource({
@@ -120,11 +138,13 @@ export class CustomerOrdersComponent {
 
   // --- Acciones ---
   readonly $busyId = signal<string | null>(null);
+  readonly $attendingId = signal<number | null>(null);
   readonly $problems = signal<Readonly<Record<string, string>>>({});
   /** Último aceptado, para ir a la venta en el POS. */
   readonly $lastAccepted = signal<CustomerOrderDto | null>(null);
 
   #seen: { locationId: number; ids: Set<string> } | null = null;
+  #seenRequests: { locationId: number; ids: Set<number> } | null = null;
 
   constructor() {
     interval(15000)
@@ -134,8 +154,16 @@ export class CustomerOrdersComponent {
 
     effect(() => {
       const state = this.pending.value();
-      if (!state?.orders) return;
-      untracked(() => this.#notifyNew(state.locationId, state.orders!));
+      const orders = state?.items;
+      if (!state || !orders) return;
+      untracked(() => this.#notifyNew(state.locationId, orders));
+    });
+
+    effect(() => {
+      const state = this.requests.value();
+      const requests = state?.items;
+      if (!state || !requests) return;
+      untracked(() => this.#notifyNewRequests(state.locationId, requests));
     });
   }
 
@@ -150,7 +178,31 @@ export class CustomerOrdersComponent {
 
   refresh() {
     if (this.$tab() === 'history') this.history.reload();
+    if (this.$tab() === 'requests' && this.$showAttended()) this.attendedRequests.reload();
     this.#refresh$.next();
+  }
+
+  toggleAttended() {
+    this.$showAttended.update((show) => !show);
+  }
+
+  attend(request: StaffTableRequestDto) {
+    if (this.$attendingId()) return;
+    this.$attendingId.set(request.id);
+    this.#service.attendTableRequest(request.id).subscribe({
+      next: () => {
+        this.$attendingId.set(null);
+        this.#toast.show(`${request.table.name}: solicitud atendida`, 'success');
+        this.#attended.update((ids) => new Set(ids).add(request.id));
+        this.#refresh$.next();
+        this.#count.refresh();
+        if (this.$showAttended()) this.attendedRequests.reload();
+      },
+      error: (error: unknown) => {
+        this.$attendingId.set(null);
+        this.#toast.show(getPublicMenuErrorMessage(error, 'No se pudo marcar la solicitud como atendida.'), 'error');
+      },
+    });
   }
 
   problemOf(order: CustomerOrderDto): string | null {
@@ -226,6 +278,39 @@ export class CustomerOrdersComponent {
     this.#sound.play();
     this.#toast.show(fresh.length === 1 ? `Nuevo pedido de ${tableLabel(fresh[0])}` : `${fresh.length} pedidos nuevos`, 'success');
     this.#count.refresh();
+  }
+
+  /** Igual que los pedidos: la primera carga de un local solo registra. */
+  #notifyNewRequests(locationId: number, requests: StaffTableRequestDto[]) {
+    const ids = new Set(requests.map((request) => request.id));
+    const previous = this.#seenRequests?.locationId === locationId ? this.#seenRequests.ids : null;
+    this.#seenRequests = { locationId, ids };
+    if (!previous) return;
+    const fresh = requests.filter((request) => !previous.has(request.id));
+    if (!fresh.length) return;
+    this.#sound.play();
+    const [first] = fresh;
+    this.#toast.show(
+      fresh.length === 1 ? `${first.table.name}: ${TABLE_REQUEST_TYPES[first.type]?.label.toLowerCase() ?? 'nueva solicitud'}` : `${fresh.length} solicitudes nuevas`,
+      'success',
+    );
+    this.#count.refresh();
+  }
+
+  /** Consulta cada POLL_MS con la pestaña del navegador visible; si un ciclo falla, mantiene la última lista y avisa. */
+  #poll<T>(locationId: number, load: () => Observable<T[]>): Observable<Polled<T>> {
+    const visible = () => this.#document.visibilityState !== 'hidden';
+    return merge(
+      timer(0, POLL_MS).pipe(filter(visible)),
+      fromEvent(this.#document, 'visibilitychange').pipe(filter(visible)),
+      this.#refresh$,
+    ).pipe(
+      switchMap(() => load().pipe(toRemoteResult())),
+      scan<RemoteResult<T[]>, Polled<T>>(
+        (state, result) => ({ locationId, items: result.ok ? result.value : state.items, error: result.ok ? null : result.error }),
+        { locationId, items: null, error: null },
+      ),
+    );
   }
 
   #navigate(queryParams: Record<string, string | number | null>) {

@@ -77,7 +77,15 @@ export type PublicLocationDto = Readonly<{
 }>;
 
 /** En la etapa 1 solo se informan. */
-export type PublicMenuFeaturesDto = Readonly<{ marketing: boolean; tableOrdering: boolean; pickup: boolean; delivery: boolean }>;
+export type PublicMenuFeaturesDto = Readonly<{
+  marketing: boolean;
+  tableOrdering: boolean;
+  pickup: boolean;
+  delivery: boolean;
+  /** Etapa 4. */
+  tableRequests?: boolean;
+  bookings?: boolean;
+}>;
 
 export type PublicLocationMenuDto = Readonly<{
   business: PublicBusinessDto;
@@ -125,7 +133,9 @@ export type MenuSettingsDto = Readonly<{
 }>;
 
 /** Solo los campos que cambian. URLs con https://. ordering: solo cambian las claves enviadas. */
-export type UpdateMenuSettingsDto = { ordering?: Partial<Pick<MenuOrderingSettingsDto, 'tableOrdering' | 'autoAccept' | 'maxOrderTotal'>> } & Partial<
+export type UpdateMenuSettingsDto = {
+  ordering?: Partial<Pick<MenuOrderingSettingsDto, 'tableOrdering' | 'autoAccept' | 'maxOrderTotal' | 'tableRequests' | 'bookings'>>;
+} & Partial<
   Pick<MenuSettingsDto, 'isPublished' | 'description' | 'address' | 'latitude' | 'longitude' | 'phone' | 'whatsapp' | 'instagram' | 'website' | 'googleReviewUrl' | 'modalFrequency'>
 >;
 

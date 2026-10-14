@@ -46,6 +46,8 @@ export type PublicOrderDto = Readonly<{
   rejectionReason: string | null;
   createdAt: string;
   decidedAt: string | null;
+  /** Etapa 4: encuesta del pedido (null: aún no responde). */
+  feedback?: Readonly<{ rating: number; comment: string | null }> | null;
 }>;
 
 /** Vista del personal. */
@@ -67,4 +69,8 @@ export type MenuOrderingSettingsDto = Readonly<{
   maxOrderTotal: number | null;
   pickup: boolean;
   delivery: boolean;
+  /** Etapa 4: llamar al mesero y pedir la cuenta. */
+  tableRequests?: boolean;
+  /** Etapa 4: reservas desde la carta (requiere la carta publicada). */
+  bookings?: boolean;
 }>;

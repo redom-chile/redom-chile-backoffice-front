@@ -46,6 +46,14 @@ import { CartaPrice } from './carta-price';
 import { CartaProductCard } from './carta-product-card';
 import { CartaOrdering } from './carta-ordering';
 import { CartaProductDetail } from './carta-product-detail';
+import { CartaTableService } from '../carta-table-service';
+import { CARTA_BOTTOM_BAR, CartaBarAction, CartaBottomBar } from './carta-bottom-bar';
+import { CartaBookingSheet } from './carta-booking-sheet';
+import { CartaTableFabs } from './carta-table-fabs';
+import { CartaBillSheet, CartaWaiterSheet } from './carta-table-sheets';
+
+/** Hojas de la etapa 4 (servicio en la mesa y reservas). */
+type ServicePanel = 'waiter' | 'bill' | 'booking';
 
 type Group = Readonly<{ id: string; name: string; description: string | null; products: PublicProductDto[] }>;
 
@@ -75,8 +83,23 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
  */
 @Component({
   selector: 'app-carta-menu-view',
-  imports: [CartaIcon, CartaTagIcon, CartaProductCard, CartaBanners, CartaBannerContent, CartaDialog, CartaPrice, CartaProductDetail, CartaOrdering],
-  providers: [CartaCart],
+  imports: [
+    CartaIcon,
+    CartaTagIcon,
+    CartaProductCard,
+    CartaBanners,
+    CartaBannerContent,
+    CartaDialog,
+    CartaPrice,
+    CartaProductDetail,
+    CartaOrdering,
+    CartaBottomBar,
+    CartaTableFabs,
+    CartaWaiterSheet,
+    CartaBillSheet,
+    CartaBookingSheet,
+  ],
+  providers: [CartaCart, CartaTableService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[style]': 'themeStyle()' },
   template: `
@@ -140,8 +163,18 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           </p>
         }
 
-        @if (actions().length) {
+        @if (actions().length || (!bottomBar && bookings())) {
           <nav class="mt-4 flex flex-wrap gap-2" aria-label="Contacto">
+            @if (!bottomBar && bookings()) {
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-sm font-medium text-background shadow-sm transition active:scale-95 motion-reduce:transition-none"
+                (click)="panel.set('booking')"
+              >
+                <app-carta-icon name="calendar" [size]="16" />
+                Reservar
+              </button>
+            }
             @for (a of actions(); track a.label) {
               <a
                 [href]="a.href"
@@ -433,7 +466,38 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
     }
 
     @if (ordering() && qr(); as code) {
-      <app-carta-ordering [menu]="m" [qr]="code" (refresh)="refresh.emit()" />
+      <app-carta-ordering [menu]="m" [qr]="code" [fab]="!bottomBar" (refresh)="refresh.emit()" />
+    }
+    @if (!bottomBar && tableActive()) {
+      <app-carta-table-fabs
+        [cartVisible]="ordering() && cart.count() > 0"
+        [callOpen]="!!tables.openCall()"
+        [status]="tables.status()"
+        (waiter)="panel.set('waiter')"
+        (bill)="panel.set('bill')"
+        (dismissStatus)="tables.dismiss($event)"
+      />
+    }
+
+    <!-- Servicio en la mesa y reservas (etapa 4) -->
+    @switch (panel()) {
+      @case ('waiter') {
+        <app-carta-dialog #waiterDialog label="Llamar al mesero" (closed)="closePanel('waiter')">
+          <app-carta-waiter-sheet [timeZone]="m.location.timeZone" (done)="waiterDialog.close()" />
+        </app-carta-dialog>
+      }
+      @case ('bill') {
+        @if (qr(); as code) {
+          <app-carta-dialog #billDialog label="Pedir la cuenta" (closed)="closePanel('bill')">
+            <app-carta-bill-sheet [qr]="code" [timeZone]="m.location.timeZone" (done)="billDialog.close()" />
+          </app-carta-dialog>
+        }
+      }
+      @case ('booking') {
+        <app-carta-dialog #bookingDialog label="Reservar" (closed)="closePanel('booking')">
+          <app-carta-booking-sheet [menu]="m" (done)="bookingDialog.close()" (unavailable)="bookingsOff.set(true)" />
+        </app-carta-dialog>
+      }
     }
 
     @if (m.business.showRedomBadge) {
@@ -447,6 +511,19 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           Hecha con <strong class="font-semibold text-foreground">Redom</strong>
         </a>
       </footer>
+    }
+
+    @if (bottomBar && !preview()) {
+      <app-carta-bottom-bar
+        [table]="barTable()"
+        [cartCount]="ordering() ? cart.count() : null"
+        [ordersCount]="ordering() ? cart.orderIds().length : 0"
+        [booking]="bookings()"
+        [notice]="ordering() ? cart.notice() : null"
+        [status]="tableActive() ? tables.status() : null"
+        (action)="onBarAction($event)"
+        (dismissStatus)="tables.dismiss($event)"
+      />
     }
   `,
 })
@@ -473,6 +550,26 @@ export class CartaMenuView {
   /** Se puede pedir: carta abierta desde el QR de una mesa y el local recibe pedidos desde la mesa. */
   protected readonly ordering = computed(() => !this.preview() && !!this.qr() && this.menu().features.tableOrdering);
   readonly #blocked = computed(() => blockedProducts(this.menu()));
+
+  // --- Etapa 4: servicio en la mesa y reservas ---
+  protected readonly bottomBar = CARTA_BOTTOM_BAR;
+  protected readonly tables = inject(CartaTableService);
+  /** Llamar al mesero y pedir la cuenta: carta abierta desde el QR de una mesa y features.tableRequests. */
+  readonly #tableRequests = computed(() => !this.preview() && !!this.qr() && !!this.menu().features.tableRequests);
+  /** Sin 403 TABLE_REQUESTS_DISABLED ni 404. */
+  protected readonly tableActive = computed(() => this.#tableRequests() && !this.tables.unavailable());
+  protected readonly bookingsOff = signal(false);
+  /** Reservas (con o sin QR): features.bookings y sin 403 BOOKINGS_DISABLED. */
+  protected readonly bookings = computed(() => !this.preview() && !!this.menu().features.bookings && !this.bookingsOff());
+  protected readonly panel = signal<ServicePanel | null>(null);
+  protected readonly barTable = computed(() => {
+    if (!this.tableActive()) return null;
+    return {
+      callOpen: !!this.tables.openCall(),
+      attended: this.tables.status()?.tone === 'attended',
+      billOpen: !!this.tables.openBill(),
+    };
+  });
   protected readonly canAdd = (p: PublicProductDto) => this.ordering() && !this.#blocked().has(p.id);
   protected readonly blockedLabel = (p: PublicProductDto) => {
     const block = this.#blocked().get(p.id);
@@ -615,6 +712,15 @@ export class CartaMenuView {
       });
     });
 
+    // Solicitudes de la mesa (solo en el navegador)
+    effect(() => {
+      const enabled = this.#tableRequests();
+      const qr = this.qr();
+      const timeZone = this.menu().location.timeZone;
+      if (!enabled || !qr || typeof document === 'undefined') return;
+      untracked(() => this.tables.start(qr, timeZone));
+    });
+
     // Resalta la categoría visible
     effect(() => {
       const elements = this.sectionRefs().map((ref) => ref.nativeElement);
@@ -665,6 +771,20 @@ export class CartaMenuView {
       this.#observer?.disconnect();
       if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     });
+  }
+
+  /** Solo cierra si sigue abierta la misma hoja. */
+  protected closePanel(kind: ServicePanel): void {
+    if (this.panel() === kind) this.panel.set(null);
+  }
+
+  protected onBarAction(action: CartaBarAction): void {
+    if (action === 'cart') this.cart.sheet.set({ kind: 'cart' });
+    else if (action === 'orders') this.cart.sheet.set({ kind: 'orders' });
+    else {
+      this.cart.sheet.set(null);
+      this.panel.set(action);
+    }
   }
 
   protected addToCart(product: PublicProductDto, addition: CartAddition): void {
