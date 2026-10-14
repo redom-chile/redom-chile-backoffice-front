@@ -24,7 +24,12 @@ export type CartaIconName =
   | 'chevron-right'
   | 'external'
   | 'flame'
-  | 'check';
+  | 'check'
+  | 'bag'
+  | 'plus'
+  | 'minus'
+  | 'trash'
+  | 'receipt';
 
 /** Íconos SVG en línea (la landing no carga Material Symbols). Decorativos: aria-hidden. */
 @Component({
@@ -138,6 +143,23 @@ export type CartaIconName =
         }
         @case ('check') {
           <path d="M20 6 9 17l-5-5" />
+        }
+        @case ('bag') {
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <path d="M3 6h18M16 10a4 4 0 0 1-8 0" />
+        }
+        @case ('plus') {
+          <path d="M12 5v14M5 12h14" />
+        }
+        @case ('minus') {
+          <path d="M5 12h14" />
+        }
+        @case ('trash') {
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+        }
+        @case ('receipt') {
+          <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z" />
+          <path d="M8 7h8M8 11h8M8 15h5" />
         }
       }
     </svg>

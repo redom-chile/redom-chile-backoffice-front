@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { IconComponent } from 'src/ui';
 import { formatCurrency } from '../../../order-list/ui';
-import { CartLine, cartLineTotal, cartPricing, cartTotal, cartUnitPrice, modifierLabel, QUICK_NOTES } from '../cart-line';
+import { CartLine, cartLineTotal, cartLineUnitPrice, cartPricing, cartTotal, modifierLabel, packChoiceLabel, QUICK_NOTES } from '../cart-line';
 
 export type CartNoteChange = Readonly<{ key: string; note: string }>;
 
@@ -26,6 +26,7 @@ export class OrderTicketComponent {
   readonly formatCurrency = formatCurrency;
   readonly quickNotes = QUICK_NOTES;
   readonly modifierLabel = modifierLabel;
+  readonly packChoiceLabel = packChoiceLabel;
   // Línea cuya nota se está editando.
   readonly $editingKey = signal<string | null>(null);
   readonly $draft = signal('');
@@ -36,7 +37,7 @@ export class OrderTicketComponent {
   readonly $itemCount = computed(() => this.lines().reduce((sum, line) => sum + line.quantity, 0));
 
   unitPrice(line: CartLine): number {
-    return cartUnitPrice(line.basePrice, line.modifiers, this.$pricing());
+    return cartLineUnitPrice(line, this.$pricing());
   }
 
   lineTotal(line: CartLine): number {

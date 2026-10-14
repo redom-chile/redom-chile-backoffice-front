@@ -9,13 +9,16 @@ import {
   inject,
   Injector,
   input,
+  output,
   signal,
+  untracked,
   viewChild,
   viewChildren,
 } from '@angular/core';
 import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { CartaAnalytics } from '../carta-analytics';
+import { BLOCK_LABELS, blockedProducts, CartAddition, CartaCart } from '../carta-cart';
 import {
   brandingStyle,
   cheapestVariation,
@@ -41,6 +44,7 @@ import { CartaDialog } from './carta-dialog';
 import { CartaIcon, CartaIconName, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 import { CartaProductCard } from './carta-product-card';
+import { CartaOrdering } from './carta-ordering';
 import { CartaProductDetail } from './carta-product-detail';
 
 type Group = Readonly<{ id: string; name: string; description: string | null; products: PublicProductDto[] }>;
@@ -71,7 +75,8 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
  */
 @Component({
   selector: 'app-carta-menu-view',
-  imports: [CartaIcon, CartaTagIcon, CartaProductCard, CartaBanners, CartaBannerContent, CartaDialog, CartaPrice, CartaProductDetail],
+  imports: [CartaIcon, CartaTagIcon, CartaProductCard, CartaBanners, CartaBannerContent, CartaDialog, CartaPrice, CartaProductDetail, CartaOrdering],
+  providers: [CartaCart],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[style]': 'themeStyle()' },
   template: `
@@ -153,10 +158,32 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
         }
 
         @if (m.table; as table) {
-          <p class="mt-4 flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium" role="status">
-            <app-carta-icon name="chair" [size]="18" class="text-primary" />
-            <span>Estás en <strong class="font-semibold">{{ table.name }}</strong></span>
-          </p>
+          <div class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium">
+            <p class="flex min-w-0 flex-1 items-center gap-2" role="status">
+              <app-carta-icon name="chair" [size]="18" class="text-primary" />
+              <span>Estás en <strong class="font-semibold">{{ table.name }}</strong></span>
+            </p>
+            @if (ordering() && cart.orderIds().length) {
+              <button
+                type="button"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-semibold transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                (click)="cart.sheet.set({ kind: 'orders' })"
+              >
+                <app-carta-icon name="receipt" [size]="16" />
+                Mis pedidos
+              </button>
+            }
+          </div>
+          @if (ordering()) {
+            @if (m.location.isOpenNow) {
+              <p class="mt-2 text-sm text-muted-foreground">Elige tus productos y envía el pedido desde aquí. El local lo confirma.</p>
+            } @else {
+              <p class="mt-2 flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-medium" role="note">
+                <app-carta-icon name="clock" [size]="16" />
+                El local está cerrado
+              </p>
+            }
+          }
         }
 
         @if (m.location.schedule.length) {
@@ -318,7 +345,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
             @if (s.products.length) {
               <div class="mt-3 grid gap-3">
                 @for (p of s.products; track p.id) {
-                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" (view)="openProduct($event)" />
+                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" (view)="openProduct($event)" />
                 }
               </div>
             }
@@ -330,7 +357,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                 }
                 <div class="mt-2 grid gap-3">
                   @for (p of sub.products; track p.id) {
-                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" (view)="openProduct($event)" />
+                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" (view)="openProduct($event)" />
                   }
                 </div>
               </div>
@@ -353,7 +380,15 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
     <!-- Detalle del producto -->
     @if (detail(); as p) {
       <app-carta-dialog [label]="p.name" (closed)="detail.set(null)">
-        <app-carta-product-detail [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" />
+        <app-carta-product-detail
+          [product]="p"
+          [tagsByCode]="tagsByCode()"
+          [timeZone]="m.location.timeZone"
+          [orderable]="ordering()"
+          [blocked]="blockedLabel(p)"
+          [cartFull]="cart.full()"
+          (add)="addToCart(p, $event)"
+        />
       </app-carta-dialog>
     }
 
@@ -397,6 +432,10 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
       </app-carta-dialog>
     }
 
+    @if (ordering() && qr(); as code) {
+      <app-carta-ordering [menu]="m" [qr]="code" (refresh)="refresh.emit()" />
+    }
+
     @if (m.business.showRedomBadge) {
       <footer class="border-t border-border py-6 text-center">
         <a
@@ -416,6 +455,11 @@ export class CartaMenuView {
   /** Vista previa (backoffice): sin la ventana de ofertas. */
   readonly preview = input(false);
 
+  /** Código del QR de la mesa (?qr=), validado por la página. */
+  readonly qr = input<string | null>(null);
+  /** Recargar la carta (un producto del carrito se agotó o salió de horario). */
+  readonly refresh = output<void>();
+
   /** Solo la provee la página pública: la vista previa no envía analítica. */
   protected readonly analytics = inject(CartaAnalytics, { optional: true });
 
@@ -424,6 +468,16 @@ export class CartaMenuView {
   private readonly sectionRefs = viewChildren<ElementRef<HTMLElement>>('section');
   private readonly stickyBar = viewChild<ElementRef<HTMLElement>>('stickyBar');
   private readonly categoryNav = viewChild<ElementRef<HTMLElement>>('categoryNav');
+
+  protected readonly cart = inject(CartaCart);
+  /** Se puede pedir: carta abierta desde el QR de una mesa y el local recibe pedidos desde la mesa. */
+  protected readonly ordering = computed(() => !this.preview() && !!this.qr() && this.menu().features.tableOrdering);
+  readonly #blocked = computed(() => blockedProducts(this.menu()));
+  protected readonly canAdd = (p: PublicProductDto) => this.ordering() && !this.#blocked().has(p.id);
+  protected readonly blockedLabel = (p: PublicProductDto) => {
+    const block = this.#blocked().get(p.id);
+    return block ? BLOCK_LABELS[block] : null;
+  };
 
   protected readonly logoFailed = signal(false);
   protected readonly coverFailed = signal(false);
@@ -550,6 +604,17 @@ export class CartaMenuView {
   #scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Carrito de la mesa; con la carta (re)cargada, marca lo que ya no se puede pedir
+    effect(() => {
+      const ordering = this.ordering();
+      const qr = this.qr();
+      const menu = this.menu();
+      untracked(() => {
+        this.cart.init(ordering ? qr : null);
+        if (ordering) this.cart.revalidate(menu);
+      });
+    });
+
     // Resalta la categoría visible
     effect(() => {
       const elements = this.sectionRefs().map((ref) => ref.nativeElement);
@@ -600,6 +665,13 @@ export class CartaMenuView {
       this.#observer?.disconnect();
       if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     });
+  }
+
+  protected addToCart(product: PublicProductDto, addition: CartAddition): void {
+    if (!this.ordering() || this.#blocked().has(product.id)) return;
+    if (!this.cart.add(addition)) return;
+    this.analytics?.track('add_to_cart', product.id);
+    this.detail.set(null);
   }
 
   protected openProduct(product: PublicProductDto): void {

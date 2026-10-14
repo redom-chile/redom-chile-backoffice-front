@@ -38,6 +38,7 @@ const PERMISSION_ROUTES: ReadonlyArray<readonly [string, PermissionCode]> = [
   ['/inventory/ingredients', REST.PRODUCTS.SEE_MODULE],
   ['/business', REST.BUSINESS.SEE_MODULE],
   ['/business/location', REST.LOCATIONS.SEE_MODULE],
+  ['/customer-orders', REST.CUSTOMER_ORDERS.SEE_MODULE],
   ['/settings/public-menu/sold-out', REST.PUBLIC_MENU.MANAGE_AVAILABILITY],
   ['/settings/public-menu/marketing', REST.PUBLIC_MENU.SEE_MODULE],
   ['/settings/public-menu', REST.PUBLIC_MENU.SEE_MODULE],

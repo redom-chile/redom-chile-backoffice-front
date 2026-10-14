@@ -7,9 +7,12 @@ import { MenuService } from '../../../services/menu.service';
 import { IconComponent } from 'src/ui';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { PaymentReviewCountService } from 'src/app/modules/platform/features/payment-review-count';
+import { CustomerOrderCountService } from 'src/app/modules/public-menu/features/customer-order-count';
 
 /** Ruta del menú que muestra el badge de transferencias por revisar. */
 const PAYMENTS_REVIEW_ROUTE = '/platform/payments-review';
+/** Ruta del menú que muestra el badge de pedidos de clientes pendientes. */
+const CUSTOMER_ORDERS_ROUTE = '/customer-orders';
 
 @Component({
   selector: 'app-sidebar-submenu',
@@ -22,6 +25,8 @@ export class SidebarSubmenuComponent implements OnInit {
   @Input() public submenu = <SubMenuItem>{};
   readonly paymentsReviewRoute = PAYMENTS_REVIEW_ROUTE;
   readonly $paymentsReviewCount = inject(PaymentReviewCountService).$count;
+  readonly customerOrdersRoute = CUSTOMER_ORDERS_ROUTE;
+  readonly $customerOrdersCount = inject(CustomerOrderCountService).$count;
 
   constructor(public menuService: MenuService) {}
 

@@ -220,6 +220,9 @@
     </app-button>
   </div>
 
+  <!-- Pedidos de los clientes -->
+  <app-customer-order-settings [settings]="settings()" (changed)="changed.emit($event)" />
+
   <!-- Slug del local -->
   <details *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS" class="border-t border-[var(--border)] pt-3">
     <summary class="text-foreground cursor-pointer text-sm font-medium">Cambiar dirección de la carta</summary>

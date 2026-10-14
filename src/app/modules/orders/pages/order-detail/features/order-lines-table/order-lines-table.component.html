@@ -37,6 +37,30 @@
               }
             </ul>
             }
+            @if (line.packItems?.length) {
+            <!-- Productos del pack: cada uno con su estado de cocina -->
+            <ul class="mt-1 space-y-1" [attr.aria-label]="'Productos del pack ' + line.productName">
+              @for (item of line.packItems; track item.lineId) {
+              <li class="text-foreground/80 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <span class="min-w-0 break-words">· {{ packItemLabel(item) }}</span>
+                @if (showKitchenStatus()) {
+                <app-status-badge [map]="kitchenStatus" [status]="item.resLineOrderStatus" fallback="—" />
+                }
+                @if (canServe() && item.resLineOrderStatus !== 'served') {
+                <button
+                  type="button"
+                  class="glass-row inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium disabled:opacity-50"
+                  [disabled]="pendingLineId() !== null"
+                  [attr.aria-label]="'Marcar ' + item.name + ' como servido'"
+                  (click)="serveLine.emit(item.lineId)">
+                  <app-icon class="h-4 w-4">{{ pendingLineId() === item.lineId ? 'hourglass_empty' : 'room_service' }}</app-icon>
+                  Servir
+                </button>
+                }
+              </li>
+              }
+            </ul>
+            }
             @if (line.sellLineNote) {
             <p class="mt-0.5 text-xs italic text-amber-600">“{{ line.sellLineNote }}”</p>
             }
@@ -66,18 +90,20 @@
           </td>
           @if (showKitchenStatus()) {
           <td class="px-4 py-3 text-center">
+            @if (!isPackLine(line)) {
             <app-status-badge [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
+            }
           </td>
           }
           @if (canServe()) {
           <td class="px-4 py-3 text-right">
-            @if (line.resLineOrderStatus !== 'served') {
+            @if (!isPackLine(line) && line.resLineOrderStatus !== 'served') {
             <button
               type="button"
               class="glass-row inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium disabled:opacity-50"
               [disabled]="pendingLineId() !== null"
               [attr.aria-label]="'Marcar ' + line.productName + ' como servido'"
-              (click)="serveLine.emit(line)">
+              (click)="serveLine.emit(line.lineId)">
               <app-icon class="h-4 w-4">{{ pendingLineId() === line.lineId ? 'hourglass_empty' : 'room_service' }}</app-icon>
               Servir
             </button>
