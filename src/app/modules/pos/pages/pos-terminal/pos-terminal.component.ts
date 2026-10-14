@@ -4,6 +4,8 @@ import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ApiError } from 'src/app/core/utils';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
@@ -50,6 +52,7 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
     IconComponent,
     EmptyStateComponent,
     RouterLink,
+    CheckPermissionDirective,
     BusinessLocationSelector,
     WaiterLoginComponent,
     PosTablesPanelComponent,
@@ -67,6 +70,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly inactivitySeconds = input(60);
   readonly locationName = input<string | null>(null);
   readonly locked = output<void>();
+  readonly PERMISSIONS = PERMISSIONS;
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);

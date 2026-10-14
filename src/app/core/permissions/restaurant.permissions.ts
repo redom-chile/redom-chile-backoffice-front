@@ -39,6 +39,11 @@ export const RESTAURANT_PERMISSIONS = {
     UPDATE_PRODUCT: 'products:update-product',
     DELETE_PRODUCT: 'products:delete-product',
   },
+  PUBLIC_MENU: {
+    SEE_MODULE: 'public-menu:see-module',
+    MANAGE_SETTINGS: 'public-menu:manage-settings',
+    MANAGE_AVAILABILITY: 'public-menu:manage-availability',
+  },
   CATEGORIES: {
     SEE_MODULE: 'categories:see-module',
     GET_ALL_CATEGORIES: 'categories:get-all-categories',

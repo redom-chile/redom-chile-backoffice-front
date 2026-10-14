@@ -5,15 +5,23 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { UnitsService } from 'src/app/modules/inventory/data-access';
+import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
 import { CreateProductService, getProductSaveErrorMessage } from '../../data-access';
-import { createProductForm, ProductFormFieldsComponent, toCreateProductDto } from '../../ui';
+import {
+  createProductForm,
+  injectEditableProductTags,
+  ProductFormFieldsComponent,
+  ProductTagsFieldComponent,
+  saveProductTagsIfChanged,
+  toCreateProductDto,
+} from '../../ui';
 import { ProductModalResult } from '../product-modal-result';
 
 @Component({
   selector: 'app-create-product-modal',
   standalone: true,
-  imports: [ButtonComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent],
+  imports: [ButtonComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent, ProductTagsFieldComponent],
   templateUrl: './create-product-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -36,13 +44,17 @@ export class CreateProductModalComponent implements OnDestroy {
   // Subiendo la imagen o guardando el producto.
   readonly $isLoading = computed(() => this.#isSaving() || !!this.createService.$isLoading());
   #image: ImageSelection = { kind: 'keep' };
+  // Etiquetas de la carta: van por otro endpoint, después de crear el producto.
+  readonly #menuSettings = inject(MenuSettingsService);
+  readonly $tags = injectEditableProductTags();
+  readonly $tagIds = signal<readonly number[]>([]);
 
   constructor() {
     if (this.$inventoryEnabled()) this.#units.load();
 
     effect(() => {
       if (this.createService.$success()) {
-        this.dialogRef.close('created');
+        untracked(() => this.#afterCreate(this.createService.$createdId()));
       }
     });
 
@@ -78,6 +90,13 @@ export class CreateProductModalComponent implements OnDestroy {
     } finally {
       this.#isSaving.set(false);
     }
+  }
+
+  async #afterCreate(productId: number | null) {
+    this.#isSaving.set(true);
+    await saveProductTagsIfChanged(this.#menuSettings, this.toast, productId, this.$tagIds(), []);
+    this.#isSaving.set(false);
+    this.dialogRef.close('created');
   }
 
   handleCancel() {

@@ -1,5 +1,7 @@
 /* Solo escanea la landing (no las clases de la app principal). */
 @import 'tailwindcss' source('./');
+/* Carta pública: componentes compartidos con la app. */
+@source '../../../src/app/modules/public-menu/carta';
 
 @custom-variant dark (&:where(.dark, .dark *));
 

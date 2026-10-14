@@ -1,0 +1,75 @@
+<app-header-dashboard
+  title="Carta pública"
+  subtitle="La carta que tus clientes ven desde el celular, con su dirección y su QR por local.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_AVAILABILITY"
+    routerLink="/settings/public-menu/sold-out"
+    class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium">
+    <app-icon class="h-4 w-4" aria-hidden="true">block</app-icon>Agotados de hoy
+  </a>
+</app-header-dashboard>
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-4 py-16 text-center">
+  <app-icon class="text-destructive h-14 w-14">error_outline</app-icon>
+  <div>
+    <h2 class="text-foreground text-lg font-semibold">Error al cargar la carta pública</h2>
+    <p class="text-muted-foreground mt-1 text-sm">{{ $errorMessage() }}</p>
+  </div>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="settings.reload()">Reintentar</app-button>
+</div>
+} @else if ($isFirstLoad()) {
+<div class="space-y-4">
+  @for (card of [1, 2]; track card) {
+  <div class="glass space-y-3 rounded-[1rem] p-5">
+    <app-skeleton size="xs" style="width: 140px" />
+    <app-skeleton size="sm" style="width: 100%" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if (!$list()?.length) {
+<app-empty-state
+  icon="storefront"
+  title="Aún no tienes locales"
+  description="Crea tu primer local para publicar su carta.">
+  <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+    <app-icon class="h-4 w-4">add_business</app-icon>Crear local
+  </a>
+</app-empty-state>
+} @else {
+<div class="space-y-4" [class.opacity-60]="settings.isLoading()">
+  <!-- Dirección del negocio: una sola vez, afecta a todos los locales -->
+  <section class="glass rounded-[1rem] p-4 sm:p-5">
+    <h2 class="text-foreground font-semibold">Dirección del negocio</h2>
+    <p class="text-muted-foreground mb-3 mt-0.5 text-sm">Es la primera parte de la dirección de todas tus cartas.</p>
+    @if ($supportMode()) {
+    <p class="glass-row text-foreground rounded-xl p-3 text-sm">
+      <span class="text-muted-foreground">/carta/</span><strong>{{ $businessSlug() ?? '—' }}</strong>
+    </p>
+    <p class="text-muted-foreground mt-2 flex items-start gap-1 text-xs">
+      <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">lock</app-icon>
+      En modo soporte no se puede cambiar la dirección del negocio; solo puede hacerlo el negocio.
+    </p>
+    } @else {
+    <ng-template #readOnlySlug>
+      <p class="glass-row text-foreground rounded-xl p-3 text-sm">
+        <span class="text-muted-foreground">/carta/</span><strong>{{ $businessSlug() ?? '—' }}</strong>
+      </p>
+    </ng-template>
+    <app-slug-editor
+      *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS; else readOnlySlug"
+      label="Dirección"
+      [current]="$businessSlug()"
+      [prefix]="businessPrefix"
+      (saved)="onBusinessSlugSaved($event)" />
+    }
+  </section>
+
+  <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    @for (item of $list(); track item.locationId) {
+    <app-menu-location-card [settings]="item" [businessName]="$businessName()" (changed)="onChanged($event)" />
+    }
+  </div>
+</div>
+}

@@ -14,6 +14,7 @@ const PLAN_ROUTE_FEATURES: ReadonlyArray<readonly [string, PlanFeatureCode[]]> =
   ['/settings/terminal', ['pos']],
   ['/kitchen', ['kitchen_display']],
   ['/settings/stations', ['kitchen_display']],
+  ['/settings/public-menu', ['qr_menu']],
   ['/settings/printers', ['printing']],
   ['/settings/print-station', ['printing']],
   ['/bookings', ['bookings']],

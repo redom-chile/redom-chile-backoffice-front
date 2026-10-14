@@ -11,6 +11,7 @@ const SUPPORT_PREFIXES = [
   '/settings/stations', // solo asignar productos a estaciones
   '/tables', // ver, regenerar QR y crear en bloque
   '/sectors', // ver y crear (no editar ni borrar)
+  '/settings/public-menu', // datos, slugs de locales y agotados (no el slug del negocio)
 ];
 
 export function isSupportUrl(url: string | null | undefined): boolean {

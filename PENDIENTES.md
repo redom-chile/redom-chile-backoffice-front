@@ -187,9 +187,16 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Implementado: el dueño autoriza a Redom desde Mi negocio → Soporte (1, 3, 7, 14 o 30 días, nota, extender, terminar, actividad e historial); el superadmin entra en modo soporte desde Plataforma → Negocios o Accesos de soporte (franja fija con Salir, menú y rutas solo de la carta, header `X-Support-Business-Id`, candados con el plan del negocio, sale solo al terminar o vencer). Falta probarlo E2E.
 - Mejoras: filtro por negocio en Accesos de soporte; la actividad del dueño oculta `email_failed` en el front (páginas con menos filas); el superadmin no ve la actividad de un acceso (no hay endpoint de plataforma).
 
+## Carta pública (etapa 1)
+
+- Implementada: carta para clientes en la landing (`/carta/{negocio}`, `/carta/{negocio}/{local}`, `/carta/{QR de mesa}`), con código compartido en `src/app/modules/public-menu/carta`; administración en Configuración → Carta pública (URL, QR, publicar, datos, direcciones) y Agotados de hoy (con acceso desde el POS); etiquetas en productos y horario en categorías. Falta probarla contra la API real y en un deploy de Netlify.
+- Vista previa en WhatsApp/Instagram: la carta se arma en el navegador, así que comparte la tarjeta genérica de la landing; para una por negocio hace falta una Edge Function de Netlify o SSR.
+- Esperando al backend (#51): devolver etiquetas del producto y horario de la categoría para mostrarlos al editar.
+- Mejoras: "Hasta mañana" usado después de medianoche agota hasta el día siguiente; el menú "Agotar" puede salirse de la pantalla en el celular; el QR del local no tiene vista previa (solo descarga).
+- Configuración: `environment.publicSiteUrl` del backoffice (redom.cl en develop y prod) debe apuntar a donde está publicada la landing de cada ambiente.
+
 ## Otros pendientes generales
 
-- Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos (roles y permisos por negocio):
   - Falta la prueba E2E desde la UI (los 7 casos del prompt del backend). `enforcePermissions` ya está encendido en local y develop; en prod sigue apagado hasta desplegar ese backend.

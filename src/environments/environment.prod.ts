@@ -9,6 +9,8 @@ export const environment = {
   restaurantApiUrl: `${baseUrl}/restaurant/api`,
   // Ruta de cobros en AWS: por confirmar con el backend (se configura en una fase posterior).
   billingApiUrl: `${baseUrl}/billing/api`,
+  // Origen donde los clientes ven la carta pública (la landing): {publicSiteUrl}/carta/{negocio}/{local}.
+  publicSiteUrl: 'https://redom.cl',
   // Client ID de Google Identity Services (mismo valor que GOOGLE_CLIENT_ID del backend). Vacío = botón deshabilitado.
   googleClientId: '123525471493-h41blsi8tmhdcrqi0gh9qmdhf1217pgo.apps.googleusercontent.com',
 
