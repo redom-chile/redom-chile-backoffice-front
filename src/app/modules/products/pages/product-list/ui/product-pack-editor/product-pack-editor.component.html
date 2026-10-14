@@ -1,0 +1,229 @@
+@let pack = content();
+<section class="rounded-md border border-gray-300 p-3 dark:border-gray-600 sm:p-4" aria-labelledby="pack-content-title">
+  <div class="mb-2 flex items-center gap-2">
+    <app-icon class="h-5 w-5 text-gray-500 dark:text-gray-400">lunch_dining</app-icon>
+    <h3 id="pack-content-title" class="text-sm font-semibold text-gray-800 dark:text-gray-100">Contenido del pack</h3>
+  </div>
+
+  @if (!pack.$hasPlan()) {
+  <div class="flex flex-col gap-3 rounded-md bg-gray-50 p-3 dark:bg-gray-800 sm:flex-row sm:items-center">
+    <app-icon class="h-6 w-6 shrink-0 text-gray-400">lock</app-icon>
+    <p class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+      Armar el contenido de los packs (grupos y opciones a elección) es parte del marketing de la carta, disponible desde el
+      plan Emprende.
+    </p>
+    <button type="button" class="text-primary shrink-0 text-sm font-medium hover:underline" (click)="showPlans()">Ver planes</button>
+  </div>
+  } @else if (!pack.canSee) {
+  <p class="text-sm text-gray-600 dark:text-gray-300">No tienes permiso para ver el contenido del pack.</p>
+  } @else if (pack.$status() === 'loading') {
+  <p class="text-sm text-gray-500 dark:text-gray-400">Cargando el contenido…</p>
+  } @else if (pack.$status() === 'error') {
+  <div class="flex flex-wrap items-center gap-3">
+    <p class="text-sm text-red-600 dark:text-red-400">No se pudo cargar el contenido del pack.</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="retryLoad()">Reintentar</button>
+  </div>
+  } @else {
+  <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+    Cada grupo es una parte del pack. Con una sola opción y "1 y 1" va incluida; con más, el cliente elige. El recargo se suma al
+    precio del pack (IVA incluido).
+    @if ($readonly()) { Solo lectura: no tienes permiso para editar el marketing de la carta. }
+  </p>
+
+  <fieldset [disabled]="$readonly()">
+    <ol cdkDropList cdkDropListLockAxis="y" class="space-y-3" [cdkDropListDisabled]="$readonly()" (cdkDropListDropped)="drop($event)">
+      @for (group of $groups(); track group.key; let index = $index) {
+      <li cdkDrag class="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+        <div class="flex items-start gap-2">
+          @if (!$readonly()) {
+          <button
+            type="button"
+            cdkDragHandle
+            class="mt-1 inline-flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-gray-400 active:cursor-grabbing"
+            [attr.aria-label]="'Mover el grupo ' + (group.name || index + 1)"
+            title="Arrastra para ordenar">
+            <app-icon class="h-5 w-5">drag_indicator</app-icon>
+          </button>
+          }
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                [maxLength]="nameMax"
+                placeholder="Nombre del grupo (ej. Bebida)"
+                [attr.aria-label]="'Nombre del grupo ' + (index + 1)"
+                [value]="group.name"
+                [class]="inputClass"
+                (input)="setName(group.key, textOf($event))" />
+              @if (isIncluded(group)) {
+              <span class="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
+                Incluido
+              </span>
+              }
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <span>El cliente elige entre</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                aria-label="Mínimo de opciones"
+                [value]="group.minChoices"
+                [class]="smallInputClass"
+                (input)="setChoices(group.key, 'minChoices', numberOf($event))" />
+              <span>y</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                aria-label="Máximo de opciones"
+                [value]="group.maxChoices"
+                [class]="smallInputClass"
+                (input)="setChoices(group.key, 'maxChoices', numberOf($event))" />
+            </div>
+          </div>
+          @if (!$readonly()) {
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
+            [attr.aria-label]="'Quitar el grupo ' + (group.name || index + 1)"
+            title="Quitar grupo"
+            (click)="removeGroup(group.key)">
+            <app-icon class="h-5 w-5">delete</app-icon>
+          </button>
+          }
+        </div>
+
+        <ul class="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
+          @for (item of group.items; track item.variationId) {
+          <li class="flex flex-col gap-2 py-2 sm:flex-row sm:items-center">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</p>
+              @if (item.price !== null) {
+              <p class="text-xs text-gray-500 dark:text-gray-400">Precio de referencia: {{ formatPrice(item.price) }}</p>
+              }
+            </div>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-600 dark:text-gray-300">
+              <label class="flex items-center gap-1">
+                Cant.
+                <input
+                  type="number"
+                  min="1"
+                  step="any"
+                  inputmode="decimal"
+                  [value]="item.quantity"
+                  [class]="smallInputClass + ' w-16'"
+                  (input)="setItem(group.key, item.variationId, { quantity: numberOf($event) })" />
+              </label>
+              <label class="flex items-center gap-1">
+                Recargo $
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  [value]="item.extraPrice"
+                  [class]="smallInputClass + ' w-24'"
+                  (input)="setItem(group.key, item.variationId, { extraPrice: numberOf($event) })" />
+              </label>
+              <label class="flex cursor-pointer items-center gap-1">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 accent-[var(--primary)]"
+                  [checked]="item.isDefault"
+                  (change)="setItem(group.key, item.variationId, { isDefault: checkedOf($event) })" />
+                Por defecto
+              </label>
+              @if (!$readonly()) {
+              <button
+                type="button"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30"
+                [attr.aria-label]="'Quitar ' + item.name"
+                title="Quitar opción"
+                (click)="removeItem(group.key, item.variationId)">
+                <app-icon class="h-4 w-4">close</app-icon>
+              </button>
+              }
+            </div>
+          </li>
+          } @empty {
+          <li class="py-2 text-xs text-gray-500 dark:text-gray-400">Sin opciones todavía.</li>
+          }
+        </ul>
+
+        @if (!$readonly()) {
+        @if ($pickerKey() === group.key) {
+        @let search = $search();
+        <div class="mt-2 rounded-md border border-gray-200 p-2 dark:border-gray-700">
+          <div class="flex items-center gap-2">
+            <input
+              type="search"
+              placeholder="Busca un producto"
+              aria-label="Buscar producto para el grupo"
+              [value]="$term()"
+              [class]="inputClass"
+              (input)="$term.set(textOf($event))" />
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+              aria-label="Cerrar buscador"
+              (click)="closePicker()">
+              <app-icon class="h-5 w-5">close</app-icon>
+            </button>
+          </div>
+          <ul class="mt-2 max-h-56 overflow-y-auto">
+            @if (search.loading) {
+            <li class="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">Buscando…</li>
+            } @else if (search.error) {
+            <li class="px-2 py-2 text-xs text-red-600 dark:text-red-400">No se pudieron cargar los productos.</li>
+            } @else {
+            @for (option of search.options; track option.variationId) {
+            @let added = isInGroup(group, option.variationId);
+            <li>
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-100 disabled:cursor-default disabled:opacity-50 dark:hover:bg-gray-700"
+                [disabled]="added || group.items.length >= maxItems"
+                (click)="addItem(group.key, option)">
+                <span class="min-w-0 truncate text-gray-800 dark:text-gray-100">{{ option.name }}</span>
+                <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ added ? 'Agregado' : formatPrice(option.price) }}</span>
+              </button>
+            </li>
+            } @empty {
+            <li class="px-2 py-2 text-xs text-gray-500 dark:text-gray-400">No hay productos que coincidan.</li>
+            }
+            }
+          </ul>
+        </div>
+        } @else if (group.items.length < maxItems) {
+        <button
+          type="button"
+          class="text-primary mt-2 inline-flex items-center gap-1 text-sm font-medium hover:underline"
+          (click)="openPicker(group.key)">
+          <app-icon class="h-4 w-4">add</app-icon>
+          Agregar opción
+        </button>
+        }
+        }
+      </li>
+      } @empty {
+      <li class="rounded-md border border-dashed border-gray-300 p-3 text-center text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
+        Agrega grupos para armar el pack (ej. "Plato principal" y "Bebida").
+      </li>
+      }
+    </ol>
+
+    @if (!$readonly() && $groups().length < maxGroups) {
+    <button
+      type="button"
+      class="mt-3 inline-flex items-center gap-1 rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+      (click)="addGroup()">
+      <app-icon class="h-4 w-4">add</app-icon>
+      Agregar grupo
+    </button>
+    }
+  </fieldset>
+  }
+</section>

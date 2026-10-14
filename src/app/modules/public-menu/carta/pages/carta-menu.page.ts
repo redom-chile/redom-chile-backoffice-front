@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, Subscription } from 'rxjs';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicMenuApiService, TABLE_QR_PATTERN } from '../../data-access/public-menu-api.service';
+import { CartaAnalytics } from '../carta-analytics';
 import { CARTA_BASE_PATH, CartaLoadError, readCartaError, saveTableQr } from '../carta-utils';
 import { CartaMenuView } from '../ui/carta-menu-view';
 import { CartaRetry, CartaSkeleton, CartaUnavailable } from '../ui/carta-states';
@@ -18,6 +19,7 @@ type State =
 @Component({
   selector: 'app-carta-menu-page',
   imports: [CartaMenuView, CartaRetry, CartaSkeleton, CartaUnavailable],
+  providers: [CartaAnalytics],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let s = state();
@@ -41,6 +43,7 @@ export class CartaMenuPage {
   readonly #title = inject(Title);
   readonly #meta = inject(Meta);
   readonly #basePath = inject(CARTA_BASE_PATH);
+  readonly #analytics = inject(CartaAnalytics);
 
   protected readonly state = signal<State>({ status: 'loading' });
 
@@ -74,6 +77,8 @@ export class CartaMenuPage {
       next: (menu) => {
         this.#setMeta(menu);
         this.state.set({ status: 'ready', menu });
+        this.#analytics.start(menu.business.slug, menu.location.slug);
+        this.#analytics.track('menu_view');
       },
       error: (e) => {
         const error = readCartaError(e, this.#basePath);

@@ -1,0 +1,138 @@
+@let v = $value();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ promotion ? 'Editar promoción' : 'Nueva promoción' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="space-y-5 p-2" (ngSubmit)="handleSubmit()">
+    <div>
+      <label for="promotion-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="promotion-name"
+        type="text"
+        [attr.maxlength]="nameMax"
+        formControlName="name"
+        placeholder="Ej: Happy hour de schops"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="show('name')" />
+      @if (show('name'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Tus clientes lo ven junto al precio en la carta.</p>
+      }
+    </div>
+
+    <!-- A qué se aplica -->
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Se aplica a</legend>
+      <div class="glass-input flex rounded-md p-1" role="radiogroup" aria-label="Tipo de destino">
+        @for (type of targetTypes; track type) {
+        <label class="flex-1">
+          <input type="radio" [value]="type" formControlName="targetType" class="peer sr-only" />
+          <span
+            class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer rounded px-2 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2">
+            {{ targetLabels[type] }}
+          </span>
+        </label>
+        }
+      </div>
+      <app-marketing-target-picker inputId="promotion-target" [type]="v.targetType" [(selected)]="$target" [invalid]="!!show('target')" />
+      @if (show('target'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      } @else if (v.targetType === 'product') {
+      <p class="text-muted-foreground text-xs">Vale para todas sus variaciones. Para una sola, elige "Variación".</p>
+      }
+    </fieldset>
+
+    <!-- Descuento -->
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Descuento</legend>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label for="promotion-discount-type" class="mb-1 block text-sm font-medium">Tipo *</label>
+          <select id="promotion-discount-type" formControlName="discountType" class="glass-input w-full rounded-md px-3 py-2">
+            @for (type of discountTypes; track type) {
+            <option [value]="type">{{ discountLabels[type] }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="promotion-value" class="mb-1 block text-sm font-medium">
+            {{ v.discountType === 'percent' ? 'Porcentaje *' : v.discountType === 'amount' ? 'Monto a descontar (IVA incluido) *' : 'Precio final (IVA incluido) *' }}
+          </label>
+          <div class="relative">
+            @if (v.discountType !== 'percent') {
+            <span class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm">$</span>
+            }
+            <input
+              id="promotion-value"
+              type="number"
+              inputmode="decimal"
+              formControlName="value"
+              [attr.min]="v.discountType === 'percent' ? 0.01 : 1"
+              [attr.max]="v.discountType === 'percent' ? 100 : null"
+              [attr.step]="v.discountType === 'percent' ? 0.01 : 1"
+              [placeholder]="v.discountType === 'percent' ? '20' : v.discountType === 'amount' ? '2000' : '9990'"
+              class="glass-input w-full rounded-md py-2"
+              [class.pl-7]="v.discountType !== 'percent'"
+              [class.pl-3]="v.discountType === 'percent'"
+              [class.pr-8]="v.discountType === 'percent'"
+              [class.border-red-500]="show('value')" />
+            @if (v.discountType === 'percent') {
+            <span class="text-muted-foreground pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm">%</span>
+            }
+          </div>
+          @if (show('value'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          } @else if (v.discountType === 'fixed_price') {
+          <p class="text-muted-foreground mt-1 text-xs">El producto se vende a este precio mientras dure la promoción.</p>
+          }
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- Dónde -->
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Dónde</legend>
+      <div class="space-y-2">
+        @for (channel of channels; track channel) {
+        <label class="flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" class="accent-primary h-4 w-4" [checked]="$channels().includes(channel)" (change)="toggleChannel(channel, $any($event.target).checked)" />
+          {{ channelLabels[channel] }}
+        </label>
+        }
+        @if (show('channels'); as error) {
+        <p class="text-destructive text-xs">{{ error }}</p>
+        }
+      </div>
+      <div>
+        <label for="promotion-location" class="mb-1 block text-sm font-medium">Local</label>
+        <select id="promotion-location" formControlName="locationId" class="glass-input w-full rounded-md px-3 py-2">
+          <option value="">Todos los locales</option>
+          @for (location of data.locations; track location.id) {
+          <option [value]="location.id">{{ location.name }}</option>
+          }
+        </select>
+      </div>
+    </fieldset>
+
+    <app-marketing-schedule-field [(value)]="$schedule" [error]="show('schedule')" />
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activa</p>
+        <p class="text-muted-foreground text-xs">Inactiva no se aplica aunque esté en horario.</p>
+      </div>
+      <app-toggle [checked]="$isActive()" (changed)="$isActive.set($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ promotion ? 'Guardar' : 'Crear promoción' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

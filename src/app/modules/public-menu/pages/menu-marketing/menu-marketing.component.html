@@ -1,0 +1,65 @@
+@let tab = $tab();
+<app-header-dashboard title="Marketing de la carta" subtitle="Promociones, banners y la imagen de tu carta pública.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE"
+    routerLink="/settings/public-menu"
+    class="glass-row text-foreground hidden h-9 items-center gap-1 rounded-full px-3 text-sm font-medium sm:inline-flex">
+    <app-icon class="h-4 w-4" aria-hidden="true">qr_code_2</app-icon>Carta pública
+  </a>
+</app-header-dashboard>
+
+<div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <nav class="glass-input -mx-1 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" role="tablist" aria-label="Secciones">
+    @for (item of tabs; track item.id) {
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 shrink-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium md:flex-none"
+      [class]="tab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === item.id"
+      (click)="selectTab(item.id)">
+      <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
+    </button>
+    }
+  </nav>
+
+  <div class="w-full md:max-w-xs">
+    <label for="marketing-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+    @if ($isLoadingLocations()) {
+    <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+    } @else {
+    <select id="marketing-location" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" (change)="onLocationChange($event)">
+      @if (tab !== 'branding') {
+      <option value="" [selected]="!$selectedLocationId()">Todos los locales</option>
+      }
+      @for (location of $locations(); track location.id) {
+      <option [value]="location.id" [selected]="location.id === $selectedLocationId()">{{ location.name }}</option>
+      }
+    </select>
+    }
+  </div>
+</div>
+
+@if (!$hasFeature()) {
+<app-marketing-upsell-card [feature]="$tabInfo().feature" [description]="$tabInfo().description" />
+} @else {
+@switch (tab) {
+@case ('promotions') {
+<app-marketing-promotions [locationId]="$locationId()" [locations]="$locations()" [timeZone]="$timeZone()" />
+}
+@case ('banners') {
+<app-marketing-banners [locationId]="$locationId()" [locations]="$locations()" [timeZone]="$timeZone()" />
+}
+@case ('branding') {
+@if ($brandingLocationId(); as locationId) {
+<app-marketing-branding [locationId]="locationId" [locationName]="$brandingLocationName()" />
+} @else if (!$isLoadingLocations()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <app-icon class="text-muted-foreground h-10 w-10" aria-hidden="true">storefront</app-icon>
+  <p class="text-foreground font-medium">Aún no tienes locales</p>
+  <a routerLink="/business/location" class="text-primary text-sm font-medium hover:underline">Crear local</a>
+</div>
+}
+}
+}
+}

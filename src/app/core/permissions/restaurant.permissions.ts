@@ -43,6 +43,7 @@ export const RESTAURANT_PERMISSIONS = {
     SEE_MODULE: 'public-menu:see-module',
     MANAGE_SETTINGS: 'public-menu:manage-settings',
     MANAGE_AVAILABILITY: 'public-menu:manage-availability',
+    MANAGE_MARKETING: 'public-menu:manage-marketing',
   },
   CATEGORIES: {
     SEE_MODULE: 'categories:see-module',

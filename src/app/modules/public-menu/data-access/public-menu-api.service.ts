@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
-import { PublicBusinessMenusDto, PublicLocationMenuDto, PublicTableDto } from './dtos';
+import { MenuEventsRequestDto, PublicBusinessMenusDto, PublicLocationMenuDto, PublicTableDto } from './dtos';
 
 /**
  * Base de la API pública. La landing la provee con su propia URL (pasa por su proxy y Netlify, sin CORS);
@@ -34,6 +34,16 @@ export class PublicMenuApiService {
 
   getTable(qrCode: string): Observable<PublicTableDto> {
     return this.#http.get<PublicTableDto>(`${this.#base}/tables/${encodeURIComponent(qrCode)}`);
+  }
+
+  /** URL de analítica (para navigator.sendBeacon al salir). */
+  eventsUrl(): string {
+    return `${this.#base}/events`;
+  }
+
+  /** Analítica por lotes (1 a 20). Ante cualquier error se descarta el lote: no se reintenta ni se muestra nada. */
+  sendEvents(dto: MenuEventsRequestDto): Observable<void> {
+    return this.#http.post<void>(`${this.#base}/events`, dto);
   }
 }
 

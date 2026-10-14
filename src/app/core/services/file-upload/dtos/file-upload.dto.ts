@@ -1,6 +1,7 @@
 // expense_documents: boletas y facturas de gastos (imagen o PDF, hasta 10 MB).
+// menu_banners y menu_covers: imágenes de la carta pública (hasta 5 MB).
 // billing_receipts: comprobantes de transferencias de la suscripción (imagen o PDF, hasta 10 MB).
-export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images' | 'expense_documents' | 'billing_receipts';
+export type StorageFolder = 'products' | 'categories' | 'business_logos' | 'profile_images' | 'expense_documents' | 'billing_receipts' | 'menu_banners' | 'menu_covers';
 
 export type RequestUploadUrlDto = Readonly<{
   folder: StorageFolder;

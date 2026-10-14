@@ -41,6 +41,11 @@ export class ProductFormFieldsComponent implements OnInit {
   // La unidad del producto debe ser una unidad base (las subunidades se usan al comprar/ajustar).
   readonly $baseUnits = computed(() => this.units().filter((unit) => !unit.baseUnitId));
   readonly $stockMode = signal<string>('none');
+  readonly typeOptions = [
+    { value: false, label: 'Producto', hint: 'Un plato, bebida o artículo que se vende solo.' },
+    { value: true, label: 'Pack / combo', hint: 'Varios productos juntos a un precio (ej. lomo + bebida a elección).' },
+  ] as const;
+  readonly $isPack = signal(false);
 
   readonly $selectedCategoryId = signal<number | null>(null);
   readonly $subcategories = computed(() => {
@@ -52,7 +57,9 @@ export class ProductFormFieldsComponent implements OnInit {
     'w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100';
 
   ngOnInit(): void {
-    const { name, sku, categoryId, subCategoryId, stockMode } = this.form().controls;
+    const { name, sku, categoryId, subCategoryId, stockMode, isPack } = this.form().controls;
+    this.$isPack.set(!!isPack.value);
+    isPack.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$isPack.set(!!value));
     this.$selectedCategoryId.set(categoryId.value);
     this.$stockMode.set(stockMode.value ?? 'none');
     stockMode.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$stockMode.set(value ?? 'none'));

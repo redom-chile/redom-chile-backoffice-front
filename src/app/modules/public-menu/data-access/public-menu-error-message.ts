@@ -13,6 +13,8 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Ya está en uso.';
     case 'MENU_NOT_FOUND':
       return 'Esta carta no está disponible.';
+    case 'PRODUCT_NOT_PACK':
+      return 'Cambia el tipo del producto a Pack para armar su contenido.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }
