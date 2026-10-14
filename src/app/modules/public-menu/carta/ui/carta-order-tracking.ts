@@ -6,6 +6,7 @@ import { PublicMenuApiService } from '../../data-access/public-menu-api.service'
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaCart, ORDER_POLL_DELAY, orderStatus, OrderStatusView } from '../carta-cart';
 import { CartaIcon } from './carta-icon';
+import { CartaOrderFeedback } from './carta-order-feedback';
 
 /** "13:45" en la zona horaria del local. */
 function formatOrderTime(iso: string, timeZone: string): string {
@@ -31,7 +32,7 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
  */
 @Component({
   selector: 'app-carta-order-tracking',
-  imports: [CartaIcon],
+  imports: [CartaIcon, CartaOrderFeedback],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -76,6 +77,20 @@ const TONE_CLASS: Record<OrderStatusView['tone'], string> = {
           <p class="mt-2 text-sm text-muted-foreground">{{ n }}</p>
         }
       </div>
+
+      @if (o && (askFeedback() || feedbackSent())) {
+        <!-- Encuesta (etapa 4): entregado o cerrado y sin respuesta -->
+        <app-carta-order-feedback class="mt-4" [orderId]="o.id" (sent)="feedbackSent.set(true)" />
+      } @else if (o?.feedback; as f) {
+        <p class="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+          <span class="flex text-amber-500" aria-hidden="true">
+            @for (n of [1, 2, 3, 4, 5]; track n) {
+              <app-carta-icon name="star" [size]="16" [filled]="n <= f.rating" />
+            }
+          </span>
+          <span><span class="sr-only">Calificaste con {{ f.rating }} de 5. </span>¡Gracias por tu opinión!</span>
+        </p>
+      }
 
       @if (o) {
         <ul class="mt-4 divide-y divide-border rounded-2xl border border-border" aria-label="Productos del pedido">
@@ -162,6 +177,12 @@ export class CartaOrderTracking implements OnInit {
   protected readonly notice = signal<string | null>(null);
   protected readonly cancelling = signal(false);
   protected readonly confirmCancel = signal(false);
+  /** Encuesta: entregado o cerrado y sin feedback. Tras enviarla se mantiene visible (para el botón de Google). */
+  protected readonly feedbackSent = signal(false);
+  protected readonly askFeedback = computed(() => {
+    const o = this.order();
+    return !!o && (o.progress === 'delivered' || o.progress === 'completed') && o.feedback == null;
+  });
   protected readonly status = computed(() => {
     const o = this.order();
     return o ? orderStatus(o) : null;

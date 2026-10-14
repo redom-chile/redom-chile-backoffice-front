@@ -29,7 +29,11 @@ export type CartaIconName =
   | 'plus'
   | 'minus'
   | 'trash'
-  | 'receipt';
+  | 'receipt'
+  | 'bell'
+  | 'star'
+  | 'users'
+  | 'wallet';
 
 /** Íconos SVG en línea (la landing no carga Material Symbols). Decorativos: aria-hidden. */
 @Component({
@@ -161,6 +165,25 @@ export type CartaIconName =
           <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z" />
           <path d="M8 7h8M8 11h8M8 15h5" />
         }
+        @case ('bell') {
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+        }
+        @case ('star') {
+          <path
+            d="M11.53 2.3a.53.53 0 0 1 .94 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.02a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z"
+            [attr.fill]="filled() ? 'currentColor' : 'none'"
+          />
+        }
+        @case ('users') {
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        }
+        @case ('wallet') {
+          <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
+          <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+        }
       }
     </svg>
   `,
@@ -168,6 +191,8 @@ export type CartaIconName =
 export class CartaIcon {
   readonly name = input.required<CartaIconName>();
   readonly size = input(20);
+  /** Solo 'star': relleno. */
+  readonly filled = input(false);
 }
 
 /** Íconos de las etiquetas (el backend envía nombres tipo lucide): emoji livianos. */

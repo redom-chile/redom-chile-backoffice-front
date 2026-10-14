@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
@@ -380,6 +380,18 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** aceptar en `comboChoices` un grupo vacío explícito (por ejemplo `{ groupId, variationId: null }` o un campo `skippedGroupIds`) para indicar que no se quiere ninguna opción.
 
 **Front mientras tanto:** si el cliente desmarca todo en un grupo opcional con opciones por defecto, se aplican las por defecto.
+
+---
+
+### 53. 🟡 Reservas desde la carta: origen en el listado y visibilidad
+
+**Problema:**
+- `GET /bookings` no devuelve `createdBy` (ni un campo de origen), así que el listado no distingue con certeza las reservas que llegaron desde la carta. El front las detecta como "en espera y sin encargado ni mesero", lo que también marca reservas pasadas a mano a "en espera".
+- El listado filtra por `createdBy`, encargado o mesero cuando el usuario no tiene `crud_all_bookings`. Como las reservas de la carta tienen `createdBy` null, solo las ven quienes tienen ese permiso (cajeros y meseros, no).
+
+**Se pide:** agregar `createdBy` o `source: 'menu' | 'staff'` al listado de reservas, e incluir las reservas de la carta (`createdBy` null) en lo que ven los roles del local que gestionan reservas.
+
+**Front mientras tanto:** usa la aproximación descrita; en el detalle la detección es exacta (`waiting` + `createdBy === null`).
 
 ---
 

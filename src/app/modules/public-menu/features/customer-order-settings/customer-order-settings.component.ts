@@ -11,6 +11,7 @@ import {
 import { ButtonComponent, IconComponent, ToastService, ToggleComponent } from 'src/ui';
 
 type OrderingChanges = NonNullable<UpdateMenuSettingsDto['ordering']>;
+type FlagKey = 'tableOrdering' | 'autoAccept' | 'tableRequests' | 'bookings';
 
 const DEFAULT_ORDERING: MenuOrderingSettingsDto = {
   tableOrdering: false,
@@ -18,11 +19,13 @@ const DEFAULT_ORDERING: MenuOrderingSettingsDto = {
   maxOrderTotal: null,
   pickup: false,
   delivery: false,
+  tableRequests: false,
+  bookings: false,
 };
 
 const maxText = (value: number | null) => (value === null ? '' : String(value));
 
-/** Sección Pedidos de la tarjeta del local: pedidos desde la mesa, aceptación automática y total máximo. */
+/** Sección Pedidos de la tarjeta del local: pedidos desde la mesa, aceptación automática, total máximo, solicitudes y reservas. */
 @Component({
   selector: 'app-customer-order-settings',
   imports: [ButtonComponent, IconComponent, ToggleComponent],
@@ -61,6 +64,25 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
           <p class="text-muted-foreground text-xs">Los pedidos pasan directo a cocina, sin que nadie los acepte.</p>
         </div>
         <app-toggle [checked]="$autoAccept()" [disabled]="!editable || $busy() === 'autoAccept'" (changed)="setFlag('autoAccept', $event)" />
+      </div>
+
+      <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3">
+        <div class="min-w-0">
+          <p class="text-foreground text-sm font-medium">Llamar al mesero y pedir la cuenta</p>
+          <p class="text-muted-foreground text-xs">Desde el QR de la mesa, el cliente llama al mesero o pide la cuenta con la propina sugerida.</p>
+        </div>
+        <app-toggle [checked]="$tableRequests()" [disabled]="!editable || $busy() === 'tableRequests'" (changed)="setFlag('tableRequests', $event)" />
+      </div>
+
+      <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3">
+        <div class="min-w-0">
+          <p class="text-foreground text-sm font-medium">Reservas desde la carta</p>
+          <p class="text-muted-foreground text-xs">
+            Tus clientes piden una reserva y tú la confirmas en Reservas.
+            <span [class]="settings().isPublished ? '' : 'font-medium text-amber-700 dark:text-amber-300'">Para reservar, la carta tiene que estar publicada.</span>
+          </p>
+        </div>
+        <app-toggle [checked]="$bookings()" [disabled]="!editable || $busy() === 'bookings'" (changed)="setFlag('bookings', $event)" />
       </div>
 
       <div class="glass-row flex flex-col gap-2 rounded-xl p-3">
@@ -145,6 +167,8 @@ export class CustomerOrderSettingsComponent {
   readonly $busy = signal<keyof OrderingChanges | null>(null);
   readonly $tableOrdering = linkedSignal(() => this.$ordering().tableOrdering);
   readonly $autoAccept = linkedSignal(() => this.$ordering().autoAccept);
+  readonly $tableRequests = linkedSignal(() => !!this.$ordering().tableRequests);
+  readonly $bookings = linkedSignal(() => !!this.$ordering().bookings);
   readonly savedMaxText = computed(() => maxText(this.$ordering().maxOrderTotal));
   readonly $maxText = linkedSignal(() => this.savedMaxText());
 
@@ -159,12 +183,24 @@ export class CustomerOrderSettingsComponent {
   });
   readonly $maxChanged = computed(() => this.#maxValue() !== this.$ordering().maxOrderTotal);
 
-  setFlag(key: 'tableOrdering' | 'autoAccept', value: boolean) {
-    const target = key === 'tableOrdering' ? this.$tableOrdering : this.$autoAccept;
+  setFlag(key: FlagKey, value: boolean) {
+    const targets = {
+      tableOrdering: this.$tableOrdering,
+      autoAccept: this.$autoAccept,
+      tableRequests: this.$tableRequests,
+      bookings: this.$bookings,
+    };
+    const target = targets[key];
     target.set(value);
-    const messages = {
+    const messages: Record<FlagKey, string> = {
       tableOrdering: value ? 'Pedidos desde la mesa activados' : 'Pedidos desde la mesa desactivados',
       autoAccept: value ? 'Los pedidos pasarán directo a cocina' : 'Los pedidos esperarán que los aceptes',
+      tableRequests: value ? 'Tus clientes ya pueden llamar al mesero y pedir la cuenta' : 'Llamar al mesero y pedir la cuenta desactivado',
+      bookings: value
+        ? this.settings().isPublished
+          ? 'Reservas desde la carta activadas'
+          : 'Reservas activadas: publica la carta para recibirlas'
+        : 'Reservas desde la carta desactivadas',
     };
     this.#save(key, { [key]: value }, messages[key], () => target.set(!value));
   }

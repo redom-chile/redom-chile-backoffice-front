@@ -1,13 +1,14 @@
 @let tab = $tab();
 @let pendingCount = $pending().length;
+@let requestCount = $requests().length;
 <app-header-dashboard title="Pedidos de clientes" subtitle="Lo que tus clientes piden desde el QR de su mesa.">
-  @if ($hasFeature() && $locationId()) {
+  @if ($hasFeature() && $locationId() && tab !== 'feedback') {
   <button
     type="button"
     class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium"
     aria-label="Actualizar"
     (click)="refresh()">
-    <app-icon class="h-4 w-4" [class.animate-spin]="pending.isLoading() || history.isLoading()" aria-hidden="true">refresh</app-icon>
+    <app-icon class="h-4 w-4" [class.animate-spin]="pending.isLoading() || history.isLoading() || requests.isLoading()" aria-hidden="true">refresh</app-icon>
     <span class="hidden sm:inline">Actualizar</span>
   </button>
   }
@@ -19,11 +20,11 @@
   description="Tus clientes piden desde el QR de su mesa y tú aceptas los pedidos aquí, o los mandas directo a cocina." />
 } @else {
 <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-  <nav class="glass-input flex w-full gap-1 rounded-full p-1 md:w-fit" role="tablist" aria-label="Pedidos">
+  <nav class="glass-input flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" role="tablist" aria-label="Pedidos">
     <button
       type="button"
       role="tab"
-      class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium md:flex-none"
+      class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'pending' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
       [attr.aria-selected]="tab === 'pending'"
       (click)="selectTab('pending')">
@@ -39,11 +40,36 @@
     <button
       type="button"
       role="tab"
-      class="inline-flex h-9 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium md:flex-none"
+      class="inline-flex h-9 flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'history' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
       [attr.aria-selected]="tab === 'history'"
       (click)="selectTab('history')">
       Historial
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
+      [class]="tab === 'requests' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === 'requests'"
+      (click)="selectTab('requests')">
+      Solicitudes
+      @if (requestCount > 0) {
+      <span
+        class="min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums"
+        [class]="tab === 'requests' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'">
+        {{ requestCount }}
+      </span>
+      }
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
+      [class]="tab === 'feedback' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === 'feedback'"
+      (click)="selectTab('feedback')">
+      Encuestas
     </button>
   </nav>
 
@@ -131,6 +157,88 @@
   }
 </div>
 }
+} @else if (tab === 'requests') {
+<!-- Solicitudes de las mesas -->
+@if ($requestsError() && $requestsLoaded()) {
+<p class="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="status">
+  Sin conexión con el servidor; reintentando…
+</p>
+}
+@if (!$requestsLoaded()) {
+@if ($requestsError()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <p class="text-muted-foreground text-sm">No se pudieron cargar las solicitudes.</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="refresh()">Reintentar</app-button>
+</div>
+} @else {
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="sm" style="width: 40%" />
+    <app-skeleton size="sm" style="width: 80%" />
+  </div>
+  }
+</div>
+}
+} @else if (!requestCount) {
+<div class="glass flex flex-col items-center gap-2 rounded-[1rem] px-5 py-12 text-center">
+  <span class="bg-primary/10 text-primary inline-flex h-12 w-12 items-center justify-center rounded-full">
+    <app-icon class="h-6 w-6" aria-hidden="true">notifications_none</app-icon>
+  </span>
+  <p class="text-foreground font-medium">No hay solicitudes abiertas</p>
+  <p class="text-muted-foreground max-w-sm text-sm">Cuando una mesa llame al mesero o pida la cuenta, aparece aquí y suena un aviso.</p>
+  <p *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE" class="text-muted-foreground max-w-sm text-xs">
+    ¿No llegan? Revisa que "Llamar al mesero y pedir la cuenta" esté activo en
+    <a routerLink="/settings/public-menu" class="text-primary font-medium hover:underline">Carta pública</a>.
+  </p>
+</div>
+} @else {
+<div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (request of $requests(); track request.id) {
+  <app-customer-order-request-card
+    [request]="request"
+    [now]="$now()"
+    [canManage]="$canManage()"
+    [busy]="$attendingId() === request.id"
+    (attend)="attend($event)" />
+  }
+</div>
+}
+
+<div class="mt-6 flex items-center justify-between gap-3">
+  <h3 class="text-foreground font-semibold">Atendidas recientemente</h3>
+  <app-button impact="light" size="small" type="button" [icon]="$showAttended() ? 'expand_less' : 'expand_more'" (buttonClick)="toggleAttended()">
+    {{ $showAttended() ? 'Ocultar' : 'Mostrar' }}
+  </app-button>
+</div>
+@if ($showAttended()) {
+<div class="mt-3">
+  @if ($attendedError()) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-8 text-center">
+    <p class="text-muted-foreground text-sm">No se pudieron cargar las solicitudes atendidas.</p>
+    <app-button impact="light" size="small" type="button" (buttonClick)="attendedRequests.reload()">Reintentar</app-button>
+  </div>
+  } @else if (attendedRequests.isLoading() && !$attendedRequests().length) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="sm" style="width: 40%" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  } @else if (!$attendedRequests().length) {
+  <div class="glass rounded-[1rem] px-5 py-8 text-center">
+    <p class="text-muted-foreground text-sm">Todavía no hay solicitudes atendidas en este local.</p>
+  </div>
+  } @else {
+  <div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+    @for (request of $attendedRequests(); track request.id) {
+    <app-customer-order-request-card [request]="request" [now]="$now()" />
+    }
+  </div>
+  }
+</div>
+}
+} @else if (tab === 'feedback') {
+<!-- Encuestas -->
+<app-customer-order-feedback [locationId]="$locationId()!" />
 } @else {
 <!-- Historial -->
 @if ($historyError()) {

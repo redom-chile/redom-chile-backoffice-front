@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
-import { CustomerOrderDto, CustomerOrderStatus } from './dtos';
+import { CustomerFeedbackSummaryDto, CustomerOrderDto, CustomerOrderStatus, StaffTableRequestDto } from './dtos';
 
 const BASE = `${ApiPathEnum.RESTAURANT}/customer-orders`;
 
@@ -30,5 +30,22 @@ export class CustomerOrdersService {
   /** reason: 1 a 300. */
   reject(id: string, reason: string): Observable<CustomerOrderDto> {
     return this.#http.post<CustomerOrderDto>(`${BASE}/${id}/reject`, { reason });
+  }
+
+  // --- Solicitudes de las mesas y encuestas (etapa 4) ---
+
+  /** open (por defecto): la más antigua primero; attended: las últimas 100. */
+  getTableRequests(filters: { locationId?: number; status?: 'open' | 'attended' } = {}): Observable<StaffTableRequestDto[]> {
+    return this.#http.get<StaffTableRequestDto[]>(`${ApiPathEnum.RESTAURANT}/table-requests`, { params: toHttpParams(filters) });
+  }
+
+  /** Atender otra vez no cambia nada. */
+  attendTableRequest(id: number): Observable<StaffTableRequestDto> {
+    return this.#http.post<StaffTableRequestDto>(`${ApiPathEnum.RESTAURANT}/table-requests/${id}/attend`, {});
+  }
+
+  /** from/to: YYYY-MM-DD. */
+  getFeedback(filters: { locationId?: number; from?: string; to?: string; limit?: number } = {}): Observable<CustomerFeedbackSummaryDto> {
+    return this.#http.get<CustomerFeedbackSummaryDto>(`${ApiPathEnum.RESTAURANT}/customer-feedback`, { params: toHttpParams(filters) });
   }
 }

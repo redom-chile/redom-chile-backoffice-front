@@ -20,6 +20,8 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
   template: `
     @let m = menu();
     @let count = cart.count();
+    <!-- Con la barra inferior (CARTA_BOTTOM_BAR) el carrito y el aviso "Agregado" van en la barra -->
+    @if (fab()) {
     <!-- Espacio para que el botón flotante no tape el final de la carta -->
     @if (count) {
       <div class="h-24" aria-hidden="true"></div>
@@ -50,6 +52,7 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
         }
       </div>
     </div>
+    }
 
     @switch (sheetKind()) {
       @case ('cart') {
@@ -75,6 +78,8 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
 export class CartaOrdering {
   readonly menu = input.required<PublicLocationMenuDto>();
   readonly qr = input.required<string>();
+  /** false: sin el botón flotante del carrito (lo reemplaza la barra inferior). */
+  readonly fab = input(true);
   /** Recargar la carta (un producto se agotó o salió de horario). */
   readonly refresh = output<void>();
 

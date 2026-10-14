@@ -2,6 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import {
+  CreatePublicBookingDto,
+  OrderFeedbackResultDto,
+  PublicBookingDto,
+  TableBillDto,
+  TableRequestDto,
+  TableRequestType,
+} from './dtos';
 import { CreatePublicOrderDto, PublicOrderDto, MenuEventsRequestDto, PublicBusinessMenusDto, PublicLocationMenuDto, PublicTableDto } from './dtos';
 
 /**
@@ -60,6 +68,32 @@ export class PublicMenuApiService {
   /** Solo mientras está pending; 409 CUSTOMER_ORDER_NOT_PENDING si ya se resolvió. */
   cancelOrder(id: string): Observable<PublicOrderDto> {
     return this.#http.post<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}/cancel`, {});
+  }
+
+  // --- Servicio en la mesa, reservas y encuesta (etapa 4) ---
+
+  /** Si ya hay una abierta del mismo tipo, devuelve esa. 403 TABLE_REQUESTS_DISABLED. */
+  createTableRequest(qrCode: string, dto: { type: TableRequestType; note?: string }): Observable<TableRequestDto> {
+    return this.#http.post<TableRequestDto>(`${this.#base}/tables/${encodeURIComponent(qrCode)}/requests`, dto);
+  }
+
+  /** Abiertas y atendidas en los últimos 15 minutos, la más nueva primero. */
+  getTableRequests(qrCode: string): Observable<TableRequestDto[]> {
+    return this.#http.get<TableRequestDto[]>(`${this.#base}/tables/${encodeURIComponent(qrCode)}/requests`);
+  }
+
+  getTableBill(qrCode: string): Observable<TableBillDto> {
+    return this.#http.get<TableBillDto>(`${this.#base}/tables/${encodeURIComponent(qrCode)}/bill`);
+  }
+
+  /** 403 BOOKINGS_DISABLED, 400 BOOKING_INVALID_DATES / BOOKING_OUTSIDE_HOURS, 409 BOOKING_CONTACT_OVERLAP. */
+  createBooking(dto: CreatePublicBookingDto): Observable<PublicBookingDto> {
+    return this.#http.post<PublicBookingDto>(`${this.#base}/bookings`, dto);
+  }
+
+  /** 409 FEEDBACK_NOT_ALLOWED / FEEDBACK_ALREADY_SENT. */
+  sendOrderFeedback(id: string, dto: { rating: number; comment?: string }): Observable<OrderFeedbackResultDto> {
+    return this.#http.post<OrderFeedbackResultDto>(`${this.#base}/orders/${encodeURIComponent(id)}/feedback`, dto);
   }
 }
 
