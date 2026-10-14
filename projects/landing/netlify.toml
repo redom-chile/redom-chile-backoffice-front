@@ -15,6 +15,24 @@ to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
 status = 200
 force = true
 
+# Carta pública: la API sin sesión del restaurante, también por el mismo origen.
+[[redirects]]
+from = "/restaurant/api/public/*"
+to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat"
+status = 200
+force = true
+
+# La carta se arma en el navegador (RenderMode.Client): sin hidratar la portada prerenderizada.
+[[redirects]]
+from = "/carta/*"
+to = "/index.csr.html"
+status = 200
+
+[[redirects]]
+from = "/carta"
+to = "/index.csr.html"
+status = 200
+
 # Es una sola página: cualquier ruta desconocida muestra la portada.
 [[redirects]]
 from = "/*"

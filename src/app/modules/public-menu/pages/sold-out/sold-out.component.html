@@ -1,0 +1,161 @@
+<app-header-dashboard
+  title="Agotados de hoy"
+  subtitle="Lo que se acabó o este local no vende: en la carta pública aparece como agotado u oculto.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE"
+    routerLink="/settings/public-menu"
+    class="glass-row text-foreground hidden h-9 items-center gap-1 rounded-full px-3 text-sm font-medium sm:inline-flex">
+    <app-icon class="h-4 w-4" aria-hidden="true">qr_code_2</app-icon>Carta pública
+  </a>
+</app-header-dashboard>
+
+<!-- Local -->
+<div class="mb-4 max-w-sm">
+  <label for="sold-out-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+  @if ($isLoadingLocations()) {
+  <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+  } @else if (!$locations().length) {
+  <div class="glass-input flex w-full items-center justify-between gap-2 rounded-lg px-4 py-2.5 text-sm">
+    <span class="text-muted-foreground">No hay locales</span>
+    <a routerLink="/business/location" class="text-primary font-medium hover:underline">Crear local</a>
+  </div>
+  } @else {
+  <select
+    id="sold-out-location"
+    class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none"
+    (change)="onLocationChange($event)">
+    @for (location of $locations(); track location.id) {
+    <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+    }
+  </select>
+  }
+</div>
+
+@if ($locationId()) {
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+  <!-- Agotados u ocultos ahora -->
+  <section class="glass flex flex-col rounded-[1rem] p-4 sm:p-5">
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <h2 class="text-foreground font-semibold">Agotados u ocultos ahora</h2>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-8 w-8 items-center justify-center rounded-full"
+        aria-label="Actualizar"
+        [disabled]="availability.isLoading()"
+        (click)="availability.reload()">
+        <app-icon class="h-4 w-4" [class.animate-spin]="availability.isLoading()">refresh</app-icon>
+      </button>
+    </div>
+
+    @if ($availabilityError()) {
+    <div class="flex flex-col items-center gap-3 py-8 text-center">
+      <p class="text-muted-foreground text-sm">No se pudieron cargar los agotados.</p>
+      <app-button impact="light" size="small" type="button" (buttonClick)="availability.reload()">Reintentar</app-button>
+    </div>
+    } @else if (availability.isLoading() && !$current().length) {
+    <div class="space-y-2">
+      @for (row of [1, 2, 3]; track row) {
+      <app-skeleton size="sm" style="width: 100%" />
+      }
+    </div>
+    } @else if (!$current().length) {
+    <div class="flex flex-col items-center gap-2 py-8 text-center">
+      <app-icon class="h-10 w-10 text-green-600 dark:text-green-400" aria-hidden="true">check_circle</app-icon>
+      <p class="text-foreground text-sm font-medium">Todo disponible</p>
+      <p class="text-muted-foreground text-xs">Busca un producto para agotarlo u ocultarlo en este local.</p>
+    </div>
+    } @else {
+    <ul class="space-y-2" [class.opacity-60]="availability.isLoading()">
+      @for (item of $current(); track item.productId) {
+      @let busy = $busyId() === item.productId;
+      <li class="glass-row flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="text-foreground truncate text-sm font-medium">{{ item.productName }}</p>
+          <div class="mt-1 flex flex-wrap gap-1">
+            @if (item.soldOut) {
+            <span class="bg-destructive/15 text-destructive rounded-full px-2 py-0.5 text-xs font-semibold">Agotado {{ untilLabel(item) }}</span>
+            }
+            @if (item.isHidden) {
+            <span class="text-muted-foreground bg-muted/40 rounded-full px-2 py-0.5 text-xs font-semibold">Oculto en este local</span>
+            }
+          </div>
+        </div>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          @if (item.soldOut) {
+          <app-button impact="light" tone="success" size="small" type="button" icon="check" [disabled]="busy" (buttonClick)="markAvailable(item.productId)">Disponible</app-button>
+          }
+          @if (item.isHidden) {
+          <app-button impact="light" size="small" type="button" icon="visibility" [disabled]="busy" (buttonClick)="show(item.productId)">Mostrar en este local</app-button>
+          }
+        </div>
+      </li>
+      }
+    </ul>
+    }
+  </section>
+
+  <!-- Buscar productos -->
+  <section class="glass flex flex-col rounded-[1rem] p-4 sm:p-5">
+    <h2 class="text-foreground mb-3 font-semibold">Productos</h2>
+    <div class="relative mb-3">
+      <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" aria-hidden="true">search</app-icon>
+      <input
+        type="search"
+        autocomplete="off"
+        placeholder="Buscar producto"
+        aria-label="Buscar producto"
+        class="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm"
+        [value]="$search()"
+        (input)="onSearch($event)" />
+    </div>
+
+    @if ($productsError()) {
+    <div class="flex flex-col items-center gap-3 py-8 text-center">
+      <p class="text-muted-foreground text-sm">No se pudieron cargar los productos.</p>
+      <app-button impact="light" size="small" type="button" (buttonClick)="products.reload()">Reintentar</app-button>
+    </div>
+    } @else if (products.isLoading() && !$products().length) {
+    <div class="space-y-2">
+      @for (row of [1, 2, 3, 4]; track row) {
+      <app-skeleton size="sm" style="width: 100%" />
+      }
+    </div>
+    } @else if (!$products().length) {
+    <p class="text-muted-foreground py-8 text-center text-sm">No hay productos que coincidan.</p>
+    } @else {
+    <ul class="space-y-2" [class.opacity-60]="products.isLoading()">
+      @for (product of $products(); track product.id) {
+      @let state = $byProduct().get(product.id);
+      @let busy = $busyId() === product.id;
+      <li class="glass-row relative flex flex-wrap items-center has-[[role=menu]]:z-10 justify-between gap-2 rounded-xl p-3">
+        <div class="min-w-0">
+          <p class="text-foreground truncate text-sm font-medium">{{ product.name }}</p>
+          @if (state?.soldOut) {
+          <p class="text-destructive text-xs">Agotado {{ untilLabel(state!) }}</p>
+          } @else if (state?.isHidden) {
+          <p class="text-muted-foreground text-xs">Oculto en este local</p>
+          }
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          @if (state?.soldOut) {
+          <app-button impact="light" tone="success" size="small" type="button" [disabled]="busy" (buttonClick)="markAvailable(product.id)">Disponible</app-button>
+          }
+          @if (state?.isHidden) {
+          <app-button impact="light" size="small" type="button" [disabled]="busy" (buttonClick)="show(product.id)">Mostrar</app-button>
+          }
+          <app-sold-out-menu
+            [label]="state?.soldOut ? 'Cambiar' : 'Agotar'"
+            [disabled]="busy"
+            [canHide]="!state?.isHidden"
+            (choose)="choose(product.id, $event)" />
+        </div>
+      </li>
+      }
+    </ul>
+    @if ($products().length >= 100 && !$search().trim()) {
+    <p class="text-muted-foreground mt-2 text-xs">Se muestran los primeros 100: busca por nombre para encontrar otros.</p>
+    }
+    }
+  </section>
+</div>
+}

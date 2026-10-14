@@ -6,15 +6,23 @@ import { Router } from '@angular/router';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { UnitsService } from 'src/app/modules/inventory/data-access';
+import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
 import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
-import { createProductForm, ProductFormFieldsComponent, toUpdateProductDto } from '../../ui';
+import {
+  createProductForm,
+  injectEditableProductTags,
+  ProductFormFieldsComponent,
+  ProductTagsFieldComponent,
+  saveProductTagsIfChanged,
+  toUpdateProductDto,
+} from '../../ui';
 import { ProductModalResult } from '../product-modal-result';
 
 @Component({
   selector: 'app-update-product-modal',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent],
+  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent, ProductTagsFieldComponent],
   templateUrl: './update-product-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -38,6 +46,15 @@ export class UpdateProductModalComponent implements OnDestroy {
   // Subiendo la imagen o guardando el producto.
   readonly $isLoading = computed(() => this.#isSaving() || !!this.updateService.$isLoading());
   #image: ImageSelection = { kind: 'keep' };
+  // Etiquetas de la carta: van por otro endpoint, después de guardar el producto y solo si cambiaron.
+  // GET /products aún no las devuelve: si no vienen, se parte vacío y se avisa que se reemplazan.
+  readonly #menuSettings = inject(MenuSettingsService);
+  readonly $tags = injectEditableProductTags();
+  readonly #initialTagIds: readonly number[] = this.product.tags?.map((tag) => tag.id) ?? [];
+  readonly $tagIds = signal<readonly number[]>(this.#initialTagIds);
+  readonly tagsNote = this.product.tags
+    ? null
+    : 'Las etiquetas que ya tiene el producto aún no se muestran aquí: si eliges otras, reemplazan a las anteriores.';
   readonly #router = inject(Router);
   // La receta se arma sobre lo guardado: solo si el producto ya es "Por receta".
   readonly $canConfigureRecipe = computed(() => this.product.stockMode === 'recipe' && this.$ingredientsEnabled());
@@ -47,7 +64,7 @@ export class UpdateProductModalComponent implements OnDestroy {
 
     effect(() => {
       if (this.updateService.$success()) {
-        this.dialogRef.close('updated');
+        untracked(() => this.#afterUpdate());
       }
     });
 
@@ -86,6 +103,13 @@ export class UpdateProductModalComponent implements OnDestroy {
     } finally {
       this.#isSaving.set(false);
     }
+  }
+
+  async #afterUpdate() {
+    this.#isSaving.set(true);
+    await saveProductTagsIfChanged(this.#menuSettings, this.toast, this.product.id, this.$tagIds(), this.#initialTagIds);
+    this.#isSaving.set(false);
+    this.dialogRef.close('updated');
   }
 
   handleConfigureRecipe() {

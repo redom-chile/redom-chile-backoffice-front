@@ -1,3 +1,5 @@
+import { CategoryScheduleRangeDto } from 'src/app/modules/public-menu/data-access';
+
 export type CategoryDto = Readonly<{
   id: number;
   name: string;
@@ -10,6 +12,8 @@ export type CategoryDto = Readonly<{
   // URL firmada (vence en 1 hora).
   imageUrl?: string | null;
   subcategories?: CategoryDto[];
+  // Horario en la carta pública ([] = todo el día). El backend aún no lo devuelve: si no viene, se desconoce.
+  schedule?: readonly CategoryScheduleRangeDto[];
 }>;
 
 export type CreateCategoryDto = Readonly<{

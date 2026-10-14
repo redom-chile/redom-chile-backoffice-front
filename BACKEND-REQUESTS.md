@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
@@ -360,6 +360,16 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** aplicar en desarrollo lo mismo que en producción (prompt en `docs/backend-prompts/despliegue-billing-aws.md`). En producción, poner los precios de los planes desde Plataforma: hoy `plans/public` los devuelve sin precios.
 
 **Front mientras tanto:** en desarrollo, sin entitlements no se restringe nada y las pantallas de cobros fallan.
+
+---
+
+### 51. 🟡 Carta pública: devolver etiquetas del producto y horario de la categoría
+
+**Problema:** `GET /products`, `GET /products/:id`, `GET /categories` y `GET /categories/:id` no devuelven las etiquetas del producto (`product_tag_links`) ni el horario de la categoría (`category_schedules`). Al editar, el front no puede mostrar lo que ya está guardado.
+
+**Se pide:** agregar `tags: [{ id, code, name, kind }]` al producto y `schedule: [{ locationId, dayOfWeek, startTime, endTime }]` (o `null` = todo el día) a la categoría, en el detalle y en los listados.
+
+**Front mientras tanto:** los campos parten vacíos ("Todo el día") con una nota, y solo se envían si el usuario los cambia, para no borrar lo existente. Los DTOs ya aceptan `tags?` y `schedule?`: cuando el backend los envíe, el formulario los carga solo.
 
 ---
 
