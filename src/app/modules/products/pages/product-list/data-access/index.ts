@@ -4,3 +4,4 @@ export * from './update-product.service';
 export * from './delete-product.service';
 export * from './product-error-message';
 export * from './dtos';
+export * from './pack-options.service';

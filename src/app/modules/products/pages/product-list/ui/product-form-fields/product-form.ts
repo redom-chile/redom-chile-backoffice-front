@@ -1,8 +1,10 @@
 import { FormBuilder, Validators } from '@angular/forms';
-import { CreateProductDto, ProductDto, ProductStockMode, UpdateProductDto } from '../../data-access';
+import { CreateProductDto, ProductDto, ProductStockMode, ProductTypeInput, UpdateProductDto } from '../../data-access';
 
 // Variación única para productos sin variaciones reales (convención del backend).
 const DEFAULT_VARIATION_NAME = 'DUMMY';
+
+export const PACK_PRODUCT_TYPE = 'combo' as const;
 
 export function createProductForm(fb: FormBuilder, product?: ProductDto) {
   const variation = product?.variations[0];
@@ -23,6 +25,8 @@ export function createProductForm(fb: FormBuilder, product?: ProductDto) {
     // Solo para "Stock propio": unidad base opcional y stock mínimo (en esa unidad).
     unitId: [product?.unitId ?? (null as number | null)],
     alertQuantity: [product?.alertQuantity || (null as number | null), [Validators.min(0)]],
+    // Tipo: producto normal o pack / combo (type 'combo'; su contenido se guarda aparte).
+    isPack: [product?.type === PACK_PRODUCT_TYPE],
   });
 }
 
@@ -64,6 +68,7 @@ export function toCreateProductDto(form: ProductForm, context: ProductStockConte
   const { price, ...product } = toBasePayload(form);
   return {
     ...product,
+    ...(form.getRawValue().isPack ? { type: PACK_PRODUCT_TYPE } : {}),
     ...toCreateStockFields(form, context),
     variations: [{ name: DEFAULT_VARIATION_NAME, sellPriceIncTax: price }],
   };
@@ -95,11 +100,20 @@ function toUpdateStockFields(form: ProductForm, original: ProductDto, { inventor
   return fields;
 }
 
+// El tipo solo se envía si cambia entre producto normal y pack (no se toca el de otros tipos).
+function toUpdateTypeField(form: ProductForm, original: ProductDto): { type?: ProductTypeInput } {
+  const wasPack = original.type === PACK_PRODUCT_TYPE;
+  const isPack = !!form.getRawValue().isPack;
+  if (isPack === wasPack) return {};
+  return { type: isPack ? PACK_PRODUCT_TYPE : 'single' };
+}
+
 export function toUpdateProductDto(form: ProductForm, original: ProductDto, context: ProductStockContext): UpdateProductDto {
   const { price, ...product } = toBasePayload(form);
   const variation = original.variations[0];
   return {
     ...product,
+    ...toUpdateTypeField(form, original),
     ...toUpdateStockFields(form, original, context),
     variations: [
       variation

@@ -14,6 +14,11 @@ export const PLAN_FEATURES = [
   'finance',
   'tips',
   'multi_location',
+  'menu_marketing',
+  'table_ordering',
+  'online_ordering',
+  'menu_branding',
+  'public_api',
 ] as const;
 export type PlanFeatureCode = (typeof PLAN_FEATURES)[number];
 

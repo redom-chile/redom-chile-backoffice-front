@@ -14,7 +14,17 @@ export type CartaIconName =
   | 'alert'
   | 'refresh'
   | 'store'
-  | 'chair';
+  | 'chair'
+  | 'chef-hat'
+  | 'calendar'
+  | 'tag'
+  | 'package'
+  | 'info'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'external'
+  | 'flame'
+  | 'check';
 
 /** Íconos SVG en línea (la landing no carga Material Symbols). Decorativos: aria-hidden. */
 @Component({
@@ -93,6 +103,41 @@ export type CartaIconName =
         @case ('chair') {
           <path d="M7 18v3M17 18v3M5 11V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6" />
           <path d="M3 11h18v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        }
+        @case ('chef-hat') {
+          <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.46.32-.85.74-1.03a4 4 0 0 0-2.13-7.6 5 5 0 0 0-9.22 0 4 4 0 0 0-2.13 7.6c.42.18.74.57.74 1.03V20a1 1 0 0 0 1 1z" />
+          <path d="M6 17h12" />
+        }
+        @case ('calendar') {
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+        }
+        @case ('tag') {
+          <path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z" />
+          <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
+        }
+        @case ('package') {
+          <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" />
+          <path d="M12 22V12M3.29 7 12 12l8.71-5M7.5 4.27l9 5.15" />
+        }
+        @case ('info') {
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4M12 8h.01" />
+        }
+        @case ('chevron-left') {
+          <path d="m15 18-6-6 6-6" />
+        }
+        @case ('chevron-right') {
+          <path d="m9 18 6-6-6-6" />
+        }
+        @case ('external') {
+          <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        }
+        @case ('flame') {
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+        }
+        @case ('check') {
+          <path d="M20 6 9 17l-5-5" />
         }
       }
     </svg>

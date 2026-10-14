@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { FormBuilder } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -11,7 +12,9 @@ import { CreateProductService, getProductSaveErrorMessage } from '../../data-acc
 import {
   createProductForm,
   injectEditableProductTags,
+  injectPackContent,
   ProductFormFieldsComponent,
+  ProductPackEditorComponent,
   ProductTagsFieldComponent,
   saveProductTagsIfChanged,
   toCreateProductDto,
@@ -21,7 +24,7 @@ import { ProductModalResult } from '../product-modal-result';
 @Component({
   selector: 'app-create-product-modal',
   standalone: true,
-  imports: [ButtonComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent, ProductTagsFieldComponent],
+  imports: [ButtonComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent, ProductTagsFieldComponent, ProductPackEditorComponent],
   templateUrl: './create-product-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,9 +51,13 @@ export class CreateProductModalComponent implements OnDestroy {
   readonly #menuSettings = inject(MenuSettingsService);
   readonly $tags = injectEditableProductTags();
   readonly $tagIds = signal<readonly number[]>([]);
+  // Contenido del pack (type combo): va por otro endpoint, después de crear el producto.
+  readonly pack = injectPackContent();
+  readonly $isPack = toSignal(this.form.controls.isPack.valueChanges, { initialValue: this.form.controls.isPack.value });
 
   constructor() {
     if (this.$inventoryEnabled()) this.#units.load();
+    this.pack.startEmpty();
 
     effect(() => {
       if (this.createService.$success()) {
@@ -70,6 +77,11 @@ export class CreateProductModalComponent implements OnDestroy {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.show('Completa los campos obligatorios', 'warning');
+      return;
+    }
+    const packError = this.pack.validate(!!this.form.controls.isPack.value);
+    if (packError) {
+      this.toast.show(packError, 'warning');
       return;
     }
     this.#save();
@@ -95,6 +107,7 @@ export class CreateProductModalComponent implements OnDestroy {
   async #afterCreate(productId: number | null) {
     this.#isSaving.set(true);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, productId, this.$tagIds(), []);
+    await this.pack.saveIfChanged(productId, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);
     this.dialogRef.close('created');
   }

@@ -180,6 +180,7 @@ export class Menu {
           route: '/settings',
           children: [
             { label: 'Carta pública', route: '/settings/public-menu' },
+            { label: 'Marketing de la carta', route: '/settings/public-menu/marketing' },
             { label: 'Agotados de hoy', route: '/settings/public-menu/sold-out' },
             { label: 'Horarios', route: '/settings/schedules' },
             { label: 'Estaciones', route: '/settings/stations' },

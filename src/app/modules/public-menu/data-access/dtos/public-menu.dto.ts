@@ -1,4 +1,5 @@
-/** Carta pública por local, etapa 1. Backend: libs/restaurant/public-menu/src/lib/public-menu.types.ts. */
+/** Carta pública por local, etapas 1 y 2. Backend: libs/restaurant/public-menu/src/lib/public-menu.types.ts. */
+import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
 
@@ -19,8 +20,12 @@ export type PublicProductDto = Readonly<{
   tags: string[];
   soldOut: boolean;
   hasModifiers: boolean;
-  /** price: final, con IVA. */
-  variations: ReadonlyArray<{ id: number; name: string; price: number }>;
+  /** price: final, con IVA y con la promoción; originalPrice (si no es null) va tachado. No recalcular en el front. */
+  variations: ReadonlyArray<{ id: number; name: string; price: number; originalPrice?: number | null }>;
+  /** Etapa 2: la mejor promoción vigente (no se suman). */
+  promotion?: PublicPromotionDto | null;
+  /** Etapa 2: solo productos tipo pack. */
+  pack?: Readonly<{ groups: PublicPackGroupDto[] }> | null;
 }>;
 
 export type PublicSubcategoryDto = Readonly<{
@@ -80,6 +85,12 @@ export type PublicLocationMenuDto = Readonly<{
   tags: PublicTagDto[];
   categories: PublicCategoryDto[];
   uncategorized: PublicProductDto[];
+  /** Etapa 2: in_store desde el QR de una mesa o si el local no vende online; si no, online. */
+  priceChannel?: PriceChannel;
+  /** Etapa 2: null si el plan no incluye menu_marketing. */
+  marketing?: PublicMarketingDto | null;
+  /** Etapa 2: null si el plan no incluye menu_branding. */
+  branding?: PublicBrandingDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */
@@ -104,11 +115,13 @@ export type MenuSettingsDto = Readonly<{
   instagram: string | null;
   website: string | null;
   googleReviewUrl: string | null;
+  /** Etapa 2: frecuencia de la ventana de ofertas. */
+  modalFrequency?: ModalFrequency;
 }>;
 
 /** Solo los campos que cambian. URLs con https://. */
 export type UpdateMenuSettingsDto = Partial<
-  Pick<MenuSettingsDto, 'isPublished' | 'description' | 'address' | 'latitude' | 'longitude' | 'phone' | 'whatsapp' | 'instagram' | 'website' | 'googleReviewUrl'>
+  Pick<MenuSettingsDto, 'isPublished' | 'description' | 'address' | 'latitude' | 'longitude' | 'phone' | 'whatsapp' | 'instagram' | 'website' | 'googleReviewUrl' | 'modalFrequency'>
 >;
 
 export type SlugAvailabilityDto = Readonly<{

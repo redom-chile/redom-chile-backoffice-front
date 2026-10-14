@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { FormBuilder } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -12,7 +13,10 @@ import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '..
 import {
   createProductForm,
   injectEditableProductTags,
+  injectPackContent,
+  PACK_PRODUCT_TYPE,
   ProductFormFieldsComponent,
+  ProductPackEditorComponent,
   ProductTagsFieldComponent,
   saveProductTagsIfChanged,
   toUpdateProductDto,
@@ -22,7 +26,15 @@ import { ProductModalResult } from '../product-modal-result';
 @Component({
   selector: 'app-update-product-modal',
   standalone: true,
-  imports: [ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ProductFormFieldsComponent, ProductTagsFieldComponent],
+  imports: [
+    ButtonComponent,
+    IconComponent,
+    ModalCardComponent,
+    SlotDirective,
+    ProductFormFieldsComponent,
+    ProductTagsFieldComponent,
+    ProductPackEditorComponent,
+  ],
   templateUrl: './update-product-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -55,12 +67,18 @@ export class UpdateProductModalComponent implements OnDestroy {
   readonly tagsNote = this.product.tags
     ? null
     : 'Las etiquetas que ya tiene el producto aún no se muestran aquí: si eliges otras, reemplazan a las anteriores.';
+  // Contenido del pack (type combo): se carga si ya es pack y se guarda después del producto, solo si cambió.
+  readonly pack = injectPackContent();
+  readonly $isPack = toSignal(this.form.controls.isPack.valueChanges, { initialValue: this.form.controls.isPack.value });
   readonly #router = inject(Router);
   // La receta se arma sobre lo guardado: solo si el producto ya es "Por receta".
   readonly $canConfigureRecipe = computed(() => this.product.stockMode === 'recipe' && this.$ingredientsEnabled());
 
   constructor() {
     if (this.$inventoryEnabled()) this.#units.load();
+    // Si ya es pack se carga lo guardado; si recién pasa a serlo, parte vacío.
+    if (this.product.type === PACK_PRODUCT_TYPE) this.pack.load(this.product.id);
+    else this.pack.startEmpty();
 
     effect(() => {
       if (this.updateService.$success()) {
@@ -80,6 +98,11 @@ export class UpdateProductModalComponent implements OnDestroy {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.show('Completa los campos obligatorios', 'warning');
+      return;
+    }
+    const packError = this.pack.validate(!!this.form.controls.isPack.value);
+    if (packError) {
+      this.toast.show(packError, 'warning');
       return;
     }
     this.#save();
@@ -108,6 +131,7 @@ export class UpdateProductModalComponent implements OnDestroy {
   async #afterUpdate() {
     this.#isSaving.set(true);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, this.product.id, this.$tagIds(), this.#initialTagIds);
+    await this.pack.saveIfChanged(this.product.id, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);
     this.dialogRef.close('updated');
   }

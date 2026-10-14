@@ -1,0 +1,141 @@
+@if ($blocked()) {
+<app-marketing-upsell-card
+  feature="menu_branding"
+  [requiredPlans]="$requiredPlans()"
+  description="Pon los colores de tu marca y una foto de portada en la carta pública de cada local." />
+} @else if ($error()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="branding.reload()">Reintentar</app-button>
+</div>
+} @else if (branding.isLoading() && !$saved()) {
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+  @for (card of [1, 2]; track card) {
+  <div class="glass space-y-3 rounded-[1rem] p-5">
+    <app-skeleton size="xs" style="width: 140px" />
+    <app-skeleton size="sm" style="width: 100%" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else {
+@let colors = $effective();
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-2" [class.opacity-60]="branding.isLoading()">
+  <section class="glass space-y-5 rounded-[1rem] p-4 sm:p-5">
+    <div>
+      <h2 class="text-foreground font-semibold">Colores</h2>
+      <p class="text-muted-foreground text-sm">Sin elegir, la carta usa los colores de Redom y respeta el modo oscuro del celular.</p>
+    </div>
+
+    @for (key of keys; track key) {
+    @let value = $theme()[key];
+    <div>
+      <label [for]="'branding-' + key" class="text-foreground block text-sm font-medium">{{ labels[key].label }}</label>
+      <p class="text-muted-foreground mb-1.5 text-xs">{{ labels[key].hint }}</p>
+      <div class="flex items-center gap-2">
+        <input
+          type="color"
+          class="h-10 w-12 shrink-0 cursor-pointer rounded-md border border-[var(--border)] bg-transparent p-0.5 disabled:cursor-not-allowed"
+          [attr.aria-label]="labels[key].label + ', selector'"
+          [value]="colors[key].toLowerCase()"
+          [disabled]="!$canEdit() || $isSaving()"
+          (input)="setColor(key, $any($event.target).value)" />
+        <input
+          [id]="'branding-' + key"
+          type="text"
+          maxlength="7"
+          autocomplete="off"
+          spellcheck="false"
+          class="glass-input w-32 rounded-md px-3 py-2 font-mono text-sm uppercase"
+          [class.border-red-500]="$invalidKeys().includes(key)"
+          [placeholder]="defaults[key]"
+          [value]="value"
+          [disabled]="!$canEdit() || $isSaving()"
+          (change)="setColor(key, $any($event.target).value)" />
+        @if (value && $canEdit()) {
+        <button type="button" class="text-primary text-xs font-medium hover:underline" [disabled]="$isSaving()" (click)="reset(key)">Por defecto</button>
+        } @else if (!value) {
+        <span class="text-muted-foreground text-xs">Por defecto</span>
+        }
+      </div>
+      @if ($invalidKeys().includes(key)) {
+      <p class="text-destructive mt-1 text-xs">Usa el formato #RRGGBB, por ejemplo #1A2B3C.</p>
+      }
+    </div>
+    }
+
+    @if ($contrast() < minContrast) {
+    <div class="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+      <app-icon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true">contrast</app-icon>
+      <p class="text-foreground">
+        El texto se lee con dificultad sobre el fondo (contraste {{ $contrastLabel() }}:1; se recomienda {{ minContrast }}:1 o más). La carta lo
+        ajustará para que se lea, pero conviene elegir colores más distintos.
+      </p>
+    </div>
+    } @else {
+    <p class="text-muted-foreground flex items-center gap-1 text-xs">
+      <app-icon class="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden="true">check_circle</app-icon>
+      Buen contraste entre el texto y el fondo ({{ $contrastLabel() }}:1).
+    </p>
+    }
+
+    <div class="border-t border-[var(--border)] pt-4">
+      @for (key of [$pickerKey()]; track key) {
+      <app-image-picker
+        folder="menu_covers"
+        label="Portada"
+        [currentUrl]="$saved()?.coverUrl"
+        [disabled]="!$canEdit() || $isSaving()"
+        [uploading]="$uploading()"
+        [progress]="$progress()"
+        (selectionChange)="onCover($event)" />
+      }
+      <p class="text-muted-foreground mt-1 text-xs">Se muestra arriba de la carta. Usa una foto horizontal.</p>
+    </div>
+
+    <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS" class="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+      @if ($dirty()) {
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+      }
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" [disabled]="!$dirty()" (buttonClick)="save()">Guardar</app-button>
+    </div>
+    @if (!$canEdit()) {
+    <p class="text-muted-foreground text-xs">Solo quien administra la carta pública puede cambiar los colores y la portada.</p>
+    }
+  </section>
+
+  <!-- Vista previa -->
+  <section class="lg:sticky lg:top-4 lg:self-start">
+    <p class="text-muted-foreground mb-2 text-xs font-medium uppercase tracking-wide">Vista previa{{ locationName() ? ' · ' + locationName() : '' }}</p>
+    <div class="mx-auto w-full max-w-xs overflow-hidden rounded-[1.5rem] border border-[var(--border)] shadow-lg" [style.background]="colors.backgroundColor" [style.color]="colors.textColor">
+      <div class="relative h-28 w-full" [style.background]="'color-mix(in srgb, ' + colors.primaryColor + ' 25%, ' + colors.backgroundColor + ')'">
+        @if ($coverUrl(); as url) {
+        <img [src]="url" alt="" class="h-full w-full object-cover" />
+        }
+      </div>
+      <div class="space-y-3 p-4">
+        <div>
+          <p class="text-lg font-bold leading-tight">{{ locationName() || 'Tu local' }}</p>
+          <p class="text-xs opacity-70">Abierto · Retiro y delivery</p>
+        </div>
+        <div class="flex gap-1.5 text-xs font-semibold">
+          <span class="rounded-full px-3 py-1" [style.background]="colors.primaryColor" [style.color]="$onPrimary()">Entradas</span>
+          <span class="rounded-full px-3 py-1" [style.background]="'color-mix(in srgb, ' + colors.textColor + ' 10%, ' + colors.backgroundColor + ')'">Fondos</span>
+          <span class="rounded-full px-3 py-1" [style.background]="'color-mix(in srgb, ' + colors.textColor + ' 10%, ' + colors.backgroundColor + ')'">Postres</span>
+        </div>
+        <div class="flex items-center justify-between gap-2 rounded-xl p-3" [style.background]="'color-mix(in srgb, ' + colors.textColor + ' 5%, ' + colors.backgroundColor + ')'">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold">Lomo saltado</p>
+            <p class="truncate text-xs opacity-70">Con papas fritas y arroz</p>
+          </div>
+          <span class="text-sm font-bold" [style.color]="colors.primaryColor">$9.990</span>
+        </div>
+        <button type="button" tabindex="-1" class="w-full rounded-full py-2 text-sm font-semibold" [style.background]="colors.primaryColor" [style.color]="$onPrimary()">
+          Ver pedido
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+}

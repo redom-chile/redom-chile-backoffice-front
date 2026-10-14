@@ -13,7 +13,18 @@ import {
   viewChild,
   viewChildren,
 } from '@angular/core';
+import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
+import { CartaAnalytics } from '../carta-analytics';
+import {
+  brandingStyle,
+  cheapestVariation,
+  markOfferModalShown,
+  offerModalKey,
+  productsById,
+  safeUrl,
+  shouldShowOfferModal,
+} from '../carta-marketing';
 import {
   buildWeekSchedule,
   categoryAvailabilityText,
@@ -25,8 +36,12 @@ import {
   websiteUrl,
   whatsappUrl,
 } from '../carta-utils';
+import { CartaBannerContent, CartaBanners } from './carta-banners';
+import { CartaDialog } from './carta-dialog';
 import { CartaIcon, CartaIconName, CartaTagIcon } from './carta-icon';
+import { CartaPrice } from './carta-price';
 import { CartaProductCard } from './carta-product-card';
+import { CartaProductDetail } from './carta-product-detail';
 
 type Group = Readonly<{ id: string; name: string; description: string | null; products: PublicProductDto[] }>;
 
@@ -56,16 +71,29 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
  */
 @Component({
   selector: 'app-carta-menu-view',
-  imports: [CartaIcon, CartaTagIcon, CartaProductCard],
+  imports: [CartaIcon, CartaTagIcon, CartaProductCard, CartaBanners, CartaBannerContent, CartaDialog, CartaPrice, CartaProductDetail],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block min-h-dvh bg-background text-foreground antialiased' },
+  host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[style]': 'themeStyle()' },
   template: `
     @let m = menu();
     <!-- Encabezado -->
     <header class="relative overflow-hidden">
-      <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 to-transparent" aria-hidden="true"></div>
-      <div class="relative mx-auto max-w-2xl px-4 pb-4 pt-8 sm:pt-10">
-        <div class="flex items-start gap-4">
+      @if (hasCover()) {
+        <div class="mx-auto max-w-2xl sm:px-4 sm:pt-4">
+          <img
+            [src]="coverUrl()"
+            alt=""
+            decoding="async"
+            fetchpriority="high"
+            class="h-40 w-full bg-muted object-cover sm:h-56 sm:rounded-3xl"
+            (error)="coverFailed.set(true)"
+          />
+        </div>
+      } @else {
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 to-transparent" aria-hidden="true"></div>
+      }
+      <div class="relative mx-auto max-w-2xl px-4 pb-4" [class]="hasCover() ? 'pt-0' : 'pt-8 sm:pt-10'">
+        <div class="flex items-start gap-4" [style.margin-top.rem]="hasCover() ? -2 : null">
           @if (m.business.logoUrl && !logoFailed()) {
             <img
               [src]="m.business.logoUrl"
@@ -73,6 +101,8 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
               width="72"
               height="72"
               class="size-16 shrink-0 rounded-2xl bg-card object-cover shadow-sm ring-1 ring-border sm:size-[72px]"
+              [class.ring-4]="hasCover()"
+              [class.ring-background]="hasCover()"
               (error)="logoFailed.set(true)"
             />
           } @else {
@@ -82,7 +112,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
               >{{ logoInitials() }}</span
             >
           }
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1" [class.pt-9]="hasCover()">
             <h1 class="text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{{ m.business.name }}</h1>
             <p class="mt-0.5 text-[15px] font-medium text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
             <p
@@ -158,6 +188,13 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
       </div>
     </header>
 
+    <!-- Banners -->
+    @if (banners().length) {
+      <div class="mx-auto max-w-2xl px-4 pb-4">
+        <app-carta-banners [banners]="banners()" (activate)="onBanner($event, 'banner_click')" (seen)="analytics?.trackOnce('banner_view', $event.id)" />
+      </div>
+    }
+
     <!-- Navegación de categorías y filtros -->
     @if (sections().length || hasFilters()) {
       <div #stickyBar class="sticky top-0 z-20 border-y border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
@@ -225,6 +262,43 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
 
     <!-- Productos -->
     <main class="mx-auto max-w-2xl px-4 pb-10 pt-4">
+      @if (mostOrdered().length) {
+        <section class="pt-4" aria-labelledby="carta-most-ordered">
+          <h2 id="carta-most-ordered" class="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <app-carta-icon name="flame" [size]="20" class="text-primary" />
+            Los más pedidos
+          </h2>
+          <ul class="-mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            @for (p of mostOrdered(); track p.id) {
+              <li class="w-36 shrink-0 snap-start sm:w-40">
+                <button
+                  type="button"
+                  class="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-primary"
+                  [class.opacity-60]="p.soldOut"
+                  (click)="openProduct(p)"
+                >
+                  @if (p.imageUrl) {
+                    <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" class="aspect-square w-full bg-muted object-cover" />
+                  } @else {
+                    <span class="flex aspect-square w-full items-center justify-center bg-muted text-muted-foreground" aria-hidden="true">
+                      <app-carta-icon name="utensils" [size]="28" />
+                    </span>
+                  }
+                  <span class="flex flex-1 flex-col gap-1 p-2.5">
+                    <span class="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{{ p.name }}</span>
+                    @if (cheapest(p); as v) {
+                      <span class="mt-auto text-sm font-semibold"><app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" /></span>
+                    }
+                    @if (p.soldOut) {
+                      <span class="text-xs font-medium text-muted-foreground">Agotado</span>
+                    }
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
       @for (s of sections(); track s.id) {
         <section #section [id]="s.anchor" [attr.data-anchor]="s.anchor" class="pt-6" [attr.aria-labelledby]="'carta-h-' + s.anchor">
           <div [class.opacity-60]="!s.availableNow">
@@ -244,19 +318,19 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
             @if (s.products.length) {
               <div class="mt-3 grid gap-3">
                 @for (p of s.products; track p.id) {
-                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" />
+                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" (view)="openProduct($event)" />
                 }
               </div>
             }
             @for (sub of s.subgroups; track sub.id) {
-              <div class="mt-5">
+              <div class="mt-5 scroll-mt-20" [id]="'carta-sub-' + sub.id">
                 <h3 class="text-base font-semibold text-foreground [overflow-wrap:anywhere]">{{ sub.name }}</h3>
                 @if (sub.description) {
                   <p class="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ sub.description }}</p>
                 }
                 <div class="mt-2 grid gap-3">
                   @for (p of sub.products; track p.id) {
-                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" />
+                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" (view)="openProduct($event)" />
                   }
                 </div>
               </div>
@@ -276,6 +350,53 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
       }
     </main>
 
+    <!-- Detalle del producto -->
+    @if (detail(); as p) {
+      <app-carta-dialog [label]="p.name" (closed)="detail.set(null)">
+        <app-carta-product-detail [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" />
+      </app-carta-dialog>
+    }
+
+    <!-- Ventana de ofertas -->
+    @if (offer(); as b) {
+      <app-carta-dialog #offerDialog [label]="b.title" (closed)="offer.set(null)">
+        <app-carta-banner-content [banner]="b" [eager]="true" />
+        <div class="px-4 pb-5">
+          @switch (b.link.type) {
+            @case ('url') {
+              @if (safe(b.link.url); as href) {
+                <a
+                  [href]="href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98]"
+                  (click)="analytics?.track('banner_click', b.id); offerDialog.close()"
+                >
+                  Ver más
+                  <app-carta-icon name="external" [size]="16" />
+                  <span class="sr-only">(se abre en una pestaña nueva)</span>
+                </a>
+              }
+            }
+            @case ('none') {
+              <button type="button" class="w-full rounded-full border border-border px-5 py-3 text-sm font-semibold transition hover:bg-muted" (click)="offerDialog.close()">
+                Entendido
+              </button>
+            }
+            @default {
+              <button
+                type="button"
+                class="w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98]"
+                (click)="offerDialog.close(); onBanner(b, 'banner_click')"
+              >
+                {{ b.link.type === 'product' ? 'Ver producto' : 'Ver categoría' }}
+              </button>
+            }
+          }
+        </div>
+      </app-carta-dialog>
+    }
+
     @if (m.business.showRedomBadge) {
       <footer class="border-t border-border py-6 text-center">
         <a
@@ -292,6 +413,11 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
 })
 export class CartaMenuView {
   readonly menu = input.required<PublicLocationMenuDto>();
+  /** Vista previa (backoffice): sin la ventana de ofertas. */
+  readonly preview = input(false);
+
+  /** Solo la provee la página pública: la vista previa no envía analítica. */
+  protected readonly analytics = inject(CartaAnalytics, { optional: true });
 
   readonly #destroyRef = inject(DestroyRef);
   readonly #injector = inject(Injector);
@@ -300,6 +426,11 @@ export class CartaMenuView {
   private readonly categoryNav = viewChild<ElementRef<HTMLElement>>('categoryNav');
 
   protected readonly logoFailed = signal(false);
+  protected readonly coverFailed = signal(false);
+  /** Producto abierto en el detalle. */
+  protected readonly detail = signal<PublicProductDto | null>(null);
+  /** Ventana de ofertas abierta. */
+  protected readonly offer = signal<PublicBannerDto | null>(null);
   protected readonly scheduleOpen = signal(false);
   protected readonly filtersOpen = signal(false);
   protected readonly active = signal<string | null>(null);
@@ -310,6 +441,19 @@ export class CartaMenuView {
   /** Con <base href="/">, un href "#x" apuntaría a la portada. */
   protected readonly pageUrl = typeof location === 'undefined' ? '' : location.pathname + location.search;
   protected readonly logoInitials = computed(() => initials(this.menu().business.name));
+
+  protected readonly safe = safeUrl;
+  protected readonly cheapest = cheapestVariation;
+  protected readonly themeStyle = computed(() => brandingStyle(this.menu().branding?.theme));
+  protected readonly coverUrl = computed(() => this.menu().branding?.coverUrl ?? null);
+  protected readonly hasCover = computed(() => !!this.coverUrl() && !this.coverFailed());
+  protected readonly banners = computed(() => this.menu().marketing?.banners ?? []);
+  readonly #productsById = computed(() => productsById(this.menu()));
+  /** Los ids que no están en la carta se ignoran. */
+  protected readonly mostOrdered = computed(() => {
+    const byId = this.#productsById();
+    return (this.menu().marketing?.mostOrdered ?? []).map((id) => byId.get(id)).filter((p): p is PublicProductDto => !!p);
+  });
 
   protected readonly tagsByCode = computed(() => new Map(this.menu().tags.map((t) => [t.code, t] as const)));
 
@@ -433,6 +577,19 @@ export class CartaMenuView {
       nav.scrollTo({ left: tab.offsetLeft - nav.clientWidth / 2 + tab.offsetWidth / 2, behavior: 'smooth' });
     });
 
+    // Ventana de ofertas según su frecuencia
+    afterNextRender(() => {
+      const m = this.menu();
+      const modal = m.marketing?.modal;
+      if (this.preview() || !modal) return;
+      const frequency = m.marketing!.modalFrequency;
+      const key = offerModalKey(m.business.slug, m.location.slug, modal.id);
+      if (!shouldShowOfferModal(key, frequency)) return;
+      markOfferModalShown(key, frequency);
+      this.offer.set(modal);
+      this.analytics?.track('modal_view', modal.id);
+    }, { injector: this.#injector });
+
     // Ancla inicial (#bebidas)
     afterNextRender(() => {
       const hash = decodeURIComponent(window.location.hash.slice(1));
@@ -443,6 +600,47 @@ export class CartaMenuView {
       this.#observer?.disconnect();
       if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     });
+  }
+
+  protected openProduct(product: PublicProductDto): void {
+    this.detail.set(product);
+    this.analytics?.track(product.pack ? 'pack_view' : 'product_view', product.id);
+  }
+
+  /** Banner o ventana tocados: producto → detalle; categoría → desplazarse; url (en el enlace); none → nada. */
+  protected onBanner(banner: PublicBannerDto, event: 'banner_click'): void {
+    this.analytics?.track(event, banner.id);
+    const { type, id } = banner.link;
+    if (type === 'product' && id != null) {
+      const product = this.#productsById().get(id);
+      if (product) this.openProduct(product);
+    } else if (type === 'category' && id != null) {
+      this.#goToCategory(id);
+    }
+  }
+
+  /** Categoría o subcategoría por id; si los filtros la ocultan, se quitan. */
+  #goToCategory(id: number): void {
+    const m = this.menu();
+    const parent = m.categories.find((c) => c.id === id || c.subcategories.some((s) => s.id === id));
+    if (!parent) return;
+    const run = () => {
+      const section = this.sections().find((s) => s.id === String(parent.id));
+      if (!section) return;
+      if (parent.id === id) {
+        this.#scrollTo(section.anchor, 'smooth');
+        return;
+      }
+      const sub = document.getElementById(`carta-sub-${id}`);
+      if (sub) {
+        this.active.set(section.anchor);
+        sub.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else this.#scrollTo(section.anchor, 'smooth');
+    };
+    if (this.selected().size && !this.sections().some((s) => s.id === String(parent.id))) {
+      this.clearFilters();
+      afterNextRender(run, { injector: this.#injector });
+    } else run();
   }
 
   protected isSelected(code: string): boolean {

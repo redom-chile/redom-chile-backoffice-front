@@ -193,6 +193,8 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Vista previa en WhatsApp/Instagram: la carta se arma en el navegador, así que comparte la tarjeta genérica de la landing; para una por negocio hace falta una Edge Function de Netlify o SSR.
 - Esperando al backend (#51): devolver etiquetas del producto y horario de la categoría para mostrarlos al editar.
 - Mejoras: "Hasta mañana" usado después de medianoche agota hasta el día siguiente; el menú "Agotar" puede salirse de la pantalla en el celular; el QR del local no tiene vista previa (solo descarga).
+- Etapa 2 implementada (marketing): en la carta, precio con promoción y anterior tachado, carrusel de banners, ventana de ofertas con frecuencia, "Los más pedidos", packs (informativo), colores y portada, analítica por lotes; en el backoffice, Configuración → Marketing de la carta (Promociones, Banners con orden y frecuencia de la ventana, Personalización con vista previa y contraste) y el tipo "Pack / combo" con su editor en el producto. Falta probarla en el navegador.
+- Mejoras etapa 2: `GET /products/:id/pack` no trae el precio de referencia de las opciones; "Por defecto" en un grupo no se limita al máximo; al editar un banner con link a producto, el nombre sale de los primeros 100 productos; la tabla de productos no muestra un badge "Pack"; con fondo claro elegido y el dispositivo en modo oscuro, la insignia "Abierto" pierde un poco de contraste.
 - Configuración: `environment.publicSiteUrl` del backoffice (redom.cl en develop y prod) debe apuntar a donde está publicada la landing de cada ambiente.
 
 ## Otros pendientes generales

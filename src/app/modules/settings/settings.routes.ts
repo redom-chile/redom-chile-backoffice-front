@@ -21,6 +21,11 @@ const routes: Routes = [
         pathMatch: 'full',
         loadComponent: () => import('src/app/modules/public-menu/pages/menu-settings').then((m) => m.MenuSettingsComponent),
       },
+      // Promociones, banners y personalización. Query params opcionales: tab (promotions|banners|branding), locationId.
+      {
+        path: 'public-menu/marketing',
+        loadComponent: () => import('src/app/modules/public-menu/pages/menu-marketing').then((m) => m.MenuMarketingComponent),
+      },
       // Query param opcional: locationId.
       {
         path: 'public-menu/sold-out',

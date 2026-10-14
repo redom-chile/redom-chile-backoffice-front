@@ -27,6 +27,9 @@ export type ProductModifierSetDto = Readonly<{
   options: ProductModifierOptionDto[];
 }>;
 
+/** Tipos que el front envía: producto normal, pack (combo) o ingrediente. */
+export type ProductTypeInput = 'single' | 'combo' | 'ingredient';
+
 /** none: sin control · direct: stock propio · recipe: descuenta ingredientes por receta. */
 export type ProductStockMode = 'none' | 'direct' | 'recipe';
 
@@ -34,7 +37,8 @@ export type ProductDto = Readonly<{
   id: number;
   name: string;
   businessId: number;
-  // 'ingredient' para ingredientes (GET /products sin type ya no los devuelve); 'modifier' para sets de modificadores.
+  // 'ingredient' para ingredientes (GET /products sin type ya no los devuelve); 'modifier' para sets de modificadores;
+  // 'combo' para packs.
   type: string | null;
   stockMode?: ProductStockMode;
   // Unidad base del stock (obligatoria en ingredientes, opcional en productos con stock propio).
