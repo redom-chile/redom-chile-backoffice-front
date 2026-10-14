@@ -8,6 +8,7 @@ import { PlanFeatureCode } from './dtos';
 const PLAN_ROUTE_FEATURES: ReadonlyArray<readonly [string, PlanFeatureCode[]]> = [
   ['/pos', ['pos']],
   ['/orders', ['pos']],
+  ['/customer-orders', ['table_ordering']],
   ['/payments', ['pos']],
   ['/tables', ['pos']],
   ['/sectors', ['pos']],

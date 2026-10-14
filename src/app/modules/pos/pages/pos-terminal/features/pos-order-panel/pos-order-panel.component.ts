@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { RouterLink } from '@angular/router';
 import { IconComponent } from 'src/ui';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
-import { OrderDetailDto, OrderLineDto, OrderLineModifierDto } from 'src/app/modules/orders/pages/order-detail/data-access';
+import { isPackLine, OrderDetailDto, OrderLineDto, OrderLineModifierDto, packItemLabel } from 'src/app/modules/orders/pages/order-detail/data-access';
 import { CartLine, CartNoteChange, CustomerSelectorComponent, modifierLabel, OrderTicketComponent } from 'src/app/modules/orders/pages/order-create/features';
 import { CustomerDto } from 'src/app/modules/orders/pages/order-create/data-access';
 import { formatCurrency, KITCHEN_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
@@ -46,6 +46,8 @@ export class PosOrderPanelComponent {
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;
+  readonly packItemLabel = packItemLabel;
+  readonly isPackLine = isPackLine;
 
   // 'DUMMY' es la variación única de los productos sin variaciones.
   variationLabel(line: OrderLineDto): string | null {

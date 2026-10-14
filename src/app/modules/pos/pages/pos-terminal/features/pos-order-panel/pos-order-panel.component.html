@@ -24,6 +24,14 @@
             <span class="text-muted-foreground">· {{ variation }}</span>
             }
           </p>
+          @for (item of line.packItems ?? []; track item.lineId) {
+          <div class="flex items-center justify-between gap-2 pl-4">
+            <p class="text-muted-foreground min-w-0 truncate text-xs">· {{ packItemLabel(item) }}</p>
+            @if (current.isKitchenOrder) {
+            <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="item.resLineOrderStatus" fallback="—" />
+            }
+          </div>
+          }
           @for (mod of line.modifiers; track mod.variationId) {
           <p class="text-muted-foreground truncate pl-4 text-xs">{{ lineModifierLabel(line, mod) }}</p>
           }
@@ -31,7 +39,7 @@
           <p class="truncate pl-4 text-xs italic text-amber-600 dark:text-amber-400">“{{ line.sellLineNote }}”</p>
           }
         </div>
-        @if (current.isKitchenOrder) {
+        @if (current.isKitchenOrder && !isPackLine(line)) {
         <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
         }
       </li>

@@ -18,6 +18,7 @@ export class Menu {
           children: [
             { label: 'Tomar pedido', route: '/pos' },
             { label: 'Pedidos', route: '/orders' },
+            { label: 'Pedidos de clientes', route: '/customer-orders' },
             { label: 'Pagos', route: '/payments' },
             { label: 'Turnos de caja', route: '/cash' },
           ],

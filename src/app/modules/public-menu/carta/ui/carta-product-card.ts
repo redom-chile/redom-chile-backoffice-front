@@ -58,10 +58,21 @@ import { CartaPrice } from './carta-price';
               }
             </ul>
           }
-          @if (cheapest(); as v) {
-            <p class="mt-2 text-[15px] font-semibold text-foreground">
-              <app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" [prefix]="samePrice() ? '' : 'desde '" />
-            </p>
+          @if (cheapest() || orderable()) {
+            <div class="mt-2 flex items-center justify-between gap-2">
+              @if (cheapest(); as v) {
+                <p class="text-[15px] font-semibold text-foreground">
+                  <app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" [prefix]="samePrice() ? '' : 'desde '" />
+                </p>
+              }
+              @if (orderable()) {
+                <!-- Visual: toda la tarjeta abre el detalle, donde se agrega -->
+                <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm" aria-hidden="true">
+                  <app-carta-icon name="plus" [size]="14" />
+                  Agregar
+                </span>
+              }
+            </div>
           }
         </div>
         @if (p.imageUrl && !imageFailed()) {
@@ -79,7 +90,7 @@ import { CartaPrice } from './carta-price';
       </div>
       <!-- Toda la tarjeta abre el detalle -->
       <button type="button" class="absolute inset-0 size-full cursor-pointer rounded-2xl outline-none" (click)="view.emit(p)">
-        <span class="sr-only">Ver detalle de {{ p.name }}</span>
+        <span class="sr-only">{{ orderable() ? 'Ver y agregar ' : 'Ver detalle de ' }}{{ p.name }}</span>
       </button>
     </article>
   `,
@@ -90,6 +101,8 @@ export class CartaProductCard {
   readonly tagsByCode = input<ReadonlyMap<string, PublicTagDto>>(new Map());
   /** Zona horaria del local (fecha de fin de la promoción). */
   readonly timeZone = input('America/Santiago');
+  /** Pedidos desde la mesa y el producto se puede agregar: muestra "Agregar". */
+  readonly orderable = input(false);
   readonly view = output<PublicProductDto>();
 
   protected readonly imageFailed = signal(false);

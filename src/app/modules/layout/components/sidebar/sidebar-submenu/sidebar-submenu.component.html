@@ -34,6 +34,9 @@
           @if (sub.route === paymentsReviewRoute && $paymentsReviewCount() > 0) {
           <span class="bg-primary text-primary-foreground ml-auto min-w-[1.25rem] shrink-0 rounded-full px-1.5 text-center text-[10px] font-semibold leading-4 tabular-nums" [attr.aria-label]="$paymentsReviewCount() + ' por revisar'">{{ $paymentsReviewCount() }}</span>
           }
+          @if (sub.route === customerOrdersRoute && $customerOrdersCount() > 0) {
+          <span class="bg-primary text-primary-foreground ml-auto min-w-[1.25rem] shrink-0 rounded-full px-1.5 text-center text-[10px] font-semibold leading-4 tabular-nums" [attr.aria-label]="$customerOrdersCount() + ' pendientes'">{{ $customerOrdersCount() }}</span>
+          }
           @if (sub.locked) {
           <app-icon class="text-muted-foreground/60 h-3.5 w-3.5 shrink-0" title="No incluido en tu plan" aria-label="No incluido en tu plan">lock</app-icon>
           }

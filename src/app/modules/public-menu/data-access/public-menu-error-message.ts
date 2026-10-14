@@ -15,6 +15,22 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Esta carta no está disponible.';
     case 'PRODUCT_NOT_PACK':
       return 'Cambia el tipo del producto a Pack para armar su contenido.';
+    case 'ORDERING_DISABLED':
+      return 'Este local no está recibiendo pedidos desde la mesa.';
+    case 'LOCATION_CLOSED':
+      return 'El local está cerrado.';
+    case 'TABLE_BLOCKED':
+      return 'Esta mesa no está disponible. Llama al mesero.';
+    case 'PACK_CHOICES_INVALID':
+      return 'Revisa las opciones del pack.';
+    case 'TOO_MANY_PENDING_ORDERS':
+      return 'Tu mesa tiene pedidos esperando confirmación. Espera un momento.';
+    case 'CUSTOMER_ORDER_NOT_PENDING':
+      return 'Este pedido ya fue resuelto.';
+    case 'MODIFIER_NOT_AVAILABLE':
+      return 'Una de las opciones elegidas ya no está disponible.';
+    case 'MODIFIER_REPEATED':
+      return 'Hay una opción repetida en el pedido.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }

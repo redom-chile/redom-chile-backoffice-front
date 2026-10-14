@@ -13,7 +13,7 @@
     @for (line of lines(); track line.key) {
     <li class="py-2">
       <div class="flex items-center gap-2">
-        @let editable = line.modifierSets.length > 0;
+        @let editable = line.modifierSets.length > 0 || line.isPack;
         <div
           class="min-w-0 flex-1"
           [class.cursor-pointer]="editable"
@@ -28,6 +28,9 @@
             <app-icon class="text-muted-foreground h-3.5 w-3.5 shrink-0">tune</app-icon>
             }
           </p>
+          @for (choice of line.packChoices ?? []; track choice.groupId + '-' + choice.variationId) {
+          <p class="text-muted-foreground truncate text-xs">· {{ packChoiceLabel(choice) }}@if (choice.extraPrice > 0) { <span class="tabular-nums">(+{{ formatCurrency(choice.extraPrice) }})</span> }</p>
+          }
           @for (mod of line.modifiers; track mod.variationId) {
           <p class="text-muted-foreground truncate text-xs">{{ modifierLabel(mod.name, mod.quantity) }}</p>
           }

@@ -26,7 +26,7 @@ type State =
     @if (s.status === 'loading') {
       <app-carta-skeleton />
     } @else if (s.status === 'ready') {
-      <app-carta-menu-view [menu]="s.menu" />
+      <app-carta-menu-view [menu]="s.menu" [qr]="qr()" (refresh)="load(true)" />
     } @else if (s.error.kind === 'rate-limited') {
       <app-carta-retry (retry)="load()" />
     } @else if (s.error.kind === 'error') {
@@ -46,6 +46,7 @@ export class CartaMenuPage {
   readonly #analytics = inject(CartaAnalytics);
 
   protected readonly state = signal<State>({ status: 'loading' });
+  protected readonly qr = signal<string | null>(null);
 
   #business = '';
   #location = '';
@@ -64,23 +65,28 @@ export class CartaMenuPage {
         this.#business = business;
         this.#location = location;
         this.#qr = validQr;
+        this.qr.set(validQr);
         if (validQr) saveTableQr(validQr);
         this.load();
       });
     inject(DestroyRef).onDestroy(() => this.#request?.unsubscribe());
   }
 
-  load(): void {
+  /** silent: recarga sin esqueleto ni menu_view (p. ej. tras PRODUCT_UNAVAILABLE); si falla, se queda la carta actual. */
+  load(silent = false): void {
+    silent &&= this.state().status === 'ready';
     this.#request?.unsubscribe();
-    this.state.set({ status: 'loading' });
+    if (!silent) this.state.set({ status: 'loading' });
     this.#request = this.#api.getLocationMenu(this.#business, this.#location, this.#qr).subscribe({
       next: (menu) => {
         this.#setMeta(menu);
         this.state.set({ status: 'ready', menu });
+        if (silent) return;
         this.#analytics.start(menu.business.slug, menu.location.slug);
         this.#analytics.track('menu_view');
       },
       error: (e) => {
+        if (silent) return;
         const error = readCartaError(e, this.#basePath);
         if (error.kind === 'moved') {
           const tree = this.#router.parseUrl(error.path);

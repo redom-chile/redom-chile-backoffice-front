@@ -1,4 +1,5 @@
 /** Carta pública por local, etapas 1 y 2. Backend: libs/restaurant/public-menu/src/lib/public-menu.types.ts. */
+import { MenuOrderingSettingsDto } from './customer-orders.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -26,6 +27,8 @@ export type PublicProductDto = Readonly<{
   promotion?: PublicPromotionDto | null;
   /** Etapa 2: solo productos tipo pack. */
   pack?: Readonly<{ groups: PublicPackGroupDto[] }> | null;
+  /** Etapa 3: opciones que el cliente puede agregar (price con IVA, por unidad). */
+  modifierSets?: ReadonlyArray<{ id: number; name: string; options: ReadonlyArray<{ variationId: number; name: string; price: number }> }>;
 }>;
 
 export type PublicSubcategoryDto = Readonly<{
@@ -117,10 +120,12 @@ export type MenuSettingsDto = Readonly<{
   googleReviewUrl: string | null;
   /** Etapa 2: frecuencia de la ventana de ofertas. */
   modalFrequency?: ModalFrequency;
+  /** Etapa 3: pedidos del local. */
+  ordering?: MenuOrderingSettingsDto;
 }>;
 
-/** Solo los campos que cambian. URLs con https://. */
-export type UpdateMenuSettingsDto = Partial<
+/** Solo los campos que cambian. URLs con https://. ordering: solo cambian las claves enviadas. */
+export type UpdateMenuSettingsDto = { ordering?: Partial<Pick<MenuOrderingSettingsDto, 'tableOrdering' | 'autoAccept' | 'maxOrderTotal'>> } & Partial<
   Pick<MenuSettingsDto, 'isPublished' | 'description' | 'address' | 'latitude' | 'longitude' | 'phone' | 'whatsapp' | 'instagram' | 'website' | 'googleReviewUrl' | 'modalFrequency'>
 >;
 

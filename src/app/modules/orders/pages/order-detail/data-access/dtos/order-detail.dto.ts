@@ -15,6 +15,17 @@ export type OrderLineModifierDto = Readonly<{
   itemTax: number;
 }>;
 
+// Producto de un pack: línea propia en cocina, con su estado (precio 0, va en el pack).
+export type OrderLinePackItemDto = Readonly<{
+  lineId: number;
+  productId: number;
+  variationId: number;
+  name: string;
+  // Total: packs × unidades por pack.
+  quantity: number;
+  resLineOrderStatus: KitchenStatus | null;
+}>;
+
 export type OrderLineDto = Readonly<{
   lineId: number;
   productId: number;
@@ -30,6 +41,8 @@ export type OrderLineDto = Readonly<{
   sellLineNote: string | null;
   // Modificadores elegidos; no aparecen como líneas sueltas.
   modifiers: OrderLineModifierDto[];
+  // Productos del pack (vacío en los demás). El pack trae resLineOrderStatus null: su estado está en ellos.
+  packItems?: OrderLinePackItemDto[];
   // Producto + sus modificadores.
   lineTotal: number;
   // Pagos por producto (dividir la cuenta). Un pago por monto no los mueve.

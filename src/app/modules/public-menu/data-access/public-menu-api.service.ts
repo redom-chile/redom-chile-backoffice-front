@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
-import { MenuEventsRequestDto, PublicBusinessMenusDto, PublicLocationMenuDto, PublicTableDto } from './dtos';
+import { CreatePublicOrderDto, PublicOrderDto, MenuEventsRequestDto, PublicBusinessMenusDto, PublicLocationMenuDto, PublicTableDto } from './dtos';
 
 /**
  * Base de la API pública. La landing la provee con su propia URL (pasa por su proxy y Netlify, sin CORS);
@@ -44,6 +44,22 @@ export class PublicMenuApiService {
   /** Analítica por lotes (1 a 20). Ante cualquier error se descarta el lote: no se reintenta ni se muestra nada. */
   sendEvents(dto: MenuEventsRequestDto): Observable<void> {
     return this.#http.post<void>(`${this.#base}/events`, dto);
+  }
+
+  // --- Pedidos desde la mesa (etapa 3) ---
+
+  /** 403 ORDERING_DISABLED, 409 LOCATION_CLOSED / TABLE_BLOCKED / PRODUCT_UNAVAILABLE, 400 PACK_CHOICES_INVALID / ORDER_TOO_LARGE, 429. */
+  createOrder(dto: CreatePublicOrderDto): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  }
+
+  getOrder(id: string): Observable<PublicOrderDto> {
+    return this.#http.get<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}`);
+  }
+
+  /** Solo mientras está pending; 409 CUSTOMER_ORDER_NOT_PENDING si ya se resolvió. */
+  cancelOrder(id: string): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}/cancel`, {});
   }
 }
 

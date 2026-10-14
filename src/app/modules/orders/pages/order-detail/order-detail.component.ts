@@ -19,9 +19,10 @@ import {
   GetOrderByIdService,
   MarkLineServedService,
   MarkOrderServedService,
+  isPackLine,
   modifierLabel,
+  packItemLabel,
   OrderDetailDto,
-  OrderLineDto,
   orderVariationLabel,
 } from './data-access';
 import {
@@ -104,7 +105,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
     () => this.$isOpen() && !!this.$order()?.isKitchenOrder && this.access.can(PERMISSIONS.ORDERS.MARK_SERVED),
   );
   readonly $hasPendingLines = computed(() =>
-    (this.$order()?.lines ?? []).some((line) => line.resLineOrderStatus !== 'served'),
+    // Un pack no tiene estado propio: cuentan sus productos.
+    (this.$order()?.lines ?? []).some((line) =>
+      isPackLine(line) ? (line.packItems ?? []).some((item) => item.resLineOrderStatus !== 'served') : line.resLineOrderStatus !== 'served',
+    ),
   );
   readonly $payments = computed(() => {
     const result = this.paymentsService.$payments();
@@ -177,7 +181,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
           quantity: line.quantity,
           // Incluye los modificadores.
           total: line.lineTotal,
-          modifiers: (line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier)),
+          modifiers: [...(line.packItems ?? []).map(packItemLabel), ...(line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier))],
         };
       }),
       subtotal: order.totalBeforeTax,
@@ -227,9 +231,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       });
   }
 
-  handleServeLine(line: OrderLineDto) {
-    this.$pendingLineId.set(line.lineId);
-    this.markLineService.markLine(line.lineId);
+  handleServeLine(lineId: number) {
+    this.$pendingLineId.set(lineId);
+    this.markLineService.markLine(lineId);
   }
 
   handleServeAll(order: OrderDetailDto) {

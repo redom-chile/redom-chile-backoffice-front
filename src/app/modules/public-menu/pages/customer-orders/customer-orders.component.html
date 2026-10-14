@@ -1,0 +1,166 @@
+@let tab = $tab();
+@let pendingCount = $pending().length;
+<app-header-dashboard title="Pedidos de clientes" subtitle="Lo que tus clientes piden desde el QR de su mesa.">
+  @if ($hasFeature() && $locationId()) {
+  <button
+    type="button"
+    class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium"
+    aria-label="Actualizar"
+    (click)="refresh()">
+    <app-icon class="h-4 w-4" [class.animate-spin]="pending.isLoading() || history.isLoading()" aria-hidden="true">refresh</app-icon>
+    <span class="hidden sm:inline">Actualizar</span>
+  </button>
+  }
+</app-header-dashboard>
+
+@if (!$hasFeature()) {
+<app-marketing-upsell-card
+  feature="table_ordering"
+  description="Tus clientes piden desde el QR de su mesa y tú aceptas los pedidos aquí, o los mandas directo a cocina." />
+} @else {
+<div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <nav class="glass-input flex w-full gap-1 rounded-full p-1 md:w-fit" role="tablist" aria-label="Pedidos">
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium md:flex-none"
+      [class]="tab === 'pending' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === 'pending'"
+      (click)="selectTab('pending')">
+      Pendientes
+      @if (pendingCount > 0) {
+      <span
+        class="min-w-[1.25rem] rounded-full px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums"
+        [class]="tab === 'pending' ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'">
+        {{ pendingCount }}
+      </span>
+      }
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium md:flex-none"
+      [class]="tab === 'history' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [attr.aria-selected]="tab === 'history'"
+      (click)="selectTab('history')">
+      Historial
+    </button>
+  </nav>
+
+  <div class="w-full md:max-w-xs">
+    <label for="customer-orders-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+    @if ($isLoadingLocations()) {
+    <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+    } @else if (!$locations().length) {
+    <div class="glass-input text-muted-foreground w-full rounded-lg px-4 py-2.5 text-sm">No hay locales</div>
+    } @else {
+    <select id="customer-orders-location" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" (change)="onLocationChange($event)">
+      @for (location of $locations(); track location.id) {
+      <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+      }
+    </select>
+    }
+  </div>
+</div>
+
+@if ($lastAccepted(); as accepted) {
+<div class="mb-4 flex items-center justify-between gap-3 rounded-xl bg-green-500/10 px-4 py-3 text-sm text-green-800 dark:text-green-300" role="status">
+  <span class="min-w-0">
+    <app-icon class="mr-1 inline h-4 w-4 align-[-2px]" aria-hidden="true">check_circle</app-icon>
+    Pedido de {{ accepted.table?.name ?? 'Sin mesa' }} aceptado{{ accepted.invoiceNo ? ' · ' + accepted.invoiceNo : '' }}
+  </span>
+  <span class="flex shrink-0 items-center gap-1">
+    @if (accepted.transactionId) {
+    <a [routerLink]="['/orders', accepted.transactionId]" class="text-primary font-semibold hover:underline">Ver pedido</a>
+    }
+    <button type="button" class="hover:text-foreground inline-flex h-8 w-8 items-center justify-center rounded-full" aria-label="Cerrar" (click)="$lastAccepted.set(null)">
+      <app-icon class="h-4 w-4">close</app-icon>
+    </button>
+  </span>
+</div>
+}
+
+@if ($locationId()) {
+@if (tab === 'pending') {
+<!-- Pendientes -->
+@if ($pendingError() && $pendingLoaded()) {
+<p class="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="status">
+  Sin conexión con el servidor; reintentando…
+</p>
+}
+@if (!$pendingLoaded()) {
+@if ($pendingError()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <p class="text-muted-foreground text-sm">No se pudieron cargar los pedidos.</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="refresh()">Reintentar</app-button>
+</div>
+} @else {
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="sm" style="width: 40%" />
+    <app-skeleton size="sm" style="width: 100%" />
+    <app-skeleton size="sm" style="width: 80%" />
+  </div>
+  }
+</div>
+}
+} @else if (!pendingCount) {
+<div class="glass flex flex-col items-center gap-2 rounded-[1rem] px-5 py-12 text-center">
+  <span class="bg-primary/10 text-primary inline-flex h-12 w-12 items-center justify-center rounded-full">
+    <app-icon class="h-6 w-6" aria-hidden="true">room_service</app-icon>
+  </span>
+  <p class="text-foreground font-medium">No hay pedidos pendientes</p>
+  <p class="text-muted-foreground max-w-sm text-sm">Se actualiza solo; cuando llegue uno, suena un aviso.</p>
+  <p *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE" class="text-muted-foreground max-w-sm text-xs">
+    ¿No llegan? Revisa que "Pedidos desde la mesa" esté activo en
+    <a routerLink="/settings/public-menu" class="text-primary font-medium hover:underline">Carta pública</a>.
+  </p>
+</div>
+} @else {
+<div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (order of $pending(); track order.id) {
+  <app-customer-order-card
+    [order]="order"
+    [now]="$now()"
+    [canManage]="$canManage()"
+    [busy]="$busyId() === order.id"
+    [problem]="problemOf(order)"
+    (accept)="accept($event)"
+    (reject)="reject($event)" />
+  }
+</div>
+}
+} @else {
+<!-- Historial -->
+@if ($historyError()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <p class="text-muted-foreground text-sm">No se pudo cargar el historial.</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="history.reload()">Reintentar</app-button>
+</div>
+} @else if (history.isLoading() && !$history().length) {
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-3 rounded-[1rem] p-4">
+    <app-skeleton size="sm" style="width: 40%" />
+    <app-skeleton size="sm" style="width: 100%" />
+  </div>
+  }
+</div>
+} @else if (!$history().length) {
+<div class="glass rounded-[1rem] px-5 py-12 text-center">
+  <p class="text-muted-foreground text-sm">Todavía no hay pedidos resueltos en este local.</p>
+</div>
+} @else {
+<div class="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+  @for (order of $history(); track order.id) {
+  <app-customer-order-card [order]="order" [now]="$now()" />
+  }
+</div>
+@if ($history().length >= historyLimit) {
+<p class="text-muted-foreground mt-3 text-center text-xs">Se muestran los últimos {{ historyLimit }} pedidos resueltos.</p>
+}
+}
+}
+}
+}

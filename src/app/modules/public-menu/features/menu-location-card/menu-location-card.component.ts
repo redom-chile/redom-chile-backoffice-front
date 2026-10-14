@@ -9,6 +9,7 @@ import {
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ButtonComponent, ToastService, ToggleComponent } from 'src/ui';
 import { environment } from 'src/environments/environment';
+import { CustomerOrderSettingsComponent } from '../customer-order-settings';
 import { SlugEditorComponent } from '../slug-editor';
 import { downloadMenuQr, toFileSlug } from './menu-qr';
 
@@ -33,10 +34,10 @@ const toNumber = (value: string) => {
 const savedNumber = (value: number | string | null | undefined) =>
   value === null || value === undefined || value === '' ? null : Number(value);
 
-/** Tarjeta de la carta de un local: URL y QR, publicación, datos públicos y dirección (slug). */
+/** Tarjeta de la carta de un local: URL y QR, publicación, datos públicos, pedidos y dirección (slug). */
 @Component({
   selector: 'app-menu-location-card',
-  imports: [ButtonComponent, ToggleComponent, CheckPermissionDirective, SlugEditorComponent],
+  imports: [ButtonComponent, ToggleComponent, CheckPermissionDirective, SlugEditorComponent, CustomerOrderSettingsComponent],
   templateUrl: './menu-location-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

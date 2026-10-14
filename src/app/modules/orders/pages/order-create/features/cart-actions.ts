@@ -1,12 +1,16 @@
 import { WritableSignal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
-import { addConfiguredToCart, addToCart, CartLine, hasModifierSets, productPrice, updateCartLine } from './cart-line';
+import { addConfiguredToCart, addToCart, CartLine, hasModifierSets, isPackProduct, productPrice, updateCartLine } from './cart-line';
 import { openProductModifiersModal } from './product-modifiers-modal';
 
-/** Usado por /orders/new, /orders/:id/add y el POS: con opciones abre el modal, sin ellas suma 1 directo. */
+/**
+ * Usado por /orders/new, /orders/:id/add y el POS: con opciones (o si es un pack) abre el modal,
+ * sin ellas suma 1 directo.
+ */
 export function addProductToCart(dialog: MatDialog, cart: WritableSignal<CartLine[]>, product: ProductDto) {
-  if (!hasModifierSets(product)) {
+  const isPack = isPackProduct(product);
+  if (!isPack && !hasModifierSets(product)) {
     cart.update((lines) => addToCart(lines, product));
     return;
   }
@@ -14,6 +18,7 @@ export function addProductToCart(dialog: MatDialog, cart: WritableSignal<CartLin
     name: product.name,
     basePrice: productPrice(product),
     modifierSets: product.modifierSets ?? [],
+    ...(isPack ? { packProductId: product.id } : {}),
   }).subscribe((config) => {
     if (config) cart.update((lines) => addConfiguredToCart(lines, product, config));
   });
@@ -28,7 +33,8 @@ export function editCartLine(dialog: MatDialog, cart: WritableSignal<CartLine[]>
     name: line.name,
     basePrice: product ? productPrice(product) : line.basePrice,
     modifierSets: product?.modifierSets ?? line.modifierSets,
-    initial: { quantity: line.quantity, note: line.note, modifiers: line.modifiers },
+    initial: { quantity: line.quantity, note: line.note, modifiers: line.modifiers, packChoices: line.packChoices },
+    ...(line.isPack ? { packProductId: line.productId } : {}),
   }).subscribe((config) => {
     if (config) cart.update((lines) => updateCartLine(lines, key, config, product));
   });

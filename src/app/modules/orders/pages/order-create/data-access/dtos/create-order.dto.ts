@@ -14,7 +14,11 @@ export type OrderProductDto = Readonly<{
   // Nota de este producto ("sin palta"): se imprime en la comanda de su estación y se ve en el KDS.
   note?: string;
   modifiers?: OrderModifierDto[];
+  // Solo packs: opción elegida por grupo. Sin enviar, el backend usa los fijos y los por defecto.
+  comboChoices?: OrderComboChoiceDto[];
 }>;
+
+export type OrderComboChoiceDto = Readonly<{ groupId: number; variationId: number }>;
 
 export type CreateOrderDto = Readonly<{
   locationId: number;

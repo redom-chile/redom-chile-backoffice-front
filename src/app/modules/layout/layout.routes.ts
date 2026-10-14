@@ -53,6 +53,12 @@ const routes: Routes = [
     loadChildren: () => import('../sectors/sectors.routes'),
   },
   {
+    // Pedidos de clientes desde el QR de la mesa (etapa 3 de la carta pública).
+    path: 'customer-orders',
+    component: LayoutComponent,
+    loadChildren: () => import('../public-menu/customer-orders.routes'),
+  },
+  {
     path: 'payments',
     component: LayoutComponent,
     loadChildren: () => import('../payments/payments.routes'),

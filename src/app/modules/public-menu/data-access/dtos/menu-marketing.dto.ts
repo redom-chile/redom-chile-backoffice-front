@@ -41,7 +41,7 @@ export type PublicPackGroupDto = Readonly<{
 
 export type PublicPromotionDto = Readonly<{ id: number; name: string; endsAt: string | null }>;
 
-export type MenuEventType = 'menu_view' | 'banner_view' | 'banner_click' | 'modal_view' | 'product_view' | 'pack_view';
+export type MenuEventType = 'menu_view' | 'banner_view' | 'banner_click' | 'modal_view' | 'product_view' | 'pack_view' | 'add_to_cart';
 
 /** POST /events: 1 a 20 eventos; refId = banner o producto. */
 export type MenuEventsRequestDto = Readonly<{

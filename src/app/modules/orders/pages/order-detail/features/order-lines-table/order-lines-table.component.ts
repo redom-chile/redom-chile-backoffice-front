@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { IconComponent } from 'src/ui';
 import { formatCurrency, KITCHEN_STATUS, StatusBadgeComponent } from '../../../order-list/ui';
 import { formatQuantity } from 'src/app/modules/payments/pages/payment-list/ui';
-import { linePaidState, modifierLabel, OrderLineDto, orderVariationLabel } from '../../data-access';
+import { isPackLine, linePaidState, modifierLabel, OrderLineDto, orderVariationLabel, packItemLabel } from '../../data-access';
 
 @Component({
   selector: 'app-order-lines-table',
@@ -17,12 +17,15 @@ export class OrderLinesTableComponent {
   readonly showKitchenStatus = input(true);
   readonly pendingLineId = input<number | null>(null);
 
-  readonly serveLine = output<OrderLineDto>();
+  // lineId de la línea (o del producto de un pack) a marcar como servida.
+  readonly serveLine = output<number>();
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;
 
   readonly modifierLabel = modifierLabel;
+  readonly packItemLabel = packItemLabel;
+  readonly isPackLine = isPackLine;
   readonly paidState = linePaidState;
   readonly formatQuantity = formatQuantity;
 
