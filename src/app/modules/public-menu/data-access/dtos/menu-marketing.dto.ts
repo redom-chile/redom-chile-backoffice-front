@@ -89,7 +89,8 @@ export type PromotionDto = Readonly<{
   name: string;
   targetType: PromotionTargetType;
   targetId: number;
-  targetName: string;
+  /** null si el producto, la variación o la categoría se eliminó. */
+  targetName: string | null;
   discountType: PromotionDiscountType;
   /** Decimal en texto: usar Number(). */
   value: string;

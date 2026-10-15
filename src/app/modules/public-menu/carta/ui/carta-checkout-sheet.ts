@@ -660,7 +660,7 @@ export class CartaCheckoutSheet {
           if (err.cart) {
             this.cartError.set(true);
             if (err.productId != null && err.reason) this.cart.markProduct(err.productId, err.reason);
-            else if (err.pack) this.cart.markPackGroup(this.menu(), err.groupId, err.message);
+            else if (err.pack) this.cart.markPackGroup(this.menu(), err.groupId);
           }
           if (err.reload) this.refresh.emit();
         },

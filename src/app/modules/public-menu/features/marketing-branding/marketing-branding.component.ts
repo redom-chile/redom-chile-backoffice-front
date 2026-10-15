@@ -105,6 +105,10 @@ export class MarketingBrandingComponent {
     this.$cover.set(selection);
   }
 
+  hasUnsavedChanges(): boolean {
+    return this.$dirty();
+  }
+
   discard() {
     this.$theme.set(fromBranding(this.$saved()));
     this.#resetCover();

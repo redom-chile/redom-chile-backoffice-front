@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
-import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
+import { MenuSettingsDto, MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { CodeBlockComponent, publicApiError } from 'src/app/modules/public-menu/features/public-api-shared';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { environment } from 'src/environments/environment';
@@ -31,13 +31,21 @@ export class PublicApiWidgetComponent {
   readonly $error = computed(() => resultError(this.settings.value()));
   readonly $errorMessage = computed(() => publicApiError(this.$error(), 'No se pudieron cargar los locales.') ?? 'No se pudieron cargar los locales.');
 
-  readonly $locationId = linkedSignal<number | null>(() => this.$list()?.find((item) => item.isPublished)?.locationId ?? this.$list()?.[0]?.locationId ?? null);
+  readonly hasAddress = hasPublicAddress;
+  readonly $locationId = linkedSignal<number | null>(() => {
+    const list = this.$list() ?? [];
+    return (list.find((item) => item.isPublished && hasPublicAddress(item)) ?? list.find(hasPublicAddress) ?? list[0])?.locationId ?? null;
+  });
   readonly $selected = computed(() => this.$list()?.find((item) => item.locationId === this.$locationId()) ?? null);
+  readonly $hasAddress = computed(() => {
+    const selected = this.$selected();
+    return !!selected && hasPublicAddress(selected);
+  });
 
   readonly #businessName = computed(() => this.#business.$settings()?.name || this.$selected()?.businessSlug || '');
   readonly $embedUrl = computed(() => {
     const selected = this.$selected();
-    return selected ? `${this.origin}${selected.publicPath}?embed=1` : null;
+    return selected && hasPublicAddress(selected) ? `${this.origin}${selected.publicPath}?embed=1` : null;
   });
   readonly $iframeSnippet = computed(() => {
     const url = this.$embedUrl();
@@ -47,7 +55,7 @@ export class PublicApiWidgetComponent {
   });
   readonly $scriptSnippet = computed(() => {
     const selected = this.$selected();
-    if (!selected) return '';
+    if (!selected || !hasPublicAddress(selected)) return '';
     return `<div data-redom-menu="${selected.businessSlug}/${selected.locationSlug}"></div>\n<script src="${this.origin}/widget.js" async></script>`;
   });
   readonly $previewUrl = computed(() => {
@@ -58,6 +66,11 @@ export class PublicApiWidgetComponent {
   onLocationChange(event: Event) {
     this.$locationId.set(Number((event.target as HTMLSelectElement).value) || null);
   }
+}
+
+/** Sin slugs el local no tiene URL pública ni widget. */
+function hasPublicAddress(item: MenuSettingsDto): boolean {
+  return !!item.publicPath && !!item.businessSlug && !!item.locationSlug;
 }
 
 function escapeAttribute(value: string): string {

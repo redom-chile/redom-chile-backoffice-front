@@ -25,6 +25,7 @@ const routes: Routes = [
       // Promociones, banners y personalización. Query params opcionales: tab (promotions|banners|branding), locationId.
       {
         path: 'public-menu/marketing',
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () => import('src/app/modules/public-menu/pages/menu-marketing').then((m) => m.MenuMarketingComponent),
       },
       // Traducciones de la carta. Query params opcionales: language, status.

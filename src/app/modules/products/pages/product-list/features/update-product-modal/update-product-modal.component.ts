@@ -1,12 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { FormBuilder } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
-import { UnitsService } from 'src/app/modules/inventory/data-access';
+import { RecipesService, UnitsService } from 'src/app/modules/inventory/data-access';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
 import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
@@ -74,9 +75,15 @@ export class UpdateProductModalComponent implements OnDestroy {
   readonly #router = inject(Router);
   // La receta se arma sobre lo guardado: solo si el producto ya es "Por receta".
   readonly $canConfigureRecipe = computed(() => this.product.stockMode === 'recipe' && this.$ingredientsEnabled());
+  // Variedades guardadas sin receta (null mientras no se sepa o si no aplica).
+  readonly $missingRecipeIds = signal<ReadonlySet<number> | null>(null);
+  readonly #recipes = inject(RecipesService);
+  readonly #access = inject(AccessService);
+  readonly #destroyRef = inject(DestroyRef);
 
   constructor() {
     if (this.$inventoryEnabled()) this.#units.load();
+    this.#loadMissingRecipes();
     // Si ya es pack se carga lo guardado; si recién pasa a serlo, parte vacío.
     if (this.product.type === PACK_PRODUCT_TYPE) this.pack.load(this.product.id);
     else this.pack.startEmpty();
@@ -141,6 +148,24 @@ export class UpdateProductModalComponent implements OnDestroy {
     await this.pack.saveIfChanged(this.product.id, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);
     this.dialogRef.close('updated');
+  }
+
+  #loadMissingRecipes() {
+    const applies =
+      this.product.stockMode === 'recipe' &&
+      this.$inventoryEnabled() &&
+      this.$ingredientsEnabled() &&
+      this.#access.can(PERMISSIONS.RECIPES.GET_ALL_RECIPES);
+    if (!applies) return;
+    // Si falla queda la ayuda genérica.
+    this.#recipes
+      .getByProduct(this.product.id)
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (data) =>
+          this.$missingRecipeIds.set(new Set(data.variations.filter((variation) => !variation.items.length).map((v) => v.variationId))),
+        error: () => this.$missingRecipeIds.set(null),
+      });
   }
 
   handleConfigureRecipe() {

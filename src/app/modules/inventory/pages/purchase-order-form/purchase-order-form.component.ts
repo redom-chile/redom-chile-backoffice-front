@@ -177,7 +177,7 @@ export class PurchaseOrderFormComponent {
         order: this.#orders.get(params.id),
         // Si el catálogo falla igual se puede editar (los ítems se arman desde la línea).
         items: this.#itemsService
-          .search('', { includeIngredients: params.includeIngredients }, EDIT_CATALOG_SIZE)
+          .search('', { includeIngredients: params.includeIngredients, includeRemoved: true }, EDIT_CATALOG_SIZE)
           .pipe(catchError(() => of<StockableItem[]>([]))),
       }).pipe(toRemoteResult<EditData>()),
   });

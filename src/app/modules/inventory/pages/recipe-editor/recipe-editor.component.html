@@ -114,13 +114,14 @@
     description="Agrega opciones o variaciones para poder armar su receta." />
   } @else {
   <div class="space-y-4" [class.opacity-70]="$isRefreshing()" [attr.aria-busy]="$isRefreshing()">
-    @for (variation of data.variations; track variation.variationId) {
+    @for (variation of $variations(); track variation.variationId) {
     <app-recipe-card
       [productId]="data.productId"
       [productName]="data.productName"
       [isModifier]="$isModifier()"
       [variation]="variation"
-      [siblings]="data.variations"
+      [siblings]="$variations()"
+      [removed]="$removedIds().has(variation.variationId)"
       [unitCosts]="$unitCosts()"
       [isProduction]="$isProduction()"
       [productUnitId]="$productUnitId()"

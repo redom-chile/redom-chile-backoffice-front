@@ -72,7 +72,7 @@ export class PublicApiService {
     return this.#http.get<WebhookDeliveryDto[]>(`${BASE}/webhooks/${id}/deliveries`, { params: toHttpParams({ limit }) });
   }
 
-  retryDelivery(id: number, deliveryId: number): Observable<WebhookDeliveryResultDto> {
+  retryDelivery(id: number, deliveryId: string): Observable<WebhookDeliveryResultDto> {
     return this.#http.post<WebhookDeliveryResultDto>(`${BASE}/webhooks/${id}/deliveries/${deliveryId}/retry`, {});
   }
 }

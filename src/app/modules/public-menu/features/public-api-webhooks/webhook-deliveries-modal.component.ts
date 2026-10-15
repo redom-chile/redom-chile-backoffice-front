@@ -167,10 +167,10 @@ export class WebhookDeliveriesModalComponent {
   readonly $list = computed(() => resultValue(this.deliveries.value()));
   readonly $error = computed(() => resultError(this.deliveries.value()));
   readonly $errorMessage = computed(() => publicApiError(this.$error(), 'No se pudo cargar el historial.') ?? 'No se pudo cargar el historial.');
-  readonly $expanded = signal<number | null>(null);
-  readonly $retryingId = signal<number | null>(null);
+  readonly $expanded = signal<string | null>(null);
+  readonly $retryingId = signal<string | null>(null);
 
-  toggle(id: number) {
+  toggle(id: string) {
     this.$expanded.update((current) => (current === id ? null : id));
   }
 

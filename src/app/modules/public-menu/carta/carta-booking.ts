@@ -11,6 +11,8 @@ export const BOOKING_LIMITS = {
   maxParty: 20,
   minAheadMinutes: 30,
   maxAheadDays: 60,
+  /** DEFAULT_BOOKING_MINUTES de booking-rules.service.ts: la reserva completa debe caber en el horario. */
+  durationMinutes: 120,
 } as const;
 
 type Parts = Readonly<{ year: number; month: number; day: number; hour: number; minute: number }>;
@@ -114,6 +116,48 @@ export function isWithinSchedule(schedule: readonly PublicScheduleDto[], day: nu
     if (s.dayOfWeek === day) return overnight ? t >= open : t >= open && t < close;
     return overnight && s.dayOfWeek === previous && t < close;
   });
+}
+
+const DAY = 1440;
+const WEEK = 7 * DAY;
+
+/**
+ * Encaje de la reserva (inicio + duración) en el horario, igual que assertWithinSchedule del backend (semana circular,
+ * rangos que cruzan la medianoche). 'closed': el local no atiende a esa hora; 'tooLate': abre, pero cierra antes del
+ * fin (closeTime y lastStart "HH:MM"). null: sin horario o datos incompletos.
+ */
+export type BookingFit =
+  | Readonly<{ kind: 'ok' }>
+  | Readonly<{ kind: 'closed' }>
+  | Readonly<{ kind: 'tooLate'; closeTime: string; lastStart: string | null }>;
+
+export function bookingScheduleFit(
+  schedule: readonly PublicScheduleDto[],
+  day: number,
+  time: string,
+  duration: number = BOOKING_LIMITS.durationMinutes,
+): BookingFit | null {
+  if (!schedule.length || !/^\d{2}:\d{2}/.test(time)) return null;
+  const start = day * DAY + minutes(time);
+  const end = start + duration;
+  let late: Readonly<{ open: number; close: number }> | null = null;
+  for (const s of schedule) {
+    if (s.isClosed) continue;
+    const open = minutes(s.openTime);
+    const close = minutes(s.closeTime);
+    const rStart = s.dayOfWeek * DAY + open;
+    const rEnd = s.dayOfWeek * DAY + close + (close <= open ? DAY : 0);
+    for (const shift of [-WEEK, 0, WEEK]) {
+      const a = rStart + shift;
+      const b = rEnd + shift;
+      if (a <= start && end <= b) return { kind: 'ok' };
+      if (a <= start && start < b && (!late || b > late.close)) late = { open: a, close: b };
+    }
+  }
+  if (!late) return { kind: 'closed' };
+  const last = late.close - duration;
+  const hhmm = (m: number) => `${pad(Math.floor((((m % DAY) + DAY) % DAY) / 60))}:${pad(((m % 60) + 60) % 60)}`;
+  return { kind: 'tooLate', closeTime: hhmm(late.close), lastStart: last >= late.open ? hhmm(last) : null };
 }
 
 /** "sábado 17 de octubre" y "20:30" en la zona del local, en el idioma de la carta. */

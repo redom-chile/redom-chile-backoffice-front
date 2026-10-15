@@ -3,7 +3,7 @@ import { readApiError } from 'src/app/core/utils/api-error';
 import { CartLineDto, PublicOrderDto } from '../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto, PublicProductDto } from '../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../data-access/public-menu-format';
-import { cartaErrorMessage, cartaLanguage, ct } from './carta-i18n';
+import { CartaKey, cartaErrorMessage, cartaLanguage, ct } from './carta-i18n';
 import { isPackUnavailable, productsById } from './carta-marketing';
 
 // --- Límites del backend (customer-orders-dto.ts) ---
@@ -31,8 +31,8 @@ export type CartItem = Readonly<{
   details: readonly string[];
   /** Estimado: variación + recargos del pack + modificadores (por unidad). El real lo calcula el servidor. */
   unitPrice: number;
-  /** Por qué no se puede pedir (se agotó, fuera de horario...). */
-  issue: string | null;
+  /** Por qué no se puede pedir: código, el texto sale al mostrarlo (cartIssueText). */
+  issue: CartIssue | null;
 }>;
 
 export type CartAddition = Omit<CartItem, 'key' | 'issue'>;
@@ -90,18 +90,22 @@ export const BLOCK_LABELS: Readonly<Record<ProductBlock, string>> = {
   },
 };
 
-/** Textos de PRODUCT_UNAVAILABLE (details.reason). */
-export const UNAVAILABLE_REASONS: Readonly<Record<string, string>> = {
-  get sold_out() {
-    return ct('cart.reason.sold_out');
-  },
-  get out_of_schedule() {
-    return ct('cart.reason.out_of_schedule');
-  },
-  get not_in_menu() {
-    return ct('cart.reason.not_in_menu');
-  },
+/** Motivo de una línea que no se puede pedir (de la carta o de PRODUCT_UNAVAILABLE / PACK_CHOICES_INVALID). */
+export type CartIssue = 'sold_out' | 'out_of_schedule' | 'not_in_menu' | 'pack_unavailable' | 'pack_choices' | 'unknown';
+
+const ISSUE_KEYS: Readonly<Record<CartIssue, CartaKey>> = {
+  sold_out: 'cart.reason.sold_out',
+  out_of_schedule: 'cart.reason.out_of_schedule',
+  not_in_menu: 'cart.reason.not_in_menu',
+  pack_unavailable: 'cart.block.pack_unavailable',
+  pack_choices: 'cart.reason.pack_choices',
+  unknown: 'cart.reason.unknown',
 };
+
+const isCartIssue = (value: unknown): value is CartIssue => typeof value === 'string' && value in ISSUE_KEYS;
+
+/** Texto del motivo en el idioma activo. */
+export const cartIssueText = (issue: CartIssue): string => ct(ISSUE_KEYS[issue]);
 
 // --- Errores al enviar ---
 
@@ -109,7 +113,7 @@ export type OrderSendError = Readonly<{
   message: string;
   /** PRODUCT_UNAVAILABLE: producto y motivo para marcar la línea. */
   productId?: number;
-  reason?: string;
+  reason?: CartIssue;
   /** PACK_CHOICES_INVALID o una opción del pack inactiva: marcar las líneas del pack (details.groupId). */
   pack?: boolean;
   groupId?: number;
@@ -132,8 +136,8 @@ export function readOrderError(error: unknown): OrderSendError {
       const productId = typeof d['productId'] === 'number' ? d['productId'] : undefined;
       const reason = typeof d['reason'] === 'string' ? d['reason'] : undefined;
       if (productId != null) {
-        const text = (reason && reason in UNAVAILABLE_REASONS && UNAVAILABLE_REASONS[reason]) || ct('cart.reason.unknown');
-        return { message: ct('order.error.productUnavailable'), productId, reason: text, reload: true };
+        const issue: CartIssue = reason === 'sold_out' || reason === 'out_of_schedule' || reason === 'not_in_menu' ? reason : 'unknown';
+        return { message: ct('order.error.productUnavailable'), productId, reason: issue, reload: true };
       }
       // 400: una opción de un pack quedó inactiva
       return { message: ct('order.error.packChoices'), pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined, reload: true };
@@ -267,7 +271,8 @@ function sanitizeItem(raw: unknown): CartItem | null {
     name: item['name'],
     unitPrice: item['unitPrice'],
     details: Array.isArray(item['details']) ? item['details'].filter((d): d is string => typeof d === 'string') : [],
-    issue: typeof item['issue'] === 'string' ? item['issue'] : null,
+    // Versiones anteriores guardaban el texto: se descarta y revalidate lo recalcula con la carta
+    issue: isCartIssue(item['issue']) ? item['issue'] : null,
     line: {
       productId: line['productId'] as number,
       variationId: line['variationId'] as number,
@@ -277,6 +282,18 @@ function sanitizeItem(raw: unknown): CartItem | null {
       ...(choices?.length ? { comboChoices: choices as unknown as CartLineDto['comboChoices'] } : {}),
     },
   };
+}
+
+function lineIssue(line: CartLineDto, product: PublicProductDto | undefined, blocked: ReadonlyMap<number, ProductBlock>): CartIssue | null {
+  if (!product || !product.variations.some((v) => v.id === line.variationId)) return 'not_in_menu';
+  const block = blocked.get(product.id);
+  if (block) return block;
+  const groups = product.pack?.groups;
+  if (groups && line.comboChoices?.length) {
+    const valid = line.comboChoices.every((c) => groups.find((g) => g.id === c.groupId)?.items.some((it) => it.variationId === c.variationId && !it.soldOut));
+    if (!valid) return 'pack_choices';
+  }
+  return null;
 }
 
 /** Dos líneas iguales (mismo producto, opciones y nota) se juntan. */
@@ -423,33 +440,29 @@ export class CartaCart {
   }
 
   /** PRODUCT_UNAVAILABLE: marca las líneas de ese producto. */
-  markProduct(productId: number, issue: string): void {
+  markProduct(productId: number, issue: CartIssue): void {
     this.#set(this.items().map((i) => (i.line.productId === productId ? { ...i, issue } : i)));
   }
 
   /** PACK_CHOICES_INVALID: marca las líneas del pack que tiene ese grupo. */
-  markPackGroup(menu: PublicLocationMenuDto, groupId: number | undefined, issue: string): void {
+  markPackGroup(menu: PublicLocationMenuDto, groupId: number | undefined): void {
     const products = [...productsById(menu).values()].filter((p) => p.pack?.groups.some((g) => groupId == null || g.id === groupId)).map((p) => p.id);
-    this.#set(this.items().map((i) => (products.includes(i.line.productId) ? { ...i, issue } : i)));
+    this.#set(this.items().map((i) => (products.includes(i.line.productId) ? { ...i, issue: 'pack_choices' as const } : i)));
   }
 
-  /** Con la carta (re)cargada: marca lo que ya no se puede pedir. Las marcas del servidor se mantienen. */
+  /**
+   * Con la carta (re)cargada recalcula cada marca: la pone si el producto, la variación o una opción del pack ya no
+   * se puede pedir y la quita si volvió a estar disponible.
+   */
   revalidate(menu: PublicLocationMenuDto): void {
     const products = productsById(menu);
     const blocked = blockedProducts(menu);
-    const items = this.items().map((i) => {
-      const product = products.get(i.line.productId);
-      let issue: string | null = null;
-      if (!product || !product.variations.some((v) => v.id === i.line.variationId)) issue = UNAVAILABLE_REASONS['not_in_menu'];
-      else {
-        const block = blocked.get(product.id);
-        if (block === 'sold_out') issue = UNAVAILABLE_REASONS['sold_out'];
-        else if (block === 'out_of_schedule') issue = UNAVAILABLE_REASONS['out_of_schedule'];
-        else if (block === 'pack_unavailable') issue = BLOCK_LABELS.pack_unavailable;
-      }
-      return issue && issue !== i.issue ? { ...i, issue } : i;
+    const current = this.items();
+    const items = current.map((i) => {
+      const issue = lineIssue(i.line, products.get(i.line.productId), blocked);
+      return issue !== i.issue ? { ...i, issue } : i;
     });
-    if (items.some((item, idx) => item !== this.items()[idx])) this.#set(items);
+    if (items.some((item, idx) => item !== current[idx])) this.#set(items);
   }
 
   /** Tras un 200: vacía el carrito (y la nota) y guarda el pedido para seguirlo. */

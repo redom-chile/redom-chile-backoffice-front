@@ -41,7 +41,7 @@ export type SaveDeliveryZoneDto = Readonly<{
   radiusKm?: number | null;
   fee?: number;
   minOrder?: number;
-  etaMinutes?: number | null;
+  etaMinutes?: number;
   isActive?: boolean;
   position?: number;
 }>;

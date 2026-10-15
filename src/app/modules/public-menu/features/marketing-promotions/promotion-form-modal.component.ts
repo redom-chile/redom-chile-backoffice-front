@@ -23,7 +23,7 @@ import {
 import { MarketingLocation, marketingSaveError } from 'src/app/modules/public-menu/features/marketing-shared';
 import { MarketingTarget, MarketingTargetPickerComponent } from 'src/app/modules/public-menu/features/marketing-target-picker';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService, ToggleComponent } from 'src/ui';
-import { DISCOUNT_TYPE_LABELS, TARGET_TYPE_LABELS } from './promotion-format';
+import { DISCOUNT_TYPE_LABELS, TARGET_TYPE_LABELS, targetNameOf } from './promotion-format';
 
 export type PromotionFormModalData = Readonly<{
   promotion?: PromotionDto;
@@ -75,7 +75,7 @@ export class PromotionFormModalComponent {
     initialValue: this.form.getRawValue(),
   });
 
-  readonly $target = signal<MarketingTarget | null>(this.promotion ? { id: this.promotion.targetId, name: this.promotion.targetName } : null);
+  readonly $target = signal<MarketingTarget | null>(this.promotion ? { id: this.promotion.targetId, name: targetNameOf(this.promotion) } : null);
   readonly $channels = signal<PriceChannel[]>([...(this.promotion?.channels ?? CHANNELS)]);
   readonly $isActive = signal(this.promotion?.isActive ?? true);
   readonly #originalSchedule = scheduleFromEntity(this.promotion, this.data.timeZone);

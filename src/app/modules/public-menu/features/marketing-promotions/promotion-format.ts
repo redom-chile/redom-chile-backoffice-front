@@ -12,6 +12,11 @@ export const TARGET_TYPE_LABELS: Record<PromotionTargetType, string> = {
   category: 'Categoría',
 };
 
+/** Nombre del producto, variación o categoría (null si se eliminó). */
+export function targetNameOf(promotion: Pick<PromotionDto, 'targetName'>): string {
+  return promotion.targetName ?? 'Ya no existe';
+}
+
 export const DISCOUNT_TYPE_LABELS: Record<PromotionDiscountType, string> = {
   percent: 'Porcentaje',
   amount: 'Descuento en $',
