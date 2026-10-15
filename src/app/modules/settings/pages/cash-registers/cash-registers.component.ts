@@ -24,7 +24,7 @@ import { RegisterModalComponent, RegisterModalData, RegisterModalResult } from '
 type LocationGroup = Readonly<{ locationId: number; locationName: string; registers: CashRegisterDto[] }>;
 type LocationOption = Readonly<{ id: number; name: string }>;
 
-/** Configuración → Cajas: cajas por local, crear, renombrar y activar/desactivar. Funciona con el módulo apagado. */
+/** Equipos y pagos → Cajas: cajas por local, crear, renombrar y activar/desactivar. Funciona con el módulo apagado. */
 @Component({
   selector: 'app-cash-registers',
   imports: [

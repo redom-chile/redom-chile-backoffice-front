@@ -17,7 +17,7 @@ Solo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.
 
 Cuando un local tiene más de una caja activa, cada equipo (computador o tablet) trabaja con una:
 
-1. En **POS → Tomar pedido**, Redom te pregunta *"Elige la caja de este equipo"*. También puedes tocar **Elegir caja** o **Cambiar caja**.
+1. En **Ventas → Tomar pedido**, Redom te pregunta *"Elige la caja de este equipo"*. También puedes tocar **Elegir caja** o **Cambiar caja**.
 2. Elige la caja y toca **Usar esta caja**.
 
 Los cobros de este equipo quedan en esa caja. La elección se guarda en este navegador.
@@ -34,7 +34,7 @@ Si el sistema no sabe de qué caja sale o entra el efectivo, verás *"¿Con qué
 
 ## Errores comunes
 
-- **"Este local no tiene cajas activas. Actívalas en Configuración → Cajas."**: crea o activa una caja.
-- **"La caja está desactivada. Actívala en Configuración → Cajas."**: la caja guardada en este equipo se desactivó. Elige otra.
+- **"Este local no tiene cajas activas. Actívalas en Equipos y pagos → Cajas."**: crea o activa una caja.
+- **"La caja está desactivada. Actívala en Equipos y pagos → Cajas."**: la caja guardada en este equipo se desactivó. Elige otra.
 - **"La caja elegida es de otro local que el pedido."**: cambia la caja del equipo a una del local correcto.
 - **"La caja no está activada. Actívala en Mi negocio → Punto de venta."**: el módulo de caja está apagado.

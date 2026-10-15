@@ -15,5 +15,5 @@ export const environment = {
   googleClientId: '123525471493-h41blsi8tmhdcrqi0gh9qmdhf1217pgo.apps.googleusercontent.com',
 
   // Permisos en el front (ocultar menús, botones y rutas). Apagado hasta la etapa de permisos; el backend valida igual.
-  enforcePermissions: false,
+  enforcePermissions: true,
 };

@@ -39,7 +39,8 @@ const PERMISSION_ROUTES: ReadonlyArray<readonly [string, PermissionCode]> = [
   ['/business', REST.BUSINESS.SEE_MODULE],
   ['/business/location', REST.LOCATIONS.SEE_MODULE],
   ['/customer-orders', REST.CUSTOMER_ORDERS.SEE_MODULE],
-  ['/settings/public-api', REST.PUBLIC_API.SEE_MODULE],
+  // El widget es gratis: lo ve quien ve la carta; Llaves y Webhooks revisan public-api:* dentro de la pantalla.
+  ['/settings/public-api', REST.PUBLIC_MENU.SEE_MODULE],
   ['/settings/menu-translations', REST.PUBLIC_MENU.SEE_MODULE],
   ['/loyalty', REST.LOYALTY.SEE_MODULE],
   ['/settings/public-menu/sold-out', REST.PUBLIC_MENU.MANAGE_AVAILABILITY],

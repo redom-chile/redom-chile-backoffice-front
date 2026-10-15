@@ -47,6 +47,7 @@ import { CartaProductCard } from './carta-product-card';
 import { CartaOrdering } from './carta-ordering';
 import { CartaProductDetail } from './carta-product-detail';
 import { CartaTableService } from '../carta-table-service';
+import { zoneCommunes } from '../carta-online';
 import { CartaEmbed } from '../carta-embed';
 import { CartaDisplay } from '../carta-display';
 import { CartaDisplayMenu } from './carta-display-menu';
@@ -62,13 +63,16 @@ type ServicePanel = 'waiter' | 'bill' | 'booking';
 
 type Group = Readonly<{ id: string; name: string; description: string | null; products: PublicProductDto[] }>;
 
+/** Subcategoría: puede estar fuera de horario aunque su categoría no lo esté. */
+type Subgroup = Group & Readonly<{ availableNow: boolean; availability: string | null }>;
+
 type Section = Group &
   Readonly<{
     anchor: string;
     imageUrl: string | null;
     availableNow: boolean;
     availability: string | null;
-    subgroups: Group[];
+    subgroups: Subgroup[];
   }>;
 
 type Action = Readonly<{ label: string; href: string; icon: CartaIconName; primary?: boolean; external: boolean }>;
@@ -422,10 +426,16 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
               </div>
             }
             @for (sub of s.subgroups; track sub.id) {
-              <div class="mt-5 scroll-mt-20" [id]="'carta-sub-' + sub.id">
+              <div class="mt-5 scroll-mt-20" [id]="'carta-sub-' + sub.id" [class.opacity-60]="!!sub.availability">
                 <h3 class="text-base font-semibold text-foreground [overflow-wrap:anywhere]">{{ sub.name }}</h3>
                 @if (sub.description) {
                   <p class="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ sub.description }}</p>
+                }
+                @if (sub.availability) {
+                  <p class="mt-2 inline-flex items-start gap-1.5 rounded-xl bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                    <app-carta-icon name="clock" [size]="14" class="mt-px" />
+                    <span>{{ sub.availability }}</span>
+                  </p>
                 }
                 <div class="mt-2 grid gap-3">
                   @for (p of sub.products; track p.id) {
@@ -599,7 +609,11 @@ export class CartaMenuView {
   /** Se puede pedir: carta abierta desde el QR de una mesa y el local recibe pedidos desde la mesa. */
   protected readonly ordering = computed(() => !this.preview() && !!this.qr() && this.menu().features.tableOrdering);
   /** Etapa 5: sin QR de mesa y con retiro o delivery (menu.online). */
-  protected readonly onlineOrdering = computed(() => !this.preview() && !this.qr() && !!this.menu().online);
+  protected readonly onlineOrdering = computed(() => {
+    const o = this.menu().online;
+    // Delivery necesita una zona con comunas (communeId es obligatorio): sin retiro ni eso, no hay cómo pedir
+    return !this.preview() && !this.qr() && !!o && (o.pickup || (o.delivery && zoneCommunes(o).length > 0));
+  });
   /** Se puede agregar al carrito (mesa o retiro / delivery). */
   protected readonly canOrder = computed(() => this.ordering() || this.onlineOrdering());
   readonly #blocked = computed(() => blockedProducts(this.menu()));
@@ -718,7 +732,15 @@ export class CartaMenuView {
     for (const c of m.categories) {
       const products = c.products.filter(matches);
       const subgroups = c.subcategories
-        .map((s) => ({ id: String(s.id), name: s.name, description: s.description, products: s.products.filter(matches) }))
+        .map((s) => ({
+          id: String(s.id),
+          name: s.name,
+          description: s.description,
+          products: s.products.filter(matches),
+          availableNow: s.availableNow,
+          // Con la categoría fuera de horario ya se muestra el de la categoría
+          availability: c.availableNow && !s.availableNow ? categoryAvailabilityText(s.schedule) : null,
+        }))
         .filter((s) => s.products.length);
       if (!products.length && !subgroups.length) continue;
       result.push({

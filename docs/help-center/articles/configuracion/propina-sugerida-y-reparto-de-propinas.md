@@ -13,7 +13,7 @@ La propina sugerida y el reparto de propinas se configuran en la sección **Punt
 
 ## Propina sugerida
 
-1. Entra a **Negocio → Mi negocio**.
+1. Entra a **Mi negocio**.
 2. Baja hasta la sección **Punto de venta**.
 3. En **Propina sugerida (%)**, escribe el porcentaje, por ejemplo 10.
 4. Toca **Guardar**. Verás *"Punto de venta actualizado"*.

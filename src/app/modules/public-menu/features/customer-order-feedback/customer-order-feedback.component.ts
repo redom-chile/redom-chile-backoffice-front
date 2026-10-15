@@ -17,6 +17,11 @@ const daysAgo = (days: number) => {
   date.setDate(date.getDate() - days);
   return isoDay(date);
 };
+/** Medianoche local del día (YYYY-MM-DD) más `offset` días, en ISO: el backend compara instantes y `to` es exclusivo. */
+const dayStart = (day: string, offset = 0) => {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date + offset).toISOString();
+};
 
 /** 'star' | 'star_half' | 'star_border' por cada una de las 5 estrellas. */
 export function starIcons(value: number): string[] {
@@ -162,7 +167,13 @@ export class CustomerOrderFeedbackComponent {
   });
 
   readonly feedback = rxResource({
-    params: () => ({ locationId: this.locationId(), from: this.$from() || undefined, to: this.$to() || undefined, limit: LIMIT }),
+    params: () => ({
+      locationId: this.locationId(),
+      from: this.$from() ? dayStart(this.$from()) : undefined,
+      // Incluye el día "Hasta" completo.
+      to: this.$to() ? dayStart(this.$to(), 1) : undefined,
+      limit: LIMIT,
+    }),
     stream: ({ params }) => this.#service.getFeedback(params).pipe(toRemoteResult()),
   });
   // Mantiene el último resumen mientras recarga.

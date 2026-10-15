@@ -14,8 +14,8 @@ Para cobrar un pedido, toca **Cobrar [saldo]** en el POS o **Cobrar** en el deta
 ## Paso a paso
 
 1. Abre el cobro desde una de estas pantallas:
-   - **POS → Tomar pedido**: elige la mesa o la cuenta y toca **Cobrar $**. Si agregaste productos que todavía no envías, primero envíalos o quítalos.
-   - **POS → Pedidos**: abre el pedido y toca **Cobrar**.
+   - **Ventas → Tomar pedido**: elige la mesa o la cuenta y toca **Cobrar $**. Si agregaste productos que todavía no envías, primero envíalos o quítalos.
+   - **Ventas → Pedidos**: abre el pedido y toca **Cobrar**.
 2. Revisa el resumen: *Total*, *Pagado* y *Saldo*.
 3. Elige el método de pago: **Efectivo**, **Débito**, **Crédito**, **Transferencia** u **Otro**.
 4. En *Monto a pagar*, toca **Todo el saldo**, **Mitad** o escribe otro monto.
@@ -31,7 +31,7 @@ Si pagas menos que el saldo, verás "Pago parcial: quedará un saldo de…". Al 
 
 Si hay vuelto, aparece destacado en **Vuelto a entregar**. Toca **Continuar con el siguiente pago** para seguir.
 
-El porcentaje de propina sugerida se configura en **Negocio → Mi negocio → Punto de venta**.
+El porcentaje de propina sugerida se configura en **Mi negocio → Punto de venta**.
 
 ## Con Caja y turnos activado
 

@@ -9,11 +9,11 @@ tags: [activar inventario, configuracion, descontar stock, stock negativo, recet
 position: 1
 ---
 
-El inventario se activa en **Negocio → Mi negocio**, pestaña **Inventario**, con el interruptor *Activar inventario*. Ahí mismo eliges cómo se descuenta el stock.
+El inventario se activa en **Mi negocio**, pestaña **Inventario**, con el interruptor *Activar inventario*. Ahí mismo eliges cómo se descuenta el stock.
 
 ## Activarlo
 
-1. Ve a **Negocio → Mi negocio** y abre la pestaña **Inventario**.
+1. Ve a **Mi negocio** y abre la pestaña **Inventario**.
 2. Enciende **Activar inventario**. Verás el mensaje *"Inventario activado"* y aparece el menú **Inventario**.
 3. Te aparecerán dos atajos: **Carga tu stock inicial** y **Crea tus unidades**. Es buena idea hacer ambos antes de vender.
 

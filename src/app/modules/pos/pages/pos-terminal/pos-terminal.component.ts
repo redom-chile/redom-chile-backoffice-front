@@ -393,15 +393,18 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       });
   }
 
-  // El canje cambia el total o agrega el producto gratis: se recarga la cuenta.
+  // Asigna, cambia o quita el cliente de la cuenta abierta (PATCH /orders/:id).
   handleOrderCustomerChange(customer: CustomerDto | null) {
     const order = this.$order();
     const contactId = customer?.id ?? null;
     if (!order || this.$isSavingCustomer() || contactId === order.contactId) return;
+    // El servicio es global: se descarta un éxito anterior para no recargar antes de tiempo.
+    this.updateOrderService.reset();
     this.$isSavingCustomer.set(true);
     this.updateOrderService.update({ id: order.transactionId, contactId });
   }
 
+  // El canje cambia el total o agrega el producto gratis: se recarga la cuenta.
   handleLoyaltyRedeemed() {
     this.orderService.retry();
   }

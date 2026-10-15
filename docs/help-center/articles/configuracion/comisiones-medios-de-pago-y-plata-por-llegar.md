@@ -9,11 +9,11 @@ tags: [comisiones, medios de pago, transbank, abono, plata por llegar]
 position: 1
 ---
 
-Las comisiones se configuran en **Configuración → Medios de pago**. Con esos datos, **Finanzas → Plata por llegar** estima cuánto recibes y cuándo llega al banco.
+Las comisiones se configuran en **Equipos y pagos → Medios de pago**. Con esos datos, **Finanzas → Plata por llegar** estima cuánto recibes y cuándo llega al banco.
 
 ## Configurar un medio de pago
 
-1. Entra a **Configuración → Medios de pago**. Verás una tarjeta por medio (Débito, Crédito, Transferencia, Otro). Las que dicen *Sin configurar* aún no tienen datos.
+1. Entra a **Equipos y pagos → Medios de pago**. Verás una tarjeta por medio (Débito, Crédito, Transferencia, Otro). Las que dicen *Sin configurar* aún no tienen datos.
 2. Completa:
    - **% comisión**: lo que cobra el banco o la máquina (0 si no cobra).
    - **Monto fijo por transacción**: se cobra por cada pago (0 si no aplica).

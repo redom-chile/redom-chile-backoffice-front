@@ -2,19 +2,19 @@
 category: punto-de-venta
 title: ¿Cómo tomo un pedido en el POS?
 slug: como-tomar-un-pedido-en-el-pos
-summary: Elige mesa o venta sin mesa, toca los productos, agrega notas y envía el pedido a cocina desde POS → Tomar pedido.
+summary: Elige mesa o venta sin mesa, toca los productos, agrega notas y envía el pedido a cocina desde Ventas → Tomar pedido.
 module: pos
 routes: [/pos, /orders/new, /orders/:id/add]
 tags: [pos, pedido, mesa, comanda, cocina, carrito, notas]
 position: 1
 ---
 
-Para tomar un pedido, entra a **POS → Tomar pedido**, elige una mesa o **Sin mesa**, toca los productos y presiona **Enviar pedido**.
+Para tomar un pedido, entra a **Ventas → Tomar pedido**, elige una mesa o **Sin mesa**, toca los productos y presiona **Enviar pedido**.
 
 ## Paso a paso
 
 1. Si tienes varias sucursales, elige la sucursal arriba.
-2. En **¿Quién atiende?**, toca tu nombre e ingresa tu PIN de 4 dígitos. Si en **Negocio → Mi negocio → Punto de venta** está apagado *Uso meseros*, el POS no lo pregunta; si está encendido *Mesero obligatorio al tomar pedidos*, no aparece la opción **Continuar sin mesero**.
+2. En **¿Quién atiende?**, toca tu nombre e ingresa tu PIN de 4 dígitos. Si en **Mi negocio → Punto de venta** está apagado *Uso meseros*, el POS no lo pregunta; si está encendido *Mesero obligatorio al tomar pedidos*, no aparece la opción **Continuar sin mesero**.
 3. En el panel **Mesas**, toca una mesa o **Sin mesa**. Si tienes varios sectores, puedes filtrar las mesas por sector. Las mesas bloqueadas no se pueden elegir.
 4. Busca los productos con **Buscar producto…** o filtra por categoría. Si una categoría tiene subcategorías, aparece una segunda fila con **Todo [categoría]** y cada subcategoría.
 5. Toca la tarjeta de un producto para agregarlo. El número sobre la tarjeta indica cuántas unidades llevas. Si la tarjeta dice **Opciones**, se abre un modal para elegirlas.
@@ -29,7 +29,7 @@ Verás el mensaje "Pedido [número] enviado". La cuenta queda abierta a la derec
 
 Toca una mesa ocupada para cargar su cuenta. Agrega los productos y toca **Agregar a la cuenta**. Si el pedido va a cocina, la comanda incluye solo los productos nuevos.
 
-Desde **POS → Pedidos** también puedes abrir un pedido y tocar **Agregar productos**.
+Desde **Ventas → Pedidos** también puedes abrir un pedido y tocar **Agregar productos**.
 
 ## Antes de enviar
 
@@ -39,7 +39,7 @@ Si cambias de mesero con productos sin enviar, se descartan. Antes de hacerlo, R
 
 ## Errores comunes
 
-- **"Primero crea tu local"**: necesitas al menos una sucursal. Créala en **Negocio → Sucursales**.
+- **"Primero crea tu local"**: necesitas al menos una sucursal. Créala en **Mi negocio → Sucursales**.
 - **"No hay meseros disponibles"**: el usuario necesita el rol *Mesero*, estar activo y estar asignado a esta sucursal o no tener sucursal asignada.
 - **"La cuenta ya no está abierta: no se le pueden agregar productos."**: alguien cerró o canceló la cuenta. Toma un pedido nuevo.
 - **"[Producto] ya no está a la venta…"**: quítalo del pedido y vuelve a enviar.

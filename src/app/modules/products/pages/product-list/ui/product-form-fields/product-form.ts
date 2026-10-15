@@ -28,7 +28,8 @@ export function createVarietyForm(id: number | null = null, name = '', price: nu
   return new FormGroup({
     id: new FormControl<number | null>(id),
     name: new FormControl(name, { nonNullable: true, validators: [Validators.required, Validators.maxLength(VARIETY_NAME_MAX)] }),
-    price: new FormControl<number | null>(price, [Validators.required, Validators.min(0), Validators.pattern(/^\d+$/)]),
+    // Mismas reglas que el precio único: un precio neto guardado puede tener decimales.
+    price: new FormControl<number | null>(price, [Validators.required, Validators.min(0)]),
   });
 }
 
@@ -104,6 +105,8 @@ export function varietiesError(form: ProductForm): string | null {
   if (!form.controls.hasVarieties.value) return null;
   const varieties = form.controls.varieties.controls;
   if (varieties.length < MIN_VARIETIES) return `Agrega al menos ${MIN_VARIETIES} variedades o vuelve al precio único`;
+  // required acepta solo espacios: se enviaría una variedad sin nombre.
+  if (varieties.some((variety) => !variety.controls.name.value.trim())) return 'Ingresa el nombre de cada variedad';
   if (varieties.some((variety) => normalizeVarietyName(variety.controls.name.value) === DEFAULT_VARIATION_NAME.toLowerCase()))
     return 'Usa otro nombre para la variedad';
   if (duplicatedVarietyNames(form).size) return 'Hay variedades con el mismo nombre';

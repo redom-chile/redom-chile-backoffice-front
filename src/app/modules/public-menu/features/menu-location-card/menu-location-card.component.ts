@@ -68,16 +68,17 @@ export class MenuLocationCardComponent {
   readonly $isLocating = signal(false);
   readonly $canLocate = typeof navigator !== 'undefined' && 'geolocation' in navigator;
 
-  // Textos de los inputs.
-  readonly $description = linkedSignal(() => this.settings().description ?? '');
-  readonly $address = linkedSignal(() => this.settings().address ?? '');
-  readonly $latitude = linkedSignal(() => this.#numberText(this.settings().latitude));
-  readonly $longitude = linkedSignal(() => this.#numberText(this.settings().longitude));
-  readonly $phone = linkedSignal(() => this.settings().phone ?? '');
-  readonly $whatsapp = linkedSignal(() => this.settings().whatsapp ?? '');
-  readonly $instagram = linkedSignal(() => this.settings().instagram ?? '');
-  readonly $website = linkedSignal(() => this.settings().website ?? '');
-  readonly $googleReviewUrl = linkedSignal(() => this.settings().googleReviewUrl ?? '');
+  // Textos de los inputs. Cada uno se reinicia solo cuando cambia su valor guardado (vía un computed por campo): guardar
+  // la publicación, los pedidos o los idiomas no borra lo que se está escribiendo en otro campo.
+  readonly $description = this.#draft(() => this.settings().description ?? '');
+  readonly $address = this.#draft(() => this.settings().address ?? '');
+  readonly $latitude = this.#draft(() => this.#numberText(this.settings().latitude));
+  readonly $longitude = this.#draft(() => this.#numberText(this.settings().longitude));
+  readonly $phone = this.#draft(() => this.settings().phone ?? '');
+  readonly $whatsapp = this.#draft(() => this.settings().whatsapp ?? '');
+  readonly $instagram = this.#draft(() => this.settings().instagram ?? '');
+  readonly $website = this.#draft(() => this.settings().website ?? '');
+  readonly $googleReviewUrl = this.#draft(() => this.settings().googleReviewUrl ?? '');
 
   readonly #fields = {
     description: this.$description,
@@ -225,6 +226,11 @@ export class MenuLocationCardComponent {
       const saved = this.settings()[field];
       this.#fields[field].set(field === 'latitude' || field === 'longitude' ? this.#numberText(saved as number | null) : ((saved as string | null) ?? ''));
     }
+  }
+
+  #draft(saved: () => string) {
+    const source = computed(saved);
+    return linkedSignal(() => source());
   }
 
   #numberText(value: number | string | null | undefined): string {

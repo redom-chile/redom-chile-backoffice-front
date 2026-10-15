@@ -12,7 +12,7 @@
 </app-header-dashboard>
 
 <nav class="glass-input -mx-1 mb-4 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" role="tablist" aria-label="Secciones">
-  @for (item of tabs; track item.id) {
+  @for (item of $tabs(); track item.id) {
   <button
     type="button"
     role="tab"
