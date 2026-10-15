@@ -4,7 +4,7 @@ import { readApiError } from 'src/app/core/utils/api-error';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicBookingDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
-import { BOOKING_LIMITS, dateInZone, formatBookingDate, isWithinSchedule, weekdayOf, zonedToUtc } from '../carta-booking';
+import { BOOKING_LIMITS, bookingScheduleFit, dateInZone, formatBookingDate, weekdayOf, zonedToUtc } from '../carta-booking';
 import { CartaI18n, cartaLanguage, ct } from '../carta-i18n';
 import { buildWeekSchedule, todayIn } from '../carta-utils';
 import { CartaIcon } from './carta-icon';
@@ -171,7 +171,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
                 [value]="date()"
                 [attr.aria-invalid]="!!errors().date"
                 aria-describedby="carta-booking-day-hours"
-                (input)="date.set($any($event.target).value)"
+                (input)="setWhen('date', $any($event.target).value)"
               />
             </div>
             <div>
@@ -184,7 +184,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
                 [value]="time()"
                 [attr.aria-invalid]="!!errors().time"
                 aria-describedby="carta-booking-day-hours"
-                (input)="time.set($any($event.target).value)"
+                (input)="setWhen('time', $any($event.target).value)"
               />
             </div>
           </div>
@@ -195,11 +195,13 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
             @if (dayHours(); as h) {
               <p class="text-muted-foreground">{{ h }}</p>
             }
-            @if (outsideHours()) {
-              <p class="flex items-start gap-1.5 font-medium text-amber-700 dark:text-amber-400">
-                <app-carta-icon name="clock" [size]="14" class="mt-0.5" />
-                {{ t('booking.outsideHours') }}
-              </p>
+            @if (scheduleIssue(); as issue) {
+              @if (issue !== errors().time) {
+                <p class="flex items-start gap-1.5 font-medium text-amber-700 dark:text-amber-400">
+                  <app-carta-icon name="clock" [size]="14" class="mt-0.5" />
+                  {{ issue }}
+                </p>
+              }
             }
             <p class="text-xs text-muted-foreground">{{ t('booking.timeHint', { location: m.location.name }) }}</p>
           </div>
@@ -292,10 +294,15 @@ export class CartaBookingSheet {
     if (!row) return null;
     return row.closed ? ct('booking.dayClosed', { day: row.name.toLowerCase() }) : ct('booking.dayHours', { day: row.name, hours: row.hours });
   });
-  protected readonly outsideHours = computed(() => {
+  /** La reserva completa (2 h) debe caber en un rango del horario; si no, el aviso y el envío bloqueado. */
+  protected readonly scheduleIssue = computed(() => {
     const day = weekdayOf(this.date());
-    if (day == null || !/^\d{2}:\d{2}/.test(this.time())) return false;
-    return isWithinSchedule(this.menu().location.schedule, day, this.time()) === false;
+    if (day == null) return null;
+    const fit = bookingScheduleFit(this.menu().location.schedule, day, this.time());
+    if (!fit || fit.kind === 'ok') return null;
+    if (fit.kind === 'closed') return ct('booking.outsideHours');
+    const params = { hours: BOOKING_LIMITS.durationMinutes / 60, close: fit.closeTime };
+    return fit.lastStart ? ct('booking.tooLate', { ...params, last: fit.lastStart }) : ct('booking.tooLateNoSlot', params);
   });
   protected readonly resultDate = computed(() => {
     const r = this.result();
@@ -304,6 +311,12 @@ export class CartaBookingSheet {
 
   protected readonly inputClass = (field: Field | null) =>
     `${INPUT} ${field && this.errors()[field] ? 'border-rose-500' : 'border-border'}`;
+
+  /** Cambiar fecha u hora descarta los errores de ese bloque (el aviso de horario se recalcula solo). */
+  protected setWhen(field: 'date' | 'time', value: string): void {
+    this[field].set(value);
+    if (this.errors().date || this.errors().time) this.errors.update(({ date: _d, time: _t, ...rest }) => rest);
+  }
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.#sub?.unsubscribe());
@@ -329,6 +342,10 @@ export class CartaBookingSheet {
       if (start == null) errors.time = ct('booking.error.dst');
       else if (start < now + BOOKING_LIMITS.minAheadMinutes * 60_000 || start > now + BOOKING_LIMITS.maxAheadDays * 86_400_000)
         errors.date = ct('booking.error.range');
+      else {
+        const issue = this.scheduleIssue();
+        if (issue) errors.time = issue;
+      }
     }
     this.errors.set(errors);
     if (Object.keys(errors).length || start == null) return;

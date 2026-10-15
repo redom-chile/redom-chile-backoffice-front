@@ -78,6 +78,8 @@ export class RecipeCardComponent {
   readonly productUnitId = input<number | null>(null);
   // Local elegido para los costos (se pasa a "Producir").
   readonly locationId = input<number | null>(null);
+  // Variedad quitada del producto que aún conserva receta: se muestra para poder borrarla.
+  readonly removed = input(false);
 
   readonly saved = output<number>();
   readonly dirtyChange = output<boolean>();

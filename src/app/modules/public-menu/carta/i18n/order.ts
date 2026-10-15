@@ -11,6 +11,7 @@ export const ORDER_DICT = defineCartaDict({
     'cart.reason.out_of_schedule': 'Fuera de horario',
     'cart.reason.not_in_menu': 'Ya no está en la carta',
     'cart.reason.unknown': 'No disponible',
+    'cart.reason.pack_choices': 'Opciones del pack no disponibles',
     'cart.added': 'Agregado al carrito',
 
     // Errores al enviar
@@ -204,6 +205,7 @@ export const ORDER_DICT = defineCartaDict({
     'cart.reason.out_of_schedule': 'Not available now',
     'cart.reason.not_in_menu': 'No longer on the menu',
     'cart.reason.unknown': 'Unavailable',
+    'cart.reason.pack_choices': 'Bundle options unavailable',
     'cart.added': 'Added to cart',
 
     'order.error.offline': 'No connection. Check your internet',
@@ -390,6 +392,7 @@ export const ORDER_DICT = defineCartaDict({
     'cart.reason.out_of_schedule': 'Fora do horário',
     'cart.reason.not_in_menu': 'Não está mais no cardápio',
     'cart.reason.unknown': 'Indisponível',
+    'cart.reason.pack_choices': 'Opções do combo indisponíveis',
     'cart.added': 'Adicionado ao carrinho',
 
     'order.error.offline': 'Sem conexão. Verifique sua internet',
@@ -576,6 +579,7 @@ export const ORDER_DICT = defineCartaDict({
     'cart.reason.out_of_schedule': 'Derzeit nicht erhältlich',
     'cart.reason.not_in_menu': 'Nicht mehr auf der Karte',
     'cart.reason.unknown': 'Nicht verfügbar',
+    'cart.reason.pack_choices': 'Menü-Optionen nicht verfügbar',
     'cart.added': 'Zum Warenkorb hinzugefügt',
 
     'order.error.offline': 'Keine Verbindung. Prüfe dein Internet',

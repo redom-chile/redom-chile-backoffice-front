@@ -57,10 +57,10 @@ export class MenuLocationCardComponent {
   readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS));
   readonly $id = computed(() => `menu-${this.settings().locationId}`);
   readonly $url = computed(() => {
-    const path = this.settings().publicPath;
-    return path ? `${environment.publicSiteUrl}${path}` : null;
+    const { publicPath, businessSlug, locationSlug } = this.settings();
+    return publicPath && businessSlug && locationSlug ? `${environment.publicSiteUrl}${publicPath}` : null;
   });
-  readonly $slugPrefix = computed(() => `/carta/${this.settings().businessSlug ?? ''}/`);
+  readonly $slugPrefix = computed(() => `/carta/${this.settings().businessSlug ?? '…'}/`);
 
   readonly $isPublishing = signal(false);
   readonly $published = linkedSignal(() => this.settings().isPublished);
@@ -159,7 +159,7 @@ export class MenuLocationCardComponent {
     const url = this.$url();
     if (!url) return;
     try {
-      const name = `carta-${toFileSlug(this.businessName() || this.settings().businessSlug)}-${toFileSlug(this.settings().locationName)}.png`;
+      const name = `carta-${toFileSlug(this.businessName() || this.settings().businessSlug || '')}-${toFileSlug(this.settings().locationName)}.png`;
       await downloadMenuQr(url, name);
     } catch {
       this.#toast.show('No se pudo generar el QR', 'error');

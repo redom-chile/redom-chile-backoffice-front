@@ -18,7 +18,7 @@ import {
   ModalFrequency,
 } from 'src/app/modules/public-menu/data-access';
 import { formatSchedule, SCHEDULE_STATUS_LABELS, scheduleStatus } from 'src/app/modules/public-menu/features/marketing-schedule-field';
-import { isFeatureNotIncluded, MarketingLocation, marketingSaveError, requiredPlansOf } from 'src/app/modules/public-menu/features/marketing-shared';
+import { isAlreadyDeleted, isFeatureNotIncluded, MarketingLocation, marketingSaveError, requiredPlansOf } from 'src/app/modules/public-menu/features/marketing-shared';
 import { flattenCategories } from 'src/app/modules/public-menu/features/marketing-target-picker';
 import { MarketingUpsellCardComponent } from 'src/app/modules/public-menu/features/marketing-upsell-card';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
@@ -257,6 +257,11 @@ export class MarketingBannersComponent {
         },
         error: (error: unknown) => {
           this.$busyId.set(null);
+          if (isAlreadyDeleted(error)) {
+            this.$all.update((list) => list?.filter((item) => item.id !== banner.id) ?? null);
+            this.#toast.show('Ese banner ya no existía. Actualizamos la lista.', 'success');
+            return;
+          }
           const message = marketingSaveError(error, 'No se pudo eliminar el banner.');
           if (message) this.#toast.show(message, 'error');
         },

@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta |
@@ -493,7 +493,7 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 **Se pide:** Usar la zona horaria del local y agregar en `details` la última hora válida del día.
 
-**Front mientras tanto:** el aviso de horario mira solo la hora de inicio (pendiente en el front: validar inicio + 2 h); el backend responde 400 y se muestra el mensaje.
+**Front mientras tanto:** valida que inicio + 2 h quepa en un rango del horario (también cruzando la medianoche) con la zona del local; si el backend responde 400, se muestra el mensaje.
 
 ---
 
@@ -524,6 +524,16 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** Confirmar en el deploy que llega la IP real del cliente (o usar el header que entrega Netlify) y definir la URL pública de la carta en develop (deploy de rama o subdominio) para `QR_BASE_URL` (#54).
 
 **Front mientras tanto:** Ninguno; afecta a los límites y a las pruebas en develop.
+
+---
+
+### 66. 🟡 Inventario: `isActive` de las variaciones (variedades quitadas)
+
+**Problema:** una variedad quitada queda con `isActive=false` (no se puede eliminar, #59). `GET /inventory/recipes`, `GET /inventory/stock` y `GET /inventory/food-cost` no envían `isActive` por variación ni lo filtran: Stock, la planilla de conteo, el selector de transferencias y Food cost (como "Sin receta") siguen mostrando variedades quitadas, también con stock 0.
+
+**Se pide:** agregar `isActive` a cada variación en esas respuestas, y en stock un filtro (`includeInactive`, por defecto falso salvo que tengan stock ≠ 0); en food cost, excluir las inactivas.
+
+**Front mientras tanto:** los selectores de ítems y las recetas las ocultan usando `GET /products` (que sí trae `isActive`), con una llamada extra en el editor de recetas; Stock, conteos y food cost todavía las muestran.
 
 ---
 

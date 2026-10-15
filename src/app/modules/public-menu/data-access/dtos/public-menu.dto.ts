@@ -119,10 +119,11 @@ export type PublicTableDto = Readonly<{ businessSlug: string; locationSlug: stri
 export type MenuSettingsDto = Readonly<{
   locationId: number;
   locationName: string;
-  locationSlug: string;
-  businessSlug: string;
-  /** Ruta pública: /carta/{negocio}/{local}. */
-  publicPath: string;
+  /** null mientras el local o el negocio no tienen dirección pública. */
+  locationSlug: string | null;
+  businessSlug: string | null;
+  /** Ruta pública: /carta/{negocio}/{local}; null sin slugs. */
+  publicPath: string | null;
   isPublished: boolean;
   description: string | null;
   address: string | null;

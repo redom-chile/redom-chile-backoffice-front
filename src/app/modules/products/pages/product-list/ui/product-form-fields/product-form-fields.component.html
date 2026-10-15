@@ -114,6 +114,11 @@
             [attr.aria-label]="'Nombre de la variedad ' + (i + 1)"
             [class]="inputClass"
             [ngClass]="{ 'border-red-500': isVarietyInvalid(variety, 'name') }" />
+          @if (inventoryEnabled() && $stockMode() === 'recipe' && hasNoRecipe(variety)) {
+          <p class="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+            <app-icon class="h-3.5 w-3.5 shrink-0">warning</app-icon>Sin receta
+          </p>
+          }
         </div>
         <div class="relative w-32 shrink-0 sm:w-40">
           <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-500">$</span>
@@ -147,10 +152,21 @@
     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Las variedades quitadas dejan de venderse en el POS y la carta. Sus ventas anteriores se mantienen.</p>
     }
     @if (inventoryEnabled() && $stockMode() === 'recipe') {
+    @let missing = missingRecipeIds() ? missingRecipeNames() : null;
+    @if (missing?.length) {
+    <p class="mt-2 flex gap-1 text-xs text-amber-700 dark:text-amber-400">
+      <app-icon class="h-4 w-4 shrink-0">menu_book</app-icon>
+      <span>
+        Sin receta: {{ missing!.join(', ') }}. Al venderlas no se descuentan ingredientes.
+        <button type="button" class="text-primary font-medium hover:underline" (click)="configureRecipe.emit()">Configurar en Inventario → Recetas</button>
+      </span>
+    </p>
+    } @else {
     <p class="mt-2 flex gap-1 text-xs text-gray-500 dark:text-gray-400">
       <app-icon class="h-4 w-4 shrink-0">menu_book</app-icon>
       Cada variedad tiene su propia receta: configúrala en Inventario → Recetas después de guardar.
     </p>
+    }
     } @else if (inventoryEnabled() && $stockMode() === 'direct') {
     <p class="mt-2 flex gap-1 text-xs text-gray-500 dark:text-gray-400">
       <app-icon class="h-4 w-4 shrink-0">inventory_2</app-icon>

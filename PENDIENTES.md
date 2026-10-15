@@ -49,14 +49,7 @@ Pendientes:
 
 ## 2.2 Errores y mejoras del front (por prioridad)
 
-**Media**
-- [ ] Reservas desde la carta: validar que inicio + 2 h quepa en el horario (hoy solo se mira el inicio y el backend responde `BOOKING_OUTSIDE_HOURS`) — `carta/ui/carta-booking-sheet.ts` (#62).
-- [ ] Carrito: los avisos "Se agotó" no se limpian si el producto vuelve y quedan en el idioma anterior; guardar el código del motivo y recalcular — `carta/carta-cart.ts` (`revalidate`).
-- [ ] Personalización de la carta: avisar cambios sin guardar al cambiar de local o de pestaña — `features/marketing-branding`.
-- [ ] Errores de marketing: usar el `message` del backend cuando no hay `code` (hoy se reemplaza por uno genérico) — `features/marketing-shared/marketing-errors.ts`.
-- [ ] POS: sin el permiso `orders:update-order` no se ve quién es el cliente de la cuenta; mostrarlo en solo lectura — `pos-order-panel`.
-- [ ] Recetas y stock por variedad: una variedad nueva parte sin receta; revisar que Inventario → Recetas oculte las variedades quitadas y avisar al vender una variedad sin receta.
-- [ ] Tipos nulos: `MenuSettingsDto.locationSlug/businessSlug/publicPath` como `string | null` y proteger el widget y `toFileSlug` (#63).
+**Media:** corregidos el 2026-10-15 (reservas con las 2 h dentro del horario; avisos "Se agotó" del carrito como código, recalculados y traducidos; aviso de cambios sin guardar en Personalización; mensajes del backend en marketing y 404 al borrar tratado como ya eliminado; cliente de la venta en solo lectura en el POS; variedades quitadas ocultas en selectores de inventario y recetas, con "Quitada" si tienen stock o receta, y "Sin receta" por variedad en el producto; slugs nulos sin URLs con "null" y tipos corregidos). Queda por backend: Stock, Conteos y Food cost siguen mostrando variedades quitadas (#66).
 
 **Baja**
 - [ ] Carta: el idioma guardado no se agrega a la URL (`?lang=`) si no venía en ella; `isOpenNow` no se refresca con la carta abierta mucho rato; los `href` de las categorías quedan con la URL anterior tras cambiar idioma; código muerto `saveTableQr`.
@@ -66,7 +59,6 @@ Pendientes:
 - [ ] Encuestas de retiro y delivery muestran "Sin mesa"; mostrar el canal.
 - [ ] Fidelización: "Faltan N" sin unidad; pestañas visibles con el plan bloqueado; `amountUnit` acepta más de 2 decimales; producto gratis sin filtrar los no vendibles.
 - [ ] Variedades: impedir una variedad llamada igual que el producto (se oculta en la carta, como `DUMMY`).
-- [ ] Tipos: `WebhookDelivery.id` es `string` en el backend; `PromotionDto.targetName` puede ser `null`; `SaveDeliveryZoneDto.etaMinutes` no debería aceptar `null`.
 - [ ] Menú: "Marketing de la carta" no muestra candado en Free (cae en `qr_menu`); `plan-routes` no soporta "alguna de" varias funciones.
 
 ## 2.3 Pruebas de punta a punta
@@ -81,6 +73,7 @@ Pendientes:
 ## 2.4 Esperando al backend (`BACKEND-REQUESTS.md`)
 
 - **Bloqueante:** #39 (token renovado; la sesión se cierra a las 2 h).
+- **Inventario:** #66 `isActive` de variaciones en stock, recetas y food cost.
 - **Carta pública:** #51 etiquetas y horario al editar · #52 pack sin opción · #53 reservas de la carta en el listado · #54 `QR_BASE_URL` a la landing · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos en la API pública · #59 ocultar variaciones inactivas · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 horario del local en reservas · #63 datos nulos y documentación · #65 IP del cliente detrás de Netlify y develop.
 - **Otros:** #15, #16, #28–#38, #41, #43–#45, #48, #49, #58, #64.
 

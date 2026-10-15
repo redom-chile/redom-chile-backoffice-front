@@ -42,7 +42,7 @@ export class MenuSettingsComponent {
 
   // Lista local: lo guardado en una tarjeta reemplaza su local sin recargar todo.
   readonly $list = linkedSignal<MenuSettingsDto[] | null>(() => resultValue(this.settings.value()));
-  readonly $businessSlug = computed(() => this.$list()?.[0]?.businessSlug ?? null);
+  readonly $businessSlug = computed(() => this.$list()?.find((item) => item.businessSlug)?.businessSlug ?? null);
   readonly $error = computed(() => resultError(this.settings.value()));
   readonly $errorMessage = computed(() => getPublicMenuErrorMessage(this.$error(), 'No se pudieron cargar las cartas.'));
   readonly $isFirstLoad = computed(() => this.settings.isLoading() && !this.$list());

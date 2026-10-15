@@ -4,7 +4,7 @@ import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
-import { CartaCart, MAX_CART_LINES, MAX_CUSTOMER_NAME, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_ORDER_NOTE, readOrderError, toOrderLine } from '../carta-cart';
+import { CartaCart, cartIssueText, MAX_CART_LINES, MAX_CUSTOMER_NAME, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_ORDER_NOTE, readOrderError, toOrderLine } from '../carta-cart';
 import { CartaI18n } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 import { CartaStepper } from './carta-stepper';
@@ -58,7 +58,7 @@ const fieldClass =
                   @if (item.issue) {
                     <p class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
                       <app-carta-icon name="alert" [size]="14" />
-                      {{ item.issue }}
+                      {{ issueText(item.issue) }}
                     </p>
                   }
                 </div>
@@ -209,6 +209,7 @@ export class CartaCartSheet {
 
   protected readonly cart = inject(CartaCart);
   protected readonly t = inject(CartaI18n).t;
+  protected readonly issueText = cartIssueText;
   readonly #api = inject(PublicMenuApiService);
 
   protected readonly sending = signal(false);
@@ -256,7 +257,7 @@ export class CartaCartSheet {
           const err = readOrderError(e);
           this.error.set(err.message);
           if (err.productId != null && err.reason) this.cart.markProduct(err.productId, err.reason);
-          else if (err.pack) this.cart.markPackGroup(this.menu(), err.groupId, err.message);
+          else if (err.pack) this.cart.markPackGroup(this.menu(), err.groupId);
           if (err.reload) this.refresh.emit();
         },
       });

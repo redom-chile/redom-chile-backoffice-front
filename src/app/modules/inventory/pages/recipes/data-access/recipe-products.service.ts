@@ -17,7 +17,7 @@ export type RecipeProduct = Readonly<{
   type: string | null;
   stockMode?: string;
   isInactive?: boolean;
-  variations: ReadonlyArray<Readonly<{ id: number; name: string }>>;
+  variations: ReadonlyArray<Readonly<{ id: number; name: string; isActive?: boolean }>>;
 }>;
 
 /**

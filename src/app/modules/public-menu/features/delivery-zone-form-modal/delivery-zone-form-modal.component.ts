@@ -179,7 +179,7 @@ export class DeliveryZoneFormModalComponent {
       radiusKm: toNumber(this.$radius()),
       fee: toNumber(this.$fee()) ?? 0,
       minOrder: toNumber(this.$minOrder()) ?? 0,
-      etaMinutes: toNumber(this.$eta()),
+      etaMinutes: toNumber(this.$eta()) ?? DEFAULT_ETA,
       isActive: this.$isActive(),
     };
     const zone = this.data.zone;

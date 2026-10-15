@@ -6,7 +6,7 @@ import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import { getPublicMenuErrorMessage, MenuMarketingService, PromotionDto } from 'src/app/modules/public-menu/data-access';
 import { formatSchedule, SCHEDULE_STATUS_LABELS, scheduleStatus } from 'src/app/modules/public-menu/features/marketing-schedule-field';
-import { isFeatureNotIncluded, MarketingLocation, marketingSaveError, requiredPlansOf } from 'src/app/modules/public-menu/features/marketing-shared';
+import { isAlreadyDeleted, isFeatureNotIncluded, MarketingLocation, marketingSaveError, requiredPlansOf } from 'src/app/modules/public-menu/features/marketing-shared';
 import { MarketingUpsellCardComponent } from 'src/app/modules/public-menu/features/marketing-upsell-card';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import {
@@ -19,7 +19,7 @@ import {
   ToastService,
   ToggleComponent,
 } from 'src/ui';
-import { CHANNEL_LABELS, formatDiscount, TARGET_TYPE_LABELS } from './promotion-format';
+import { CHANNEL_LABELS, formatDiscount, TARGET_TYPE_LABELS, targetNameOf } from './promotion-format';
 import { openPromotionFormModal } from './promotion-form-modal.component';
 
 type ActiveFilter = 'all' | 'active' | 'inactive';
@@ -44,6 +44,7 @@ export class MarketingPromotionsComponent {
   readonly PERMISSIONS = PERMISSIONS;
   readonly channelLabels = CHANNEL_LABELS;
   readonly targetLabels = TARGET_TYPE_LABELS;
+  readonly targetNameOf = targetNameOf;
   readonly filters: { value: ActiveFilter; label: string }[] = [
     { value: 'all', label: 'Todas' },
     { value: 'active', label: 'Activas' },
@@ -140,6 +141,11 @@ export class MarketingPromotionsComponent {
         },
         error: (error: unknown) => {
           this.$busyId.set(null);
+          if (isAlreadyDeleted(error)) {
+            this.$list.update((list) => list?.filter((item) => item.id !== promotion.id) ?? null);
+            this.#toast.show('Esa promoción ya no existía. Actualizamos la lista.', 'success');
+            return;
+          }
           const message = marketingSaveError(error, 'No se pudo eliminar la promoción.');
           if (message) this.#toast.show(message, 'error');
         },

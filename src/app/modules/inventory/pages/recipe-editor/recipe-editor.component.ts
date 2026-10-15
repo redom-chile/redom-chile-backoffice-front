@@ -66,6 +66,14 @@ export class RecipeEditorComponent {
   #unitRequest: Subscription | null = null;
   // Unidad de la preparación (para el rinde).
   readonly $productUnitId = signal<number | null>(null);
+  // Variedades quitadas del plato: se ocultan, salvo que aún tengan receta.
+  readonly $removedIds = signal<ReadonlySet<number>>(new Set());
+  #removedRequest: Subscription | null = null;
+  #removedLoadedFor: number | null = null;
+  readonly $variations = computed(() => {
+    const removed = this.$removedIds();
+    return (this.$data()?.variations ?? []).filter((variation) => !removed.has(variation.variationId) || variation.items.length > 0);
+  });
 
   readonly $isModifier = computed(() => this.$data()?.productType === 'modifier');
   readonly $isProduction = computed(() => this.$data()?.recipeKind === 'production');
@@ -98,7 +106,14 @@ export class RecipeEditorComponent {
       const productId = this.$isProduction() ? this.$data()?.productId : null;
       untracked(() => this.#loadProductUnit(productId ?? null));
     });
+    // Platos y preparaciones: se piden sus variedades quitadas una vez por producto.
+    effect(() => {
+      const data = this.$data();
+      const productId = data && data.productType !== 'modifier' && data.variations.length > 1 ? data.productId : null;
+      untracked(() => this.#loadRemoved(productId));
+    });
     this.#destroyRef.onDestroy(() => {
+      this.#removedRequest?.unsubscribe();
       this.#request?.unsubscribe();
       this.#unitRequest?.unsubscribe();
     });
@@ -173,6 +188,19 @@ export class RecipeEditorComponent {
         this.#loadedUnitFor = null;
         this.#toast.show('No se pudo cargar la unidad de la preparación.', 'warning');
       },
+    });
+  }
+
+  #loadRemoved(productId: number | null) {
+    if (productId === this.#removedLoadedFor) return;
+    this.#removedLoadedFor = productId;
+    this.#removedRequest?.unsubscribe();
+    this.$removedIds.set(new Set());
+    if (!productId) return;
+    // Si falla se muestran todas las variedades, como antes.
+    this.#removedRequest = this.#products.getRemovedVariationIds(productId).subscribe({
+      next: (ids) => this.$removedIds.set(ids),
+      error: () => (this.#removedLoadedFor = null),
     });
   }
 

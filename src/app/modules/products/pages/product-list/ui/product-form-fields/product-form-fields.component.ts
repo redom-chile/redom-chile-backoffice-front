@@ -45,6 +45,9 @@ export class ProductFormFieldsComponent implements OnInit {
   readonly inventoryEnabled = input(false);
   readonly ingredientsEnabled = input(false);
   readonly units = input<readonly UnitDto[]>([]);
+  // Variedades guardadas sin receta (solo al editar un plato "Por receta"); null = no se sabe.
+  readonly missingRecipeIds = input<ReadonlySet<number> | null>(null);
+  readonly configureRecipe = output<void>();
 
   readonly stockModeOptions = STOCK_MODE_OPTIONS;
   readonly unitLabel = unitLabel;
@@ -137,6 +140,18 @@ export class ProductFormFieldsComponent implements OnInit {
     const control = variety.controls[field];
     if (control.invalid && control.touched) return true;
     return field === 'name' && duplicatedVarietyNames(this.form()).has(normalizeVarietyName(variety.controls.name.value));
+  }
+
+  hasNoRecipe(variety: VarietyForm): boolean {
+    const id = variety.controls.id.value;
+    return id !== null && !!this.missingRecipeIds()?.has(id);
+  }
+
+  /** Nombres de las variedades guardadas que aún no tienen receta. */
+  missingRecipeNames(): string[] {
+    return this.form()
+      .controls.varieties.controls.filter((variety) => this.hasNoRecipe(variety))
+      .map((variety) => variety.controls.name.value?.trim() || 'Sin nombre');
   }
 
   isInvalid(control: keyof ProductForm['controls']): boolean {

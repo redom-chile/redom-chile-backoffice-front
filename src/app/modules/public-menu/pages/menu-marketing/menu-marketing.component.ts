@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { map } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsService, PlanFeatureCode } from 'src/app/core/services/entitlements';
@@ -12,7 +13,7 @@ import { MarketingLocation } from 'src/app/modules/public-menu/features/marketin
 import { MarketingUpsellCardComponent } from 'src/app/modules/public-menu/features/marketing-upsell-card';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
-import { HeaderDashboardComponent, IconComponent } from 'src/ui';
+import { ConfirmModalComponent, ConfirmModalData, HeaderDashboardComponent, IconComponent } from 'src/ui';
 
 type Tab = 'promotions' | 'banners' | 'branding';
 
@@ -55,6 +56,7 @@ const TABS: ReadonlyArray<{ id: Tab; label: string; icon: string; feature: PlanF
   ],
   templateUrl: './menu-marketing.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(window:beforeunload)': 'handleBeforeUnload($event)' },
 })
 export class MenuMarketingComponent {
   readonly #router = inject(Router);
@@ -62,6 +64,8 @@ export class MenuMarketingComponent {
   readonly #entitlements = inject(EntitlementsService);
   readonly #locationsService = inject(GetAllBusinessLocationsService);
   readonly #business = inject(BusinessSettingsService);
+  readonly #dialog = inject(MatDialog);
+  private readonly brandingRef = viewChild(MarketingBrandingComponent);
 
   readonly PERMISSIONS = PERMISSIONS;
   readonly tabs = TABS;
@@ -89,16 +93,56 @@ export class MenuMarketingComponent {
   readonly $brandingLocationName = computed(() => this.$locations().find((location) => location.id === this.$brandingLocationId())?.name ?? '');
   readonly $selectedLocationId = computed(() => (this.$tab() === 'branding' ? this.$brandingLocationId() : this.$locationId()));
 
+  /** Colores o portada sin guardar en Personalización (lo usa unsavedChangesGuard). */
+  hasUnsavedChanges(): boolean {
+    return this.brandingRef()?.hasUnsavedChanges() ?? false;
+  }
+
+  handleBeforeUnload(event: BeforeUnloadEvent) {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
   selectTab(tab: Tab) {
+    if (tab === this.$tab()) return;
     this.#navigate({ tab });
   }
 
   onLocationChange(event: Event) {
-    const value = (event.target as HTMLSelectElement).value;
-    this.#navigate({ locationId: value ? Number(value) : null });
+    const select = event.target as HTMLSelectElement;
+    const value = select.value;
+    // Si se cancela, el selector vuelve al local actual.
+    this.#navigate({ locationId: value ? Number(value) : null }, () => (select.value = String(this.$selectedLocationId() ?? '')));
   }
 
-  #navigate(queryParams: Record<string, unknown>) {
-    this.#router.navigate([], { relativeTo: this.#route, queryParams, queryParamsHandling: 'merge', replaceUrl: true });
+  /** Cambia pestaña o local pidiendo confirmación si hay cambios sin guardar. */
+  #navigate(queryParams: Record<string, unknown>, onCancel?: () => void) {
+    this.#confirmDiscard().subscribe((confirmed) => {
+      if (!confirmed) {
+        onCancel?.();
+        return;
+      }
+      this.brandingRef()?.discard();
+      this.#router.navigate([], { relativeTo: this.#route, queryParams, queryParamsHandling: 'merge', replaceUrl: true });
+    });
+  }
+
+  #confirmDiscard(): Observable<boolean> {
+    if (!this.hasUnsavedChanges()) return of(true);
+    return this.#dialog
+      .open<ConfirmModalComponent, ConfirmModalData, boolean>(ConfirmModalComponent, {
+        width: '440px',
+        maxWidth: '95vw',
+        data: {
+          title: 'Hay cambios sin guardar',
+          message: 'Cambiaste colores o la portada y no los guardaste. Si sigues, se pierden.',
+          confirmText: 'Descartar cambios',
+          cancelText: 'Seguir editando',
+          tone: 'danger',
+        },
+      })
+      .afterClosed()
+      .pipe(map((confirmed) => confirmed === true));
   }
 }

@@ -49,7 +49,8 @@ export type WebhookEndpointWithSecretDto = WebhookEndpointDto & Readonly<{ secre
 export type SaveWebhookEndpointDto = Readonly<{ url?: string; description?: string | null; events?: string[]; isActive?: boolean }>;
 
 export type WebhookDeliveryResultDto = Readonly<{
-  id: number;
+  /** bigint del backend: llega como texto. */
+  id: string;
   status: 'pending' | 'delivered' | 'failed';
   attempts: number;
   lastStatusCode: number | null;

@@ -16,11 +16,19 @@ type ProductForStock = Readonly<{
   type: string | null;
   unitId: number | null;
   stockMode?: string;
-  variations: ReadonlyArray<Readonly<{ id: number; name: string; defaultPurchasePrice: number | null }>>;
+  variations: ReadonlyArray<
+    Readonly<{ id: number; name: string; defaultPurchasePrice: number | null; isActive?: boolean; sellPriceIncTax?: number | null }>
+  >;
 }>;
 
-function toItems(product: ProductForStock, kind: StockableItem['kind']): StockableItem[] {
-  return product.variations.map((variation) => ({
+/** Variedad quitada en Carta → Productos: queda inactiva y sin precio (el backend no la elimina). */
+export function isRemovedVariation(variation: Readonly<{ isActive?: boolean }>): boolean {
+  return variation.isActive === false;
+}
+
+function toItems(product: ProductForStock, kind: StockableItem['kind'], includeRemoved: boolean): StockableItem[] {
+  const variations = includeRemoved ? product.variations : product.variations.filter((variation) => !isRemovedVariation(variation));
+  return variations.map((variation) => ({
     productId: product.id,
     variationId: variation.id,
     label:
@@ -31,22 +39,25 @@ function toItems(product: ProductForStock, kind: StockableItem['kind']): Stockab
     kind,
     unitId: product.unitId,
     defaultPurchasePrice: variation.defaultPurchasePrice,
+    removed: isRemovedVariation(variation),
   }));
 }
 
 /**
  * Busca ítems con stock propio para compras y ajustes:
  * ingredientes (GET /products?type=ingredient) + productos vendibles con stockMode "direct" (GET /products).
+ * Las variedades quitadas se omiten salvo con includeRemoved (para resolver líneas o ítems ya existentes).
  */
 @Injectable({ providedIn: 'root' })
 export class StockableItemsService {
   readonly #http = inject(HttpClient);
 
-  search(name: string, options: { includeIngredients: boolean }, perPage = 20): Observable<StockableItem[]> {
+  search(name: string, options: { includeIngredients: boolean; includeRemoved?: boolean }, perPage = 20): Observable<StockableItem[]> {
     const term = name.trim() || undefined;
+    const includeRemoved = !!options.includeRemoved;
     const ingredients$ = options.includeIngredients
       ? this.#fetch({ type: 'ingredient', name: term, page: 1, perPage }).pipe(
-          map((products) => products.flatMap((product) => toItems(product, 'ingredient'))),
+          map((products) => products.flatMap((product) => toItems(product, 'ingredient', includeRemoved))),
         )
       : of<StockableItem[]>([]);
     const products$ = this.#fetch({ name: term, page: 1, perPage: 100 }).pipe(
@@ -54,7 +65,7 @@ export class StockableItemsService {
         products
           .filter((product) => product.stockMode === 'direct' && product.type !== 'ingredient')
           .slice(0, perPage)
-          .flatMap((product) => toItems(product, 'product')),
+          .flatMap((product) => toItems(product, 'product', includeRemoved)),
       ),
     );
     return combineLatest([ingredients$, products$]).pipe(map(([ingredients, products]) => [...ingredients, ...products]));

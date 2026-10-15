@@ -54,7 +54,7 @@
         <h3 class="text-foreground min-w-0 truncate font-semibold">{{ promotion.name }}</h3>
       </div>
       <p class="text-muted-foreground mt-1 text-sm">
-        {{ targetLabels[promotion.targetType] }}: <span class="text-foreground">{{ promotion.targetName }}</span>
+        {{ targetLabels[promotion.targetType] }}: <span [class]="promotion.targetName ? 'text-foreground' : 'text-destructive'">{{ targetNameOf(promotion) }}</span>
       </p>
       <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
         @for (channel of promotion.channels; track channel) {
