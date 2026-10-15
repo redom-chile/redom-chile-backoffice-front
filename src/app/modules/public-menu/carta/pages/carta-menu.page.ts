@@ -6,6 +6,9 @@ import { combineLatest, Subscription } from 'rxjs';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicMenuApiService, TABLE_QR_PATTERN } from '../../data-access/public-menu-api.service';
 import { CartaAnalytics } from '../carta-analytics';
+import { CartaEmbed } from '../carta-embed';
+import { CartaDisplay } from '../carta-display';
+import { CartaI18n, CartaLang, ct } from '../carta-i18n';
 import { CARTA_BASE_PATH, CartaLoadError, readCartaError, saveTableQr } from '../carta-utils';
 import { CartaMenuView } from '../ui/carta-menu-view';
 import { CartaRetry, CartaSkeleton, CartaUnavailable } from '../ui/carta-states';
@@ -26,11 +29,11 @@ type State =
     @if (s.status === 'loading') {
       <app-carta-skeleton />
     } @else if (s.status === 'ready') {
-      <app-carta-menu-view [menu]="s.menu" [qr]="qr()" (refresh)="load(true)" />
+      <app-carta-menu-view [menu]="s.menu" [qr]="qr()" (refresh)="load(true)" (languageChange)="changeLanguage($event)" />
     } @else if (s.error.kind === 'rate-limited') {
       <app-carta-retry (retry)="load()" />
     } @else if (s.error.kind === 'error') {
-      <app-carta-retry [message]="s.error.offline ? 'No hay conexión. Revisa tu internet' : 'No pudimos cargar la carta'" [delay]="0" (retry)="load()" />
+      <app-carta-retry [message]="t(s.error.offline ? 'state.offline' : 'state.loadFailed')" [delay]="0" (retry)="load()" />
     } @else {
       <app-carta-unavailable />
     }
@@ -44,6 +47,9 @@ export class CartaMenuPage {
   readonly #meta = inject(Meta);
   readonly #basePath = inject(CARTA_BASE_PATH);
   readonly #analytics = inject(CartaAnalytics);
+  readonly #embed = inject(CartaEmbed);
+  readonly #i18n = inject(CartaI18n);
+  protected readonly t = this.#i18n.t;
 
   protected readonly state = signal<State>({ status: 'loading' });
   protected readonly qr = signal<string | null>(null);
@@ -51,9 +57,13 @@ export class CartaMenuPage {
   #business = '';
   #location = '';
   #qr: string | null = null;
+  /** Idioma pedido al backend (null: Accept-Language). */
+  #lang: CartaLang | null = null;
   #request: Subscription | null = null;
 
   constructor() {
+    inject(CartaDisplay).activate();
+    this.#i18n.activate();
     combineLatest([this.#route.paramMap, this.#route.queryParamMap])
       .pipe(takeUntilDestroyed())
       .subscribe(([params, query]) => {
@@ -61,13 +71,18 @@ export class CartaMenuPage {
         const business = params.get('business') ?? '';
         const location = params.get('location') ?? '';
         const validQr = qr && TABLE_QR_PATTERN.test(qr) ? qr : null;
-        if (business === this.#business && location === this.#location && validQr === this.#qr && this.state().status !== 'error') return;
+        const lang = this.#i18n.menuRequest(query.get('lang'));
+        const same = business === this.#business && location === this.#location && validQr === this.#qr;
+        if (same && lang === this.#lang && this.state().status !== 'error') return;
+        // Solo cambió el idioma: recarga sin esqueleto (se mantienen el carrito y la posición)
+        const silent = same && this.state().status === 'ready';
+        this.#lang = lang;
         this.#business = business;
         this.#location = location;
         this.#qr = validQr;
         this.qr.set(validQr);
         if (validQr) saveTableQr(validQr);
-        this.load();
+        this.load(silent);
       });
     inject(DestroyRef).onDestroy(() => this.#request?.unsubscribe());
   }
@@ -77,8 +92,9 @@ export class CartaMenuPage {
     silent &&= this.state().status === 'ready';
     this.#request?.unsubscribe();
     if (!silent) this.state.set({ status: 'loading' });
-    this.#request = this.#api.getLocationMenu(this.#business, this.#location, this.#qr).subscribe({
+    this.#request = this.#api.getLocationMenu(this.#business, this.#location, this.#qr, this.#lang).subscribe({
       next: (menu) => {
+        this.#i18n.useMenuLanguage(menu.language);
         this.#setMeta(menu);
         this.state.set({ status: 'ready', menu });
         if (silent) return;
@@ -91,7 +107,7 @@ export class CartaMenuPage {
         if (error.kind === 'moved') {
           const tree = this.#router.parseUrl(error.path);
           if (this.#qr) tree.queryParams = { ...tree.queryParams, qr: this.#qr };
-          void this.#router.navigateByUrl(tree, { replaceUrl: true });
+          void this.#router.navigateByUrl(this.#embed.withParams(tree), { replaceUrl: true });
           return;
         }
         this.state.set({ status: 'error', error });
@@ -99,9 +115,16 @@ export class CartaMenuPage {
     });
   }
 
+  /** Guarda la elección y la deja en la URL; el cambio de ?lang= recarga la carta. */
+  protected changeLanguage(lang: CartaLang): void {
+    this.#i18n.choose(lang);
+    void this.#router.navigate([], { relativeTo: this.#route, queryParams: { lang }, queryParamsHandling: 'merge', replaceUrl: true, preserveFragment: true });
+  }
+
   #setMeta(menu: PublicLocationMenuDto): void {
-    const title = `${menu.business.name} – ${menu.location.name} | Carta`;
-    const description = menu.location.description?.trim() || `Revisa la carta de ${menu.business.name} en ${menu.location.name}.`;
+    const names = { business: menu.business.name, location: menu.location.name };
+    const title = ct('page.title', names);
+    const description = menu.location.description?.trim() || ct('page.description', names);
     this.#title.setTitle(title);
     this.#meta.updateTag({ name: 'description', content: description });
     this.#meta.updateTag({ property: 'og:title', content: title });

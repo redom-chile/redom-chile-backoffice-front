@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { PublicPackGroupDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartAddition, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_MODIFIER_QUANTITY } from '../carta-cart';
+import { CartaI18n, ct } from '../carta-i18n';
 import { isPackUnavailable, packChoiceLabel, promotionLabel } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
@@ -29,9 +30,9 @@ import { CartaStepper } from './carta-stepper';
       @if (p.soldOut || packUnavailable() || promotion() || p.pack) {
         <div class="mt-2 flex flex-wrap gap-1.5">
           @if (p.soldOut) {
-            <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-background">Agotado</span>
+            <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-background">{{ t('common.soldOut') }}</span>
           } @else if (packUnavailable()) {
-            <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-background">No disponible</span>
+            <span class="rounded-full bg-foreground px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-background">{{ t('common.unavailable') }}</span>
           }
           @if (promotion(); as promo) {
             <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
@@ -42,7 +43,7 @@ import { CartaStepper } from './carta-stepper';
           @if (p.pack) {
             <span class="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-semibold">
               <app-carta-icon name="package" [size]="13" />
-              Pack
+              {{ t('common.pack') }}
             </span>
           }
         </div>
@@ -53,7 +54,7 @@ import { CartaStepper } from './carta-stepper';
       }
 
       @if (productTags().length) {
-        <ul class="mt-3 flex flex-wrap gap-1.5" aria-label="Etiquetas">
+        <ul class="mt-3 flex flex-wrap gap-1.5" [attr.aria-label]="t('common.tags')">
           @for (tag of productTags(); track tag.code) {
             <li class="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
               <app-carta-tag-icon [icon]="tag.icon" />
@@ -70,7 +71,7 @@ import { CartaStepper } from './carta-stepper';
         </p>
       } @else if (p.variations.length > 1 && orderable()) {
         <fieldset class="mt-4">
-          <legend class="mb-2 text-base font-semibold">Elige una opción</legend>
+          <legend class="mb-2 text-base font-semibold">{{ t('product.chooseOption') }}</legend>
           <div class="divide-y divide-border rounded-2xl border border-border">
             @for (v of p.variations; track v.id) {
               <label class="flex cursor-pointer items-center gap-3 px-4 py-3 text-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary">
@@ -82,7 +83,7 @@ import { CartaStepper } from './carta-stepper';
           </div>
         </fieldset>
       } @else if (p.variations.length > 1) {
-        <ul class="mt-4 divide-y divide-border rounded-2xl border border-border" aria-label="Opciones">
+        <ul class="mt-4 divide-y divide-border rounded-2xl border border-border" [attr.aria-label]="t('common.options')">
           @for (v of p.variations; track v.id) {
             <li class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
               <span class="min-w-0 [overflow-wrap:anywhere]">{{ v.name }}</span>
@@ -95,7 +96,7 @@ import { CartaStepper } from './carta-stepper';
       <!-- Contenido del pack -->
       @if (p.pack?.groups?.length) {
         <section class="mt-6" aria-labelledby="carta-pack-title">
-          <h3 id="carta-pack-title" class="text-base font-semibold">Qué trae el pack</h3>
+          <h3 id="carta-pack-title" class="text-base font-semibold">{{ t('product.packContents') }}</h3>
           <div class="mt-2 grid gap-3">
             @for (g of p.pack!.groups; track g.id) {
               @if (orderable() && isChoosable(g)) {
@@ -123,11 +124,11 @@ import { CartaStepper } from './carta-stepper';
                         <span class="min-w-0 flex-1 [overflow-wrap:anywhere]" [class.line-through]="item.soldOut">
                           {{ qty(item.quantity) }}{{ item.name }}
                           @if (item.soldOut) {
-                            <span class="sr-only"> (agotado)</span>
+                            <span class="sr-only"> ({{ t('common.soldOutLower') }})</span>
                           }
                         </span>
                         @if (item.soldOut) {
-                          <span class="shrink-0 text-xs font-medium text-muted-foreground">Agotado</span>
+                          <span class="shrink-0 text-xs font-medium text-muted-foreground">{{ t('common.soldOut') }}</span>
                         } @else if (item.extraPrice > 0) {
                           <span class="shrink-0 font-medium">+{{ format(item.extraPrice) }}</span>
                         }
@@ -143,12 +144,12 @@ import { CartaStepper } from './carta-stepper';
                 <p class="flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm" [class.opacity-60]="item.soldOut">
                   <app-carta-icon name="check" [size]="16" class="mt-0.5 text-foreground" />
                   <span class="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                    Incluye: <strong class="font-semibold">{{ qty(item.quantity) }}{{ item.name }}</strong>
+                    {{ t('product.includes') }} <strong class="font-semibold">{{ qty(item.quantity) }}{{ item.name }}</strong>
                     @if (item.extraPrice > 0) {
                       <span class="text-muted-foreground"> (+{{ format(item.extraPrice) }})</span>
                     }
                     @if (item.soldOut) {
-                      <span class="text-muted-foreground"> · Agotado</span>
+                      <span class="text-muted-foreground"> · {{ t('common.soldOut') }}</span>
                     }
                   </span>
                 </p>
@@ -174,14 +175,14 @@ import { CartaStepper } from './carta-stepper';
                         <span class="min-w-0 flex-1 [overflow-wrap:anywhere]" [class.line-through]="item.soldOut">
                           {{ qty(item.quantity) }}{{ item.name }}
                           @if (item.isDefault) {
-                            <span class="text-xs text-muted-foreground"> · por defecto</span>
+                            <span class="text-xs text-muted-foreground"> · {{ t('product.default') }}</span>
                           }
                           @if (item.soldOut) {
-                            <span class="sr-only"> (agotado)</span>
+                            <span class="sr-only"> ({{ t('common.soldOutLower') }})</span>
                           }
                         </span>
                         @if (item.soldOut) {
-                          <span class="shrink-0 text-xs font-medium text-muted-foreground">Agotado</span>
+                          <span class="shrink-0 text-xs font-medium text-muted-foreground">{{ t('common.soldOut') }}</span>
                         } @else if (item.extraPrice > 0) {
                           <span class="shrink-0 font-medium">+{{ format(item.extraPrice) }}</span>
                         }
@@ -189,7 +190,7 @@ import { CartaStepper } from './carta-stepper';
                     }
                   </ul>
                   @if (requiredWithoutOptions(g)) {
-                    <p class="mt-1 text-xs font-medium text-muted-foreground">Sin opciones disponibles por ahora</p>
+                    <p class="mt-1 text-xs font-medium text-muted-foreground">{{ t('product.noOptions') }}</p>
                   }
                 </fieldset>
               }
@@ -198,7 +199,7 @@ import { CartaStepper } from './carta-stepper';
           @if (packUnavailable()) {
             <p class="mt-3 flex items-start gap-2 text-sm text-muted-foreground" role="note">
               <app-carta-icon name="info" [size]="16" class="mt-0.5" />
-              Este pack no está disponible en este momento.
+              {{ t('product.packUnavailable') }}
             </p>
           }
         </section>
@@ -209,7 +210,7 @@ import { CartaStepper } from './carta-stepper';
         @for (set of modifierSets(); track set.id) {
           <fieldset class="mt-6">
             <legend class="text-base font-semibold [overflow-wrap:anywhere]">{{ set.name }}</legend>
-            <p class="text-xs text-muted-foreground">Opcional</p>
+            <p class="text-xs text-muted-foreground">{{ t('product.optional') }}</p>
             <div class="mt-2 divide-y divide-border rounded-2xl border border-border">
               @for (o of set.options; track o.variationId) {
                 @let q = modifierQty(o.variationId);
@@ -217,18 +218,18 @@ import { CartaStepper } from './carta-stepper';
                   <span class="min-w-0 flex-1 [overflow-wrap:anywhere]">
                     {{ o.name }}
                     @if (o.price > 0) {
-                      <span class="block text-xs text-muted-foreground">+{{ format(o.price) }} c/u</span>
+                      <span class="block text-xs text-muted-foreground">{{ t('product.each', { price: format(o.price) }) }}</span>
                     }
                   </span>
                   @if (q === 0) {
                     <button
                       type="button"
                       class="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
-                      [attr.aria-label]="'Agregar ' + o.name"
+                      [attr.aria-label]="t('product.addItem', { name: o.name })"
                       (click)="setModifier(o.variationId, 1)"
                     >
                       <app-carta-icon name="plus" [size]="14" />
-                      Agregar
+                      {{ t('common.add') }}
                     </button>
                   } @else {
                     <app-carta-stepper [value]="q" [min]="0" [max]="maxModifier" [label]="o.name" [small]="true" (change)="setModifier(o.variationId, $event)" />
@@ -241,12 +242,12 @@ import { CartaStepper } from './carta-stepper';
 
         <!-- Nota -->
         <div class="mt-6">
-          <label for="carta-line-note" class="text-base font-semibold">Nota para la cocina</label>
+          <label for="carta-line-note" class="text-base font-semibold">{{ t('product.note') }}</label>
           <textarea
             id="carta-line-note"
             rows="2"
             class="mt-2 block w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            placeholder="Ej.: sin cebolla"
+            [placeholder]="t('product.notePlaceholder')"
             [attr.maxlength]="maxNote"
             aria-describedby="carta-line-note-count"
             [value]="note()"
@@ -266,7 +267,7 @@ import { CartaStepper } from './carta-stepper';
           </p>
         } @else {
           @if (cartFull()) {
-            <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">Tu carrito llegó al máximo de 30 productos distintos</p>
+            <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">{{ t('product.cartFull') }}</p>
           } @else if (triedAdd() && firstError(); as err) {
             <p class="mb-2 text-center text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">{{ err }}</p>
           }
@@ -278,11 +279,11 @@ import { CartaStepper } from './carta-stepper';
               [disabled]="cartFull()"
               (click)="submit()"
             >
-              <span>Agregar</span>
+              <span>{{ t('common.add') }}</span>
               <span class="tabular-nums">{{ format(lineTotal()) }}</span>
             </button>
           </div>
-          <p class="mt-1.5 text-center text-[11px] text-muted-foreground">Precio estimado. El local confirma el total.</p>
+          <p class="mt-1.5 text-center text-[0.6875rem] text-muted-foreground">{{ t('product.estimate') }}</p>
         }
       </div>
     }
@@ -332,8 +333,9 @@ export class CartaProductDetail {
   protected readonly groupError = (g: PublicPackGroupDto): string | null => {
     if (!this.isChoosable(g)) return null;
     const n = this.choices().get(g.id)?.length ?? 0;
-    if (n < g.minChoices) return g.minChoices === 1 ? `Elige una opción en "${g.name}"` : `Elige al menos ${g.minChoices} en "${g.name}"`;
-    if (n > g.maxChoices) return `Elige hasta ${g.maxChoices} en "${g.name}"`;
+    if (n < g.minChoices)
+      return g.minChoices === 1 ? ct('product.chooseIn', { group: g.name }) : ct('product.chooseAtLeast', { n: g.minChoices, group: g.name });
+    if (n > g.maxChoices) return ct('product.chooseUpTo', { n: g.maxChoices, group: g.name });
     return null;
   };
 
@@ -342,7 +344,7 @@ export class CartaProductDetail {
       const error = this.groupError(g);
       if (error) return error;
     }
-    return this.variationId() == null ? 'Elige una opción' : null;
+    return this.variationId() == null ? ct('product.chooseOption') : null;
   });
 
   /** Precio estimado de una unidad: variación + recargos del pack (incluidos y elegidos) + modificadores. */
@@ -430,6 +432,7 @@ export class CartaProductDetail {
     });
   }
 
+  protected readonly t = inject(CartaI18n).t;
   protected readonly imageFailed = signal(false);
   protected readonly format = formatMenuPrice;
   protected readonly choiceLabel = packChoiceLabel;

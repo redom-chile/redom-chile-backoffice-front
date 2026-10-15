@@ -5,6 +5,10 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { ORDER_ID_PATTERN } from '../carta-cart';
+import { CartaEmbed } from '../carta-embed';
+import { CartaDisplay } from '../carta-display';
+import { CartaI18n } from '../carta-i18n';
+import { CartaDisplayMenu } from '../ui/carta-display-menu';
 import { CARTA_BASE_PATH } from '../carta-utils';
 import { CartaIcon } from '../ui/carta-icon';
 import { CartaOrderTracking } from '../ui/carta-order-tracking';
@@ -29,19 +33,21 @@ function readState(router: Router, basePath: string): NavState {
  */
 @Component({
   selector: 'app-carta-order-page',
-  imports: [RouterLink, CartaIcon, CartaOrderTracking, CartaUnavailable],
+  imports: [CartaDisplayMenu, RouterLink, CartaIcon, CartaOrderTracking, CartaUnavailable],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (orderId of ids(); track orderId) {
-      <div class="min-h-dvh bg-background text-foreground antialiased">
-        <main class="mx-auto max-w-2xl pb-[env(safe-area-inset-bottom)] sm:px-4 sm:pt-6">
+      <div class="relative min-h-dvh bg-background text-foreground antialiased">
+        <main class="relative mx-auto max-w-2xl pb-[env(safe-area-inset-bottom)] sm:px-4 sm:pt-6">
+          <app-carta-display-menu class="float-right mr-3 mt-3 sm:mr-0 sm:mt-0" />
           @if (state.back) {
             <a
               [routerLink]="state.back"
+              [queryParams]="embed.queryParams"
               class="ml-3 mt-3 inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold text-muted-foreground transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary sm:ml-0"
             >
               <app-carta-icon name="chevron-left" [size]="16" />
-              Volver a la carta
+              {{ t('page.backToMenu') }}
             </a>
           }
           <app-carta-order-tracking
@@ -62,6 +68,9 @@ function readState(router: Router, basePath: string): NavState {
 export class CartaOrderPage {
   readonly #route = inject(ActivatedRoute);
   protected readonly state = readState(inject(Router), inject(CARTA_BASE_PATH));
+  protected readonly embed = inject(CartaEmbed);
+  readonly #i18n = inject(CartaI18n);
+  protected readonly t = this.#i18n.t;
 
   /** null: el id no es un uuid. */
   protected readonly id = toSignal(
@@ -80,9 +89,13 @@ export class CartaOrderPage {
   });
 
   constructor() {
+    inject(CartaDisplay).activate();
+    this.#i18n.activate();
+    this.#i18n.useFallback();
     const meta = inject(Meta);
-    inject(Title).setTitle('Tu pedido | Carta');
+    inject(Title).setTitle(this.t('page.orderTitle'));
     meta.updateTag({ name: 'robots', content: 'noindex' });
-    inject(DestroyRef).onDestroy(() => meta.removeTag("name='robots'"));
+    // Incrustada, toda la carta es noindex (CartaEmbed)
+    if (!this.embed.active) inject(DestroyRef).onDestroy(() => meta.removeTag("name='robots'"));
   }
 }

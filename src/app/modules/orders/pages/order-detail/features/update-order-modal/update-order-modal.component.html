@@ -3,6 +3,11 @@
     <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Editar pedido {{ order.invoiceNo }}</h2>
   </ng-template>
 
+  <!-- Fuera del formulario: el selector trae su propio formulario para crear clientes -->
+  <div class="mb-4">
+    <app-customer-selector [selected]="$customer()" (selectedChange)="$customer.set($event)" />
+  </div>
+
   <form [formGroup]="form" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
     <div>
       <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Mesa</label>

@@ -7,7 +7,7 @@ import { BusinessSettingsService } from 'src/app/core/services/business-settings
 import { CategoryDto } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { formatCurrency } from '../../../order-list/ui';
-import { hasModifierSets, productPrice } from '../cart-line';
+import { hasModifierSets, hasPriceRange, productPrice, productVarieties } from '../cart-line';
 
 @Component({
   selector: 'app-product-picker',
@@ -54,7 +54,12 @@ export class ProductPickerComponent implements OnInit {
   }
 
   hasOptions(product: ProductDto): boolean {
-    return hasModifierSets(product);
+    return hasModifierSets(product) || productVarieties(product).length > 0;
+  }
+
+  // Variedades con precios distintos: se muestra el menor ("Desde").
+  priceFrom(product: ProductDto): boolean {
+    return hasPriceRange(product);
   }
 
   initial(name: string): string {

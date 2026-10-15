@@ -12,7 +12,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
@@ -430,6 +430,39 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Agregar `timeZone`, `businessSlug` y `locationSlug` al pedido público.
 
 **Front mientras tanto:** el delivery se ofrece solo si alguna zona tiene comunas; el seguimiento desde el correo usa America/Santiago y no muestra "Volver a la carta".
+
+---
+
+### 57. 🟡 API pública: códigos de error en llaves y webhooks
+
+**Problema:** los 400 y 409 de `/public-api/keys` y `/public-api/webhooks` (más de 10 llaves activas, más de 5 webhooks, origen sin https, publicable sin orígenes, webhook desactivado al probar) llegan sin `code`, solo con `message` en inglés. El front los traduce comparando el texto, y si el mensaje cambia se pierde la traducción.
+
+**Se pide:** agregar códigos: `API_KEY_LIMIT_REACHED`, `API_KEY_ORIGINS_REQUIRED`, `API_KEY_ORIGIN_INVALID`, `WEBHOOK_LIMIT_REACHED`, `WEBHOOK_INACTIVE` (o los nombres que prefieran), con `details` cuando aplique.
+
+**Front mientras tanto:** traduce por el texto del mensaje y, si no lo reconoce, muestra un mensaje genérico.
+
+---
+
+### 58. 🟢 Ventas: declarar `contactId: null` para quitar el cliente
+
+**Problema:** `PATCH /orders/{id}` acepta `contactId` tipado como `number`. Con `null` hoy funciona (quita el cliente), pero no está declarado; si cambia la validación se rompe.
+
+**Se pide:** declarar `contactId?: number | null` en el DTO y en Swagger ("null quita el cliente").
+
+**Front:** ya envía `null` para quitar el cliente de una venta abierta.
+
+---
+
+### 59. 🟡 Carta pública: ocultar variaciones inactivas
+
+**Problema:** la carta pública (`public-menu.service.ts` y `find-public-menu`) trae las variaciones con `deleted_at IS NULL AND sell_price_inc_tax IS NOT NULL`, pero no filtra `is_active`: una variedad desactivada (ej. "Piña" de un jugo) sigue apareciendo en la carta. Además, `OrdersService.priceLines` (POS, carta y API) no rechaza una variación inactiva, y `PUT /products/:id` no permite eliminar una variación.
+
+**Se pide:**
+- Filtrar `v.is_active = true` en la carta pública (y en las promociones/packs que listan variaciones) y en el filtro `sellable` de `GET /products`.
+- Rechazar en la venta una variación inactiva (400 con `code`, ej. `VARIATION_INACTIVE`).
+- Opcional: poder quitar una variación por `PUT /products/:id` (soft delete, ej. `deletedVariationIds: number[]`) y un campo de posición para ordenarlas.
+
+**Front mientras tanto:** al quitar una variedad en Carta → Productos envía `{ id, isActive: false, sellPriceIncTax: null }`: sin precio no aparece en la carta y la venta la rechaza ("has no sell price"). Si se vuelve a agregar, se crea una nueva.
 
 ---
 

@@ -42,6 +42,7 @@
       </app-button>
       }
       <app-button impact="light" tone="primary" shape="rounded" icon="receipt" (buttonClick)="handlePrintBill(order)">Precuenta</app-button>
+      <app-loyalty-redeem-button [transactionId]="order.transactionId" [contactId]="order.contactId" [customerName]="order.customerName" (redeemed)="handleLoyaltyRedeemed()" />
       <ng-container *appCheckPermission="PERMISSIONS.ORDERS.UPDATE_ORDER">
         <app-button impact="light" tone="primary" shape="rounded" icon="add" (buttonClick)="handleAddItems(order)">Agregar productos</app-button>
         <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(order)">Editar</app-button>

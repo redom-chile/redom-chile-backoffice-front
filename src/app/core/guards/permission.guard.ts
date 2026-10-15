@@ -9,10 +9,14 @@ import { ToastService } from 'src/ui';
 
 /** Pantalla sin permiso: siempre se puede entrar (cualquier usuario con sesión). */
 const ALWAYS_ALLOWED = '/profile';
+/** Pantallas fuera de la app (login, onboarding): al salir de ellas no hay "pantalla anterior" donde quedarse. */
+const OUTSIDE_APP = ['/auth', '/onboarding'];
+
+const isOutsideApp = (url: string) => url === '/' || OUTSIDE_APP.some((prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`));
 
 /**
- * Sin el `see-module` de la pantalla (permission-routes.ts) no se entra. Desde otra pantalla se queda donde está;
- * al abrir por URL directa (o al iniciar sesión en el Resumen sin permiso) lleva a la primera pantalla del menú que sí puede ver.
+ * Sin el `see-module` de la pantalla (permission-routes.ts) no se entra. Desde otra pantalla de la app se queda donde está;
+ * al abrir por URL directa, o al llegar desde el login o el onboarding, lleva a la primera pantalla del menú que sí puede ver.
  */
 export const permissionGuard: CanActivateFn = (_route, state): boolean | UrlTree | Observable<boolean | UrlTree> => {
   const permission = permissionForUrl(state.url);
@@ -24,7 +28,7 @@ export const permissionGuard: CanActivateFn = (_route, state): boolean | UrlTree
 
   const decide = (): boolean | UrlTree => {
     if (access.can(permission)) return true;
-    if (router.navigated) {
+    if (router.navigated && !isOutsideApp(router.url)) {
       toast.show('No tienes permiso para ver esta pantalla.', 'error');
       return false;
     }

@@ -4,10 +4,12 @@ import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaCart } from '../carta-cart';
+import { CartaEmbed } from '../carta-embed';
 import { CARTA_BASE_PATH } from '../carta-utils';
 import { CartaCartSheet } from './carta-cart-sheet';
 import { CartaCheckoutSheet } from './carta-checkout-sheet';
 import { CartaDialog } from './carta-dialog';
+import { CartaI18n } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
 
@@ -31,7 +33,7 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
       <div class="h-24" aria-hidden="true"></div>
     }
 
-    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-30 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+    <div class="carta-embed-bottom pointer-events-none fixed inset-x-0 bottom-0 z-30 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
       <div class="mx-auto flex max-w-2xl flex-col items-center gap-2 px-4">
         <p class="sr-only" aria-live="polite">{{ cart.notice() }}</p>
         @if (cart.notice(); as n) {
@@ -48,9 +50,9 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
           >
             <span class="relative">
               <app-carta-icon name="bag" [size]="22" />
-              <span class="absolute -right-2 -top-2 flex min-w-5 items-center justify-center rounded-full bg-primary-foreground px-1 text-[11px] font-bold text-primary">{{ count }}</span>
+              <span class="absolute -right-2 -top-2 flex min-w-5 items-center justify-center rounded-full bg-primary-foreground px-1 text-[0.6875rem] font-bold text-primary">{{ count }}</span>
             </span>
-            <span class="flex-1 text-sm font-semibold">Ver carrito <span class="sr-only">({{ count }} {{ count === 1 ? 'producto' : 'productos' }})</span></span>
+            <span class="flex-1 text-sm font-semibold">{{ t('cart.view') }} <span class="sr-only">({{ tn('cart.items', count) }})</span></span>
             <span class="text-sm font-bold tabular-nums">{{ format(cart.total()) }}</span>
           </button>
         }
@@ -60,7 +62,7 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
 
     @switch (sheetKind()) {
       @case ('cart') {
-        <app-carta-dialog label="Tu carrito" (closed)="close('cart')">
+        <app-carta-dialog [label]="t('cart.title')" (closed)="close('cart')">
           <app-carta-cart-sheet
             [menu]="m"
             [qr]="qr()"
@@ -72,25 +74,25 @@ import { CartaMyOrders, CartaOrderTracking } from './carta-order-tracking';
         </app-carta-dialog>
       }
       @case ('checkout') {
-        <app-carta-dialog label="Finalizar pedido" (closed)="close('checkout')">
+        <app-carta-dialog [label]="t('checkout.title')" (closed)="close('checkout')">
           <app-carta-checkout-sheet [menu]="m" (ordered)="onOrdered($event)" (back)="cart.sheet.set({ kind: 'cart' })" (refresh)="refresh.emit()" />
         </app-carta-dialog>
       }
       @case ('orders') {
-        <app-carta-dialog label="Mis pedidos" (closed)="close('orders')">
+        <app-carta-dialog [label]="t('orders.title')" (closed)="close('orders')">
           <app-carta-my-orders
             [ids]="cart.orderIds()"
             [timeZone]="m.location.timeZone"
             [linkBase]="qr() ? null : orderPath"
             [linkState]="linkState()"
-            [emptyText]="qr() ? 'Aún no has hecho pedidos desde esta mesa.' : 'Aún no has hecho pedidos en este local.'"
+            [emptyText]="qr() ? t('orders.emptyTable') : t('orders.emptyOnline')"
             (open)="cart.sheet.set({ kind: 'order', id: $event, order: null })"
           />
         </app-carta-dialog>
       }
       @case ('order') {
         @if (orderSheet(); as s) {
-          <app-carta-dialog label="Tu pedido" (closed)="close('order')">
+          <app-carta-dialog [label]="t('order.title')" (closed)="close('order')">
             <app-carta-order-tracking [orderId]="s.id" [initial]="s.order" [timeZone]="m.location.timeZone" (back)="cart.sheet.set(null)" />
           </app-carta-dialog>
         }
@@ -108,7 +110,11 @@ export class CartaOrdering {
   readonly refresh = output<void>();
 
   protected readonly cart = inject(CartaCart);
+  readonly #i18n = inject(CartaI18n);
+  protected readonly t = this.#i18n.t;
+  protected readonly tn = this.#i18n.tn;
   readonly #router = inject(Router);
+  readonly #embed = inject(CartaEmbed);
   /** /carta/pedido */
   protected readonly orderPath = `${inject(CARTA_BASE_PATH)}/pedido`;
   /** Para volver a esta carta desde el seguimiento. */
@@ -133,6 +139,7 @@ export class CartaOrdering {
     }
     // Retiro / delivery: el seguimiento tiene su propia página (la misma de los correos)
     this.cart.sheet.set(null);
-    void this.#router.navigateByUrl(`${this.orderPath}/${order.id}`, { state: { ...this.linkState(), order } });
+    const tree = this.#embed.withParams(this.#router.parseUrl(`${this.orderPath}/${order.id}`));
+    void this.#router.navigateByUrl(tree, { state: { ...this.linkState(), order } });
   }
 }

@@ -43,6 +43,15 @@ export const RESTAURANT_PERMISSIONS = {
     SEE_MODULE: 'customer-orders:see-module',
     MANAGE: 'customer-orders:manage',
   },
+  LOYALTY: {
+    SEE_MODULE: 'loyalty:see-module',
+    MANAGE: 'loyalty:manage',
+    REDEEM: 'loyalty:redeem',
+  },
+  PUBLIC_API: {
+    SEE_MODULE: 'public-api:see-module',
+    MANAGE: 'public-api:manage',
+  },
   PUBLIC_MENU: {
     SEE_MODULE: 'public-menu:see-module',
     MANAGE_SETTINGS: 'public-menu:manage-settings',

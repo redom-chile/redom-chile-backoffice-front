@@ -58,7 +58,12 @@
             </div>
           </td>
           <td class="text-muted-foreground hidden px-4 py-3 text-sm md:table-cell">{{ categoryLabel(product) }}</td>
-          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ price(product) }}</td>
+          <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">
+            {{ price(product) }}
+            @if (varietyCount(product); as count) {
+            <span class="text-muted-foreground block text-xs font-normal">{{ count }} variedades</span>
+            }
+          </td>
           <td class="text-muted-foreground hidden px-4 py-3 text-center text-sm lg:table-cell">
             {{ product.preparationTimeInMinutes ? product.preparationTimeInMinutes + ' min' : '—' }}
           </td>

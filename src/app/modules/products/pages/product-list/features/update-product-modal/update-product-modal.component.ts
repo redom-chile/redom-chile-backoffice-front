@@ -12,6 +12,7 @@ import { GetAllCategoriesService } from '../../../categories/data-access';
 import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
 import {
   createProductForm,
+  varietiesError,
   injectEditableProductTags,
   injectPackContent,
   PACK_PRODUCT_TYPE,
@@ -98,6 +99,12 @@ export class UpdateProductModalComponent implements OnDestroy {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.show('Completa los campos obligatorios', 'warning');
+      return;
+    }
+    const varietyError = varietiesError(this.form);
+    if (varietyError) {
+      this.form.markAllAsTouched();
+      this.toast.show(varietyError, 'warning');
       return;
     }
     const packError = this.pack.validate(!!this.form.controls.isPack.value);

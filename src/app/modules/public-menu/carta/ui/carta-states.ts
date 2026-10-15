@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
+import { CartaEmbed } from '../carta-embed';
+import { CartaI18n } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 
 /** Página "no disponible", sin más detalles (404 MENU_NOT_FOUND). */
@@ -11,12 +13,16 @@ import { CartaIcon } from './carta-icon';
       <span class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <app-carta-icon name="utensils" [size]="28" />
       </span>
-      <h1 class="text-xl font-semibold">Esta carta no está disponible</h1>
-      <a href="https://redom.cl" class="text-sm text-muted-foreground underline-offset-4 hover:underline">redom.cl</a>
+      <h1 class="text-xl font-semibold">{{ t('state.unavailable') }}</h1>
+      <a href="https://redom.cl" [attr.target]="embedded ? '_blank' : null" [attr.rel]="embedded ? 'noopener' : null" class="text-sm text-muted-foreground underline-offset-4 hover:underline">redom.cl</a>
     </div>
   `,
 })
-export class CartaUnavailable {}
+export class CartaUnavailable {
+  /** Incrustada en otra web: el enlace se abre en una pestaña nueva. */
+  protected readonly embedded = inject(CartaEmbed).active;
+  protected readonly t = inject(CartaI18n).t;
+}
 
 /** 429 RATE_LIMITED: aviso y reintento automático al minuto. Sirve también para errores de red. */
 @Component({
@@ -28,9 +34,9 @@ export class CartaUnavailable {}
       <span class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <app-carta-icon name="alert" [size]="28" />
       </span>
-      <h1 class="max-w-xs text-lg font-semibold">{{ message() }}</h1>
+      <h1 class="max-w-xs text-lg font-semibold">{{ message() ?? t('state.rateLimited') }}</h1>
       @if (seconds() > 0) {
-        <p class="text-sm text-muted-foreground" aria-live="polite">Reintentaremos en {{ seconds() }} s</p>
+        <p class="text-sm text-muted-foreground" aria-live="polite">{{ t('state.retryIn', { n: seconds() }) }}</p>
       }
       <button
         type="button"
@@ -38,17 +44,19 @@ export class CartaUnavailable {}
         (click)="retry.emit()"
       >
         <app-carta-icon name="refresh" [size]="16" />
-        Reintentar
+        {{ t('common.retry') }}
       </button>
     </div>
   `,
 })
 export class CartaRetry {
-  readonly message = input('Demasiadas solicitudes, intenta en un minuto');
+  /** null: "Demasiadas solicitudes…" en el idioma activo. */
+  readonly message = input<string | null>(null);
   /** Segundos para el reintento automático; 0 = sin reintento automático. */
   readonly delay = input(60);
   readonly retry = output<void>();
 
+  protected readonly t = inject(CartaI18n).t;
   protected readonly seconds = signal(0);
   #timer: ReturnType<typeof setInterval> | null = null;
 
@@ -81,7 +89,7 @@ export class CartaRetry {
   selector: 'app-carta-skeleton',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-dvh bg-background" aria-busy="true" aria-label="Cargando la carta">
+    <div class="min-h-dvh bg-background" aria-busy="true" [attr.aria-label]="t('state.loading')">
       <div class="mx-auto max-w-2xl animate-pulse px-4 pt-8">
         <div class="flex items-center gap-4">
           <div class="size-16 rounded-2xl bg-muted"></div>
@@ -111,4 +119,6 @@ export class CartaRetry {
     </div>
   `,
 })
-export class CartaSkeleton {}
+export class CartaSkeleton {
+  protected readonly t = inject(CartaI18n).t;
+}

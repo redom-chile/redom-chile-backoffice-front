@@ -1,6 +1,7 @@
 /** Carta pública por local, etapas 1 y 2. Backend: libs/restaurant/public-menu/src/lib/public-menu.types.ts. */
 import { MenuOrderingSettingsDto } from './customer-orders.dto';
 import { PublicOnlineDto } from './online-orders.dto';
+import { ExtraMenuLanguage, MenuLanguage } from './menu-translations.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -105,6 +106,9 @@ export type PublicLocationMenuDto = Readonly<{
   branding?: PublicBrandingDto | null;
   /** Etapa 5: retiro y delivery (null si no aplica). */
   online?: PublicOnlineDto | null;
+  /** Etapa 7: idioma de los textos (lo no traducido llega en español) y los que ofrece el local. */
+  language?: MenuLanguage;
+  availableLanguages?: MenuLanguage[];
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */
@@ -133,10 +137,14 @@ export type MenuSettingsDto = Readonly<{
   modalFrequency?: ModalFrequency;
   /** Etapa 3: pedidos del local. */
   ordering?: MenuOrderingSettingsDto;
+  /** Etapa 7: idiomas extra que ofrece la carta (plan menu_translations). */
+  languages?: ExtraMenuLanguage[];
 }>;
 
 /** Solo los campos que cambian. URLs con https://. ordering: solo cambian las claves enviadas. */
 export type UpdateMenuSettingsDto = {
+  /** Etapa 7. */
+  languages?: ExtraMenuLanguage[];
   ordering?: Partial<
     Pick<
       MenuOrderingSettingsDto,

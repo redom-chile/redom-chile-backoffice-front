@@ -50,6 +50,7 @@
     </div>
   </div>
 
+  @if (!$hasVarieties()) {
   <div>
     <label for="product-price" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
       {{ $pricesExcludeVat() ? 'Precio neto (se suma IVA al vender)' : 'Precio (IVA incluido)' }} *
@@ -76,6 +77,89 @@
       }
     </p>
   </div>
+  }
+
+  <!-- Los packs no llevan variedades: sus opciones se arman en el contenido del pack. -->
+  @if (!$isPack() || $hasVarieties()) {
+  <section class="sm:col-span-2" aria-labelledby="product-varieties-title">
+    @if (!$hasVarieties()) {
+    <button
+      type="button"
+      class="flex w-full items-center gap-3 rounded-md border border-dashed border-gray-300 px-3 py-2.5 text-left hover:border-[var(--primary)] dark:border-gray-600"
+      (click)="enableVarieties()">
+      <app-icon class="text-primary h-5 w-5 shrink-0">add_circle</app-icon>
+      <span>
+        <span id="product-varieties-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Agregar variedades</span>
+        <span class="block text-xs text-gray-500 dark:text-gray-400">Ej.: un jugo en Frutilla, Frambuesa y Piña, cada una con su precio.</span>
+      </span>
+    </button>
+    } @else {
+    <div class="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <h3 id="product-varieties-title" class="text-sm font-medium text-gray-700 dark:text-gray-300">Variedades *</h3>
+      <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="disableVarieties()">Usar precio único</button>
+    </div>
+    <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+      {{ $pricesExcludeVat() ? 'Precios netos: al vender se suma el IVA (' + $vatRate() + ' %).' : 'Precios con IVA incluido.' }}
+      Se muestran en el orden en que se crean.
+    </p>
+    <ul class="space-y-2" formArrayName="varieties">
+      @for (variety of f.controls.varieties.controls; track variety; let i = $index) {
+      <li class="flex items-start gap-2" [formGroupName]="i">
+        <div class="min-w-0 flex-1">
+          <input
+            type="text"
+            formControlName="name"
+            [maxlength]="varietyNameMax"
+            placeholder="Ej: Frutilla"
+            [attr.aria-label]="'Nombre de la variedad ' + (i + 1)"
+            [class]="inputClass"
+            [ngClass]="{ 'border-red-500': isVarietyInvalid(variety, 'name') }" />
+        </div>
+        <div class="relative w-32 shrink-0 sm:w-40">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-500">$</span>
+          <input
+            type="number"
+            formControlName="price"
+            min="0"
+            step="1"
+            inputmode="numeric"
+            placeholder="0"
+            [attr.aria-label]="'Precio de la variedad ' + (i + 1)"
+            [class]="inputClass + ' pl-7'"
+            [ngClass]="{ 'border-red-500': isVarietyInvalid(variety, 'price') }" />
+        </div>
+        <button
+          type="button"
+          class="glass-row inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-gray-500 hover:text-red-600"
+          [title]="variety.controls.id.value !== null ? 'Quitar (deja de venderse; las ventas anteriores se mantienen)' : 'Quitar'"
+          [attr.aria-label]="'Quitar variedad ' + (i + 1)"
+          (click)="removeVariety(i)">
+          <app-icon class="h-5 w-5">delete</app-icon>
+        </button>
+      </li>
+      }
+    </ul>
+    <button type="button" class="text-primary mt-2 inline-flex items-center gap-1 text-sm font-medium hover:underline" (click)="addVariety()">
+      <app-icon class="h-4 w-4">add</app-icon>
+      Agregar variedad
+    </button>
+    @if ($removedSaved()) {
+    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Las variedades quitadas dejan de venderse en el POS y la carta. Sus ventas anteriores se mantienen.</p>
+    }
+    @if (inventoryEnabled() && $stockMode() === 'recipe') {
+    <p class="mt-2 flex gap-1 text-xs text-gray-500 dark:text-gray-400">
+      <app-icon class="h-4 w-4 shrink-0">menu_book</app-icon>
+      Cada variedad tiene su propia receta: configúrala en Inventario → Recetas después de guardar.
+    </p>
+    } @else if (inventoryEnabled() && $stockMode() === 'direct') {
+    <p class="mt-2 flex gap-1 text-xs text-gray-500 dark:text-gray-400">
+      <app-icon class="h-4 w-4 shrink-0">inventory_2</app-icon>
+      Cada variedad lleva su propio stock.
+    </p>
+    }
+    }
+  </section>
+  }
 
   <div>
     <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>

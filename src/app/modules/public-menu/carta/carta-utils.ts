@@ -1,7 +1,8 @@
 import { InjectionToken } from '@angular/core';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { PublicCategoryRangeDto, PublicLocationDto, PublicScheduleDto } from '../data-access/dtos/public-menu.dto';
-import { DAY_NAMES, DAY_SHORT, formatTime, TABLE_QR_STORAGE_KEY } from '../data-access/public-menu-format';
+import { formatTime, TABLE_QR_STORAGE_KEY } from '../data-access/public-menu-format';
+import { cartaDayName, cartaDayShort, ct } from './carta-i18n';
 
 /** Ruta donde se monta la carta (la landing la monta en /carta). */
 export const CARTA_BASE_PATH = new InjectionToken<string>('CARTA_BASE_PATH', { providedIn: 'root', factory: () => '/carta' });
@@ -73,7 +74,7 @@ export function todayIn(timeZone: string): number {
 
 export type ScheduleRow = Readonly<{ day: number; name: string; hours: string; closed: boolean }>;
 
-/** Una fila por día; si el día no aparece o tiene isClosed → "Cerrado". */
+/** Una fila por día; si el día no aparece o tiene isClosed → "Cerrado". En el idioma activo (llamar dentro de computed). */
 export function buildWeekSchedule(schedule: readonly PublicScheduleDto[]): ScheduleRow[] {
   return WEEK_ORDER.map((day) => {
     const open = schedule
@@ -81,9 +82,9 @@ export function buildWeekSchedule(schedule: readonly PublicScheduleDto[]): Sched
       .sort((a, b) => a.openTime.localeCompare(b.openTime));
     return {
       day,
-      name: DAY_NAMES[day],
+      name: cartaDayName(day),
       closed: open.length === 0,
-      hours: open.length ? open.map((s) => `${formatTime(s.openTime)} – ${formatTime(s.closeTime)}`).join(', ') : 'Cerrado',
+      hours: open.length ? open.map((s) => `${formatTime(s.openTime)} – ${formatTime(s.closeTime)}`).join(', ') : ct('common.closed'),
     };
   });
 }
@@ -91,7 +92,7 @@ export function buildWeekSchedule(schedule: readonly PublicScheduleDto[]): Sched
 /** "Lun a Vie", "Lun, Mié y Vie", "Todos los días". */
 function daysLabel(days: readonly number[]): string {
   const ordered = WEEK_ORDER.filter((d) => days.includes(d));
-  if (ordered.length === 7) return 'todos los días';
+  if (ordered.length === 7) return ct('schedule.everyDay');
   const runs: number[][] = [];
   for (const day of ordered) {
     const last = runs.at(-1);
@@ -100,14 +101,14 @@ function daysLabel(days: readonly number[]): string {
     else runs.push([day]);
   }
   const parts = runs.flatMap((run) =>
-    run.length >= 3 ? [`${DAY_SHORT[run[0]]} a ${DAY_SHORT[run.at(-1)!]}`] : run.map((d) => DAY_SHORT[d]),
+    run.length >= 3 ? [ct('schedule.dayRun', { from: cartaDayShort(run[0]), to: cartaDayShort(run.at(-1)!) })] : run.map(cartaDayShort),
   );
-  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts.at(-1)}` : parts[0];
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} ${ct('schedule.and')} ${parts.at(-1)}` : parts[0];
 }
 
 /** "Disponible Lun a Vie de 08:00 a 11:30 · Sáb de 20:00 a 02:00". Un rango con fin menor al inicio cruza la medianoche. */
 export function categoryAvailabilityText(schedule: readonly PublicCategoryRangeDto[] | null): string {
-  if (!schedule?.length) return 'No disponible en este momento';
+  if (!schedule?.length) return ct('schedule.unavailable');
   const groups = new Map<string, number[]>();
   for (const range of schedule) {
     const key = `${formatTime(range.startTime)}|${formatTime(range.endTime)}`;
@@ -120,9 +121,9 @@ export function categoryAvailabilityText(schedule: readonly PublicCategoryRangeD
     .sort(([ka, a], [kb, b]) => firstDay(a) - firstDay(b) || ka.localeCompare(kb))
     .map(([key, days]) => {
       const [start, end] = key.split('|');
-      return `${daysLabel(days)} de ${start} a ${end}`;
+      return ct('schedule.hours', { days: daysLabel(days), start, end });
     });
-  return `Disponible ${parts.join(' · ')}`;
+  return ct('schedule.available', { parts: parts.join(' · ') });
 }
 
 /** Iniciales para el logo de respaldo. */

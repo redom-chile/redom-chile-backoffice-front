@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
+import { CartaI18n } from '../carta-i18n';
 import { cheapestVariation, isPackUnavailable, promotionLabel } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
@@ -21,23 +22,23 @@ import { CartaPrice } from './carta-price';
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <h3 class="font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{{ p.name }}</h3>
             @if (p.soldOut) {
-              <span class="rounded-full bg-foreground px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-background">Agotado</span>
+              <span class="rounded-full bg-foreground px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-background">{{ t('common.soldOut') }}</span>
             } @else if (packUnavailable()) {
-              <span class="rounded-full bg-foreground px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-background">No disponible</span>
+              <span class="rounded-full bg-foreground px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-background">{{ t('common.unavailable') }}</span>
             }
           </div>
           @if (promotion() || p.pack) {
             <div class="mt-1.5 flex flex-wrap gap-1.5">
               @if (promotion(); as promo) {
-                <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-primary-foreground">
                   <app-carta-icon name="tag" [size]="12" />
                   {{ promo }}
                 </span>
               }
               @if (p.pack) {
-                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                <span class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[0.6875rem] font-semibold text-foreground">
                   <app-carta-icon name="package" [size]="12" />
-                  Pack
+                  {{ t('common.pack') }}
                 </span>
               }
             </div>
@@ -46,10 +47,10 @@ import { CartaPrice } from './carta-price';
             <p class="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{{ p.description }}</p>
           }
           @if (productTags().length) {
-            <ul class="mt-2 flex flex-wrap gap-1.5" aria-label="Etiquetas">
+            <ul class="mt-2 flex flex-wrap gap-1.5" [attr.aria-label]="t('common.tags')">
               @for (tag of productTags(); track tag.code) {
                 <li
-                  class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                  class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2 py-0.5 text-[0.6875rem] font-medium text-muted-foreground"
                   [title]="tag.name"
                 >
                   <app-carta-tag-icon [icon]="tag.icon" />
@@ -61,15 +62,15 @@ import { CartaPrice } from './carta-price';
           @if (cheapest() || orderable()) {
             <div class="mt-2 flex items-center justify-between gap-2">
               @if (cheapest(); as v) {
-                <p class="text-[15px] font-semibold text-foreground">
-                  <app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" [prefix]="samePrice() ? '' : 'desde '" />
+                <p class="text-[0.9375rem] font-semibold text-foreground">
+                  <app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" [prefix]="samePrice() ? '' : t('product.from')" />
                 </p>
               }
               @if (orderable()) {
                 <!-- Visual: toda la tarjeta abre el detalle, donde se agrega -->
                 <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm" aria-hidden="true">
                   <app-carta-icon name="plus" [size]="14" />
-                  Agregar
+                  {{ t('common.add') }}
                 </span>
               }
             </div>
@@ -90,7 +91,7 @@ import { CartaPrice } from './carta-price';
       </div>
       <!-- Toda la tarjeta abre el detalle -->
       <button type="button" class="absolute inset-0 size-full cursor-pointer rounded-2xl outline-none" (click)="view.emit(p)">
-        <span class="sr-only">{{ orderable() ? 'Ver y agregar ' : 'Ver detalle de ' }}{{ p.name }}</span>
+        <span class="sr-only">{{ t(orderable() ? 'product.viewAdd' : 'product.viewDetail', { name: p.name }) }}</span>
       </button>
     </article>
   `,
@@ -105,6 +106,7 @@ export class CartaProductCard {
   readonly orderable = input(false);
   readonly view = output<PublicProductDto>();
 
+  protected readonly t = inject(CartaI18n).t;
   protected readonly imageFailed = signal(false);
 
   protected readonly cheapest = computed(() => cheapestVariation(this.product()));

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ct, ctn } from '../carta-i18n';
 import { TableServiceStatus } from '../carta-table-service';
 import { CartaIcon, CartaIconName } from './carta-icon';
 
@@ -97,7 +98,7 @@ type Item = Readonly<{
       <!-- Espacio para que la barra no tape el final de la carta ni el pie -->
       <div class="h-[calc(6.5rem+env(safe-area-inset-bottom))]" aria-hidden="true"></div>
 
-      <div class="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+      <div class="carta-embed-bottom pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
         <div class="mx-auto flex max-w-md flex-col items-center gap-2">
           <p class="sr-only" aria-live="polite">{{ notice() ?? status()?.text ?? '' }}</p>
           @if (notice(); as n) {
@@ -112,7 +113,7 @@ type Item = Readonly<{
               <button
                 type="button"
                 class="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-                aria-label="Ocultar aviso"
+                [attr.aria-label]="t('bar.hideNotice')"
                 (click)="dismissStatus.emit(s.id)"
               >
                 <app-carta-icon name="x" [size]="14" />
@@ -120,7 +121,7 @@ type Item = Readonly<{
             </div>
           }
 
-          <nav class="carta-glass pointer-events-auto w-full rounded-[1.75rem] p-1.5" aria-label="Atajos de la carta">
+          <nav class="carta-glass pointer-events-auto w-full rounded-[1.75rem] p-1.5" [attr.aria-label]="t('bar.nav')">
             <ul class="flex items-stretch">
               @for (item of items(); track item.action) {
                 <li class="min-w-0 flex-1">
@@ -137,13 +138,13 @@ type Item = Readonly<{
                     >
                       <app-carta-icon [name]="item.icon" [size]="20" />
                       @if (item.badge) {
-                        <span class="absolute -right-0.5 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold leading-none text-primary-foreground shadow-sm tabular-nums">{{ item.badge }}</span>
+                        <span class="absolute -right-0.5 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[0.6875rem] font-bold leading-none text-primary-foreground shadow-sm tabular-nums">{{ item.badge }}</span>
                       }
                       @if (item.dot) {
                         <span class="absolute right-1.5 top-1 size-2.5 rounded-full bg-amber-500 ring-2 ring-background"></span>
                       }
                     </span>
-                    <span class="w-full truncate text-center text-[11px] font-semibold leading-tight">{{ item.label }}</span>
+                    <span class="w-full truncate text-center text-[0.6875rem] font-semibold leading-tight">{{ item.label }}</span>
                   </button>
                 </li>
               }
@@ -159,8 +160,8 @@ export class CartaBottomBar {
   readonly table = input<Readonly<{ callOpen: boolean; attended: boolean; billOpen: boolean }> | null>(null);
   /** null: sin pedidos desde la mesa (sin "Carrito"). */
   readonly cartCount = input<number | null>(null);
-  /** "Carrito" en la mesa; "Pedir" con retiro / delivery. */
-  readonly cartLabel = input('Carrito');
+  /** 'cart' ("Carrito") en la mesa; 'order' ("Pedir") con retiro / delivery. También acepta esos textos en español. */
+  readonly cartLabel = input<'cart' | 'order'>('cart');
   readonly ordersCount = input(0);
   readonly booking = input(false);
   /** "Agregado" del carrito. */
@@ -169,24 +170,26 @@ export class CartaBottomBar {
   readonly status = input<TableServiceStatus | null>(null);
 
   readonly action = output<CartaBarAction>();
+
+  protected readonly t = ct;
   readonly dismissStatus = output<number>();
 
   protected readonly items = computed<Item[]>(() => {
     const list: Item[] = [];
     const table = this.table();
     if (table) {
-      const waiterLabel = table.callOpen ? 'Avisado' : table.attended ? 'En camino' : 'Mesero';
+      const waiterLabel = table.callOpen ? ct('bar.waiterNotified') : table.attended ? ct('bar.waiterComing') : ct('bar.waiter');
       list.push({
         action: 'waiter',
         label: waiterLabel,
-        ariaLabel: table.callOpen ? 'Llamar al mesero (ya avisamos)' : table.attended ? 'Llamar al mesero (va en camino)' : 'Llamar al mesero',
+        ariaLabel: table.callOpen ? ct('bar.callWaiterNotified') : table.attended ? ct('bar.callWaiterComing') : ct('bar.callWaiter'),
         icon: 'bell',
         dot: table.callOpen,
       });
       list.push({
         action: 'bill',
-        label: 'Cuenta',
-        ariaLabel: table.billOpen ? 'Pedir la cuenta (ya la pediste)' : 'Pedir la cuenta',
+        label: ct('bar.bill'),
+        ariaLabel: table.billOpen ? ct('bar.askBillDone') : ct('bar.askBill'),
         icon: 'wallet',
         dot: table.billOpen,
       });
@@ -195,16 +198,20 @@ export class CartaBottomBar {
     if (count != null) {
       list.push({
         action: 'cart',
-        label: this.cartLabel(),
-        ariaLabel: count ? `Ver carrito (${count} ${count === 1 ? 'producto' : 'productos'})` : 'Ver carrito (vacío)',
+        label: this.#cartLabel(),
+        ariaLabel: count ? ctn('bar.viewCart', count) : ct('bar.viewCartEmpty'),
         icon: 'bag',
         badge: count,
         highlight: count > 0,
       });
     }
     // Mesa: los pedidos se abren en la hoja; retiro / delivery: enlazan a /carta/pedido/{id}
-    if (this.ordersCount() > 0) list.push({ action: 'orders', label: 'Pedidos', ariaLabel: 'Mis pedidos', icon: 'receipt' });
-    if (this.booking()) list.push({ action: 'booking', label: 'Reservar', ariaLabel: 'Reservar una mesa', icon: 'calendar' });
+    if (this.ordersCount() > 0) list.push({ action: 'orders', label: ct('bar.orders'), ariaLabel: ct('bar.myOrders'), icon: 'receipt' });
+    if (this.booking()) list.push({ action: 'booking', label: ct('bar.book'), ariaLabel: ct('bar.bookTable'), icon: 'calendar' });
     return list;
   });
+
+  #cartLabel(): string {
+    return ct(this.cartLabel() === 'order' ? 'bar.order' : 'bar.cart');
+  }
 }

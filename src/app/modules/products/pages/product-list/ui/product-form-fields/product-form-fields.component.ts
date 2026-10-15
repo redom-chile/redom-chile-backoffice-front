@@ -8,7 +8,17 @@ import { RouterLink } from '@angular/router';
 import { IconComponent, ImagePickerComponent } from 'src/ui';
 import { STOCK_MODE_OPTIONS, UnitDto, unitLabel } from 'src/app/modules/inventory/data-access';
 import { CategoryDto } from '../../../categories/data-access';
-import { ProductForm, suggestSku } from './product-form';
+import {
+  createVarietyForm,
+  duplicatedVarietyNames,
+  MIN_VARIETIES,
+  normalizeVarietyName,
+  ProductForm,
+  setVarietiesMode,
+  suggestSku,
+  VARIETY_NAME_MAX,
+  VarietyForm,
+} from './product-form';
 
 @Component({
   selector: 'app-product-form-fields',
@@ -47,6 +57,12 @@ export class ProductFormFieldsComponent implements OnInit {
   ] as const;
   readonly $isPack = signal(false);
 
+  // Variedades: reemplazan al precio único.
+  readonly varietyNameMax = VARIETY_NAME_MAX;
+  readonly $hasVarieties = signal(false);
+  // Se quitó alguna variedad ya guardada (se oculta, no se elimina).
+  readonly $removedSaved = signal(false);
+
   readonly $selectedCategoryId = signal<number | null>(null);
   readonly $subcategories = computed(() => {
     const parent = this.categories().find((category) => category.id === this.$selectedCategoryId());
@@ -57,7 +73,8 @@ export class ProductFormFieldsComponent implements OnInit {
     'w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100';
 
   ngOnInit(): void {
-    const { name, sku, categoryId, subCategoryId, stockMode, isPack } = this.form().controls;
+    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties } = this.form().controls;
+    this.$hasVarieties.set(!!hasVarieties.value);
     this.$isPack.set(!!isPack.value);
     isPack.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$isPack.set(!!value));
     this.$selectedCategoryId.set(categoryId.value);
@@ -84,6 +101,42 @@ export class ProductFormFieldsComponent implements OnInit {
   /** "Por receta" se puede mantener si ya estaba, pero no elegir sin ingredientes activos. */
   isStockModeDisabled(value: string): boolean {
     return value === 'recipe' && !this.ingredientsEnabled() && this.$stockMode() !== 'recipe';
+  }
+
+  enableVarieties() {
+    const { varieties, price, singleVariationId, hasVarieties } = this.form().controls;
+    // El precio único pasa a ser la primera variedad (mismo id: conserva ventas, stock y receta).
+    if (!varieties.length) {
+      varieties.push(createVarietyForm(singleVariationId.value, '', price.value));
+      while (varieties.length < MIN_VARIETIES) varieties.push(createVarietyForm());
+    }
+    hasVarieties.setValue(true);
+    setVarietiesMode(this.form(), true);
+    this.$hasVarieties.set(true);
+  }
+
+  disableVarieties() {
+    const { varieties, price, hasVarieties } = this.form().controls;
+    if (price.value === null && varieties.length) price.setValue(varieties.at(0).controls.price.value);
+    hasVarieties.setValue(false);
+    setVarietiesMode(this.form(), false);
+    this.$hasVarieties.set(false);
+  }
+
+  addVariety() {
+    this.form().controls.varieties.push(createVarietyForm());
+  }
+
+  removeVariety(index: number) {
+    const varieties = this.form().controls.varieties;
+    if (varieties.at(index).controls.id.value !== null) this.$removedSaved.set(true);
+    varieties.removeAt(index);
+  }
+
+  isVarietyInvalid(variety: VarietyForm, field: 'name' | 'price'): boolean {
+    const control = variety.controls[field];
+    if (control.invalid && control.touched) return true;
+    return field === 'name' && duplicatedVarietyNames(this.form()).has(normalizeVarietyName(variety.controls.name.value));
   }
 
   isInvalid(control: keyof ProductForm['controls']): boolean {

@@ -1,0 +1,178 @@
+@let language = $language();
+@let summary = $summary();
+@let status = $status();
+@let canEdit = $canEdit();
+<app-header-dashboard title="Idiomas de la carta" subtitle="Traduce los textos de tu carta pública a inglés, portugués o alemán.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE"
+    routerLink="/settings/public-menu"
+    class="glass-row text-foreground hidden h-9 items-center gap-1 rounded-full px-3 text-sm font-medium sm:inline-flex">
+    <app-icon class="h-4 w-4" aria-hidden="true">qr_code_2</app-icon>Carta pública
+  </a>
+</app-header-dashboard>
+
+@if (!$hasFeature() || $blocked()) {
+<app-marketing-upsell-card
+  feature="menu_translations"
+  [requiredPlans]="$requiredPlans()"
+  description="Muestra tu carta en inglés, portugués o alemán: tus clientes eligen el idioma y ven los productos, categorías y promociones traducidos." />
+} @else {
+<!-- Idioma y acciones -->
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+  <div>
+    <span class="text-foreground mb-1 block text-sm font-medium" id="translations-language">Idioma</span>
+    <div class="glass-input flex w-full gap-1 rounded-full p-1 sm:w-fit" role="radiogroup" aria-labelledby="translations-language">
+      @for (item of languages; track item) {
+      @let label = languageLabels[item];
+      <button
+        type="button"
+        role="radio"
+        class="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium sm:flex-none"
+        [class]="language === item ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-checked]="language === item"
+        (click)="selectLanguage(item)">
+        <span aria-hidden="true">{{ label.flag }}</span>{{ label.name }}
+      </button>
+      }
+    </div>
+  </div>
+
+  @if (canEdit) {
+  <div class="flex flex-wrap items-center gap-2">
+    @if ($quota(); as quota) {
+    <span class="text-muted-foreground text-xs tabular-nums" title="Traducciones con IA usadas este mes">IA este mes: {{ quota.used }} / {{ quota.limit }}</span>
+    }
+    @if ($hasAi()) {
+    <app-button impact="light" tone="primary" size="small" type="button" icon="auto_awesome" [disabled]="!language || $busy() || !$data()" (buttonClick)="translateWithAi()">
+      Traducir con IA
+    </app-button>
+    } @else {
+    <button
+      type="button"
+      class="glass-row text-muted-foreground hover:text-foreground inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium"
+      (click)="translateWithAi()">
+      <app-icon class="h-4 w-4" aria-hidden="true">auto_awesome</app-icon>Traducir con IA
+      <span class="bg-primary/10 text-primary inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-semibold">
+        <app-icon class="h-3 w-3" aria-hidden="true">lock</app-icon>{{ $aiPlanBadge() }}
+      </span>
+    </button>
+    }
+    @if (summary.draft > 0) {
+    <app-button impact="bold" tone="primary" size="small" type="button" icon="publish" [isLoading]="$publishing()" [disabled]="$busy()" (buttonClick)="publishAll()">
+      Publicar todo ({{ summary.draft }})
+    </app-button>
+    }
+  </div>
+  }
+</div>
+
+@if (language && !$languageEnabled()) {
+<div class="mb-4 flex items-start gap-2 rounded-xl bg-amber-500/15 p-3 text-sm text-amber-800 dark:text-amber-300" role="note">
+  <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">info</app-icon>
+  <p>
+    Ningún local ofrece la carta en {{ languageLabels[language].name.toLowerCase() }} todavía. Puedes ir traduciendo y activarlo después en
+    <a routerLink="/settings/public-menu" class="font-semibold underline">Carta pública</a>.
+  </p>
+</div>
+}
+
+<!-- Resumen como filtros -->
+<div class="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Estado de las traducciones">
+    @for (item of statusFilters; track item.id) {
+    <button
+      type="button"
+      role="tab"
+      class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors"
+      [class]="status === item.id ? 'border-primary bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground border-[var(--border)]'"
+      [attr.aria-selected]="status === item.id"
+      (click)="selectStatus(item.id)">
+      @if (item.id === 'outdated' && summary.outdated > 0) {
+      <app-icon class="h-4 w-4" aria-hidden="true">warning</app-icon>
+      }
+      {{ item.label }}
+      <span class="rounded-full px-1.5 text-xs font-semibold tabular-nums" [class]="status === item.id ? 'bg-white/20' : 'bg-muted/60'">
+        @if ($data()) {
+        {{ summary[item.id] }}
+        } @else {
+        ·
+        }
+      </span>
+    </button>
+    }
+  </div>
+
+  <div class="w-full md:max-w-[14rem]">
+    <label for="translations-entity" class="sr-only">Tipo de texto</label>
+    <select id="translations-entity" class="glass-input w-full rounded-lg px-4 py-2 text-sm focus:outline-none" (change)="onEntityChange($event)">
+      <option value="" [selected]="!$entity()">Todos los textos</option>
+      @for (item of entityFilters; track item.id) {
+      <option [value]="item.id" [selected]="$entity() === item.id">{{ item.label }}</option>
+      }
+    </select>
+  </div>
+</div>
+
+<!-- Lista -->
+@if ($isFirstLoad()) {
+<div class="flex flex-col gap-2" aria-busy="true">
+  @for (i of [1, 2, 3, 4]; track i) {
+  <div class="bg-muted h-24 w-full animate-pulse rounded-xl"></div>
+  }
+</div>
+} @else if ($error() && !$data()) {
+<app-empty-state icon="cloud_off" title="No se pudieron cargar los textos" [description]="$errorMessage()">
+  <app-button impact="light" tone="primary" size="small" type="button" icon="refresh" (buttonClick)="retry()">Reintentar</app-button>
+</app-empty-state>
+} @else if (!$items().length) {
+@if (summary.all === 0) {
+<app-empty-state icon="translate" title="Aún no hay textos para traducir" description="Agrega productos, categorías o promociones a tu carta y aparecerán aquí." />
+} @else {
+<app-empty-state icon="task_alt" title="Nada por aquí" description="No hay textos con este filtro. Prueba con otro estado o tipo." />
+}
+} @else {
+<div class="flex flex-col gap-2" [class.opacity-60]="page.isLoading()" [attr.aria-busy]="page.isLoading()">
+  <div class="text-muted-foreground hidden grid-cols-2 gap-4 px-3 text-xs font-semibold uppercase tracking-wide md:grid">
+    <span>Original (español)</span>
+    <span>Traducción{{ language ? ' (' + languageLabels[language].name.toLowerCase() + ')' : '' }}</span>
+  </div>
+  @for (item of $items(); track key(item)) {
+  <app-menu-translation-row
+    [item]="item"
+    [text]="textOf(item)"
+    [dirty]="isDirty(item)"
+    [canEdit]="canEdit"
+    [deleting]="$deletingId() === item.translation?.id"
+    (textChange)="onText(item, $event)"
+    (discard)="discardRow(item)"
+    (remove)="remove(item)" />
+  }
+</div>
+
+@if ($pagination().totalItems > pageSize) {
+<div class="mt-3">
+  <app-pagination-table [pagination]="$pagination()" (pageChange)="goToPage($event)" />
+</div>
+}
+}
+
+<!-- Barra de acciones -->
+@if (canEdit && $editCount() > 0) {
+<div class="sticky bottom-0 z-10 mt-4 pb-2">
+  <div class="glass flex flex-col gap-2 rounded-[1rem] p-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-foreground text-sm font-medium">
+      {{ $editCount() === 1 ? '1 traducción sin guardar' : $editCount() + ' traducciones sin guardar' }}
+    </p>
+    <div class="flex flex-wrap justify-end gap-2">
+      <app-button impact="none" tone="primary" size="small" type="button" [disabled]="$busy()" (buttonClick)="discardAll()">Descartar</app-button>
+      <app-button impact="light" tone="primary" size="small" type="button" [isLoading]="$saving() === 'draft'" [disabled]="$busy()" (buttonClick)="save('draft')">
+        Guardar como borrador
+      </app-button>
+      <app-button impact="bold" tone="primary" size="small" type="button" [isLoading]="$saving() === 'published'" [disabled]="$busy()" (buttonClick)="save('published')">
+        Guardar
+      </app-button>
+    </div>
+  </div>
+</div>
+}
+}

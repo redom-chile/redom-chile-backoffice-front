@@ -5,6 +5,7 @@ import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { RECEIPT_MAX_BYTES, RECEIPT_TYPES } from '../carta-online';
+import { CartaI18n, cartaLanguage, ct } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 
 type Row = Readonly<{ key: string; label: string; value: string }>;
@@ -22,12 +23,12 @@ class ReceiptError extends Error {
 function receiptError(error: unknown): ReceiptError {
   if (error instanceof ReceiptError) return error;
   const api = readApiError(error);
-  if (api.code === 'RECEIPT_NOT_ALLOWED' || api.status === 409) return new ReceiptError('Este pedido ya no espera un comprobante', true);
-  if (api.status === 0) return new ReceiptError('No hay conexión. Revisa tu internet');
-  if (api.code === 'RATE_LIMITED' || api.status === 429) return new ReceiptError('Demasiados intentos, espera un minuto');
-  if (api.status === 400) return new ReceiptError('No pudimos recibir el archivo. Revisa que sea una imagen o PDF de hasta 5 MB e intenta de nuevo');
-  if (api.status === 404) return new ReceiptError('No encontramos este pedido');
-  return new ReceiptError('No pudimos subir tu comprobante. Intenta de nuevo');
+  if (api.code === 'RECEIPT_NOT_ALLOWED' || api.status === 409) return new ReceiptError(ct('receipt.notAllowed'), true);
+  if (api.status === 0) return new ReceiptError(ct('receipt.offline'));
+  if (api.code === 'RATE_LIMITED' || api.status === 429) return new ReceiptError(ct('receipt.tooMany'));
+  if (api.status === 400) return new ReceiptError(ct('receipt.badFile'));
+  if (api.status === 404) return new ReceiptError(ct('receipt.notFound'));
+  return new ReceiptError(ct('receipt.failed'));
 }
 
 /**
@@ -45,9 +46,9 @@ function receiptError(error: unknown): ReceiptError {
     <section class="rounded-2xl border border-amber-500/40 bg-amber-500/5 px-4 py-4" aria-labelledby="carta-receipt-title">
       <h3 id="carta-receipt-title" class="flex items-center gap-2 text-base font-bold">
         <app-carta-icon name="wallet" [size]="18" class="text-amber-700 dark:text-amber-400" />
-        Transfiere y sube tu comprobante
+        {{ t('receipt.title') }}
       </h3>
-      <p class="mt-1 text-sm text-muted-foreground">El local confirmará tu pedido cuando revise la transferencia.</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ t('receipt.intro') }}</p>
 
       <dl class="mt-3 divide-y divide-border rounded-xl border border-border bg-card text-sm">
         @for (row of rows(); track row.key) {
@@ -57,7 +58,7 @@ function receiptError(error: unknown): ReceiptError {
             <button
               type="button"
               class="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary"
-              [attr.aria-label]="copied() === row.key ? row.label + ' copiado' : 'Copiar ' + row.label.toLowerCase()"
+              [attr.aria-label]="copyLabel(row)"
               (click)="copy(row)"
             >
               <app-carta-icon [name]="copied() === row.key ? 'check' : 'copy'" [size]="16" />
@@ -65,7 +66,7 @@ function receiptError(error: unknown): ReceiptError {
           </div>
         }
       </dl>
-      <p class="sr-only" aria-live="polite">{{ copied() ? 'Copiado' : '' }}</p>
+      <p class="sr-only" aria-live="polite">{{ copied() ? t('receipt.copied') : '' }}</p>
 
       <div class="mt-4">
         <input id="carta-receipt-file" type="file" class="sr-only" [accept]="accept" (change)="onFile($any($event.target))" [disabled]="uploading()" />
@@ -78,13 +79,13 @@ function receiptError(error: unknown): ReceiptError {
         >
           @if (uploading()) {
             <span class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true"></span>
-            Subiendo comprobante…
+            {{ t('receipt.uploading') }}
           } @else {
             <app-carta-icon name="upload" [size]="18" />
-            Subir comprobante
+            {{ t('receipt.upload') }}
           }
         </label>
-        <p class="mt-1.5 text-center text-xs text-muted-foreground">Imagen (JPG, PNG o WebP) o PDF, hasta 5 MB.</p>
+        <p class="mt-1.5 text-center text-xs text-muted-foreground">{{ t('receipt.hint') }}</p>
       </div>
 
       @if (error(); as e) {
@@ -94,7 +95,7 @@ function receiptError(error: unknown): ReceiptError {
         </p>
       }
       @if (!o.bankAccount) {
-        <p class="mt-2 text-sm text-muted-foreground">Pide al local los datos para transferir.</p>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t('receipt.noBank') }}</p>
       }
     </section>
   `,
@@ -110,7 +111,13 @@ export class CartaOrderReceipt {
   #destroyed = false;
   #copyTimer: ReturnType<typeof setTimeout> | null = null;
 
+  protected readonly t = inject(CartaI18n).t;
   protected readonly accept = RECEIPT_TYPES.join(',');
+  /** En alemán los sustantivos van con mayúscula. */
+  protected readonly copyLabel = (row: Row) =>
+    this.copied() === row.key
+      ? ct('receipt.copiedLabel', { label: row.label })
+      : ct('receipt.copyLabel', { label: cartaLanguage() === 'de' ? row.label : row.label.toLowerCase() });
   protected readonly uploading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly copied = signal<string | null>(null);
@@ -120,14 +127,14 @@ export class CartaOrderReceipt {
     const b = o.bankAccount;
     const list: Row[] = [];
     if (b) {
-      list.push({ key: 'bank', label: 'Banco', value: b.bank });
-      list.push({ key: 'type', label: 'Tipo de cuenta', value: b.accountType });
-      list.push({ key: 'number', label: 'N° de cuenta', value: b.accountNumber });
-      list.push({ key: 'holder', label: 'Titular', value: b.holderName });
-      list.push({ key: 'rut', label: 'RUT', value: b.holderRut });
-      if (b.email) list.push({ key: 'email', label: 'Correo', value: b.email });
+      list.push({ key: 'bank', label: ct('receipt.bank'), value: b.bank });
+      list.push({ key: 'type', label: ct('receipt.accountType'), value: b.accountType });
+      list.push({ key: 'number', label: ct('receipt.accountNumber'), value: b.accountNumber });
+      list.push({ key: 'holder', label: ct('receipt.holder'), value: b.holderName });
+      list.push({ key: 'rut', label: ct('receipt.rut'), value: b.holderRut });
+      if (b.email) list.push({ key: 'email', label: ct('receipt.email'), value: b.email });
     }
-    list.push({ key: 'amount', label: 'Monto', value: formatMenuPrice(o.total) });
+    list.push({ key: 'amount', label: ct('receipt.amount'), value: formatMenuPrice(o.total) });
     return list.filter((r) => r.value);
   });
 
@@ -169,15 +176,15 @@ export class CartaOrderReceipt {
     if (!file || this.uploading()) return;
     this.error.set(null);
     if (!(RECEIPT_TYPES as readonly string[]).includes(file.type)) {
-      this.error.set('Sube una imagen (JPG, PNG o WebP) o un PDF');
+      this.error.set(ct('receipt.wrongType'));
       return;
     }
     if (file.size > RECEIPT_MAX_BYTES) {
-      this.error.set('El archivo pesa más de 5 MB');
+      this.error.set(ct('receipt.tooBig'));
       return;
     }
     if (!file.size) {
-      this.error.set('El archivo está vacío');
+      this.error.set(ct('receipt.empty'));
       return;
     }
     const id = this.order().id;
@@ -191,9 +198,9 @@ export class CartaOrderReceipt {
         // Exactamente los headers recibidos, sin sesión
         response = await fetch(upload.uploadUrl, { method: upload.method || 'PUT', headers: upload.headers, body: file });
       } catch {
-        throw new ReceiptError('No pudimos subir el archivo. Revisa tu conexión e intenta de nuevo');
+        throw new ReceiptError(ct('receipt.network'));
       }
-      if (!response.ok) throw new ReceiptError('No pudimos subir el archivo. Intenta de nuevo');
+      if (!response.ok) throw new ReceiptError(ct('receipt.uploadFailed'));
       const order = await firstValueFrom(this.#api.confirmReceipt(id, upload.fileId));
       if (this.#destroyed) return;
       this.updated.emit(order);

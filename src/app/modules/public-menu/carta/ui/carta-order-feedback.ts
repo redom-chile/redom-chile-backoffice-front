@@ -4,10 +4,11 @@ import { readApiError } from 'src/app/core/utils/api-error';
 import { OrderFeedbackResultDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { safeUrl } from '../carta-marketing';
+import { CartaI18n, cartaErrorMessage, ct, CartaKey } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 
 const MAX_COMMENT = 500;
-const RATING_LABELS = ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'] as const;
+const RATING_KEYS: readonly CartaKey[] = ['feedback.rating1', 'feedback.rating2', 'feedback.rating3', 'feedback.rating4', 'feedback.rating5'];
 
 /**
  * Encuesta del pedido (etapa 4): 5 estrellas (grupo de radios nativo: flechas para cambiar) y un comentario opcional.
@@ -23,29 +24,29 @@ const RATING_LABELS = ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'] as c
       @if (result(); as r) {
         <div role="status" class="text-center">
           @if (reviewUrl(); as url) {
-            <h3 id="carta-feedback-title" class="text-base font-bold">¿Nos dejas una reseña en Google?</h3>
-            <p class="mt-1 text-sm text-muted-foreground">¡Gracias por tu opinión! Nos ayuda mucho que otros la vean.</p>
+            <h3 id="carta-feedback-title" class="text-base font-bold">{{ t('feedback.reviewTitle') }}</h3>
+            <p class="mt-1 text-sm text-muted-foreground">{{ t('feedback.reviewText') }}</p>
             <a
               [href]="url"
               target="_blank"
               rel="noopener noreferrer"
               class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98] motion-reduce:transition-none"
             >
-              Dejar una reseña en Google
+              {{ t('feedback.reviewButton') }}
               <app-carta-icon name="external" [size]="16" />
-              <span class="sr-only">(se abre en una pestaña nueva)</span>
+              <span class="sr-only">{{ t('feedback.newTab') }}</span>
             </a>
           } @else {
             <p id="carta-feedback-title" class="flex items-center justify-center gap-2 text-base font-bold">
               <app-carta-icon name="check" [size]="18" class="text-emerald-600 dark:text-emerald-400" />
-              {{ r === 'already' ? 'Ya enviaste tu opinión. ¡Gracias!' : '¡Gracias por tu opinión!' }}
+              {{ r === 'already' ? t('feedback.already') : t('feedback.thanks') }}
             </p>
           }
         </div>
       } @else {
         <form novalidate (submit)="send($event)">
           <fieldset>
-            <legend id="carta-feedback-title" class="text-base font-bold">¿Cómo estuvo tu pedido?</legend>
+            <legend id="carta-feedback-title" class="text-base font-bold">{{ t('feedback.question') }}</legend>
             <div class="mt-2 flex items-center gap-1" role="radiogroup" aria-labelledby="carta-feedback-title">
               @for (n of stars; track n) {
                 <label
@@ -56,21 +57,21 @@ const RATING_LABELS = ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'] as c
                 >
                   <input type="radio" name="carta-feedback-rating" class="sr-only" [value]="n" [checked]="rating() === n" (change)="rating.set(n)" />
                   <app-carta-icon name="star" [size]="30" [filled]="n <= shown()" />
-                  <span class="sr-only">{{ n }} {{ n === 1 ? 'estrella' : 'estrellas' }}: {{ labels[n - 1] }}</span>
+                  <span class="sr-only">{{ tn('feedback.stars', n, { label: label(n) }) }}</span>
                 </label>
               }
               @if (rating()) {
-                <span class="ml-1 text-sm font-medium text-muted-foreground" aria-hidden="true">{{ labels[rating() - 1] }}</span>
+                <span class="ml-1 text-sm font-medium text-muted-foreground" aria-hidden="true">{{ label(rating()) }}</span>
               }
             </div>
           </fieldset>
 
-          <label for="carta-feedback-comment" class="mt-3 block text-sm font-semibold">Comentario <span class="font-normal text-muted-foreground">(opcional)</span></label>
+          <label for="carta-feedback-comment" class="mt-3 block text-sm font-semibold">{{ t('feedback.comment') }} <span class="font-normal text-muted-foreground">{{ t('feedback.optional') }}</span></label>
           <textarea
             id="carta-feedback-comment"
             rows="2"
-            class="mt-1.5 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none"
-            placeholder="Cuéntanos qué te pareció"
+            class="mt-1.5 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-[0.9375rem] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none"
+            [placeholder]="t('feedback.placeholder')"
             [maxLength]="maxComment"
             [value]="comment()"
             aria-describedby="carta-feedback-count"
@@ -89,7 +90,7 @@ const RATING_LABELS = ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Excelente'] as c
             class="mt-3 w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-none"
             [disabled]="!rating() || sending()"
           >
-            {{ sending() ? 'Enviando…' : 'Enviar opinión' }}
+            {{ sending() ? t('feedback.sending') : t('feedback.send') }}
           </button>
         </form>
       }
@@ -105,7 +106,10 @@ export class CartaOrderFeedback {
   #sub: Subscription | null = null;
 
   protected readonly stars = [1, 2, 3, 4, 5];
-  protected readonly labels = RATING_LABELS;
+  readonly #i18n = inject(CartaI18n);
+  protected readonly t = this.#i18n.t;
+  protected readonly tn = this.#i18n.tn;
+  protected readonly label = (n: number) => ct(RATING_KEYS[n - 1]);
   protected readonly maxComment = MAX_COMMENT;
   protected readonly rating = signal(0);
   protected readonly hover = signal(0);
@@ -142,11 +146,11 @@ export class CartaOrderFeedback {
         if (api.code === 'FEEDBACK_ALREADY_SENT') {
           this.result.set('already');
           this.sent.emit();
-        } else if (api.code === 'FEEDBACK_NOT_ALLOWED') this.error.set('Podrás opinar cuando recibas tu pedido');
-        else if (api.status === 404) this.error.set('No encontramos este pedido');
-        else if (api.code === 'RATE_LIMITED' || api.status === 429) this.error.set('Demasiados intentos, espera un minuto');
-        else if (api.status === 0) this.error.set('No hay conexión. Revisa tu internet');
-        else this.error.set(api.message || 'No pudimos enviar tu opinión. Intenta de nuevo');
+        } else if (api.code === 'FEEDBACK_NOT_ALLOWED') this.error.set(ct('feedback.notAllowed'));
+        else if (api.status === 404) this.error.set(ct('feedback.notFound'));
+        else if (api.code === 'RATE_LIMITED' || api.status === 429) this.error.set(ct('feedback.tooMany'));
+        else if (api.status === 0) this.error.set(ct('feedback.offline'));
+        else this.error.set(cartaErrorMessage(e, ct('feedback.failed')));
       },
     });
   }
