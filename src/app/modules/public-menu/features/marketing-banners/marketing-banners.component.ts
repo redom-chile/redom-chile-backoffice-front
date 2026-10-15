@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
-import { filter, map, switchMap } from 'rxjs';
+import { catchError, filter, forkJoin, map, of, switchMap } from 'rxjs';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { StandardizedPagination } from 'src/app/core/standarized-response';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
@@ -122,9 +122,37 @@ export class MarketingBannersComponent {
           toRemoteResult(),
         ),
   });
+  // Los enlazados que no vinieron en los primeros 100 se piden uno a uno.
+  readonly #missingProducts = rxResource({
+    params: () => {
+      const loaded = resultValue(this.#products.value());
+      if (!loaded) return undefined;
+      const known = new Set(loaded.map((item) => item.id));
+      const ids = [
+        ...new Set(
+          (this.$all() ?? []).filter((banner) => banner.linkType === 'product' && banner.linkId && !known.has(banner.linkId)).map((banner) => banner.linkId!),
+        ),
+      ];
+      return ids.length ? ids.sort((a, b) => a - b).join(',') : undefined;
+    },
+    stream: ({ params }) =>
+      forkJoin(
+        params.split(',').map((id) =>
+          this.#http.get<{ id: number; name: string }>(`${ApiPathEnum.RESTAURANT}/products/${id}`).pipe(
+            map((product) => ({ id: product.id, name: product.name })),
+            catchError(() => of(null)),
+          ),
+        ),
+      ).pipe(map((list) => list.filter((item) => item !== null))),
+  });
   readonly #names = computed(() => ({
     category: new Map((resultValue(this.#categories.value()) ?? []).map((item) => [item.id, item.name])),
-    product: new Map((resultValue(this.#products.value()) ?? []).map((item) => [item.id, item.name])),
+    product: new Map(
+      [...(resultValue(this.#products.value()) ?? []), ...((this.#missingProducts.hasValue() && this.#missingProducts.value()) || [])].map((item) => [
+        item.id,
+        item.name,
+      ]),
+    ),
   }));
 
   // Frecuencia de la ventana de ofertas, por local.

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import {
@@ -11,6 +11,7 @@ import {
   RewardType,
   SaveLoyaltyRewardDto,
 } from 'src/app/modules/loyalty/data-access';
+import { readApiError } from 'src/app/core/utils/api-error';
 import { MarketingTarget, MarketingTargetPickerComponent } from 'src/app/modules/public-menu/features/marketing-target-picker';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService, ToggleComponent } from 'src/ui';
 
@@ -72,8 +73,8 @@ export function openRewardFormModal(dialog: MatDialog, data: RewardFormModalData
         @if ($type() === 'free_product') {
         <div>
           <label for="reward-product" class="mb-1 block text-sm font-medium">Producto *</label>
-          <app-marketing-target-picker inputId="reward-product" type="variation" [(selected)]="$product" [invalid]="!!show('product')" />
-          @if (show('product'); as error) {
+          <app-marketing-target-picker inputId="reward-product" type="variation" [(selected)]="$product" [invalid]="!!(show('product') ?? $productRejected())" />
+          @if (show('product') ?? $productRejected(); as error) {
           <p class="text-destructive mt-1 text-xs">{{ error }}</p>
           }
           <p class="text-muted-foreground mt-1 text-xs">Se agrega a la venta con precio $0 y va a cocina como cualquier producto.</p>
@@ -128,7 +129,7 @@ export function openRewardFormModal(dialog: MatDialog, data: RewardFormModalData
             <p class="text-sm font-medium">Activa</p>
             <p class="text-muted-foreground text-xs">Inactiva no se ofrece en la caja.</p>
           </div>
-          <app-toggle [checked]="$isActive()" (changed)="$isActive.set($event)" />
+          <app-toggle ariaLabel="Recompensa activa" [checked]="$isActive()" (changed)="$isActive.set($event)" />
         </div>
       </form>
 
@@ -161,6 +162,8 @@ export class RewardFormModalComponent {
   readonly $product = signal<MarketingTarget | null>(
     this.reward?.variationId ? { id: this.reward.variationId, name: this.reward.productName ?? `Producto #${this.reward.variationId}` } : null,
   );
+  // El buscador ya pide solo productos a la venta; esto cubre uno que dejó de venderse.
+  readonly $productRejected = linkedSignal<MarketingTarget | null, string | null>({ source: this.$product, computation: () => null });
   readonly $cost = signal<number | null>(this.reward?.cost ?? null);
   readonly $isActive = signal(this.reward?.isActive ?? true);
 
@@ -219,9 +222,20 @@ export class RewardFormModalComponent {
       },
       error: (error: unknown) => {
         this.$isSaving.set(false);
+        if (type === 'free_product' && isNotForSale(error)) {
+          this.$productRejected.set('Ese producto no se vende.');
+          this.#toast.show('Revisa los campos marcados', 'warning');
+          return;
+        }
         const message = getLoyaltyErrorMessage(error, 'No se pudo guardar la recompensa.');
         if (message) this.#toast.show(message, 'error');
       },
     });
   }
 }
+
+// 400 del backend cuando la variación no es de un producto a la venta.
+const isNotForSale = (error: unknown) => {
+  const api = readApiError(error);
+  return api.status === 400 && api.message.includes('product for sale');
+};

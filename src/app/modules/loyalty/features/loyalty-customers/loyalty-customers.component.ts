@@ -55,6 +55,11 @@ export class LoyaltyCustomersComponent {
   readonly $errorMessage = computed(() => getLoyaltyErrorMessage(this.$error(), 'No se pudo buscar al cliente.') ?? 'No se pudo buscar al cliente.');
   readonly $unitMechanic = computed(() => this.$customer()?.mechanic ?? this.mechanic());
 
+  /** "Faltan 3 puntos" / "Falta 1 sello". */
+  missing(amount: number): string {
+    return `${amount === 1 ? 'Falta' : 'Faltan'} ${this.balance(amount)}`;
+  }
+
   balance(amount: number): string {
     return formatLoyaltyBalance(amount, this.$unitMechanic());
   }

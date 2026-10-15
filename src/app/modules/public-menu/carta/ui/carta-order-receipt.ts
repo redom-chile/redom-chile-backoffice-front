@@ -4,7 +4,7 @@ import { readApiError } from 'src/app/core/utils/api-error';
 import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
-import { RECEIPT_MAX_BYTES, RECEIPT_TYPES } from '../carta-online';
+import { RECEIPT_MAX_BYTES, RECEIPT_TYPES, receiptContentType } from '../carta-online';
 import { CartaI18n, cartaLanguage, ct } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 
@@ -112,7 +112,7 @@ export class CartaOrderReceipt {
   #copyTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly t = inject(CartaI18n).t;
-  protected readonly accept = RECEIPT_TYPES.join(',');
+  protected readonly accept = [...RECEIPT_TYPES, '.jpg', '.jpeg', '.png', '.webp', '.pdf'].join(',');
   /** En alemán los sustantivos van con mayúscula. */
   protected readonly copyLabel = (row: Row) =>
     this.copied() === row.key
@@ -175,7 +175,8 @@ export class CartaOrderReceipt {
     input.value = '';
     if (!file || this.uploading()) return;
     this.error.set(null);
-    if (!(RECEIPT_TYPES as readonly string[]).includes(file.type)) {
+    const contentType = receiptContentType(file);
+    if (!contentType) {
       this.error.set(ct('receipt.wrongType'));
       return;
     }
@@ -191,12 +192,13 @@ export class CartaOrderReceipt {
     this.uploading.set(true);
     try {
       const upload = await firstValueFrom(
-        this.#api.createReceiptUploadUrl(id, { contentType: file.type, sizeBytes: file.size, originalName: file.name.slice(0, 200) }),
+        this.#api.createReceiptUploadUrl(id, { contentType, sizeBytes: file.size, originalName: file.name.slice(0, 200) }),
       );
       let response: Response;
       try {
-        // Exactamente los headers recibidos, sin sesión
-        response = await fetch(upload.uploadUrl, { method: upload.method || 'PUT', headers: upload.headers, body: file });
+        // Exactamente los headers recibidos, sin sesión; el cuerpo con el tipo normalizado (por si no viene Content-Type)
+        const body = file.type === contentType ? file : file.slice(0, file.size, contentType);
+        response = await fetch(upload.uploadUrl, { method: upload.method || 'PUT', headers: upload.headers, body });
       } catch {
         throw new ReceiptError(ct('receipt.network'));
       }

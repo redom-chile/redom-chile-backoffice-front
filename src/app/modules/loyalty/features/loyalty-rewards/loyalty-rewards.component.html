@@ -8,7 +8,7 @@
 }
 
 <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <p class="text-muted-foreground text-sm">Se ofrecen en la caja en este orden.{{ $canManage() ? ' Arrastra para cambiarlo.' : '' }}</p>
+  <p class="text-muted-foreground text-sm">Se ofrecen en la caja en este orden.{{ $canManage() ? ' Arrastra o usa las flechas para cambiarlo.' : '' }}</p>
   <app-button *appCheckPermission="PERMISSIONS.LOYALTY.MANAGE" type="button" impact="bold" tone="primary" shape="rounded" (buttonClick)="create()">
     <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva recompensa</span>
   </app-button>
@@ -42,7 +42,7 @@
   [class.opacity-60]="rewards.isLoading()"
   [cdkDropListDisabled]="$isReordering() || !$canManage()"
   (cdkDropListDropped)="handleDrop($event)">
-  @for (reward of $list(); track reward.id) {
+  @for (reward of $list(); track reward.id; let index = $index, first = $first, last = $last) {
   @let busy = $busyId() === reward.id;
   <li cdkDrag class="glass flex items-center gap-2 rounded-[1rem] p-3">
     @if ($canManage()) {
@@ -54,6 +54,24 @@
       title="Arrastra para ordenar">
       <app-icon class="h-5 w-5">drag_indicator</app-icon>
     </button>
+    <div class="-ml-1 flex shrink-0 flex-col">
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-6 w-7 items-center justify-center rounded-md disabled:opacity-30"
+        [disabled]="first || $isReordering()"
+        [attr.aria-label]="'Subir ' + reward.name"
+        (click)="moveBy(index, -1)">
+        <app-icon class="h-4 w-4" aria-hidden="true">keyboard_arrow_up</app-icon>
+      </button>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-6 w-7 items-center justify-center rounded-md disabled:opacity-30"
+        [disabled]="last || $isReordering()"
+        [attr.aria-label]="'Bajar ' + reward.name"
+        (click)="moveBy(index, 1)">
+        <app-icon class="h-4 w-4" aria-hidden="true">keyboard_arrow_down</app-icon>
+      </button>
+    </div>
     }
     <span class="bg-primary/10 text-primary hidden h-10 w-10 shrink-0 items-center justify-center rounded-full sm:inline-flex">
       <app-icon class="h-5 w-5" aria-hidden="true">{{ typeIcons[reward.rewardType] }}</app-icon>
@@ -66,7 +84,7 @@
       </span>
     </div>
     <div class="flex shrink-0 flex-col items-end gap-1">
-      <app-toggle [checked]="reward.isActive" [disabled]="busy || !$canManage()" (changed)="toggle(reward, $event)" />
+      <app-toggle [ariaLabel]="(reward.isActive ? 'Desactivar ' : 'Activar ') + reward.name" [checked]="reward.isActive" [disabled]="busy || !$canManage()" (changed)="toggle(reward, $event)" />
       <div *appCheckPermission="PERMISSIONS.LOYALTY.MANAGE" class="flex items-center">
         <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full" [disabled]="busy" aria-label="Editar recompensa" (click)="edit(reward)">
           <app-icon class="h-5 w-5">edit</app-icon>

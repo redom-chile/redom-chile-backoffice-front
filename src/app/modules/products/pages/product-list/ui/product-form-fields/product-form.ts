@@ -87,6 +87,17 @@ export function setVarietiesMode(form: { controls: { price: AbstractControl; var
 
 export const normalizeVarietyName = (name: string) => name.trim().toLocaleLowerCase('es');
 
+const comparableName = (name: string) =>
+  normalizeVarietyName(name)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+/** El backend trata la variedad con el nombre del producto como DUMMY y la oculta en la carta. */
+export function isVarietyNamedAsProduct(form: ProductForm, varietyName: string): boolean {
+  const name = comparableName(varietyName);
+  return !!name && name === comparableName(form.controls.name.value ?? '');
+}
+
 /** Nombres repetidos entre las variedades (sin distinguir mayúsculas ni espacios). */
 export function duplicatedVarietyNames(form: ProductForm): Set<string> {
   const seen = new Set<string>();
@@ -109,6 +120,8 @@ export function varietiesError(form: ProductForm): string | null {
   if (varieties.some((variety) => !variety.controls.name.value.trim())) return 'Ingresa el nombre de cada variedad';
   if (varieties.some((variety) => normalizeVarietyName(variety.controls.name.value) === DEFAULT_VARIATION_NAME.toLowerCase()))
     return 'Usa otro nombre para la variedad';
+  if (varieties.some((variety) => isVarietyNamedAsProduct(form, variety.controls.name.value)))
+    return 'Usa un nombre distinto al del producto (por ejemplo, el tamaño o el sabor)';
   if (duplicatedVarietyNames(form).size) return 'Hay variedades con el mismo nombre';
   return null;
 }

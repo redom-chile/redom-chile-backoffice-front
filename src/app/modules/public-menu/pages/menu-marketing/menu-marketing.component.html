@@ -9,14 +9,15 @@
 </app-header-dashboard>
 
 <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-  <nav class="glass-input -mx-1 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" role="tablist" aria-label="Secciones">
+  <nav appTabList class="glass-input -mx-1 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" aria-label="Secciones">
     @for (item of tabs; track item.id) {
     <button
       type="button"
-      role="tab"
+      [id]="'marketing-tab-' + item.id"
       class="inline-flex h-9 shrink-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium md:flex-none"
       [class]="tab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === item.id"
+      [appTab]="tab === item.id"
+      tabPanel="marketing-panel"
       (click)="selectTab(item.id)">
       <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
     </button>
@@ -40,6 +41,7 @@
   </div>
 </div>
 
+<div id="marketing-panel" role="tabpanel" [attr.aria-labelledby]="'marketing-tab-' + tab">
 @if (!$hasFeature()) {
 <app-marketing-upsell-card [feature]="$tabInfo().feature" [description]="$tabInfo().description" />
 } @else {
@@ -63,3 +65,4 @@
 }
 }
 }
+</div>

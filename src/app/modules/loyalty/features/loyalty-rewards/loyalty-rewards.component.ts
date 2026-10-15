@@ -88,10 +88,19 @@ export class LoyaltyRewardsComponent {
   }
 
   handleDrop(event: CdkDragDrop<LoyaltyRewardDto[]>) {
+    this.move(event.previousIndex, event.currentIndex);
+  }
+
+  /** Alternativa al arrastre para teclado. */
+  moveBy(index: number, delta: -1 | 1) {
+    this.move(index, index + delta);
+  }
+
+  move(from: number, to: number) {
     const previous = this.$list();
-    if (!previous || event.previousIndex === event.currentIndex) return;
+    if (!previous || this.$isReordering() || from === to || to < 0 || to >= previous.length) return;
     const reordered = [...previous];
-    moveItemInArray(reordered, event.previousIndex, event.currentIndex);
+    moveItemInArray(reordered, from, to);
     const next = reordered.map((reward, position) => ({ ...reward, position }));
     // Solo se envían las que cambiaron de lugar.
     const changed = next.filter((reward) => previous.find((item) => item.id === reward.id)?.position !== reward.position);

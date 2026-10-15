@@ -8,7 +8,7 @@ import { isSuperAdminUrl, WhoamiService } from 'src/app/core/services/whoami/who
 import { isSupportUrl, SupportModeService } from 'src/app/core/services/support-mode';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
-import { EntitlementsService, planFeaturesForUrl } from 'src/app/core/services/entitlements';
+import { EntitlementsService, missingPlanFeatures, planRequirementForUrl } from 'src/app/core/services/entitlements';
 
 @Injectable({
   providedIn: 'root',
@@ -49,7 +49,8 @@ export class MenuService implements OnDestroy {
       (!item.feature || enabled[item.feature]) && (!item.role || roles.has(item.role));
     // Lo que el plan no incluye se muestra con candado (no se oculta): al entrar, planFeatureGuard ofrece mejorar el plan.
     this.#entitlements.$entitlements();
-    const isLocked = (route: string | null | undefined) => !this.#entitlements.hasFeatures(planFeaturesForUrl(route));
+    const isLocked = (route: string | null | undefined) =>
+      missingPlanFeatures(planRequirementForUrl(route), (code) => this.#entitlements.hasFeature(code)).length > 0;
     // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
     const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
     // El SUPERADMIN no gestiona negocios: solo ve la plataforma y el centro de ayuda.

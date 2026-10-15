@@ -9,6 +9,8 @@ import { Component, input, output, ChangeDetectionStrategy } from '@angular/core
 export class ToggleComponent {
   readonly $checked = input<boolean>(false, { alias: 'checked' });
   readonly $disabled = input<boolean>(false, { alias: 'disabled' });
+  /** Nombre accesible cuando no hay un texto visible asociado. */
+  readonly $ariaLabel = input<string | null>(null, { alias: 'ariaLabel' });
 
   readonly $changed = output<boolean>({ alias: 'changed' });
 

@@ -9,12 +9,16 @@ import {
   inject,
   Injector,
   input,
+  linkedSignal,
   output,
   signal,
   untracked,
   viewChild,
   viewChildren,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
 import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { CartaAnalytics } from '../carta-analytics';
@@ -48,6 +52,7 @@ import { CartaOrdering } from './carta-ordering';
 import { CartaProductDetail } from './carta-product-detail';
 import { CartaTableService } from '../carta-table-service';
 import { zoneCommunes } from '../carta-online';
+import { isOpenAt } from '../carta-booking';
 import { CartaEmbed } from '../carta-embed';
 import { CartaDisplay } from '../carta-display';
 import { CartaDisplayMenu } from './carta-display-menu';
@@ -116,7 +121,7 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[style]': 'themeStyle()' },
   template: `
-    @let m = menu();
+    @let m = liveMenu();
     <!-- Encabezado -->
     <header class="relative">
       @if (!preview()) {
@@ -305,7 +310,7 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
           <nav #categoryNav class="-my-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" [attr.aria-label]="t('menu.categories')">
             @for (s of sections(); track s.id) {
               <a
-                [href]="pageUrl + '#' + s.anchor"
+                [href]="pageUrl() + '#' + s.anchor"
                 [attr.data-anchor]="s.anchor"
                 [attr.aria-current]="active() === s.anchor ? 'true' : null"
                 class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
@@ -656,8 +661,26 @@ export class CartaMenuView {
   protected readonly selected = signal<ReadonlySet<string>>(new Set());
 
   protected readonly allergenLabel = allergenFilterLabel;
-  /** Con <base href="/">, un href "#x" apuntaría a la portada. */
-  protected readonly pageUrl = typeof location === 'undefined' ? '' : location.pathname + location.search;
+  /** Con <base href="/">, un href "#x" apuntaría a la portada. Se recalcula al navegar (p. ej. al agregar ?lang=). */
+  readonly #navigated = toSignal(inject(Router).events.pipe(filter((e) => e instanceof NavigationEnd)));
+  protected readonly pageUrl = computed(() => {
+    this.#navigated();
+    return typeof location === 'undefined' ? '' : location.pathname + location.search;
+  });
+
+  /** Último recálculo del horario (cada minuto, pausado con la pestaña oculta); null: vale isOpenNow del servidor. */
+  readonly #now = linkedSignal<PublicLocationMenuDto, number | null>({ source: this.menu, computation: () => null });
+  readonly #openNow = computed(() => {
+    const now = this.#now();
+    const l = this.menu().location;
+    return now == null ? l.isOpenNow : (isOpenAt(l.schedule, l.timeZone, now) ?? l.isOpenNow);
+  });
+  /** La carta con isOpenNow al día: la usan el encabezado, los avisos y el pedido. */
+  protected readonly liveMenu = computed(() => {
+    const m = this.menu();
+    const open = this.#openNow();
+    return open === m.location.isOpenNow ? m : { ...m, location: { ...m.location, isOpenNow: open } };
+  });
   protected readonly logoInitials = computed(() => initials(this.menu().business.name));
 
   protected readonly safe = safeUrl;
@@ -677,7 +700,10 @@ export class CartaMenuView {
   protected readonly tagsByCode = computed(() => new Map(this.menu().tags.map((t) => [t.code, t] as const)));
 
   protected readonly week = computed(() => buildWeekSchedule(this.menu().location.schedule));
-  protected readonly today = computed(() => todayIn(this.menu().location.timeZone));
+  protected readonly today = computed(() => {
+    this.#now();
+    return todayIn(this.menu().location.timeZone);
+  });
   protected readonly todayRow = computed(() => this.week().find((r) => r.day === this.today()));
 
   protected readonly actions = computed<Action[]>(() => {
@@ -850,6 +876,32 @@ export class CartaMenuView {
     afterNextRender(() => {
       const hash = decodeURIComponent(window.location.hash.slice(1));
       if (hash && this.sections().some((s) => s.anchor === hash)) setTimeout(() => this.#scrollTo(hash, 'auto'));
+    }, { injector: this.#injector });
+
+    // Abierto / cerrado al día aunque la carta quede abierta mucho rato
+    afterNextRender(() => {
+      if (this.preview()) return;
+      let timer: ReturnType<typeof setInterval> | null = null;
+      const stop = () => {
+        if (timer) clearInterval(timer);
+        timer = null;
+      };
+      const tick = () => this.#now.set(Date.now());
+      const start = () => {
+        stop();
+        timer = setInterval(tick, 60_000);
+      };
+      const onVisibility = () => {
+        if (document.visibilityState === 'hidden') return stop();
+        tick();
+        start();
+      };
+      if (document.visibilityState !== 'hidden') start();
+      document.addEventListener('visibilitychange', onVisibility);
+      this.#destroyRef.onDestroy(() => {
+        stop();
+        document.removeEventListener('visibilitychange', onVisibility);
+      });
     }, { injector: this.#injector });
 
     this.#destroyRef.onDestroy(() => {

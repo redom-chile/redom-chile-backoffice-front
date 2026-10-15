@@ -11,6 +11,7 @@ import { CategoryDto } from '../../../categories/data-access';
 import {
   createVarietyForm,
   duplicatedVarietyNames,
+  isVarietyNamedAsProduct,
   MIN_VARIETIES,
   normalizeVarietyName,
   ProductForm,
@@ -139,7 +140,12 @@ export class ProductFormFieldsComponent implements OnInit {
   isVarietyInvalid(variety: VarietyForm, field: 'name' | 'price'): boolean {
     const control = variety.controls[field];
     if (control.invalid && control.touched) return true;
-    return field === 'name' && duplicatedVarietyNames(this.form()).has(normalizeVarietyName(variety.controls.name.value));
+    if (field !== 'name') return false;
+    return duplicatedVarietyNames(this.form()).has(normalizeVarietyName(variety.controls.name.value)) || this.isNamedAsProduct(variety);
+  }
+
+  isNamedAsProduct(variety: VarietyForm): boolean {
+    return isVarietyNamedAsProduct(this.form(), variety.controls.name.value);
   }
 
   hasNoRecipe(variety: VarietyForm): boolean {

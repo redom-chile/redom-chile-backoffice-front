@@ -9,5 +9,3 @@ export const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as 
 /** "08:00:00" → "08:00". */
 export const formatTime = (time: string) => time.slice(0, 5);
 
-/** QR de mesa en sessionStorage (lo usarán las etapas 3 y 4). */
-export const TABLE_QR_STORAGE_KEY = 'redom.menu.table-qr';

@@ -118,6 +118,18 @@ export function isWithinSchedule(schedule: readonly PublicScheduleDto[], day: nu
   });
 }
 
+/** ¿Abierto en este instante, en la zona del local? Como isOpen del backend; null: sin horario o zona inválida. */
+export function isOpenAt(schedule: readonly PublicScheduleDto[], timeZone: string, now = Date.now()): boolean | null {
+  if (!schedule.length) return null;
+  try {
+    const p = partsIn(now, timeZone);
+    const day = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+    return isWithinSchedule(schedule, day, `${pad(p.hour)}:${pad(p.minute)}`);
+  } catch {
+    return null;
+  }
+}
+
 const DAY = 1440;
 const WEEK = 7 * DAY;
 

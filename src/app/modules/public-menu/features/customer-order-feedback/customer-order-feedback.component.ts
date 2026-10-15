@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RemoteResult, resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared';
-import { CustomerFeedbackSummaryDto, CustomerOrdersService } from 'src/app/modules/public-menu/data-access';
+import { CustomerFeedbackSummaryDto, CustomerOrdersService, OnlineChannel } from 'src/app/modules/public-menu/data-access';
 import { formatOrderDate } from 'src/app/modules/public-menu/features/customer-order-card';
 import { ButtonComponent, IconComponent, SkeletonComponent } from 'src/ui';
 
@@ -28,7 +28,10 @@ export function starIcons(value: number): string[] {
   return [1, 2, 3, 4, 5].map((star) => (value >= star - 0.25 ? 'star' : value >= star - 0.75 ? 'star_half' : 'star_border'));
 }
 
-type FeedbackItem = CustomerFeedbackSummaryDto['items'][number];
+// El backend aún no manda el canal del pedido (pendiente en el backend); se lee si llega.
+type FeedbackItem = CustomerFeedbackSummaryDto['items'][number] & Readonly<{ channel?: OnlineChannel | 'table' | null }>;
+
+const CHANNEL_PLACE: Record<OnlineChannel, string> = { pickup: 'Retiro', delivery: 'Delivery' };
 
 /** Encuestas de los pedidos de un local: promedio, distribución de notas y comentarios, con filtro de fechas. */
 @Component({
@@ -132,7 +135,7 @@ type FeedbackItem = CustomerFeedbackSummaryDto['items'][number];
         <p class="text-muted-foreground text-sm italic">Sin comentario</p>
         }
         <p class="text-muted-foreground text-xs">
-          {{ item.tableName ?? 'Sin mesa' }}@if (item.customerName) { · <span class="text-foreground font-medium">{{ item.customerName }}</span>}
+          {{ place(item) }}@if (item.customerName) { · <span class="text-foreground font-medium">{{ item.customerName }}</span>}
         </p>
       </li>
       }
@@ -211,6 +214,12 @@ export class CustomerOrderFeedbackComponent {
   applyPreset(days: number) {
     this.$from.set(daysAgo(days - 1));
     this.$to.set(this.today);
+  }
+
+  /** Mesa, o el canal si fue retiro o delivery. */
+  place(item: FeedbackItem): string {
+    if (item.tableName) return item.tableName;
+    return item.channel === 'pickup' || item.channel === 'delivery' ? CHANNEL_PLACE[item.channel] : 'Sin mesa';
   }
 
   formatAverage(value: number) {

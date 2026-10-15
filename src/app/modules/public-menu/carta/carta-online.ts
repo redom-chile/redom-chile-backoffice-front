@@ -24,6 +24,22 @@ export const ONLINE_LIMITS = {
 export const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
 export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
 
+const RECEIPT_EXTENSIONS: Readonly<Record<string, (typeof RECEIPT_TYPES)[number]>> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  pdf: 'application/pdf',
+};
+
+/** Tipo del comprobante. Algunos navegadores móviles dan type vacío o "image/jpg": se deduce de la extensión. */
+export function receiptContentType(file: Pick<File, 'type' | 'name'>): (typeof RECEIPT_TYPES)[number] | null {
+  const type = file.type.toLowerCase() === 'image/jpg' ? 'image/jpeg' : file.type.toLowerCase();
+  const known = RECEIPT_TYPES.find((t) => t === type);
+  if (known) return known;
+  return RECEIPT_EXTENSIONS[file.name.split('.').pop()?.toLowerCase() ?? ''] ?? null;
+}
+
 /** Objeto de getters: cada lectura sale en el idioma activo. */
 function translatedLabels<T extends string>(keys: readonly T[], prefix: string): Readonly<Record<T, string>> {
   const labels = {} as Record<T, string>;
