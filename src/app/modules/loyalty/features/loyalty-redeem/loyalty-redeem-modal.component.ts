@@ -140,7 +140,11 @@ export class LoyaltyRedeemModalComponent {
       },
       error: (error: unknown) => {
         this.$redeemingId.set(null);
-        const message = getLoyaltyErrorMessage(error, 'No se pudo canjear la recompensa.', { mechanic: this.$customer()?.mechanic ?? null, pos: true });
+        // 404 del canje: la recompensa (o su producto) ya no existe o se desactivó.
+        const message =
+          readApiError(error).status === 404
+            ? 'La recompensa ya no está disponible.'
+            : getLoyaltyErrorMessage(error, 'No se pudo canjear la recompensa.', { mechanic: this.$customer()?.mechanic ?? null, pos: true });
         if (message) this.#toast.show(message, 'error');
         // El saldo pudo cambiar (venta anulada, otro canje).
         this.customer.reload();

@@ -13,6 +13,12 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Ya está en uso.';
     case 'MENU_NOT_FOUND':
       return 'Esta carta no está disponible.';
+    case 'MENU_MOVED':
+      return 'Esta carta cambió de dirección. Recarga la página.';
+    case 'PRODUCT_UNAVAILABLE':
+      return 'Un producto del pedido ya no está disponible.';
+    case 'ORDER_TOO_LARGE':
+      return 'El pedido supera el monto máximo del local.';
     case 'PRODUCT_NOT_PACK':
       return 'Cambia el tipo del producto a Pack para armar su contenido.';
     case 'ORDERING_DISABLED':
@@ -24,7 +30,7 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
     case 'PACK_CHOICES_INVALID':
       return 'Revisa las opciones del pack.';
     case 'TOO_MANY_PENDING_ORDERS':
-      return 'Tu mesa tiene pedidos esperando confirmación. Espera un momento.';
+      return 'Tienes pedidos esperando confirmación. Espera un momento.';
     case 'CUSTOMER_ORDER_NOT_PENDING':
       return 'Este pedido ya fue resuelto.';
     case 'MODIFIER_NOT_AVAILABLE':
@@ -61,6 +67,14 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Ese paso no corresponde al estado del pedido.';
     case 'WEBHOOK_URL_INVALID':
       return 'La URL debe ser https y pública.';
+    case 'API_KEY_INVALID':
+      return 'La llave no existe o fue revocada.';
+    case 'API_KEY_ORIGIN_NOT_ALLOWED':
+      return 'Este sitio no está en los orígenes permitidos de la llave.';
+    case 'API_KEY_FORBIDDEN':
+      return 'La llave no corresponde a este negocio.';
+    case 'SECRET_KEY_REQUIRED':
+      return 'Esta consulta necesita la llave secreta, desde un servidor.';
     case 'AI_TRANSLATIONS_QUOTA_EXCEEDED':
       return 'Usaste las traducciones con IA de este mes.';
     case 'AI_TRANSLATIONS_UNAVAILABLE':

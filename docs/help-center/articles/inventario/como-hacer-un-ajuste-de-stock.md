@@ -43,5 +43,5 @@ Si haces un conteo completo, prefiere **Inventario → Conteos**: calcula la dif
 - **"Para 'Merma' explica el motivo en la nota."**: la nota es obligatoria en Merma y Otro.
 - **"Las cantidades no pueden ser 0."**: quita la línea o cambia la cantidad.
 - **"Para este motivo ingresa la cantidad en positivo."**: en Merma, Consumo interno y Stock inicial no uses signo.
-- **"No hay stock suficiente de: …"**: si *Permitir stock negativo* está apagado, una salida no puede dejar el stock bajo cero. Revisa la cantidad o actívalo en **Negocio → Mi negocio**, pestaña Inventario.
+- **"No hay stock suficiente de: …"**: si *Permitir stock negativo* está apagado, una salida no puede dejar el stock bajo cero. Revisa la cantidad o actívalo en **Mi negocio**, pestaña Inventario.
 - **"Estos productos no tienen stock propio: …"**: cambia su *Control de stock* a *Stock propio* en **Carta → Productos**.

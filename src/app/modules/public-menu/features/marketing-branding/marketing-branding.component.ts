@@ -122,8 +122,11 @@ export class MarketingBrandingComponent {
       const coverFileId = await this.#upload.resolveSelection(this.$cover(), 'menu_covers');
       const dto: UpdateBrandingDto = { ...this.$changes(), ...(coverFileId !== undefined ? { coverFileId } : {}) };
       const saved = await firstValueFrom(this.#service.updateBranding(locationId, dto));
-      this.$saved.set(saved);
-      this.#resetCover();
+      // Si mientras tanto se cambió de local, no se pisa lo cargado del otro.
+      if (locationId === this.locationId()) {
+        this.$saved.set(saved);
+        this.#resetCover();
+      }
       this.#toast.show('Personalización guardada', 'success');
     } catch (error) {
       const message = error instanceof ImageUploadError ? getUploadErrorMessage(error) : marketingSaveError(error, 'No se pudo guardar la personalización.');

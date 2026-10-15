@@ -80,14 +80,14 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             <p class="text-foreground text-sm font-medium">Retiro en el local</p>
             <p class="text-muted-foreground text-xs">Piden desde la carta y lo retiran aquí.</p>
           </div>
-          <app-toggle [checked]="$pickup()" [disabled]="!editable || $busy() === 'pickup'" (changed)="setChannel('pickup', $event)" />
+          <app-toggle [checked]="$pickup()" [disabled]="!editable || !!$busy()" (changed)="setChannel('pickup', $event)" />
         </div>
         <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3" [class.opacity-70]="!$hasFeature()">
           <div class="min-w-0">
             <p class="text-foreground text-sm font-medium">Delivery</p>
             <p class="text-muted-foreground text-xs">Despacho a las zonas de reparto.</p>
           </div>
-          <app-toggle [checked]="$delivery()" [disabled]="!editable || $busy() === 'delivery'" (changed)="setChannel('delivery', $event)" />
+          <app-toggle [checked]="$delivery()" [disabled]="!editable || !!$busy()" (changed)="setChannel('delivery', $event)" />
         </div>
       </div>
 
@@ -138,7 +138,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
               type="checkbox"
               class="accent-primary h-4 w-4"
               [checked]="isChecked(option.key)"
-              [disabled]="!editable || !available || $busy() === 'paymentMethods'"
+              [disabled]="!editable || !available || !!$busy()"
               (change)="toggleMethod(option.key, $any($event.target).checked)" />
             <span class="text-foreground">{{ option.label }}</span>
           </label>
@@ -294,7 +294,10 @@ export class CustomerOrderOnlineSettingsComponent {
 
   // Datos bancarios: transferencia marcada pero sin cuenta guardada.
   readonly $transferPending = signal(false);
-  readonly $savedBank = computed(() => this.#ordering()?.bankAccount ?? null);
+  // Igualdad por contenido: guardar otro ajuste (retiro, métodos...) no reinicia el formulario bancario a medio llenar.
+  readonly $savedBank = computed(() => this.#ordering()?.bankAccount ?? null, {
+    equal: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  });
   readonly $bankEditing = linkedSignal(() => this.$transferPending() && !this.$savedBank());
   readonly $bankShowErrors = signal(false);
   readonly $bank = {

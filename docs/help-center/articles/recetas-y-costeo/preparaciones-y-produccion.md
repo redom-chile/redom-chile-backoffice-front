@@ -11,12 +11,12 @@ position: 2
 
 Una **preparación** es un ingrediente que se elabora en el local (salsas, masas, caldos). Tiene una receta **por tanda** con su **rinde**, y su stock se carga registrando una **producción**.
 
-Solo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario.
+Solo si tienes activado *Trabajar con ingredientes y recetas* en **Mi negocio**, pestaña Inventario.
 
 ## Armar la receta de la preparación
 
-1. Crea el ingrediente (ej. "Salsa de tomate") en **Inventario → Ingredientes**.
-2. Ve a **Inventario → Recetas**, pestaña **Preparaciones**, y ábrelo.
+1. Crea el ingrediente (ej. "Salsa de tomate") en **Recetas y costos → Ingredientes**.
+2. Ve a **Recetas y costos → Recetas**, pestaña **Preparaciones**, y ábrelo.
 3. Completa el **Rinde**: cuánto produce una tanda (ej. 2 l).
 4. Agrega los ingredientes que consume una tanda, con cantidad y **Merma %**.
 5. Toca **Guardar**.
@@ -27,7 +27,7 @@ Luego agrega la preparación a la receta de tus platos como cualquier ingredient
 
 ## Registrar una producción
 
-1. Ve a **Inventario → Producción** y toca **Nueva producción** (o **Producir** desde la receta).
+1. Ve a **Recetas y costos → Producción** y toca **Nueva producción** (o **Producir** desde la receta).
 2. En *Qué vas a producir* elige el **Local**, la **Preparación** y la **Cantidad a producir**.
 3. Revisa el **Consumo estimado**: tandas, lo que consume cada ingrediente, el stock en el local y el costo estimado. Si algo no alcanza, verás *No alcanza*.
 4. En *Datos de la producción* completa la **Fecha** y, si quieres, **N° de lote**, **Vence** y **Notas**.

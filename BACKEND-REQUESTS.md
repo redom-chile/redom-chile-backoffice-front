@@ -12,9 +12,10 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
+| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
@@ -463,6 +464,66 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - Opcional: poder quitar una variación por `PUT /products/:id` (soft delete, ej. `deletedVariationIds: number[]`) y un campo de posición para ordenarlas.
 
 **Front mientras tanto:** al quitar una variedad en Carta → Productos envía `{ id, isActive: false, sellPriceIncTax: null }`: sin precio no aparece en la carta y la venta la rechaza ("has no sell price"). Si se vuelve a agregar, se crea una nueva.
+
+---
+
+### 60. 🟡 Pedidos de clientes: permitir verlos con solo `online_ordering`
+
+**Problema:** `GET/POST /customer-orders*`, `table-requests` y `customer-feedback` exigen la función `table_ordering`, también para listar y gestionar pedidos de retiro y delivery. Un plan con solo `online_ordering` no podría ver sus pedidos online.
+
+**Se pide:** Aceptar `table_ordering` **o** `online_ordering` en listar, ver, aceptar, rechazar, confirmar pago y avanzar la entrega.
+
+**Front mientras tanto:** El menú y la ruta `/customer-orders` se bloquean con `table_ordering` (hoy los planes con `online_ordering` también lo tienen).
+
+---
+
+### 61. 🟡 Fidelización: un descuento canjeado se puede quitar al editar la venta
+
+**Problema:** Después de `POST /loyalty/redeem` con una recompensa de descuento, `PATCH /orders/{id}` deja cambiar o quitar `discountAmount`/`discountType`. El saldo del cliente queda descontado y la venta sin el descuento.
+
+**Se pide:** Responder 409 (`LOYALTY_REWARD_APPLIED`) si la venta tiene un canje y se cambia el descuento, o devolver el saldo al quitarlo.
+
+**Front mientras tanto:** Ninguno: el modal Editar del pedido no lo bloquea todavía.
+
+---
+
+### 62. 🟡 Reservas desde la carta: horario del local y validación de 2 horas
+
+**Problema:** `assertWithinSchedule` exige que las 2 horas de la reserva quepan en el horario, pero usa la zona horaria del negocio y no la del local. Además el 400 `BOOKING_OUTSIDE_HOURS` no dice hasta qué hora se puede reservar.
+
+**Se pide:** Usar la zona horaria del local y agregar en `details` la última hora válida del día.
+
+**Front mientras tanto:** el aviso de horario mira solo la hora de inicio (pendiente en el front: validar inicio + 2 h); el backend responde 400 y se muestra el mensaje.
+
+---
+
+### 63. 🟢 Datos nulos y documentación: slugs, ETA de zonas y evento add_to_cart
+
+**Problema:** `MenuSettings.locationSlug`, `businessSlug` y `publicPath` pueden venir `null` (columnas nullable); `etaMinutes` de las zonas acepta `null` por `@IsOptional` y llega a una columna NOT NULL (500); el enum de Swagger de `MenuEventRequestDto.type` no incluye `add_to_cart`; los errores de zonas (comunas o radio, comuna desconocida, falta `address`) salen sin `code`.
+
+**Se pide:** Garantizar el slug del local al crearlo o documentar cuándo es nulo; rechazar `etaMinutes: null` con 400; documentar `add_to_cart`; agregar códigos (`DELIVERY_ZONE_AREA_REQUIRED`, `COMMUNE_NOT_FOUND`, `DELIVERY_ADDRESS_REQUIRED`).
+
+**Front mientras tanto:** El formulario de zonas valida antes de enviar; el widget usa `publicPath` del local.
+
+---
+
+### 64. 🟢 Ventas: el detalle trae el teléfono del cliente
+
+**Problema:** `GET /orders/{id}` trae `contactId` y el nombre del cliente, pero no su teléfono. Al cambiar el cliente de una venta abierta, el selector muestra el nombre con la línea del teléfono vacía.
+
+**Se pide:** Agregar `customerMobile` al detalle de la venta.
+
+**Front mientras tanto:** Se muestra solo el nombre.
+
+---
+
+### 65. 🟡 Despliegue: IP del cliente detrás de Netlify y ambiente de develop de la carta
+
+**Problema:** La landing llama a la API pública a través de un redirect de Netlify. El guard de límites toma la primera IP de `X-Forwarded-For`: si llega la de Netlify, los límites por IP (10, 5 y 60 por minuto) se comparten entre todos los clientes. Además no hay landing de develop: los QR y enlaces que arma develop apuntan a `redom.cl`, que usa la API de producción.
+
+**Se pide:** Confirmar en el deploy que llega la IP real del cliente (o usar el header que entrega Netlify) y definir la URL pública de la carta en develop (deploy de rama o subdominio) para `QR_BASE_URL` (#54).
+
+**Front mientras tanto:** Ninguno; afecta a los límites y a las pruebas en develop.
 
 ---
 

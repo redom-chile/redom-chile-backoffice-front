@@ -11,7 +11,7 @@ position: 8
 
 Ve a **Inventario → Transferencias → Nueva transferencia**, elige el origen, el destino y los ítems, y toca **Registrar transferencia**.
 
-El menú *Transferencias* aparece solo si tu negocio tiene más de un local. Si tienes uno solo, crea otra sucursal en **Negocio → Sucursales**.
+El menú *Transferencias* aparece solo si tu negocio tiene más de un local. Si tienes uno solo, crea otra sucursal en **Mi negocio → Sucursales**.
 
 ## Paso a paso
 

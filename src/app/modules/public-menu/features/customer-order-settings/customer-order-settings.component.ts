@@ -55,7 +55,7 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
           <p class="text-foreground text-sm font-medium">Pedidos desde la mesa</p>
           <p class="text-muted-foreground text-xs">Con el QR de la mesa, la carta muestra "Agregar" y el carrito.</p>
         </div>
-        <app-toggle [checked]="$tableOrdering()" [disabled]="!editable || $busy() === 'tableOrdering'" (changed)="setFlag('tableOrdering', $event)" />
+        <app-toggle [checked]="$tableOrdering()" [disabled]="!editable || !!$busy()" (changed)="setFlag('tableOrdering', $event)" />
       </div>
 
       <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3">
@@ -63,7 +63,7 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
           <p class="text-foreground text-sm font-medium">Aceptar automáticamente</p>
           <p class="text-muted-foreground text-xs">Los pedidos pasan directo a cocina, sin que nadie los acepte.</p>
         </div>
-        <app-toggle [checked]="$autoAccept()" [disabled]="!editable || $busy() === 'autoAccept'" (changed)="setFlag('autoAccept', $event)" />
+        <app-toggle [checked]="$autoAccept()" [disabled]="!editable || !!$busy()" (changed)="setFlag('autoAccept', $event)" />
       </div>
 
       <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3">
@@ -71,7 +71,7 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
           <p class="text-foreground text-sm font-medium">Llamar al mesero y pedir la cuenta</p>
           <p class="text-muted-foreground text-xs">Desde el QR de la mesa, el cliente llama al mesero o pide la cuenta con la propina sugerida.</p>
         </div>
-        <app-toggle [checked]="$tableRequests()" [disabled]="!editable || $busy() === 'tableRequests'" (changed)="setFlag('tableRequests', $event)" />
+        <app-toggle [checked]="$tableRequests()" [disabled]="!editable || !!$busy()" (changed)="setFlag('tableRequests', $event)" />
       </div>
 
       <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3">
@@ -82,7 +82,7 @@ const maxText = (value: number | null) => (value === null ? '' : String(value));
             <span [class]="settings().isPublished ? '' : 'font-medium text-amber-700 dark:text-amber-300'">Para reservar, la carta tiene que estar publicada.</span>
           </p>
         </div>
-        <app-toggle [checked]="$bookings()" [disabled]="!editable || $busy() === 'bookings'" (changed)="setFlag('bookings', $event)" />
+        <app-toggle [checked]="$bookings()" [disabled]="!editable || !!$busy()" (changed)="setFlag('bookings', $event)" />
       </div>
 
       <div class="glass-row flex flex-col gap-2 rounded-xl p-3">

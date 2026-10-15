@@ -9,11 +9,11 @@ tags: [caja, turnos, activar caja, cajas, configuracion]
 position: 1
 ---
 
-La caja se activa con el switch **Caja y turnos** en la sección *Punto de venta* de Mi negocio. Después puedes ajustar las cajas de cada local en **Configuración → Cajas**.
+La caja se activa con el switch **Caja y turnos** en la sección *Punto de venta* de Mi negocio. Después puedes ajustar las cajas de cada local en **Equipos y pagos → Cajas**.
 
 ## Activar Caja y turnos
 
-1. Entra a **Negocio → Mi negocio**.
+1. Entra a **Mi negocio**.
 2. Baja hasta la sección **Punto de venta**.
 3. Enciende **Caja y turnos** y toca **Guardar**.
 
@@ -25,7 +25,7 @@ Al activarla aparecen dos accesos directos: **Configurar cajas** y **Ver turnos*
 
 Cada local trae una *Caja principal*. Agrega más si cobras en varios puntos (por ejemplo, barra y salón).
 
-1. Ve a **Configuración → Cajas**.
+1. Ve a **Equipos y pagos → Cajas**.
 2. Toca **Agregar caja** (o **+ Caja** junto al nombre del local).
 3. Elige el **Local** y escribe el **Nombre** (ej: *Caja barra*).
 4. Toca **Crear caja**.

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, OnInit, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, output, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { PublicOrderDto } from '../../data-access/dtos/customer-orders.dto';
 import { OnlineChannel, OnlinePaymentMethod, PublicOnlineDto } from '../../data-access/dtos/online-orders.dto';
@@ -295,7 +295,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
           <div class="mt-2 grid gap-2">
             @if (m.location.isOpenNow) {
               <label [class]="option">
-                <input type="radio" class="size-4 accent-primary" name="carta-when" value="asap" [checked]="when() === 'asap'" (change)="when.set('asap')" />
+                <input type="radio" class="size-4 accent-primary" name="carta-when" value="asap" [checked]="when() === 'asap'" (change)="whenChoice.set('asap')" />
                 <app-carta-icon name="clock" [size]="20" class="text-muted-foreground" />
                 <span class="flex-1">
                   <span class="block font-semibold">{{ t('checkout.asap') }}</span>
@@ -305,7 +305,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             }
             @if (days().length) {
               <label [class]="option">
-                <input type="radio" class="size-4 accent-primary" name="carta-when" value="scheduled" [checked]="when() === 'scheduled'" (change)="when.set('scheduled')" />
+                <input type="radio" class="size-4 accent-primary" name="carta-when" value="scheduled" [checked]="when() === 'scheduled'" (change)="whenChoice.set('scheduled')" />
                 <app-carta-icon name="calendar" [size]="20" class="text-muted-foreground" />
                 <span class="flex-1 font-semibold">{{ t('checkout.schedule') }}</span>
               </label>
@@ -429,7 +429,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
     </div>
   `,
 })
-export class CartaCheckoutSheet implements OnInit {
+export class CartaCheckoutSheet {
   readonly menu = input.required<PublicLocationMenuDto>();
   readonly ordered = output<PublicOrderDto>();
   /** Volver al carrito. */
@@ -499,7 +499,9 @@ export class CartaCheckoutSheet implements OnInit {
   // Hora: "Lo antes posible" (solo abierto ahora) o programada
   readonly #now = signal(Date.now());
   protected readonly days = computed(() => scheduleDays(this.menu().location, this.online().prepMinutes, this.#now()));
-  protected readonly when = signal<'asap' | 'scheduled'>('asap');
+  protected readonly whenChoice = signal<'asap' | 'scheduled'>('asap');
+  /** Con el local cerrado (también si cerró con la hoja abierta) solo se puede programar. */
+  protected readonly when = computed(() => (this.menu().location.isOpenNow ? this.whenChoice() : 'scheduled'));
   protected readonly date = signal<string | null>(null);
   protected readonly slot = signal<string | null>(null);
   protected readonly selectedDay = computed(() => {
@@ -537,10 +539,6 @@ export class CartaCheckoutSheet implements OnInit {
       clearInterval(timer);
       this.#sub?.unsubscribe();
     });
-  }
-
-  ngOnInit(): void {
-    if (!this.menu().location.isOpenNow) this.when.set('scheduled');
   }
 
   protected setChannel(channel: OnlineChannel): void {
@@ -602,7 +600,7 @@ export class CartaCheckoutSheet implements OnInit {
     let scheduledFor: string | null = null;
     const now = Date.now();
     this.#now.set(now);
-    if (this.when() === 'asap' && m.location.isOpenNow) scheduledFor = null;
+    if (this.when() === 'asap') scheduledFor = null;
     else {
       const iso = this.selectedSlot();
       const prep = this.online().prepMinutes;

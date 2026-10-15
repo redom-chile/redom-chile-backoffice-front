@@ -26,7 +26,8 @@ export type DeliveryZoneDto = Readonly<{
   radiusKm: number | null;
   fee: number;
   minOrder: number;
-  etaMinutes: number | null;
+  /** 5 a 300 (por defecto 45). */
+  etaMinutes: number;
   position: number;
   isActive: boolean;
   createdAt: string;

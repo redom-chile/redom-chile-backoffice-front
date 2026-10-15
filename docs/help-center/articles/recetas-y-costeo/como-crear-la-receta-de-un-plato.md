@@ -9,9 +9,9 @@ tags: [receta, plato, modificador, merma, quita ingrediente, copiar receta, desc
 position: 1
 ---
 
-Ve a **Inventario → Recetas**, abre el plato y agrega sus ingredientes con la cantidad que consume **una unidad vendida**. Luego toca **Guardar**.
+Ve a **Recetas y costos → Recetas**, abre el plato y agrega sus ingredientes con la cantidad que consume **una unidad vendida**. Luego toca **Guardar**.
 
-Solo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario. Para que la receta descuente stock al vender, también debe estar activo *Descontar stock al vender*.
+Solo si tienes activado *Trabajar con ingredientes y recetas* en **Mi negocio**, pestaña Inventario. Para que la receta descuente stock al vender, también debe estar activo *Descontar stock al vender*.
 
 ## Antes de empezar
 
@@ -19,7 +19,7 @@ Solo los platos con *Control de stock* en **Por receta** usan receta. Cámbialo 
 
 ## Receta de un plato
 
-1. Ve a **Inventario → Recetas**, pestaña **Platos**, y abre el plato. Cada uno muestra *Con receta*, *Sin receta* o *Receta en 1 de 2* (si tiene variaciones).
+1. Ve a **Recetas y costos → Recetas**, pestaña **Platos**, y abre el plato. Cada uno muestra *Con receta*, *Sin receta* o *Receta en 1 de 2* (si tiene variaciones).
 2. Cada variación (ej. Mediana, Familiar) tiene su propia tarjeta. En **Agregar ingrediente** busca el insumo por nombre.
 3. En cada fila completa:
    - **Cantidad** y **Unidad**: si eliges kg y el ingrediente está en g, el sistema convierte.
@@ -32,7 +32,7 @@ Arriba de cada tarjeta ves el **Costo de la receta** y el **% del precio** (food
 
 ## Receta de una opción de modificador
 
-1. Ve a **Inventario → Recetas**, pestaña **Opciones de modificador**, y abre el set (ej. Agregados).
+1. Ve a **Recetas y costos → Recetas**, pestaña **Opciones de modificador**, y abre el set (ej. Agregados).
 2. En cada opción agrega lo que consume. Ej: "Extra queso" suma 30 g de queso.
 3. Para opciones como "Sin cebolla", agrega la cebolla y marca **Quita ingrediente**: devuelve lo que el plato iba a consumir. El consumo neto nunca baja de 0.
 4. Toca **Guardar**.

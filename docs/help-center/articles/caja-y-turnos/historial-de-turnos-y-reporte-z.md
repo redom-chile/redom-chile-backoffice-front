@@ -2,18 +2,18 @@
 category: caja-y-turnos
 title: ¿Dónde veo el historial de turnos y el reporte Z?
 slug: historial-de-turnos-y-reporte-z
-summary: En POS → Turnos de caja ves todos los turnos con sus diferencias y, al entrar a uno, su reporte Z para revisar o imprimir.
+summary: En Ventas → Turnos de caja ves todos los turnos con sus diferencias y, al entrar a uno, su reporte Z para revisar o imprimir.
 module: cash
 routes: [/cash, /cash/sessions/:id]
 tags: [historial, turnos, reporte z, imprimir, diferencia]
 position: 5
 ---
 
-El historial está en **POS → Turnos de caja**. Ahí ves cada turno con sus ventas y su diferencia, y al tocarlo se abre su reporte Z.
+El historial está en **Ventas → Turnos de caja**. Ahí ves cada turno con sus ventas y su diferencia, y al tocarlo se abre su reporte Z.
 
 ## Ver el historial
 
-1. Entra a **POS → Turnos de caja**.
+1. Entra a **Ventas → Turnos de caja**.
 2. Filtra por local, caja, estado (*Abierta* o *Cerrada*) y fechas **Desde** / **Hasta**. Usa **Limpiar filtros** para volver a ver todo.
 
 Cada fila muestra la caja, quién abrió y cerró, **Ventas**, **Esperado**, **Contado** y **Diferencia** (*Cuadrada*, faltante en rojo o sobrante en verde).

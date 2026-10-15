@@ -13,7 +13,7 @@ Los productos con modificadores muestran la etiqueta **Opciones** en su tarjeta.
 
 ## Elegir las opciones
 
-1. En **POS → Tomar pedido**, toca un producto con la etiqueta **Opciones**.
+1. En **Ventas → Tomar pedido**, toca un producto con la etiqueta **Opciones**.
 2. El modal muestra el nombre y el precio del producto, y cada set de opciones (por ejemplo, *Agregados*). Marca las opciones que quieras. Las opciones con costo muestran el valor que suman, por ejemplo *+$800*.
 3. Si una opción va más de una vez, como doble queso, usa **+** y **−** junto a la opción. Cada opción puede ir hasta 10 veces por unidad.
 4. En **Nota para cocina**, escribe una indicación o toca una nota rápida, como *sin cebolla* o *término medio*.
