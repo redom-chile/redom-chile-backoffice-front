@@ -35,6 +35,8 @@ export type PublicOrderItemDto = Readonly<{
 
 /** id: uuid, código de seguimiento público. Etapa 5: suma los campos de retiro y delivery. */
 export type PublicOrderDto = OnlineOrderFieldsDto & Readonly<{
+  /** Etapa 7: retiro y delivery, con programa activo y el teléfono ya cliente. Sin canje online. */
+  loyalty?: Readonly<{ programName: string; mechanic: 'points' | 'stamps'; balance: number }> | null;
   id: string;
   status: CustomerOrderStatus;
   progress: CustomerOrderProgress | null;

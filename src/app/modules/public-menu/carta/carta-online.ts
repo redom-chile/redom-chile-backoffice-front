@@ -4,6 +4,7 @@ import { PublicLocationDto } from '../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../data-access/public-menu-format';
 import { dateInZone, isWithinSchedule, weekdayOf, zonedToUtc } from './carta-booking';
 import { OrderSendError, readOrderError } from './carta-cart';
+import { cartaLocale, CartaKey, ct } from './carta-i18n';
 
 /** Carta pública, etapa 5: retiro y delivery. Límites de customer-orders-dto.ts. */
 export const ONLINE_LIMITS = {
@@ -23,15 +24,19 @@ export const ONLINE_LIMITS = {
 export const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
 export const RECEIPT_MAX_BYTES = 5 * 1024 * 1024;
 
-export const CHANNEL_LABELS: Record<OnlineChannel, string> = { pickup: 'Retiro en el local', delivery: 'Delivery' };
+/** Objeto de getters: cada lectura sale en el idioma activo. */
+function translatedLabels<T extends string>(keys: readonly T[], prefix: string): Readonly<Record<T, string>> {
+  const labels = {} as Record<T, string>;
+  for (const key of keys) Object.defineProperty(labels, key, { enumerable: true, get: () => ct(`${prefix}${key}` as CartaKey) });
+  return labels;
+}
 
-export const PAYMENT_LABELS: Record<OnlinePaymentMethod, string> = {
-  transfer_receipt: 'Transferencia (subir comprobante)',
-  cash_on_pickup: 'Efectivo al retirar',
-  card_on_pickup: 'Tarjeta al retirar',
-  cash_on_delivery: 'Efectivo al recibir',
-  card_on_delivery: 'Tarjeta al recibir',
-};
+export const CHANNEL_LABELS = translatedLabels<OnlineChannel>(['pickup', 'delivery'], 'online.channel.');
+
+export const PAYMENT_LABELS = translatedLabels<OnlinePaymentMethod>(
+  ['transfer_receipt', 'cash_on_pickup', 'card_on_pickup', 'cash_on_delivery', 'card_on_delivery'],
+  'online.payment.',
+);
 
 /** Métodos que sirven para el canal (los "_on_pickup" solo en retiro; los "_on_delivery" solo en delivery). */
 export function methodsFor(methods: readonly OnlinePaymentMethod[], channel: OnlineChannel): OnlinePaymentMethod[] {
@@ -123,13 +128,13 @@ export type ScheduleDay = Readonly<{ date: string; label: string; slots: Readonl
 const pad = (n: number) => String(n).padStart(2, '0');
 
 function dayLabel(date: string, index: number): string {
-  if (index === 0) return 'Hoy';
-  if (index === 1) return 'Mañana';
+  if (index === 0) return ct('online.today');
+  if (index === 1) return ct('online.tomorrow');
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!m) return date;
   // Mediodía UTC del día: el nombre del día no depende de la zona del navegador
   const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12));
-  const text = new Intl.DateTimeFormat('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(d);
+  const text = new Intl.DateTimeFormat(cartaLocale(), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(d);
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
@@ -164,11 +169,12 @@ export function scheduleDays(location: Pick<PublicLocationDto, 'timeZone' | 'sch
 export function formatScheduled(iso: string, timeZone: string, now = Date.now()): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  const fmt = (options: Intl.DateTimeFormatOptions) => {
+  // es-CL para comparar fechas; el idioma activo solo para mostrar
+  const fmt = (options: Intl.DateTimeFormatOptions, locale = 'es-CL') => {
     try {
-      return new Intl.DateTimeFormat('es-CL', { ...options, timeZone }).format(d);
+      return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(d);
     } catch {
-      return new Intl.DateTimeFormat('es-CL', options).format(d);
+      return new Intl.DateTimeFormat(locale, options).format(d);
     }
   };
   const time = fmt({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -180,9 +186,9 @@ export function formatScheduled(iso: string, timeZone: string, now = Date.now())
       return '';
     }
   };
-  if (day === sameDay(0)) return `hoy a las ${time}`;
-  if (day === sameDay(1)) return `mañana a las ${time}`;
-  return `el ${fmt({ weekday: 'long', day: 'numeric', month: 'long' })} a las ${time}`;
+  if (day === sameDay(0)) return ct('online.scheduled.today', { time });
+  if (day === sameDay(1)) return ct('online.scheduled.tomorrow', { time });
+  return ct('online.scheduled.day', { day: fmt({ weekday: 'long', day: 'numeric', month: 'long' }, cartaLocale()), time });
 }
 
 // --- Errores de POST /orders sin QR ---
@@ -200,27 +206,27 @@ export function readOnlineOrderError(error: unknown, channel: OnlineChannel, sch
   const d = api.details;
   switch (api.code) {
     case 'ORDERING_DISABLED':
-      return { message: channel === 'pickup' ? 'Este local no está recibiendo pedidos de retiro' : 'Este local no está recibiendo pedidos de delivery', reload: true };
+      return { message: channel === 'pickup' ? ct('online.error.orderingPickup') : ct('online.error.orderingDelivery'), reload: true };
     case 'PAYMENT_METHOD_NOT_ACCEPTED': {
       const accepted = Array.isArray(d['accepted']) ? (d['accepted'] as unknown[]).filter((m): m is OnlinePaymentMethod => typeof m === 'string' && m in PAYMENT_LABELS) : undefined;
-      return { message: 'Elige otro método de pago', accepted };
+      return { message: ct('online.error.payment'), accepted };
     }
     case 'ORDER_SCHEDULE_INVALID': {
       const prep = Number(d['prepMinutes']);
-      return { message: `Programa entre ${Number.isFinite(prep) ? prep : fallbackPrep} minutos y 7 días` };
+      return { message: ct('online.error.schedule', { prep: Number.isFinite(prep) ? prep : fallbackPrep }) };
     }
     case 'LOCATION_CLOSED':
-      return { message: scheduled ? 'El local está cerrado a esa hora' : 'El local está cerrado ahora' };
+      return { message: scheduled ? ct('online.error.closedAtTime') : ct('online.error.closedNow') };
     case 'OUTSIDE_DELIVERY_AREA':
-      return { message: 'No repartimos a esa dirección' };
+      return { message: ct('online.error.outside') };
     case 'BELOW_MINIMUM_ORDER': {
       const min = Number(d['minOrder']);
-      return { message: Number.isFinite(min) ? `El pedido mínimo para tu zona es ${formatMenuPrice(min)}` : 'Tu pedido no alcanza el mínimo de tu zona' };
+      return { message: Number.isFinite(min) ? ct('online.error.minimum', { min: formatMenuPrice(min) }) : ct('online.error.minimumGeneric') };
     }
     case 'TOO_MANY_PENDING_ORDERS':
-      return { message: 'Tienes pedidos esperando confirmación' };
+      return { message: ct('online.error.pending') };
     case 'MENU_NOT_FOUND':
-      return { message: 'Esta carta ya no está disponible' };
+      return { message: ct('online.error.notFound') };
     case 'PRODUCT_UNAVAILABLE':
     case 'PACK_CHOICES_INVALID':
     case 'ORDER_TOO_LARGE':
@@ -228,6 +234,6 @@ export function readOnlineOrderError(error: unknown, channel: OnlineChannel, sch
     case 'MODIFIER_REPEATED':
       return { ...readOrderError(error), cart: true };
   }
-  if (api.status === 400) return { message: 'Revisa tus datos y vuelve a intentarlo' };
+  if (api.status === 400) return { message: ct('online.error.invalid') };
   return readOrderError(error);
 }

@@ -3,6 +3,7 @@ import { Observable, Subscription, tap } from 'rxjs';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { TableRequestDto, TableRequestType } from '../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../data-access/public-menu-api.service';
+import { cartaLanguage, cartaLocale, ct } from './carta-i18n';
 
 /** GET /tables/{qr}/requests mientras haya alguna abierta. */
 export const TABLE_REQUESTS_POLL_DELAY = 10_000;
@@ -16,25 +17,24 @@ export function formatClock(iso: string, timeZone: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
   try {
-    return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit', timeZone }).format(date);
+    return new Intl.DateTimeFormat(cartaLocale(), { hour: '2-digit', minute: '2-digit', timeZone }).format(date);
   } catch {
-    return new Intl.DateTimeFormat('es-CL', { hour: '2-digit', minute: '2-digit' }).format(date);
+    return new Intl.DateTimeFormat(cartaLocale(), { hour: '2-digit', minute: '2-digit' }).format(date);
   }
 }
 
-/** Errores del servicio en la mesa (403 TABLE_REQUESTS_DISABLED, 404 MENU_NOT_FOUND, 429 RATE_LIMITED). */
-export function readTableServiceError(
-  error: unknown,
-  fallback = 'No pudimos avisar al mesero. Intenta de nuevo',
-): Readonly<{ message: string; disabled: boolean; notFound: boolean }> {
+/**
+ * Errores del servicio en la mesa (403 TABLE_REQUESTS_DISABLED, 404 MENU_NOT_FOUND, 429 RATE_LIMITED). `fallback`: ya
+ * traducido. El mensaje del backend (en español) solo se muestra con la carta en español.
+ */
+export function readTableServiceError(error: unknown, fallback?: string): Readonly<{ message: string; disabled: boolean; notFound: boolean }> {
   const api = readApiError(error);
-  if (api.code === 'TABLE_REQUESTS_DISABLED' || api.status === 403)
-    return { message: 'Esta mesa no puede llamar al mesero desde la carta', disabled: true, notFound: false };
-  if (api.code === 'MENU_NOT_FOUND' || api.status === 404)
-    return { message: 'El código QR de esta mesa ya no es válido. Pide al mesero el nuevo', disabled: false, notFound: true };
-  if (api.code === 'RATE_LIMITED' || api.status === 429) return { message: 'Demasiados intentos, espera un minuto', disabled: false, notFound: false };
-  if (api.status === 0) return { message: 'No hay conexión. Revisa tu internet', disabled: false, notFound: false };
-  return { message: api.message || fallback, disabled: false, notFound: false };
+  if (api.code === 'TABLE_REQUESTS_DISABLED' || api.status === 403) return { message: ct('table.error.disabled'), disabled: true, notFound: false };
+  if (api.code === 'MENU_NOT_FOUND' || api.status === 404) return { message: ct('table.error.notFound'), disabled: false, notFound: true };
+  if (api.code === 'RATE_LIMITED' || api.status === 429) return { message: ct('table.error.rateLimited'), disabled: false, notFound: false };
+  if (api.status === 0) return { message: ct('table.error.offline'), disabled: false, notFound: false };
+  const message = cartaLanguage() === 'es' && api.message ? api.message : (fallback ?? ct('table.error.send'));
+  return { message, disabled: false, notFound: false };
 }
 
 export type TableServiceStatus = Readonly<{ id: number; tone: 'open' | 'attended'; text: string }>;
@@ -72,12 +72,12 @@ export class CartaTableService {
       return {
         id: open.id,
         tone: 'open',
-        text: open.type === 'request_bill' ? `Pediste la cuenta a las ${time}. Ya avisamos al mesero` : `Ya avisamos al mesero (${time})`,
+        text: ct(open.type === 'request_bill' ? 'table.status.bill' : 'table.status.call', { time }),
       };
     }
     if (open) return null;
     const attended = list.find((r) => r.status === 'attended');
-    return attended && !dismissed.has(attended.id) ? { id: attended.id, tone: 'attended', text: 'El mesero va en camino' } : null;
+    return attended && !dismissed.has(attended.id) ? { id: attended.id, tone: 'attended', text: ct('table.status.attended') } : null;
   });
 
   #timer: ReturnType<typeof setTimeout> | null = null;

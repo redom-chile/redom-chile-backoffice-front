@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from 'src/app/core';
+import { unsavedChangesGuard } from 'src/app/modules/inventory/shared/data-access';
 import { CashRegistersComponent, PaymentMethodsComponent, PrinterListComponent, PrintStationComponent, SchedulesComponent, StationListComponent, TerminalSetupComponent } from './pages';
 
 const routes: Routes = [
@@ -25,6 +26,17 @@ const routes: Routes = [
       {
         path: 'public-menu/marketing',
         loadComponent: () => import('src/app/modules/public-menu/pages/menu-marketing').then((m) => m.MenuMarketingComponent),
+      },
+      // Traducciones de la carta. Query params opcionales: language, status.
+      {
+        path: 'menu-translations',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () => import('src/app/modules/public-menu/pages/menu-translations').then((m) => m.MenuTranslationsComponent),
+      },
+      // Llaves, webhooks y widget de la API pública. Query param opcional: tab (keys|webhooks|widget).
+      {
+        path: 'public-api',
+        loadComponent: () => import('src/app/modules/public-menu/pages/public-api').then((m) => m.PublicApiComponent),
       },
       // Query param opcional: locationId.
       {

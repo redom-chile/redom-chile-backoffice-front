@@ -5,36 +5,39 @@ import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicBookingDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { BOOKING_LIMITS, dateInZone, formatBookingDate, isWithinSchedule, weekdayOf, zonedToUtc } from '../carta-booking';
+import { CartaI18n, cartaLanguage, ct } from '../carta-i18n';
 import { buildWeekSchedule, todayIn } from '../carta-utils';
 import { CartaIcon } from './carta-icon';
 
 type Field = 'name' | 'phone' | 'date' | 'time';
 
 const INPUT =
-  'mt-1.5 w-full rounded-2xl border bg-card px-4 py-3 text-[15px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none';
+  'mt-1.5 w-full rounded-2xl border bg-card px-4 py-3 text-[0.9375rem] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none';
 
 /** Errores de POST /bookings (tabla de la etapa 4). */
 function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabled: boolean }> {
   const api = readApiError(error);
   switch (api.code) {
     case 'BOOKINGS_DISABLED':
-      return { message: 'Este local no recibe reservas por aquí', disabled: true };
+      return { message: ct('booking.error.disabled'), disabled: true };
     case 'BOOKING_INVALID_DATES':
-      return { message: 'Reserva entre 30 minutos y 60 días antes', disabled: false };
+      return { message: ct('booking.error.range'), disabled: false };
     case 'BOOKING_OUTSIDE_HOURS':
-      return { message: 'El local está cerrado a esa hora', disabled: false };
+      return { message: ct('booking.error.outside'), disabled: false };
     case 'BOOKING_CONTACT_OVERLAP':
-      return { message: 'Ya tienes una reserva a esa hora', disabled: false };
+      return { message: ct('booking.error.overlap'), disabled: false };
     case 'RATE_LIMITED':
-      return { message: 'Demasiados intentos, espera un minuto', disabled: false };
+      return { message: ct('booking.error.rateLimited'), disabled: false };
     case 'MENU_NOT_FOUND':
-      return { message: 'Esta carta no está disponible', disabled: true };
+      return { message: ct('booking.error.notFound'), disabled: true };
   }
-  if (api.status === 429) return { message: 'Demasiados intentos, espera un minuto', disabled: false };
-  if (api.status === 403) return { message: 'Este local no recibe reservas por aquí', disabled: true };
-  if (api.status === 0) return { message: 'No hay conexión. Revisa tu internet', disabled: false };
-  if (api.status === 400) return { message: 'Revisa los datos de la reserva', disabled: false };
-  return { message: api.message || 'No pudimos enviar tu reserva. Intenta de nuevo', disabled: false };
+  if (api.status === 429) return { message: ct('booking.error.rateLimited'), disabled: false };
+  if (api.status === 403) return { message: ct('booking.error.disabled'), disabled: true };
+  if (api.status === 0) return { message: ct('booking.error.offline'), disabled: false };
+  if (api.status === 400) return { message: ct('booking.error.invalid'), disabled: false };
+  // El mensaje del backend viene en español
+  const message = cartaLanguage() === 'es' && api.message ? api.message : ct('booking.error.send');
+  return { message, disabled: false };
 }
 
 /**
@@ -54,44 +57,44 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
           <span class="flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
             <app-carta-icon name="check" [size]="28" />
           </span>
-          <h2 class="mt-4 text-xl font-bold tracking-tight">¡Listo! El local confirmará tu reserva</h2>
+          <h2 class="mt-4 text-xl font-bold tracking-tight">{{ t('booking.done') }}</h2>
           <dl class="mt-5 grid w-full gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm">
             <div class="flex justify-between gap-3">
-              <dt class="text-muted-foreground">Local</dt>
+              <dt class="text-muted-foreground">{{ t('booking.location') }}</dt>
               <dd class="text-right font-semibold [overflow-wrap:anywhere]">{{ r.locationName }}</dd>
             </div>
             <div class="flex justify-between gap-3">
-              <dt class="text-muted-foreground">Fecha</dt>
+              <dt class="text-muted-foreground">{{ t('booking.date') }}</dt>
               <dd class="text-right font-semibold first-letter:uppercase">{{ resultDate().date }}</dd>
             </div>
             <div class="flex justify-between gap-3">
-              <dt class="text-muted-foreground">Hora</dt>
+              <dt class="text-muted-foreground">{{ t('booking.time') }}</dt>
               <dd class="text-right font-semibold tabular-nums">{{ resultDate().time }}</dd>
             </div>
             <div class="flex justify-between gap-3">
-              <dt class="text-muted-foreground">Personas</dt>
+              <dt class="text-muted-foreground">{{ t('booking.party') }}</dt>
               <dd class="text-right font-semibold tabular-nums">{{ r.partySize }}</dd>
             </div>
           </dl>
-          <p class="mt-3 text-sm text-muted-foreground">Te contactarán al teléfono que dejaste si necesitan confirmar algo.</p>
+          <p class="mt-3 text-sm text-muted-foreground">{{ t('booking.contactNote') }}</p>
           <button
             type="button"
             class="mt-5 w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98] motion-reduce:transition-none"
             (click)="done.emit()"
           >
-            Volver a la carta
+            {{ t('booking.back') }}
           </button>
         </div>
       } @else {
         <h2 class="flex items-center gap-2 pr-10 text-xl font-bold tracking-tight">
           <app-carta-icon name="calendar" [size]="22" class="text-primary" />
-          Reservar
+          {{ t('booking.title') }}
         </h2>
-        <p class="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }} · el local confirmará tu reserva.</p>
+        <p class="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ t('booking.intro', { location: m.location.name }) }}</p>
 
         <form class="mt-4 grid gap-4" novalidate (submit)="submit($event)">
           <div>
-            <label for="carta-booking-name" class="block text-sm font-semibold">Nombre</label>
+            <label for="carta-booking-name" class="block text-sm font-semibold">{{ t('booking.name') }}</label>
             <input
               id="carta-booking-name"
               type="text"
@@ -109,7 +112,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
           </div>
 
           <div>
-            <label for="carta-booking-phone" class="block text-sm font-semibold">Teléfono</label>
+            <label for="carta-booking-phone" class="block text-sm font-semibold">{{ t('booking.phone') }}</label>
             <input
               id="carta-booking-phone"
               type="tel"
@@ -129,12 +132,12 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
           </div>
 
           <div>
-            <span id="carta-booking-party-label" class="block text-sm font-semibold">Personas</span>
+            <span id="carta-booking-party-label" class="block text-sm font-semibold">{{ t('booking.party') }}</span>
             <div class="mt-1.5 flex items-center gap-3" role="group" aria-labelledby="carta-booking-party-label">
               <button
                 type="button"
                 class="flex size-11 items-center justify-center rounded-full border border-border transition hover:bg-muted disabled:opacity-40"
-                aria-label="Una persona menos"
+                [attr.aria-label]="t('booking.partyLess')"
                 [disabled]="party() <= limits.minParty"
                 (click)="party.set(party() - 1)"
               >
@@ -147,7 +150,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
               <button
                 type="button"
                 class="flex size-11 items-center justify-center rounded-full border border-border transition hover:bg-muted disabled:opacity-40"
-                aria-label="Una persona más"
+                [attr.aria-label]="t('booking.partyMore')"
                 [disabled]="party() >= limits.maxParty"
                 (click)="party.set(party() + 1)"
               >
@@ -158,7 +161,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="carta-booking-date" class="block text-sm font-semibold">Fecha</label>
+              <label for="carta-booking-date" class="block text-sm font-semibold">{{ t('booking.date') }}</label>
               <input
                 id="carta-booking-date"
                 type="date"
@@ -172,7 +175,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
               />
             </div>
             <div>
-              <label for="carta-booking-time" class="block text-sm font-semibold">Hora</label>
+              <label for="carta-booking-time" class="block text-sm font-semibold">{{ t('booking.time') }}</label>
               <input
                 id="carta-booking-time"
                 type="time"
@@ -195,17 +198,17 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
             @if (outsideHours()) {
               <p class="flex items-start gap-1.5 font-medium text-amber-700 dark:text-amber-400">
                 <app-carta-icon name="clock" [size]="14" class="mt-0.5" />
-                Según su horario, el local está cerrado a esa hora
+                {{ t('booking.outsideHours') }}
               </p>
             }
-            <p class="text-xs text-muted-foreground">Hora de {{ m.location.name }}. Puedes reservar desde 30 minutos y hasta 60 días antes.</p>
+            <p class="text-xs text-muted-foreground">{{ t('booking.timeHint', { location: m.location.name }) }}</p>
           </div>
 
           @if (week().length) {
             <details class="rounded-2xl border border-border bg-card text-sm">
               <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 font-medium [&::-webkit-details-marker]:hidden">
                 <app-carta-icon name="clock" [size]="16" class="text-muted-foreground" />
-                <span class="flex-1">Horario del local</span>
+                <span class="flex-1">{{ t('booking.schedule') }}</span>
                 <app-carta-icon name="chevron-down" [size]="16" class="text-muted-foreground" />
               </summary>
               <ul class="border-t border-border px-4 py-2">
@@ -220,12 +223,12 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
           }
 
           <div>
-            <label for="carta-booking-note" class="block text-sm font-semibold">Nota <span class="font-normal text-muted-foreground">(opcional)</span></label>
+            <label for="carta-booking-note" class="block text-sm font-semibold">{{ t('booking.note') }} <span class="font-normal text-muted-foreground">{{ t('booking.optional') }}</span></label>
             <textarea
               id="carta-booking-note"
               rows="2"
               class="{{ inputClass(null) }} resize-none"
-              placeholder="Ej: Celebramos un cumpleaños"
+              [placeholder]="t('booking.notePlaceholder')"
               [maxLength]="limits.note"
               [value]="note()"
               aria-describedby="carta-booking-note-count"
@@ -247,7 +250,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
             [disabled]="sending() || disabled()"
           >
             <app-carta-icon name="calendar" [size]="18" />
-            {{ sending() ? 'Enviando…' : 'Reservar' }}
+            {{ sending() ? t('booking.sending') : t('booking.title') }}
           </button>
         </form>
       }
@@ -262,6 +265,7 @@ export class CartaBookingSheet {
 
   readonly #api = inject(PublicMenuApiService);
   #sub: Subscription | null = null;
+  protected readonly t = inject(CartaI18n).t;
 
   protected readonly limits = BOOKING_LIMITS;
   protected readonly name = signal('');
@@ -286,7 +290,7 @@ export class CartaBookingSheet {
     if (day == null || !this.menu().location.schedule.length) return null;
     const row = this.week().find((r) => r.day === day);
     if (!row) return null;
-    return row.closed ? `Ese día (${row.name.toLowerCase()}) el local está cerrado` : `${row.name}: ${row.hours}`;
+    return row.closed ? ct('booking.dayClosed', { day: row.name.toLowerCase() }) : ct('booking.dayHours', { day: row.name, hours: row.hours });
   });
   protected readonly outsideHours = computed(() => {
     const day = weekdayOf(this.date());
@@ -311,20 +315,20 @@ export class CartaBookingSheet {
     this.error.set(null);
     const errors: Partial<Record<Field, string>> = {};
     const name = this.name().trim();
-    if (!name) errors.name = 'Escribe tu nombre';
-    else if (name.length > BOOKING_LIMITS.name) errors.name = `Máximo ${BOOKING_LIMITS.name} caracteres`;
+    if (!name) errors.name = ct('booking.error.name');
+    else if (name.length > BOOKING_LIMITS.name) errors.name = ct('booking.error.nameMax', { max: BOOKING_LIMITS.name });
     const digits = this.phone().replace(/\D/g, '');
     if (digits.length < BOOKING_LIMITS.minPhoneDigits || digits.length > BOOKING_LIMITS.maxPhoneDigits)
-      errors.phone = 'Escribe un teléfono de 8 a 15 dígitos';
+      errors.phone = ct('booking.error.phone');
     let start: number | null = null;
-    if (!this.date()) errors.date = 'Elige la fecha';
-    else if (!this.time()) errors.time = 'Elige la hora';
+    if (!this.date()) errors.date = ct('booking.error.date');
+    else if (!this.time()) errors.time = ct('booking.error.time');
     else {
       start = zonedToUtc(this.date(), this.time(), this.#tz());
       const now = Date.now();
-      if (start == null) errors.time = 'Esa hora no existe ese día por el cambio de horario. Elige otra';
+      if (start == null) errors.time = ct('booking.error.dst');
       else if (start < now + BOOKING_LIMITS.minAheadMinutes * 60_000 || start > now + BOOKING_LIMITS.maxAheadDays * 86_400_000)
-        errors.date = 'Reserva entre 30 minutos y 60 días antes';
+        errors.date = ct('booking.error.range');
     }
     this.errors.set(errors);
     if (Object.keys(errors).length || start == null) return;

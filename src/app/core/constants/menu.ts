@@ -43,6 +43,11 @@ export class Menu {
           label: 'Clientes',
           route: '/customers',
         },
+        {
+          icon: 'loyalty',
+          label: 'Fidelización',
+          route: '/loyalty',
+        },
       ],
     },
     {
@@ -183,6 +188,8 @@ export class Menu {
             { label: 'Carta pública', route: '/settings/public-menu' },
             { label: 'Marketing de la carta', route: '/settings/public-menu/marketing' },
             { label: 'Agotados de hoy', route: '/settings/public-menu/sold-out' },
+            { label: 'Idiomas de la carta', route: '/settings/menu-translations' },
+            { label: 'API y widget', route: '/settings/public-api' },
             { label: 'Horarios', route: '/settings/schedules' },
             { label: 'Estaciones', route: '/settings/stations' },
             { label: 'Impresoras', route: '/settings/printers' },

@@ -89,6 +89,12 @@ const routes: Routes = [
     loadChildren: () => import('../inventory/inventory.routes'),
   },
   {
+    // Fidelización: programa, recompensas y clientes (etapa 7 de la carta pública).
+    path: 'loyalty',
+    component: LayoutComponent,
+    loadChildren: () => import('../loyalty/loyalty.routes'),
+  },
+  {
     path: 'customers',
     component: LayoutComponent,
     loadChildren: () => import('../customers/customers.routes'),

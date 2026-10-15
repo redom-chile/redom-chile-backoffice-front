@@ -2,8 +2,8 @@ import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CartLineDto, PublicOrderDto } from '../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto, PublicProductDto } from '../data-access/dtos/public-menu.dto';
-import { getPublicMenuErrorMessage } from '../data-access/public-menu-error-message';
 import { formatMenuPrice } from '../data-access/public-menu-format';
+import { cartaErrorMessage, cartaLanguage, ct } from './carta-i18n';
 import { isPackUnavailable, productsById } from './carta-marketing';
 
 // --- Límites del backend (customer-orders-dto.ts) ---
@@ -77,17 +77,30 @@ export function blockedProducts(menu: PublicLocationMenuDto): Map<number, Produc
   return map;
 }
 
-export const BLOCK_LABELS: Record<ProductBlock, string> = {
-  sold_out: 'Agotado',
-  out_of_schedule: 'Fuera de horario',
-  pack_unavailable: 'No disponible',
+/** Getters: el texto sale en el idioma activo al leerlo. */
+export const BLOCK_LABELS: Readonly<Record<ProductBlock, string>> = {
+  get sold_out() {
+    return ct('cart.block.sold_out');
+  },
+  get out_of_schedule() {
+    return ct('cart.block.out_of_schedule');
+  },
+  get pack_unavailable() {
+    return ct('cart.block.pack_unavailable');
+  },
 };
 
 /** Textos de PRODUCT_UNAVAILABLE (details.reason). */
-export const UNAVAILABLE_REASONS: Record<string, string> = {
-  sold_out: 'Se agotó',
-  out_of_schedule: 'Fuera de horario',
-  not_in_menu: 'Ya no está en la carta',
+export const UNAVAILABLE_REASONS: Readonly<Record<string, string>> = {
+  get sold_out() {
+    return ct('cart.reason.sold_out');
+  },
+  get out_of_schedule() {
+    return ct('cart.reason.out_of_schedule');
+  },
+  get not_in_menu() {
+    return ct('cart.reason.not_in_menu');
+  },
 };
 
 // --- Errores al enviar ---
@@ -107,42 +120,43 @@ export type OrderSendError = Readonly<{
 export function readOrderError(error: unknown): OrderSendError {
   const api = readApiError(error);
   const d = api.details;
-  if (api.status === 0) return { message: 'No hay conexión. Revisa tu internet' };
+  if (api.status === 0) return { message: ct('order.error.offline') };
   switch (api.code) {
     case 'ORDERING_DISABLED':
-      return { message: 'Este local no está recibiendo pedidos desde la mesa' };
+      return { message: ct('order.error.orderingDisabled') };
     case 'LOCATION_CLOSED':
-      return { message: 'El local está cerrado' };
+      return { message: ct('order.error.closed') };
     case 'TABLE_BLOCKED':
-      return { message: 'Esta mesa no está disponible. Llama al mesero' };
+      return { message: ct('order.error.tableBlocked') };
     case 'PRODUCT_UNAVAILABLE': {
       const productId = typeof d['productId'] === 'number' ? d['productId'] : undefined;
       const reason = typeof d['reason'] === 'string' ? d['reason'] : undefined;
       if (productId != null) {
-        const text = (reason && UNAVAILABLE_REASONS[reason]) || 'No disponible';
-        return { message: 'Hay productos que ya no se pueden pedir. Revisa tu carrito', productId, reason: text, reload: true };
+        const text = (reason && reason in UNAVAILABLE_REASONS && UNAVAILABLE_REASONS[reason]) || ct('cart.reason.unknown');
+        return { message: ct('order.error.productUnavailable'), productId, reason: text, reload: true };
       }
       // 400: una opción de un pack quedó inactiva
-      return { message: 'Revisa las opciones del pack', pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined, reload: true };
+      return { message: ct('order.error.packChoices'), pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined, reload: true };
     }
     case 'PACK_CHOICES_INVALID':
-      return { message: 'Revisa las opciones del pack', pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined };
+      return { message: ct('order.error.packChoices'), pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined };
     case 'ORDER_TOO_LARGE': {
       const max = Number(d['maxOrderTotal']);
-      return { message: Number.isFinite(max) ? `El pedido supera el máximo de ${formatMenuPrice(max)}` : 'El pedido supera el máximo permitido' };
+      return { message: Number.isFinite(max) ? ct('order.error.tooLarge', { max: formatMenuPrice(max) }) : ct('order.error.tooLargeGeneric') };
     }
     case 'TOO_MANY_PENDING_ORDERS':
-      return { message: 'Tu mesa tiene pedidos esperando confirmación. Espera un momento' };
+      return { message: ct('order.error.tooManyPending') };
     case 'RATE_LIMITED':
-      return { message: 'Demasiados intentos, espera un minuto' };
+      return { message: ct('order.error.rateLimited') };
     case 'MENU_NOT_FOUND':
-      return { message: 'El código QR de esta mesa ya no es válido. Pide al mesero el nuevo' };
+      return { message: ct('order.error.qrInvalid') };
     case 'MODIFIER_NOT_AVAILABLE':
     case 'MODIFIER_REPEATED':
-      return { message: getPublicMenuErrorMessage(error), reload: api.code === 'MODIFIER_NOT_AVAILABLE' };
+      return { message: cartaErrorMessage(error), reload: api.code === 'MODIFIER_NOT_AVAILABLE' };
   }
-  if (api.status === 429) return { message: 'Demasiados intentos, espera un minuto' };
-  return { message: api.message || 'No pudimos enviar tu pedido. Intenta de nuevo' };
+  if (api.status === 429) return { message: ct('order.error.rateLimited') };
+  // El mensaje del servidor viene en español
+  return { message: (cartaLanguage() === 'es' && api.message) || ct('order.error.send') };
 }
 
 // --- Estado del pedido ---
@@ -155,25 +169,25 @@ export function orderStatus(
   if (order.channel === 'pickup' || order.channel === 'delivery') return onlineOrderStatus(order);
   switch (order.status) {
     case 'pending':
-      return { text: 'Esperando confirmación del local', tone: 'waiting', final: false };
+      return { text: ct('order.status.pending'), tone: 'waiting', final: false };
     case 'rejected': {
       const reason = order.rejectionReason?.trim();
-      return { text: reason ? `El local no pudo tomar tu pedido: ${reason}` : 'El local no pudo tomar tu pedido', tone: 'bad', final: true };
+      return { text: reason ? ct('order.status.rejectedReason', { reason }) : ct('order.status.rejected'), tone: 'bad', final: true };
     }
     case 'cancelled':
-      return { text: 'Cancelaste el pedido', tone: 'bad', final: true };
+      return { text: ct('order.status.cancelled'), tone: 'bad', final: true };
   }
   switch (order.progress) {
     case 'ready':
-      return { text: '¡Listo! Ya va a tu mesa', tone: 'done', final: false };
+      return { text: ct('order.status.readyTable'), tone: 'done', final: false };
     case 'delivered':
-      return { text: 'Entregado', tone: 'done', final: false };
+      return { text: ct('order.status.delivered'), tone: 'done', final: false };
     case 'completed':
-      return { text: 'Cuenta cerrada. ¡Gracias!', tone: 'done', final: true };
+      return { text: ct('order.status.completed'), tone: 'done', final: true };
     case 'cancelled':
-      return { text: 'El local anuló la venta', tone: 'bad', final: true };
+      return { text: ct('order.status.saleCancelled'), tone: 'bad', final: true };
     default:
-      return { text: 'En preparación', tone: 'progress', final: false };
+      return { text: ct('order.status.preparing'), tone: 'progress', final: false };
   }
 }
 
@@ -183,29 +197,29 @@ function onlineOrderStatus(
 ): OrderStatusView {
   switch (order.status) {
     case 'pending':
-      if (order.paymentStatus === 'awaiting_receipt') return { text: 'Falta tu comprobante de transferencia', tone: 'waiting', final: false };
-      if (order.paymentStatus === 'to_verify') return { text: 'Estamos verificando tu transferencia', tone: 'waiting', final: false };
-      return { text: 'Esperando confirmación del local', tone: 'waiting', final: false };
+      if (order.paymentStatus === 'awaiting_receipt') return { text: ct('order.status.awaitingReceipt'), tone: 'waiting', final: false };
+      if (order.paymentStatus === 'to_verify') return { text: ct('order.status.verifying'), tone: 'waiting', final: false };
+      return { text: ct('order.status.pending'), tone: 'waiting', final: false };
     case 'rejected': {
-      if (order.paymentStatus === 'rejected') return { text: 'No pudimos verificar tu transferencia', tone: 'bad', final: true };
+      if (order.paymentStatus === 'rejected') return { text: ct('order.status.paymentRejected'), tone: 'bad', final: true };
       const reason = order.rejectionReason?.trim();
-      return { text: reason ? `No pudimos tomar tu pedido: ${reason}` : 'No pudimos tomar tu pedido', tone: 'bad', final: true };
+      return { text: reason ? ct('order.status.onlineRejectedReason', { reason }) : ct('order.status.onlineRejected'), tone: 'bad', final: true };
     }
     case 'cancelled':
-      return { text: 'Cancelaste el pedido', tone: 'bad', final: true };
+      return { text: ct('order.status.cancelled'), tone: 'bad', final: true };
   }
-  if (order.progress === 'cancelled') return { text: 'El local anuló el pedido', tone: 'bad', final: true };
+  if (order.progress === 'cancelled') return { text: ct('order.status.orderCancelled'), tone: 'bad', final: true };
   switch (order.fulfillment) {
     case 'ready':
       return order.channel === 'pickup'
-        ? { text: '¡Listo para retirar!', tone: 'done', final: false }
-        : { text: 'Listo, pronto sale', tone: 'done', final: false };
+        ? { text: ct('order.status.readyPickup'), tone: 'done', final: false }
+        : { text: ct('order.status.readyDelivery'), tone: 'done', final: false };
     case 'on_the_way':
-      return { text: 'Va en camino', tone: 'progress', final: false };
+      return { text: ct('order.status.onTheWay'), tone: 'progress', final: false };
     case 'delivered':
-      return { text: 'Entregado', tone: 'done', final: true };
+      return { text: ct('order.status.delivered'), tone: 'done', final: true };
     default:
-      return { text: 'En preparación', tone: 'progress', final: false };
+      return { text: ct('order.status.preparing'), tone: 'progress', final: false };
   }
 }
 
@@ -374,7 +388,7 @@ export class CartaCart {
       if (items.length >= MAX_CART_LINES) return false;
       this.#set([...items, { ...addition, key: newKey(), issue: null }]);
     }
-    this.flash('Agregado al carrito');
+    this.flash(ct('cart.added'));
     return true;
   }
 

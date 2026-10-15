@@ -53,6 +53,11 @@
       <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency(current.remaining) }}</span>
     </div>
   </div>
+  @if (current.status === 'ORDERED' && $canEditOrder()) {
+  <div [class.opacity-60]="savingCustomer()" [class.pointer-events-none]="savingCustomer()">
+    <app-customer-selector [selected]="$orderCustomer()" (selectedChange)="orderCustomerChange.emit($event)" />
+  </div>
+  }
   } @else if (!loadingOrder()) {
   <app-customer-selector [selected]="customer()" (selectedChange)="customerChange.emit($event)" />
   }
@@ -95,6 +100,16 @@
       {{ order() ? 'Agregar a la cuenta' : 'Enviar pedido' }}
     </button>
     @if (order(); as current) {
+    @if (current.status === 'ORDERED') {
+    <app-loyalty-redeem-button
+      class="col-span-2"
+      variant="pos"
+      [transactionId]="current.transactionId"
+      [contactId]="current.contactId"
+      [customerName]="current.customerName"
+      [disabled]="saving()"
+      (redeemed)="loyaltyRedeemed.emit()" />
+    }
     @if (current.remaining > 0 && $canCollect()) {
     <button
       type="button"

@@ -43,6 +43,7 @@ import {
   VoidPaymentResult,
 } from 'src/app/modules/payments/pages/payment-list/features';
 import { OrderTotalsComponent } from './ui';
+import { LoyaltyRedeemButtonComponent } from 'src/app/modules/loyalty/features/loyalty-redeem';
 
 @Component({
   selector: 'app-order-detail',
@@ -57,6 +58,7 @@ import { OrderTotalsComponent } from './ui';
     OrderTotalsComponent,
     PaymentsTableComponent,
     CheckPermissionDirective,
+    LoyaltyRedeemButtonComponent,
   ],
   templateUrl: './order-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -229,6 +231,11 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
         this.toast.show('Pago anulado', 'success');
         this.handleRetry();
       });
+  }
+
+  // El canje cambia el total (descuento) o agrega la línea del producto gratis.
+  handleLoyaltyRedeemed() {
+    this.handleRetry();
   }
 
   handleServeLine(lineId: number) {

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
+import { CartaI18n } from '../carta-i18n';
 
 /** Precio final (ya trae la promoción) y, si hay promoción, el anterior tachado. No recalcula nada. */
 @Component({
@@ -9,7 +10,7 @@ import { formatMenuPrice } from '../../data-access/public-menu-format';
   template: `
     <span>{{ prefix() }}{{ format(price()) }}</span>
     @if (originalPrice() != null) {
-      <s class="text-[0.85em] font-normal text-muted-foreground"><span class="sr-only">antes </span>{{ format(originalPrice()!) }}</s>
+      <s class="text-[0.85em] font-normal text-muted-foreground"><span class="sr-only">{{ t('price.before') }}</span>{{ format(originalPrice()!) }}</s>
     }
   `,
 })
@@ -20,4 +21,5 @@ export class CartaPrice {
   readonly prefix = input('');
 
   protected readonly format = formatMenuPrice;
+  protected readonly t = inject(CartaI18n).t;
 }

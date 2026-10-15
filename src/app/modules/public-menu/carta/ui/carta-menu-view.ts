@@ -47,6 +47,11 @@ import { CartaProductCard } from './carta-product-card';
 import { CartaOrdering } from './carta-ordering';
 import { CartaProductDetail } from './carta-product-detail';
 import { CartaTableService } from '../carta-table-service';
+import { CartaEmbed } from '../carta-embed';
+import { CartaDisplay } from '../carta-display';
+import { CartaDisplayMenu } from './carta-display-menu';
+import { CartaLanguageMenu } from './carta-language-menu';
+import { CartaI18n, CartaKey, CartaLang, ct } from '../carta-i18n';
 import { CARTA_BOTTOM_BAR, CartaBarAction, CartaBottomBar } from './carta-bottom-bar';
 import { CartaBookingSheet } from './carta-booking-sheet';
 import { CartaTableFabs } from './carta-table-fabs';
@@ -68,14 +73,16 @@ type Section = Group &
 
 type Action = Readonly<{ label: string; href: string; icon: CartaIconName; primary?: boolean; external: boolean }>;
 
-const TAG_GROUPS = [
-  { kind: 'diet', label: 'Dieta' },
-  { kind: 'allergen', label: 'Alérgenos' },
-  { kind: 'badge', label: 'Destacados' },
-] as const;
+const TAG_GROUPS: ReadonlyArray<{ kind: 'diet' | 'allergen' | 'badge'; label: CartaKey }> = [
+  { kind: 'diet', label: 'menu.tagDiet' },
+  { kind: 'allergen', label: 'menu.tagAllergens' },
+  { kind: 'badge', label: 'menu.tagBadges' },
+];
 
-/** "Contiene gluten" → "Sin gluten". */
-const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.name) ? tag.name.replace(/^contiene\s+/i, 'Sin ') : `Sin ${tag.name.toLowerCase()}`);
+/** "Contiene gluten" → "Sin gluten" (las etiquetas llegan traducidas: "Contains gluten" → "No gluten"). */
+const CONTAINS = /^(contiene|contains|cont[eé]m|enth[aä]lt)\s+/i;
+const allergenFilterLabel = (tag: PublicTagDto) =>
+  ct('menu.without', { name: CONTAINS.test(tag.name) ? tag.name.replace(CONTAINS, '') : tag.name.toLowerCase() });
 
 /**
  * Carta de un local (solo presentación). La usa la carta pública de la landing y puede usarla el backoffice como vista
@@ -84,6 +91,8 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
 @Component({
   selector: 'app-carta-menu-view',
   imports: [
+    CartaDisplayMenu,
+    CartaLanguageMenu,
     CartaIcon,
     CartaTagIcon,
     CartaProductCard,
@@ -105,7 +114,15 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
   template: `
     @let m = menu();
     <!-- Encabezado -->
-    <header class="relative overflow-hidden">
+    <header class="relative">
+      @if (!preview()) {
+        <div class="absolute right-4 top-4 z-30 flex items-start gap-2 sm:right-6 sm:top-6">
+          @if (languages().length > 1) {
+            <app-carta-language-menu [languages]="languages()" (choose)="languageChange.emit($event)" />
+          }
+          <app-carta-display-menu />
+        </div>
+      }
       @if (hasCover()) {
         <div class="mx-auto max-w-2xl sm:px-4 sm:pt-4">
           <img
@@ -125,7 +142,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           @if (m.business.logoUrl && !logoFailed()) {
             <img
               [src]="m.business.logoUrl"
-              [alt]="'Logo de ' + m.business.name"
+              [alt]="t('page.logoOf', { name: m.business.name })"
               width="72"
               height="72"
               class="size-16 shrink-0 rounded-2xl bg-card object-cover shadow-sm ring-1 ring-border sm:size-[72px]"
@@ -140,15 +157,15 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
               >{{ logoInitials() }}</span
             >
           }
-          <div class="min-w-0 flex-1" [class.pt-9]="hasCover()">
+          <div class="min-w-0 flex-1" [class.pt-9]="hasCover()" [class.pr-12]="!hasCover() && !preview() && languages().length <= 1" [class.pr-28]="!hasCover() && !preview() && languages().length > 1">
             <h1 class="text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{{ m.business.name }}</h1>
-            <p class="mt-0.5 text-[15px] font-medium text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
+            <p class="mt-0.5 text-[0.9375rem] font-medium text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
             <p
               class="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
               [class]="m.location.isOpenNow ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground'"
             >
               <span class="size-2 rounded-full" [class]="m.location.isOpenNow ? 'bg-emerald-500' : 'bg-muted-foreground'" aria-hidden="true"></span>
-              {{ m.location.isOpenNow ? 'Abierto ahora' : 'Cerrado' }}
+              {{ t(m.location.isOpenNow ? 'common.openNow' : 'common.closed') }}
             </p>
           </div>
         </div>
@@ -164,7 +181,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
         }
 
         @if (actions().length || (!bottomBar && bookings())) {
-          <nav class="mt-4 flex flex-wrap gap-2" aria-label="Contacto">
+          <nav class="mt-4 flex flex-wrap gap-2" [attr.aria-label]="t('menu.contact')">
             @if (!bottomBar && bookings()) {
               <button
                 type="button"
@@ -172,7 +189,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                 (click)="panel.set('booking')"
               >
                 <app-carta-icon name="calendar" [size]="16" />
-                Reservar
+                {{ t('menu.book') }}
               </button>
             }
             @for (a of actions(); track a.label) {
@@ -194,7 +211,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           <div class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium">
             <p class="flex min-w-0 flex-1 items-center gap-2" role="status">
               <app-carta-icon name="chair" [size]="18" class="text-primary" />
-              <span>Estás en <strong class="font-semibold">{{ table.name }}</strong></span>
+              <span>{{ t('menu.youAreAt') }} <strong class="font-semibold">{{ table.name }}</strong></span>
             </p>
             @if (ordering() && cart.orderIds().length) {
               <button
@@ -203,17 +220,17 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                 (click)="cart.sheet.set({ kind: 'orders' })"
               >
                 <app-carta-icon name="receipt" [size]="16" />
-                Mis pedidos
+                {{ t('menu.myOrders') }}
               </button>
             }
           </div>
           @if (ordering()) {
             @if (m.location.isOpenNow) {
-              <p class="mt-2 text-sm text-muted-foreground">Elige tus productos y envía el pedido desde aquí. El local lo confirma.</p>
+              <p class="mt-2 text-sm text-muted-foreground">{{ t('menu.tableHint') }}</p>
             } @else {
               <p class="mt-2 flex items-center gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-medium" role="note">
                 <app-carta-icon name="clock" [size]="16" />
-                El local está cerrado
+                {{ t('menu.closed') }}
               </p>
             }
           }
@@ -223,7 +240,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           <div class="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium">
             <p class="flex min-w-0 flex-1 items-center gap-2">
               <app-carta-icon [name]="o.delivery ? 'truck' : 'store'" [size]="18" class="text-primary" />
-              <span>{{ o.pickup && o.delivery ? 'Pide para retirar o con delivery' : o.delivery ? 'Pide con delivery' : 'Pide para retirar en el local' }}</span>
+              <span>{{ t(o.pickup && o.delivery ? 'menu.onlineBoth' : o.delivery ? 'menu.onlineDelivery' : 'menu.onlinePickup') }}</span>
             </p>
             @if (!bottomBar && cart.orderIds().length) {
               <button
@@ -232,12 +249,12 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                 (click)="cart.sheet.set({ kind: 'orders' })"
               >
                 <app-carta-icon name="receipt" [size]="16" />
-                Mis pedidos
+                {{ t('menu.myOrders') }}
               </button>
             }
           </div>
           @if (!m.location.isOpenNow) {
-            <p class="mt-2 text-sm text-muted-foreground">El local está cerrado ahora: puedes programar tu pedido.</p>
+            <p class="mt-2 text-sm text-muted-foreground">{{ t('menu.closedSchedule') }}</p>
           }
         }
 
@@ -251,7 +268,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
               (click)="scheduleOpen.update((v) => !v)"
             >
               <app-carta-icon name="clock" [size]="16" class="text-muted-foreground" />
-              <span class="flex-1">Horario</span>
+              <span class="flex-1">{{ t('menu.schedule') }}</span>
               <span class="text-muted-foreground">{{ todayRow()?.hours }}</span>
               <app-carta-icon name="chevron-down" [size]="16" class="text-muted-foreground transition-transform" [class.rotate-180]="scheduleOpen()" />
             </button>
@@ -279,9 +296,9 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
 
     <!-- Navegación de categorías y filtros -->
     @if (sections().length || hasFilters()) {
-      <div #stickyBar class="sticky top-0 z-20 border-y border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+      <div #stickyBar class="carta-embed-sticky sticky top-0 z-20 border-y border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
         <div class="mx-auto flex max-w-2xl items-center gap-2 px-4 py-2">
-          <nav #categoryNav class="-my-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Categorías">
+          <nav #categoryNav class="-my-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" [attr.aria-label]="t('menu.categories')">
             @for (s of sections(); track s.id) {
               <a
                 [href]="pageUrl + '#' + s.anchor"
@@ -304,9 +321,9 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
               (click)="filtersOpen.update((v) => !v)"
             >
               <app-carta-icon name="sliders" [size]="16" />
-              <span class="sr-only sm:not-sr-only">Filtrar</span>
+              <span class="sr-only sm:not-sr-only">{{ t('menu.filter') }}</span>
               @if (activeFilterCount()) {
-                <span class="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{{ activeFilterCount() }}</span>
+                <span class="flex size-5 items-center justify-center rounded-full bg-primary text-[0.6875rem] font-bold text-primary-foreground">{{ activeFilterCount() }}</span>
               }
             </button>
           }
@@ -315,7 +332,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
           <div id="carta-filters" class="mx-auto max-h-[60dvh] max-w-2xl overflow-y-auto px-4 pb-3">
             @for (g of filterGroups(); track g.kind) {
               <fieldset class="mt-2">
-                <legend class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ g.label }}</legend>
+                <legend class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ t(g.label) }}</legend>
                 <div class="flex flex-wrap gap-1.5">
                   @for (t of g.tags; track t.code) {
                     <button
@@ -334,7 +351,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
             }
             @if (activeFilterCount()) {
               <button type="button" class="mt-3 text-sm font-medium text-primary underline-offset-4 hover:underline" (click)="clearFilters()">
-                Quitar filtros
+                {{ t('menu.clearFilters') }}
               </button>
             }
           </div>
@@ -348,7 +365,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
         <section class="pt-4" aria-labelledby="carta-most-ordered">
           <h2 id="carta-most-ordered" class="flex items-center gap-2 text-xl font-bold tracking-tight">
             <app-carta-icon name="flame" [size]="20" class="text-primary" />
-            Los más pedidos
+            {{ t('menu.mostOrdered') }}
           </h2>
           <ul class="-mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             @for (p of mostOrdered(); track p.id) {
@@ -372,7 +389,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                       <span class="mt-auto text-sm font-semibold"><app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" /></span>
                     }
                     @if (p.soldOut) {
-                      <span class="text-xs font-medium text-muted-foreground">Agotado</span>
+                      <span class="text-xs font-medium text-muted-foreground">{{ t('common.soldOut') }}</span>
                     }
                   </span>
                 </button>
@@ -423,10 +440,10 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
         <div class="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
           <app-carta-icon name="utensils" [size]="28" />
           @if (activeFilterCount()) {
-            <p>Ningún producto coincide con los filtros.</p>
-            <button type="button" class="text-sm font-medium text-primary underline-offset-4 hover:underline" (click)="clearFilters()">Quitar filtros</button>
+            <p>{{ t('menu.noMatches') }}</p>
+            <button type="button" class="text-sm font-medium text-primary underline-offset-4 hover:underline" (click)="clearFilters()">{{ t('menu.clearFilters') }}</button>
           } @else {
-            <p>Esta carta aún no tiene productos.</p>
+            <p>{{ t('menu.empty') }}</p>
           }
         </div>
       }
@@ -462,15 +479,15 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                   class="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98]"
                   (click)="analytics?.track('banner_click', b.id); offerDialog.close()"
                 >
-                  Ver más
+                  {{ t('menu.seeMore') }}
                   <app-carta-icon name="external" [size]="16" />
-                  <span class="sr-only">(se abre en una pestaña nueva)</span>
+                  <span class="sr-only">{{ t('common.newTab') }}</span>
                 </a>
               }
             }
             @case ('none') {
               <button type="button" class="w-full rounded-full border border-border px-5 py-3 text-sm font-semibold transition hover:bg-muted" (click)="offerDialog.close()">
-                Entendido
+                {{ t('menu.gotIt') }}
               </button>
             }
             @default {
@@ -479,7 +496,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
                 class="w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition active:scale-[0.98]"
                 (click)="offerDialog.close(); onBanner(b, 'banner_click')"
               >
-                {{ b.link.type === 'product' ? 'Ver producto' : 'Ver categoría' }}
+                {{ t(b.link.type === 'product' ? 'menu.seeProduct' : 'menu.seeCategory') }}
               </button>
             }
           }
@@ -504,33 +521,33 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
     <!-- Servicio en la mesa y reservas (etapa 4) -->
     @switch (panel()) {
       @case ('waiter') {
-        <app-carta-dialog #waiterDialog label="Llamar al mesero" (closed)="closePanel('waiter')">
+        <app-carta-dialog #waiterDialog [label]="t('menu.callWaiter')" (closed)="closePanel('waiter')">
           <app-carta-waiter-sheet [timeZone]="m.location.timeZone" (done)="waiterDialog.close()" />
         </app-carta-dialog>
       }
       @case ('bill') {
         @if (qr(); as code) {
-          <app-carta-dialog #billDialog label="Pedir la cuenta" (closed)="closePanel('bill')">
+          <app-carta-dialog #billDialog [label]="t('menu.askBill')" (closed)="closePanel('bill')">
             <app-carta-bill-sheet [qr]="code" [timeZone]="m.location.timeZone" (done)="billDialog.close()" />
           </app-carta-dialog>
         }
       }
       @case ('booking') {
-        <app-carta-dialog #bookingDialog label="Reservar" (closed)="closePanel('booking')">
+        <app-carta-dialog #bookingDialog [label]="t('menu.book')" (closed)="closePanel('booking')">
           <app-carta-booking-sheet [menu]="m" (done)="bookingDialog.close()" (unavailable)="bookingsOff.set(true)" />
         </app-carta-dialog>
       }
     }
 
     @if (m.business.showRedomBadge) {
-      <footer class="border-t border-border py-6 text-center">
+      <footer class="border-t border-border text-center" [class]="embedded ? 'py-3 text-xs' : 'py-6 text-sm'">
         <a
           href="https://redom.cl"
           target="_blank"
           rel="noopener"
-          class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+          class="inline-flex items-center gap-1.5 text-muted-foreground transition hover:text-foreground"
         >
-          Hecha con <strong class="font-semibold text-foreground">Redom</strong>
+          {{ t('common.madeWith') }} <strong class="font-semibold text-foreground">Redom</strong>
         </a>
       </footer>
     }
@@ -539,7 +556,7 @@ const allergenFilterLabel = (tag: PublicTagDto) => (/^contiene\s+/i.test(tag.nam
       <app-carta-bottom-bar
         [table]="barTable()"
         [cartCount]="canOrder() ? cart.count() : null"
-        [cartLabel]="onlineOrdering() ? 'Pedir' : 'Carrito'"
+        [cartLabel]="onlineOrdering() ? 'order' : 'cart'"
         [ordersCount]="canOrder() ? cart.orderIds().length : 0"
         [booking]="bookings()"
         [notice]="canOrder() ? cart.notice() : null"
@@ -559,11 +576,20 @@ export class CartaMenuView {
   readonly qr = input<string | null>(null);
   /** Recargar la carta (un producto del carrito se agotó o salió de horario). */
   readonly refresh = output<void>();
+  /** El cliente eligió otro idioma (la página recarga la carta con ?lang=). */
+  readonly languageChange = output<CartaLang>();
+
+  readonly #i18n = inject(CartaI18n);
+  protected readonly t = this.#i18n.t;
+  protected readonly languages = computed(() => this.menu().availableLanguages ?? []);
 
   /** Solo la provee la página pública: la vista previa no envía analítica. */
   protected readonly analytics = inject(CartaAnalytics, { optional: true });
 
   readonly #destroyRef = inject(DestroyRef);
+  /** Incrustada en otra web (?embed=1): el desplazamiento lo hace la página si el iframe crece con la carta. */
+  readonly #embed = inject(CartaEmbed);
+  protected readonly embedded = this.#embed.active;
   readonly #injector = inject(Injector);
   private readonly sectionRefs = viewChildren<ElementRef<HTMLElement>>('section');
   private readonly stickyBar = viewChild<ElementRef<HTMLElement>>('stickyBar');
@@ -622,7 +648,8 @@ export class CartaMenuView {
 
   protected readonly safe = safeUrl;
   protected readonly cheapest = cheapestVariation;
-  protected readonly themeStyle = computed(() => brandingStyle(this.menu().branding?.theme));
+  readonly #display = inject(CartaDisplay);
+  protected readonly themeStyle = computed(() => brandingStyle(this.menu().branding?.theme, !this.preview() && this.#display.dark()));
   protected readonly coverUrl = computed(() => this.menu().branding?.coverUrl ?? null);
   protected readonly hasCover = computed(() => !!this.coverUrl() && !this.coverFailed());
   protected readonly banners = computed(() => this.menu().marketing?.banners ?? []);
@@ -643,11 +670,11 @@ export class CartaMenuView {
     const l = this.menu().location;
     const list: Action[] = [];
     if (l.whatsapp) list.push({ label: 'WhatsApp', href: whatsappUrl(l.whatsapp), icon: 'whatsapp', primary: true, external: true });
-    if (l.phone) list.push({ label: 'Llamar', href: phoneUrl(l.phone), icon: 'phone', external: false });
+    if (l.phone) list.push({ label: ct('menu.call'), href: phoneUrl(l.phone), icon: 'phone', external: false });
     const maps = mapsUrl(l);
-    if (maps) list.push({ label: 'Cómo llegar', href: maps, icon: 'map-pin', external: true });
+    if (maps) list.push({ label: ct('menu.directions'), href: maps, icon: 'map-pin', external: true });
     if (l.instagram) list.push({ label: 'Instagram', href: instagramUrl(l.instagram), icon: 'instagram', external: true });
-    if (l.website) list.push({ label: 'Web', href: websiteUrl(l.website), icon: 'globe', external: true });
+    if (l.website) list.push({ label: ct('menu.web'), href: websiteUrl(l.website), icon: 'globe', external: true });
     return list;
   });
 
@@ -711,7 +738,7 @@ export class CartaMenuView {
       result.push({
         id: 'otros',
         anchor: anchorFor('otros', 'sin-categoria'),
-        name: result.length ? 'Otros' : 'Productos',
+        name: ct(result.length ? 'menu.others' : 'menu.products'),
         description: null,
         imageUrl: null,
         availableNow: true,
@@ -728,6 +755,12 @@ export class CartaMenuView {
   #scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Textos fijos en el idioma de la carta (también en la vista previa)
+    effect(() => {
+      const lang = this.menu().language;
+      untracked(() => this.#i18n.useMenuLanguage(lang));
+    });
+
     // Carrito de la mesa (o del local, con retiro / delivery); con la carta (re)cargada, marca lo que ya no se puede pedir
     effect(() => {
       const ordering = this.ordering();
@@ -856,7 +889,8 @@ export class CartaMenuView {
       const sub = document.getElementById(`carta-sub-${id}`);
       if (sub) {
         this.active.set(section.anchor);
-        sub.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const offset = (this.stickyBar()?.nativeElement.offsetHeight ?? 0) + 8;
+        this.#embed.scrollTo(sub.getBoundingClientRect().top + window.scrollY - offset, 'smooth');
       } else this.#scrollTo(section.anchor, 'smooth');
     };
     if (this.selected().size && !this.sections().some((s) => s.id === String(parent.id))) {
@@ -900,6 +934,6 @@ export class CartaMenuView {
     this.#scrollingTo = anchor;
     if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     this.#scrollTimer = setTimeout(() => (this.#scrollingTo = null), 900);
-    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset + 1, behavior });
+    this.#embed.scrollTo(target.getBoundingClientRect().top + window.scrollY - offset + 1, behavior);
   }
 }

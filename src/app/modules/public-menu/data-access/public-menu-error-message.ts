@@ -59,6 +59,12 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Primero hay que confirmar el pago de la transferencia.';
     case 'FULFILLMENT_INVALID':
       return 'Ese paso no corresponde al estado del pedido.';
+    case 'WEBHOOK_URL_INVALID':
+      return 'La URL debe ser https y pública.';
+    case 'AI_TRANSLATIONS_QUOTA_EXCEEDED':
+      return 'Usaste las traducciones con IA de este mes.';
+    case 'AI_TRANSLATIONS_UNAVAILABLE':
+      return 'La IA no está disponible ahora, intenta más tarde.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }

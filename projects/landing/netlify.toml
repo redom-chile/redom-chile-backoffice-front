@@ -38,3 +38,12 @@ status = 200
 from = "/*"
 to = "/index.html"
 status = 200
+
+# Widget de la carta (public/widget.js): se sirve como archivo estático (los archivos existentes tienen prioridad
+# sobre las reglas sin force). Caché corto para que los cambios lleguen pronto a las webs que lo incrustan.
+# La landing no envía X-Frame-Options ni frame-ancestors: /carta/*?embed=1 se puede incrustar en un iframe.
+[[headers]]
+for = "/widget.js"
+[headers.values]
+Cache-Control = "public, max-age=300"
+Content-Type = "text/javascript; charset=utf-8"

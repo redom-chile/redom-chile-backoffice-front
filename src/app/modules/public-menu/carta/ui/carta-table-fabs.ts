@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { CartaI18n } from '../carta-i18n';
 import { TableServiceStatus } from '../carta-table-service';
 import { CartaIcon } from './carta-icon';
 
@@ -14,7 +15,7 @@ import { CartaIcon } from './carta-icon';
   template: `
     <div class="h-16" aria-hidden="true"></div>
     <div
-      class="pointer-events-none fixed inset-x-0 z-30"
+      class="carta-embed-bottom pointer-events-none fixed inset-x-0 z-30"
       [style.bottom]="cartVisible() ? 'calc(env(safe-area-inset-bottom) + 5.5rem)' : 'calc(env(safe-area-inset-bottom) + 1rem)'"
     >
       <div class="mx-auto flex max-w-2xl flex-col items-end gap-2 px-4">
@@ -22,7 +23,7 @@ import { CartaIcon } from './carta-icon';
         @if (status(); as s) {
           <p class="pointer-events-auto flex max-w-full items-center gap-2 rounded-full bg-foreground py-1.5 pl-4 pr-1.5 text-sm font-medium text-background shadow-lg" aria-hidden="true">
             <span class="[overflow-wrap:anywhere]">{{ s.text }}</span>
-            <button type="button" class="flex size-7 items-center justify-center rounded-full hover:bg-background/20" aria-label="Ocultar aviso" (click)="dismissStatus.emit(s.id)">
+            <button type="button" class="flex size-7 items-center justify-center rounded-full hover:bg-background/20" [attr.aria-label]="t('table.hideNotice')" (click)="dismissStatus.emit(s.id)">
               <app-carta-icon name="x" [size]="14" />
             </button>
           </p>
@@ -34,7 +35,7 @@ import { CartaIcon } from './carta-icon';
             (click)="waiter.emit()"
           >
             <app-carta-icon name="bell" [size]="18" class="text-primary" />
-            Llamar al mesero
+            {{ t('table.callWaiter') }}
             @if (callOpen()) {
               <span class="absolute -right-0.5 -top-0.5 size-3 rounded-full bg-amber-500 ring-2 ring-background" aria-hidden="true"></span>
             }
@@ -45,7 +46,7 @@ import { CartaIcon } from './carta-icon';
             (click)="bill.emit()"
           >
             <app-carta-icon name="wallet" [size]="18" class="text-primary" />
-            Pedir la cuenta
+            {{ t('table.requestBill') }}
           </button>
         </div>
       </div>
@@ -59,4 +60,6 @@ export class CartaTableFabs {
   readonly waiter = output<void>();
   readonly bill = output<void>();
   readonly dismissStatus = output<number>();
+
+  protected readonly t = inject(CartaI18n).t;
 }

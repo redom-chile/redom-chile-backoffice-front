@@ -34,8 +34,10 @@ export class PublicMenuApiService {
   }
 
   /** Con qr responde aunque la carta no esté publicada e incluye la mesa. */
-  getLocationMenu(businessSlug: string, locationSlug: string, qr?: string | null): Observable<PublicLocationMenuDto> {
+  /** lang: etapa 7 (sin él, el backend usa el Accept-Language del navegador). */
+  getLocationMenu(businessSlug: string, locationSlug: string, qr?: string | null, lang?: string | null): Observable<PublicLocationMenuDto> {
     const params: Record<string, string> = qr ? { qr } : {};
+    if (lang) params['lang'] = lang;
     return this.#http.get<PublicLocationMenuDto>(
       `${this.#base}/menus/${encodeURIComponent(businessSlug)}/${encodeURIComponent(locationSlug)}`,
       { params },

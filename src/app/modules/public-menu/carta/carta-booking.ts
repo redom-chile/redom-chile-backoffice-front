@@ -1,4 +1,5 @@
 import { PublicScheduleDto } from '../data-access/dtos/public-menu.dto';
+import { cartaLocale } from './carta-i18n';
 
 /** Límites de POST /bookings (backend: public-bookings.service.ts y table-service-dto.ts). */
 export const BOOKING_LIMITS = {
@@ -115,14 +116,14 @@ export function isWithinSchedule(schedule: readonly PublicScheduleDto[], day: nu
   });
 }
 
-/** "sábado 17 de octubre" y "20:30" en la zona del local. */
+/** "sábado 17 de octubre" y "20:30" en la zona del local, en el idioma de la carta. */
 export function formatBookingDate(iso: string, timeZone: string): Readonly<{ date: string; time: string }> {
   const d = new Date(iso);
   const fmt = (options: Intl.DateTimeFormatOptions) => {
     try {
-      return new Intl.DateTimeFormat('es-CL', { ...options, timeZone }).format(d);
+      return new Intl.DateTimeFormat(cartaLocale(), { ...options, timeZone }).format(d);
     } catch {
-      return new Intl.DateTimeFormat('es-CL', options).format(d);
+      return new Intl.DateTimeFormat(cartaLocale(), options).format(d);
     }
   };
   return { date: fmt({ weekday: 'long', day: 'numeric', month: 'long' }), time: fmt({ hour: '2-digit', minute: '2-digit' }) };

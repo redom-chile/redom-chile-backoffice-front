@@ -1,6 +1,6 @@
 import { computed, Signal } from '@angular/core';
 import { BusinessSettingsService, grossSellPrice } from 'src/app/core/services/business-settings';
-import { ProductDto, ProductModifierSetDto } from 'src/app/modules/products/pages/product-list/data-access';
+import { ProductDto, ProductModifierSetDto, ProductVariationDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { OrderProductDto } from '../data-access';
 
 export type CartModifier = Readonly<{
@@ -22,12 +22,19 @@ export type CartPackChoice = Readonly<{
   extraPrice: number;
 }>;
 
+/** Variedad que se puede vender ("Frutilla"): activa y con precio. */
+export type CartVariety = Readonly<{ variationId: number; name: string; price: number }>;
+
 export type CartLine = Readonly<{
   // Identifica la línea: un mismo producto puede ir en varias líneas con distinta nota u opciones.
   key: string;
   productId: number;
   variationId: number;
   name: string;
+  // Variedad elegida (null si el producto tiene precio único).
+  variationName: string | null;
+  // Variedades ofrecidas al agregarlo, para poder cambiarla al editar.
+  varieties: CartVariety[];
   // Precios del catálogo (netos si el negocio vende "más IVA"): usar cartUnitPrice para mostrarlos.
   // basePrice es el producto solo; unitPrice ya suma los modificadores.
   basePrice: number;
@@ -45,6 +52,8 @@ export type CartLine = Readonly<{
 
 /** Lo que devuelve el modal de opciones. */
 export type CartItemConfig = Readonly<{
+  // Solo productos con variedades; si no viene se conserva la de la línea.
+  variationId?: number;
   quantity: number;
   note: string;
   modifiers: CartModifier[];
@@ -74,8 +83,30 @@ export function packChoiceLabel(choice: Pick<CartPackChoice, 'name' | 'quantity'
   return choice.quantity > 1 ? `${choice.quantity} x ${choice.name}` : choice.name;
 }
 
+// Activas y con precio, en orden de creación (las variedades quitadas quedan inactivas o sin precio).
+function sellableVariations(product: ProductDto): ProductVariationDto[] {
+  return product.variations
+    .filter((variation) => variation.isActive !== false && variation.sellPriceIncTax !== null)
+    .sort((a, b) => a.id - b.id);
+}
+
+/** Variedades a elegir al vender; [] si el producto tiene precio único. */
+export function productVarieties(product: ProductDto): CartVariety[] {
+  const variations = sellableVariations(product);
+  if (variations.length < 2) return [];
+  return variations.map((variation) => ({ variationId: variation.id, name: variation.name, price: variation.sellPriceIncTax ?? 0 }));
+}
+
+/** Precio único o el menor de las variedades ("Desde"). */
 export function productPrice(product: ProductDto): number {
-  return product.variations[0]?.sellPriceIncTax ?? 0;
+  const prices = sellableVariations(product).map((variation) => variation.sellPriceIncTax ?? 0);
+  return prices.length ? Math.min(...prices) : (product.variations[0]?.sellPriceIncTax ?? 0);
+}
+
+/** Las variedades tienen precios distintos: la tarjeta muestra "Desde". */
+export function hasPriceRange(product: ProductDto): boolean {
+  const prices = productVarieties(product).map((variety) => variety.price);
+  return prices.length > 1 && Math.min(...prices) !== Math.max(...prices);
 }
 
 /** Cómo pasar del precio del catálogo al que paga el cliente (Datos fiscales del negocio). */
@@ -153,7 +184,9 @@ function newKey(productId: number): string {
 }
 
 function buildLine(product: ProductDto, config: CartItemConfig): CartLine | null {
-  const variation = product.variations[0];
+  const varieties = productVarieties(product);
+  const variation =
+    product.variations.find((current) => current.id === config.variationId) ?? sellableVariations(product)[0] ?? product.variations[0];
   if (!variation) return null;
   const basePrice = variation.sellPriceIncTax ?? 0;
   return {
@@ -161,6 +194,8 @@ function buildLine(product: ProductDto, config: CartItemConfig): CartLine | null
     productId: product.id,
     variationId: variation.id,
     name: product.name,
+    variationName: varieties.length ? variation.name : null,
+    varieties,
     basePrice,
     unitPrice: unitPriceWithModifiers(basePrice, config.modifiers),
     quantity: Math.max(1, config.quantity),
@@ -193,9 +228,16 @@ export function addConfiguredToCart(cart: CartLine[], product: ProductDto, confi
 export function updateCartLine(cart: CartLine[], key: string, config: CartItemConfig, product?: ProductDto): CartLine[] {
   const current = cart.find((line) => line.key === key);
   if (!current) return cart;
-  const basePrice = product ? productPrice(product) : current.basePrice;
+  // Precio actual de la variedad elegida (o de la que ya tenía la línea).
+  const variationId = config.variationId ?? current.variationId;
+  const variety = (product ? productVarieties(product) : current.varieties).find((item) => item.variationId === variationId);
+  const variation = product?.variations.find((item) => item.id === variationId);
+  const basePrice = variety?.price ?? (variation ? (variation.sellPriceIncTax ?? current.basePrice) : current.basePrice);
   const updated: CartLine = {
     ...current,
+    variationId,
+    variationName: variety?.name ?? current.variationName,
+    varieties: product ? productVarieties(product) : current.varieties,
     basePrice,
     unitPrice: unitPriceWithModifiers(basePrice, config.modifiers),
     quantity: Math.max(1, config.quantity),

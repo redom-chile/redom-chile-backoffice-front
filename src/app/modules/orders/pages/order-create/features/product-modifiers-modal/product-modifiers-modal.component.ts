@@ -11,6 +11,7 @@ import {
   CartModifier,
   CartPackChoice,
   cartPricing,
+  CartVariety,
   cartUnitPrice,
   MAX_MODIFIER_TIMES,
   packChoiceLabel,
@@ -25,6 +26,8 @@ export type ProductModifiersModalData = Readonly<{
   name: string;
   basePrice: number;
   modifierSets: ProductModifierSetDto[];
+  // Variedades a elegir ("Frutilla", "Piña"); vacío si el producto tiene precio único.
+  varieties?: CartVariety[];
   // Valores de la línea al editarla desde el ticket.
   initial?: CartItemConfig;
   // Producto tipo pack: el modal carga sus grupos (GET /products/:id/pack) para elegir las opciones.
@@ -63,6 +66,17 @@ export class ProductModifiersModalComponent {
   readonly sets = this.data.modifierSets.filter((set) => set.options.length > 0);
   readonly isEditing = !!this.data.initial;
   readonly packChoiceLabel = packChoiceLabel;
+
+  // --- Variedades ---
+  readonly varieties = this.data.varieties ?? [];
+  readonly $variationId = signal<number | null>(
+    this.varieties.find((variety) => variety.variationId === this.data.initial?.variationId)?.variationId ??
+      this.varieties[0]?.variationId ??
+      null,
+  );
+  readonly $basePrice = computed(
+    () => this.varieties.find((variety) => variety.variationId === this.$variationId())?.price ?? this.data.basePrice,
+  );
 
   // --- Pack ---
   private readonly toast = inject(ToastService);
@@ -106,7 +120,7 @@ export class ProductModifiersModalComponent {
   });
   // Los precios del catálogo pueden ser netos: la estimación suma el IVA como el backend.
   readonly $pricing = cartPricing(inject(BusinessSettingsService));
-  readonly $unitPrice = computed(() => cartUnitPrice(this.data.basePrice, this.$modifiers(), this.$pricing(), packExtras(this.$packChoices())));
+  readonly $unitPrice = computed(() => cartUnitPrice(this.$basePrice(), this.$modifiers(), this.$pricing(), packExtras(this.$packChoices())));
   readonly $canConfirm = computed(() => !this.isPack || this.$packValid());
 
   constructor() {
@@ -203,7 +217,9 @@ export class ProductModifiersModalComponent {
 
   handleConfirm() {
     if (!this.$canConfirm()) return;
+    const variationId = this.$variationId();
     this.dialogRef.close({
+      ...(this.varieties.length && variationId !== null ? { variationId } : {}),
       quantity: this.$quantity(),
       note: this.$note().trim(),
       modifiers: this.$modifiers(),

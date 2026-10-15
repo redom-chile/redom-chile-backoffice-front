@@ -1,18 +1,23 @@
 import { BannerType, MenuThemeDto, ModalFrequency, PublicPackGroupDto, PublicPromotionDto } from '../data-access/dtos/menu-marketing.dto';
 import { PublicLocationMenuDto, PublicProductDto } from '../data-access/dtos/public-menu.dto';
+import { CartaKey, cartaLocale, ct } from './carta-i18n';
 import { CartaIconName } from './ui/carta-icon';
 
 // --- Banners ---
 
-export const BANNER_TYPE_META: Record<BannerType, Readonly<{ label: string; icon: CartaIconName }>> = {
-  chef_recommendation: { label: 'Recomendación del chef', icon: 'chef-hat' },
-  daily_menu: { label: 'Menú del día', icon: 'calendar' },
-  promotion: { label: 'Promoción', icon: 'tag' },
-  pack: { label: 'Pack', icon: 'package' },
-  info: { label: 'Aviso', icon: 'info' },
+const BANNER_ICONS: Record<BannerType, CartaIconName> = {
+  chef_recommendation: 'chef-hat',
+  daily_menu: 'calendar',
+  promotion: 'tag',
+  pack: 'package',
+  info: 'info',
 };
 
-export const bannerMeta = (type: string) => BANNER_TYPE_META[type as BannerType] ?? BANNER_TYPE_META.info;
+/** Etiqueta (en el idioma activo) e ícono del tipo de banner. */
+export function bannerMeta(type: string): Readonly<{ label: string; icon: CartaIconName }> {
+  const known = (type in BANNER_ICONS ? type : 'info') as BannerType;
+  return { label: ct(`banner.${known}` as CartaKey), icon: BANNER_ICONS[known] };
+}
 
 /** Solo enlaces http(s) (el backend ya lo valida; por si acaso). */
 export const safeUrl = (url: string | null) => (url && /^https?:\/\//i.test(url) ? url : null);
@@ -38,11 +43,11 @@ export function promotionLabel(promotion: PublicPromotionDto, timeZone: string):
   if (Number.isNaN(date.getTime())) return promotion.name;
   let day: string;
   try {
-    day = new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit', timeZone }).format(date);
+    day = new Intl.DateTimeFormat(cartaLocale(), { day: '2-digit', month: '2-digit', timeZone }).format(date);
   } catch {
-    day = new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit' }).format(date);
+    day = new Intl.DateTimeFormat(cartaLocale(), { day: '2-digit', month: '2-digit' }).format(date);
   }
-  return `${promotion.name} · hasta el ${day.replace(/-/g, '/')}`;
+  return ct('product.until', { name: promotion.name, date: day.replace(/-/g, '/') });
 }
 
 /** Variación más barata (la del "desde $X"). */
@@ -56,9 +61,9 @@ export const isPackUnavailable = (groups: readonly PublicPackGroupDto[]) =>
 
 /** "Elige 1", "Elige de 1 a 2", "Opcional, hasta 2". */
 export function packChoiceLabel(group: PublicPackGroupDto): string {
-  if (group.minChoices <= 0) return `Opcional, hasta ${group.maxChoices}`;
-  if (group.minChoices === group.maxChoices) return `Elige ${group.maxChoices}`;
-  return `Elige de ${group.minChoices} a ${group.maxChoices}`;
+  if (group.minChoices <= 0) return ct('pack.optionalUpTo', { n: group.maxChoices });
+  if (group.minChoices === group.maxChoices) return ct('pack.choose', { n: group.maxChoices });
+  return ct('pack.chooseRange', { min: group.minChoices, max: group.maxChoices });
 }
 
 // --- Ventana de ofertas ---
@@ -117,7 +122,8 @@ const readableOn = (bg: string) => (contrast(REDOM.dark, bg) >= contrast(REDOM.l
  * Variables CSS de la carta con los colores del local. Se definen también las --color-* de Tailwind porque el @theme
  * las resuelve en :root. Sin fondo ni texto elegidos se respeta el modo claro/oscuro del dispositivo.
  */
-export function brandingStyle(theme: MenuThemeDto | null | undefined): Record<string, string> {
+/** dark: en modo oscuro se ignoran el fondo y el texto del negocio (queda el color principal). */
+export function brandingStyle(theme: MenuThemeDto | null | undefined, dark = false): Record<string, string> {
   if (!theme) return {};
   const pick = (value: unknown) => (typeof value === 'string' && HEX.test(value) ? value : null);
   const primary = pick(theme.primaryColor);
@@ -132,7 +138,7 @@ export function brandingStyle(theme: MenuThemeDto | null | undefined): Record<st
     set('primary', primary);
     set('primary-foreground', readableOn(primary));
   }
-  if (background || text) {
+  if (!dark && (background || text)) {
     const bg = background ?? REDOM.background;
     let fg = text ?? REDOM.text;
     if (contrast(fg, bg) < 4.5) fg = readableOn(bg);

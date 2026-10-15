@@ -12,6 +12,7 @@ import {
   viewChildren,
 } from '@angular/core';
 import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
+import { CartaI18n } from '../carta-i18n';
 import { bannerMeta, safeUrl } from '../carta-marketing';
 import { CartaIcon } from './carta-icon';
 
@@ -43,7 +44,7 @@ import { CartaIcon } from './carta-icon';
         <app-carta-icon [name]="meta.icon" [size]="20" />
       </span>
       <span class="min-w-0 flex-1 text-left">
-        <span class="block text-[11px] font-semibold uppercase tracking-wide opacity-80">{{ meta.label }}</span>
+        <span class="block text-[0.6875rem] font-semibold uppercase tracking-wide opacity-80">{{ meta.label }}</span>
         <span class="mt-0.5 block font-semibold leading-snug [overflow-wrap:anywhere]">{{ b.title }}</span>
         @if (b.subtitle) {
           <span class="mt-1 block text-sm leading-snug opacity-80 [overflow-wrap:anywhere]">{{ b.subtitle }}</span>
@@ -70,7 +71,7 @@ export class CartaBannerContent {
   host: { class: 'block' },
   template: `
     @let list = banners();
-    <section aria-roledescription="carrusel" aria-label="Destacados" class="relative">
+    <section [attr.aria-roledescription]="t('banner.carousel')" [attr.aria-label]="t('banner.featured')" class="relative">
       <div
         #track
         class="relative flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -80,8 +81,8 @@ export class CartaBannerContent {
           <div
             #slide
             role="group"
-            aria-roledescription="diapositiva"
-            [attr.aria-label]="i + 1 + ' de ' + list.length + ': ' + b.title"
+            [attr.aria-roledescription]="t('banner.slide')"
+            [attr.aria-label]="t('banner.position', { i: i + 1, n: list.length, title: b.title })"
             [attr.data-index]="i"
             class="shrink-0 snap-center"
             [class]="list.length > 1 ? 'w-[88%] sm:w-[80%]' : 'w-full'"
@@ -91,7 +92,7 @@ export class CartaBannerContent {
                 @if (url(b); as href) {
                   <a [href]="href" target="_blank" rel="noopener noreferrer" [class]="cardClass" (click)="activate.emit(b)">
                     <app-carta-banner-content [banner]="b" [eager]="i === 0" />
-                    <span class="sr-only">(se abre en una pestaña nueva)</span>
+                    <span class="sr-only">{{ t('common.newTab') }}</span>
                   </a>
                 } @else {
                   <div [class]="cardClass"><app-carta-banner-content [banner]="b" [eager]="i === 0" /></div>
@@ -115,7 +116,7 @@ export class CartaBannerContent {
           <button
             type="button"
             class="hidden size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-30 sm:flex"
-            aria-label="Banner anterior"
+            [attr.aria-label]="t('banner.prev')"
             [disabled]="current() === 0"
             (click)="go(current() - 1)"
           >
@@ -125,7 +126,7 @@ export class CartaBannerContent {
             <button
               type="button"
               class="flex size-6 items-center justify-center"
-              [attr.aria-label]="'Ir al banner ' + (i + 1)"
+              [attr.aria-label]="t('banner.goTo', { n: i + 1 })"
               [attr.aria-current]="current() === i ? 'true' : null"
               (click)="go(i)"
             >
@@ -135,7 +136,7 @@ export class CartaBannerContent {
           <button
             type="button"
             class="hidden size-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-30 sm:flex"
-            aria-label="Banner siguiente"
+            [attr.aria-label]="t('banner.next')"
             [disabled]="current() === list.length - 1"
             (click)="go(current() + 1)"
           >
@@ -152,6 +153,7 @@ export class CartaBanners {
   readonly activate = output<PublicBannerDto>();
   /** Banner visible por primera vez. */
   readonly seen = output<PublicBannerDto>();
+  protected readonly t = inject(CartaI18n).t;
 
   private readonly track = viewChild<ElementRef<HTMLElement>>('track');
   private readonly slides = viewChildren<ElementRef<HTMLElement>>('slide');

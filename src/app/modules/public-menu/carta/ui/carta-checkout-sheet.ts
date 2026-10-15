@@ -20,12 +20,13 @@ import {
   scheduleDays,
   zoneCommunes,
 } from '../carta-online';
+import { CartaI18n, ct } from '../carta-i18n';
 import { CartaIcon, CartaIconName } from './carta-icon';
 
 type Field = 'name' | 'phone' | 'email' | 'street' | 'commune' | 'when' | 'payment';
 
 const INPUT =
-  'mt-1.5 block w-full rounded-2xl border bg-card px-4 py-3 text-[15px] text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none';
+  'mt-1.5 block w-full rounded-2xl border bg-card px-4 py-3 text-[0.9375rem] text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none';
 
 const OPTION =
   'flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm transition has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-primary motion-reduce:transition-none';
@@ -62,15 +63,15 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
         (click)="back.emit()"
       >
         <app-carta-icon name="chevron-left" [size]="16" />
-        Volver al carrito
+        {{ t('checkout.back') }}
       </button>
-      <h2 class="pr-10 text-xl font-bold tracking-tight">Finalizar pedido</h2>
+      <h2 class="pr-10 text-xl font-bold tracking-tight">{{ t('checkout.title') }}</h2>
       <p class="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
 
       <form class="mt-5 grid gap-6" novalidate (submit)="submit($event)">
         <!-- 1. Retiro o delivery -->
         <fieldset>
-          <legend class="text-base font-semibold">¿Cómo quieres recibirlo?</legend>
+          <legend class="text-base font-semibold">{{ t('checkout.howReceive') }}</legend>
           <div class="mt-2 grid gap-2" [class.sm:grid-cols-2]="channels().length > 1">
             @for (c of channels(); track c) {
               <label [class]="option">
@@ -81,21 +82,21 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             }
           </div>
           @if (o.delivery && !communes().length) {
-            <p class="mt-2 text-xs text-muted-foreground">Por ahora el delivery no está disponible desde la carta.</p>
+            <p class="mt-2 text-xs text-muted-foreground">{{ t('checkout.deliveryUnavailable') }}</p>
           }
           @if (channel() === 'pickup' && m.location.address) {
             <p class="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
               <app-carta-icon name="map-pin" [size]="16" class="mt-0.5" />
-              <span class="[overflow-wrap:anywhere]">Retiras en {{ m.location.address }}</span>
+              <span class="[overflow-wrap:anywhere]">{{ t('checkout.pickupAt', { address: m.location.address }) }}</span>
             </p>
           }
         </fieldset>
 
         <!-- 2. Tus datos -->
         <fieldset class="grid gap-4">
-          <legend class="text-base font-semibold">Tus datos</legend>
+          <legend class="text-base font-semibold">{{ t('checkout.yourData') }}</legend>
           <div class="-mt-2">
-            <label for="carta-co-name" class="block text-sm font-semibold">Nombre</label>
+            <label for="carta-co-name" class="block text-sm font-semibold">{{ t('checkout.name') }}</label>
             <input
               id="carta-co-name"
               type="text"
@@ -112,7 +113,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             }
           </div>
           <div>
-            <label for="carta-co-phone" class="block text-sm font-semibold">Teléfono</label>
+            <label for="carta-co-phone" class="block text-sm font-semibold">{{ t('checkout.phone') }}</label>
             <input
               id="carta-co-phone"
               type="tel"
@@ -129,17 +130,17 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             @if (errors().phone; as e) {
               <p id="carta-co-phone-error" class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
             } @else {
-              <p id="carta-co-phone-hint" class="mt-1 text-xs text-muted-foreground">El local te contactará a este número si es necesario.</p>
+              <p id="carta-co-phone-hint" class="mt-1 text-xs text-muted-foreground">{{ t('checkout.phoneHint') }}</p>
             }
           </div>
           <div>
-            <label for="carta-co-email" class="block text-sm font-semibold">Correo <span class="font-normal text-muted-foreground">(opcional)</span></label>
+            <label for="carta-co-email" class="block text-sm font-semibold">{{ t('checkout.email') }} <span class="font-normal text-muted-foreground">{{ t('cart.optional') }}</span></label>
             <input
               id="carta-co-email"
               type="email"
               inputmode="email"
               autocomplete="email"
-              placeholder="tu@correo.cl"
+              [placeholder]="t('checkout.emailPlaceholder')"
               [class]="inputClass('email')"
               [maxLength]="limits.email"
               [value]="email()"
@@ -150,7 +151,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             @if (errors().email; as e) {
               <p id="carta-co-email-error" class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
             } @else {
-              <p id="carta-co-email-hint" class="mt-1 text-xs text-muted-foreground">Te avisaremos por correo cómo va tu pedido.</p>
+              <p id="carta-co-email-hint" class="mt-1 text-xs text-muted-foreground">{{ t('checkout.emailHint') }}</p>
             }
           </div>
         </fieldset>
@@ -158,9 +159,9 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
         <!-- 3. Dirección (delivery) -->
         @if (channel() === 'delivery') {
           <fieldset class="grid gap-4">
-            <legend class="text-base font-semibold">Dirección de entrega</legend>
+            <legend class="text-base font-semibold">{{ t('checkout.address') }}</legend>
             <div class="-mt-2">
-              <label for="carta-co-commune" class="block text-sm font-semibold">Comuna</label>
+              <label for="carta-co-commune" class="block text-sm font-semibold">{{ t('checkout.commune') }}</label>
               <select
                 id="carta-co-commune"
                 [class]="inputClass('commune')"
@@ -168,7 +169,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 [attr.aria-describedby]="errors().commune ? 'carta-co-commune-error' : null"
                 (change)="setCommune($any($event.target).value)"
               >
-                <option value="" [selected]="communeId() == null" disabled>Elige tu comuna</option>
+                <option value="" [selected]="communeId() == null" disabled>{{ t('checkout.chooseCommune') }}</option>
                 @for (c of communes(); track c.id) {
                   <option [value]="c.id" [selected]="communeId() === c.id">{{ c.name }}</option>
                 }
@@ -179,7 +180,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             </div>
             <div class="grid grid-cols-[1fr_7rem] gap-3">
               <div>
-                <label for="carta-co-street" class="block text-sm font-semibold">Calle</label>
+                <label for="carta-co-street" class="block text-sm font-semibold">{{ t('checkout.street') }}</label>
                 <input
                   id="carta-co-street"
                   type="text"
@@ -194,7 +195,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 />
               </div>
               <div>
-                <label for="carta-co-number" class="block text-sm font-semibold">Número</label>
+                <label for="carta-co-number" class="block text-sm font-semibold">{{ t('checkout.number') }}</label>
                 <input
                   id="carta-co-number"
                   type="text"
@@ -211,12 +212,12 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
               }
             </div>
             <div>
-              <label for="carta-co-details" class="block text-sm font-semibold">Depto, block o referencia <span class="font-normal text-muted-foreground">(opcional)</span></label>
+              <label for="carta-co-details" class="block text-sm font-semibold">{{ t('checkout.details') }} <span class="font-normal text-muted-foreground">{{ t('cart.optional') }}</span></label>
               <input
                 id="carta-co-details"
                 type="text"
                 autocomplete="address-line2"
-                placeholder="Depto 501"
+                [placeholder]="t('checkout.detailsPlaceholder')"
                 [class]="inputClass(null)"
                 [maxLength]="limits.details"
                 [value]="details()"
@@ -229,10 +230,10 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 @if (coords()) {
                   <p class="flex flex-1 items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400" role="status">
                     <app-carta-icon name="check" [size]="16" />
-                    Usaremos tu ubicación actual
+                    {{ t('checkout.usingLocation') }}
                   </p>
                   <button type="button" class="rounded-full px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground" (click)="clearCoords()">
-                    Quitar
+                    {{ t('checkout.removeLocation') }}
                   </button>
                 } @else {
                   <button
@@ -242,12 +243,12 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                     (click)="useLocation()"
                   >
                     <app-carta-icon name="locate" [size]="16" />
-                    {{ locate() === 'locating' ? 'Buscando tu ubicación…' : 'Usar mi ubicación' }}
+                    {{ locate() === 'locating' ? t('checkout.locating') : t('checkout.useLocation') }}
                   </button>
                   @if (locate() === 'denied') {
-                    <p class="w-full text-sm text-muted-foreground" role="status">No tenemos permiso para ver tu ubicación. Puedes activarlo en tu navegador.</p>
+                    <p class="w-full text-sm text-muted-foreground" role="status">{{ t('checkout.locationDenied') }}</p>
                   } @else if (locate() === 'error') {
-                    <p class="w-full text-sm text-muted-foreground" role="status">No pudimos obtener tu ubicación. Intenta de nuevo.</p>
+                    <p class="w-full text-sm text-muted-foreground" role="status">{{ t('checkout.locationError') }}</p>
                   }
                 }
               </div>
@@ -257,31 +258,31 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
               @switch (est.kind) {
                 @case ('zone') {
                   @if (est.kind === 'zone') {
-                    <p class="font-semibold">Envío a {{ est.zone.name }}: {{ est.zone.fee ? format(est.zone.fee) : 'gratis' }}</p>
+                    <p class="font-semibold">{{ t('checkout.shippingTo', { zone: est.zone.name, fee: est.zone.fee ? format(est.zone.fee) : t('checkout.free') }) }}</p>
                     <p class="mt-0.5 text-muted-foreground">
                       @if (est.zone.minOrder) {
-                        Pedido mínimo {{ format(est.zone.minOrder) }}
+                        {{ t('checkout.minOrder', { amount: format(est.zone.minOrder) }) }}
                       }
                       @if (est.zone.minOrder && est.zone.etaMinutes) {
                         ·
                       }
                       @if (est.zone.etaMinutes) {
-                        Llega en unos {{ est.zone.etaMinutes }} min
+                        {{ t('checkout.eta', { min: est.zone.etaMinutes }) }}
                       }
                     </p>
                     @if (belowMinimum()) {
-                      <p class="mt-1 font-medium text-amber-700 dark:text-amber-400">Te faltan {{ format(est.zone.minOrder - cart.total()) }} para el mínimo de tu zona</p>
+                      <p class="mt-1 font-medium text-amber-700 dark:text-amber-400">{{ t('checkout.missingMin', { amount: format(est.zone.minOrder - cart.total()) }) }}</p>
                     }
                   }
                 }
                 @case ('pending') {
-                  <p class="text-muted-foreground">El costo de envío se calcula al confirmar. Usa tu ubicación para verlo ahora.</p>
+                  <p class="text-muted-foreground">{{ t('checkout.feePending') }}</p>
                 }
                 @case ('outside') {
-                  <p class="font-medium text-rose-600 dark:text-rose-400">No repartimos a esa dirección</p>
+                  <p class="font-medium text-rose-600 dark:text-rose-400">{{ t('checkout.outside') }}</p>
                 }
                 @default {
-                  <p class="text-muted-foreground">Elige tu comuna para ver el costo de envío.</p>
+                  <p class="text-muted-foreground">{{ t('checkout.chooseCommuneFee') }}</p>
                 }
               }
             </div>
@@ -290,15 +291,15 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
 
         <!-- 4. Hora -->
         <fieldset>
-          <legend class="text-base font-semibold">¿Para cuándo?</legend>
+          <legend class="text-base font-semibold">{{ t('checkout.when') }}</legend>
           <div class="mt-2 grid gap-2">
             @if (m.location.isOpenNow) {
               <label [class]="option">
                 <input type="radio" class="size-4 accent-primary" name="carta-when" value="asap" [checked]="when() === 'asap'" (change)="when.set('asap')" />
                 <app-carta-icon name="clock" [size]="20" class="text-muted-foreground" />
                 <span class="flex-1">
-                  <span class="block font-semibold">Lo antes posible</span>
-                  <span class="block text-xs text-muted-foreground">Unos {{ o.prepMinutes }} min de preparación</span>
+                  <span class="block font-semibold">{{ t('checkout.asap') }}</span>
+                  <span class="block text-xs text-muted-foreground">{{ t('checkout.prep', { min: o.prepMinutes }) }}</span>
                 </span>
               </label>
             }
@@ -306,14 +307,14 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
               <label [class]="option">
                 <input type="radio" class="size-4 accent-primary" name="carta-when" value="scheduled" [checked]="when() === 'scheduled'" (change)="when.set('scheduled')" />
                 <app-carta-icon name="calendar" [size]="20" class="text-muted-foreground" />
-                <span class="flex-1 font-semibold">Programar</span>
+                <span class="flex-1 font-semibold">{{ t('checkout.schedule') }}</span>
               </label>
             }
           </div>
           @if (when() === 'scheduled' && selectedDay(); as day) {
             <div class="mt-3 grid grid-cols-[1fr_7.5rem] gap-3">
               <div>
-                <label for="carta-co-day" class="block text-sm font-semibold">Día</label>
+                <label for="carta-co-day" class="block text-sm font-semibold">{{ t('checkout.day') }}</label>
                 <select id="carta-co-day" [class]="inputClass(null)" (change)="date.set($any($event.target).value)">
                   @for (d of days(); track d.date) {
                     <option [value]="d.date" [selected]="d.date === day.date">{{ d.label }}</option>
@@ -321,7 +322,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 </select>
               </div>
               <div>
-                <label for="carta-co-time" class="block text-sm font-semibold">Hora</label>
+                <label for="carta-co-time" class="block text-sm font-semibold">{{ t('checkout.time') }}</label>
                 <select id="carta-co-time" [class]="inputClass('when')" [attr.aria-invalid]="!!errors().when" (change)="slot.set($any($event.target).value)">
                   @for (s of day.slots; track s.iso) {
                     <option [value]="s.iso" [selected]="s.iso === selectedSlot()">{{ s.time }}</option>
@@ -329,12 +330,12 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 </select>
               </div>
             </div>
-            <p class="mt-1.5 text-xs text-muted-foreground">Hora de {{ m.location.name }}. Desde {{ o.prepMinutes }} minutos y hasta 7 días.</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ t('checkout.timeHint', { location: m.location.name, min: o.prepMinutes }) }}</p>
           }
           @if (!m.location.isOpenNow && !days().length) {
             <p class="mt-2 flex items-start gap-2 rounded-2xl bg-muted px-4 py-3 text-sm font-medium" role="note">
               <app-carta-icon name="clock" [size]="16" class="mt-0.5" />
-              El local está cerrado y no tiene horarios disponibles en los próximos 7 días
+              {{ t('checkout.noSlots') }}
             </p>
           }
           @if (errors().when; as e) {
@@ -344,7 +345,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
 
         <!-- 5. Pago y resumen -->
         <fieldset>
-          <legend class="text-base font-semibold">Método de pago</legend>
+          <legend class="text-base font-semibold">{{ t('checkout.payment') }}</legend>
           <div class="mt-2 grid gap-2" [attr.aria-describedby]="errors().payment ? 'carta-co-payment-error' : null">
             @for (p of methods(); track p) {
               <label [class]="option">
@@ -353,24 +354,24 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
                 <span class="flex-1 font-semibold">{{ paymentLabels[p] }}</span>
               </label>
             } @empty {
-              <p class="text-sm text-muted-foreground">No hay métodos de pago disponibles para {{ channel() === 'pickup' ? 'retiro' : 'delivery' }}.</p>
+              <p class="text-sm text-muted-foreground">{{ channel() === 'pickup' ? t('checkout.noMethodsPickup') : t('checkout.noMethodsDelivery') }}</p>
             }
           </div>
           @if (errors().payment; as e) {
             <p id="carta-co-payment-error" class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
           }
           @if (payment() === 'transfer_receipt') {
-            <p class="mt-2 text-xs text-muted-foreground">Al confirmar verás los datos para transferir y podrás subir el comprobante.</p>
+            <p class="mt-2 text-xs text-muted-foreground">{{ t('checkout.transferHint') }}</p>
           }
         </fieldset>
 
         <div>
-          <label for="carta-co-note" class="block text-sm font-semibold">Nota para el local <span class="font-normal text-muted-foreground">(opcional)</span></label>
+          <label for="carta-co-note" class="block text-sm font-semibold">{{ t('cart.noteLabel') }} <span class="font-normal text-muted-foreground">{{ t('cart.optional') }}</span></label>
           <textarea
             id="carta-co-note"
             rows="2"
             class="{{ inputClass(null) }} resize-none"
-            placeholder="Ej.: tocar el timbre"
+            [placeholder]="t('checkout.notePlaceholder')"
             [attr.maxlength]="maxNote"
             [value]="cart.note()"
             (input)="cart.setNote($any($event.target).value)"
@@ -378,24 +379,24 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
         </div>
 
         <section aria-labelledby="carta-co-summary" class="rounded-2xl border border-border bg-card px-4 py-3">
-          <h3 id="carta-co-summary" class="text-base font-semibold">Resumen</h3>
+          <h3 id="carta-co-summary" class="text-base font-semibold">{{ t('checkout.summary') }}</h3>
           <dl class="mt-2 grid gap-1.5 text-sm">
             <div class="flex justify-between gap-3">
-              <dt class="text-muted-foreground">Productos ({{ cart.count() }})</dt>
+              <dt class="text-muted-foreground">{{ t('checkout.products', { n: cart.count() }) }}</dt>
               <dd class="font-semibold tabular-nums">{{ format(cart.total()) }}</dd>
             </div>
             @if (channel() === 'delivery') {
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Envío</dt>
-                <dd class="font-semibold tabular-nums">{{ fee() == null ? 'Por confirmar' : fee() ? format(fee()!) : 'Gratis' }}</dd>
+                <dt class="text-muted-foreground">{{ t('checkout.shipping') }}</dt>
+                <dd class="font-semibold tabular-nums">{{ fee() == null ? t('checkout.toConfirm') : fee() ? format(fee()!) : t('checkout.freeCap') }}</dd>
               </div>
             }
             <div class="mt-1 flex items-baseline justify-between gap-3 border-t border-border pt-2">
-              <dt class="font-semibold">Total estimado</dt>
+              <dt class="font-semibold">{{ t('cart.total') }}</dt>
               <dd class="text-lg font-bold tabular-nums">{{ format(cart.total() + (fee() ?? 0)) }}</dd>
             </div>
           </dl>
-          <p class="mt-1 text-xs text-muted-foreground">El local confirma el total al recibir tu pedido.</p>
+          <p class="mt-1 text-xs text-muted-foreground">{{ t('cart.totalConfirm') }}</p>
         </section>
 
         <div class="sticky bottom-0 z-10 -mx-5 -mb-6 border-t border-border bg-background/95 px-5 pb-4 pt-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -404,11 +405,11 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
               <app-carta-icon name="alert" [size]="16" class="mt-0.5" />
               <span class="flex-1">{{ e }}</span>
               @if (cartError()) {
-                <button type="button" class="shrink-0 font-semibold text-foreground underline underline-offset-4" (click)="back.emit()">Revisar carrito</button>
+                <button type="button" class="shrink-0 font-semibold text-foreground underline underline-offset-4" (click)="back.emit()">{{ t('checkout.reviewCart') }}</button>
               }
             </div>
           } @else if (cart.hasIssues()) {
-            <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">Quita los productos marcados en tu carrito para continuar</p>
+            <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">{{ t('checkout.removeMarked') }}</p>
           }
           <button
             type="submit"
@@ -418,9 +419,9 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
           >
             @if (sending()) {
               <span class="size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" aria-hidden="true"></span>
-              Enviando…
+              {{ t('cart.sending') }}
             } @else {
-              Confirmar pedido · {{ format(cart.total() + (fee() ?? 0)) }}
+              {{ t('checkout.confirm', { total: format(cart.total() + (fee() ?? 0)) }) }}
             }
           </button>
         </div>
@@ -437,6 +438,7 @@ export class CartaCheckoutSheet implements OnInit {
   readonly refresh = output<void>();
 
   protected readonly cart = inject(CartaCart);
+  protected readonly t = inject(CartaI18n).t;
   readonly #api = inject(PublicMenuApiService);
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   #sub: Subscription | null = null;
@@ -584,17 +586,17 @@ export class CartaCheckoutSheet implements OnInit {
     const channel = this.channel();
     const errors: Partial<Record<Field, string>> = {};
     const name = this.name().trim();
-    if (!name) errors.name = 'Escribe tu nombre';
-    else if (name.length > ONLINE_LIMITS.name) errors.name = `Máximo ${ONLINE_LIMITS.name} caracteres`;
+    if (!name) errors.name = ct('checkout.err.name');
+    else if (name.length > ONLINE_LIMITS.name) errors.name = ct('checkout.err.nameMax', { max: ONLINE_LIMITS.name });
     const digits = phoneDigits(this.phone());
-    if (digits < ONLINE_LIMITS.minPhoneDigits || digits > ONLINE_LIMITS.maxPhoneDigits) errors.phone = 'Escribe un teléfono de 8 a 15 dígitos';
+    if (digits < ONLINE_LIMITS.minPhoneDigits || digits > ONLINE_LIMITS.maxPhoneDigits) errors.phone = ct('checkout.err.phone');
     const email = this.email().trim();
-    if (email && !isEmail(email)) errors.email = 'Revisa tu correo';
+    if (email && !isEmail(email)) errors.email = ct('checkout.err.email');
 
     if (channel === 'delivery') {
-      if (this.communeId() == null) errors.commune = 'Elige tu comuna';
-      else if (this.zoneEstimate().kind === 'outside') errors.commune = 'No repartimos a esa dirección';
-      if (!this.street().trim()) errors.street = 'Escribe la calle';
+      if (this.communeId() == null) errors.commune = ct('checkout.err.commune');
+      else if (this.zoneEstimate().kind === 'outside') errors.commune = ct('online.error.outside');
+      if (!this.street().trim()) errors.street = ct('checkout.err.street');
     }
 
     let scheduledFor: string | null = null;
@@ -604,13 +606,13 @@ export class CartaCheckoutSheet implements OnInit {
     else {
       const iso = this.selectedSlot();
       const prep = this.online().prepMinutes;
-      if (!iso) errors.when = m.location.isOpenNow ? 'Elige una hora' : 'El local está cerrado ahora. Programa tu pedido';
-      else if (new Date(iso).getTime() < now + (prep - 1) * 60_000) errors.when = `Programa entre ${prep} minutos y 7 días`;
+      if (!iso) errors.when = m.location.isOpenNow ? ct('checkout.err.time') : ct('checkout.err.closedSchedule');
+      else if (new Date(iso).getTime() < now + (prep - 1) * 60_000) errors.when = ct('online.error.schedule', { prep });
       else scheduledFor = iso;
     }
 
     const payment = this.payment();
-    if (!payment) errors.payment = 'Elige cómo vas a pagar';
+    if (!payment) errors.payment = ct('checkout.err.payment');
 
     this.errors.set(errors);
     if (Object.keys(errors).length || !payment) {

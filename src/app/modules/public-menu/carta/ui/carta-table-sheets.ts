@@ -4,6 +4,7 @@ import { TableBillDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaTableService, formatClock, MAX_TABLE_REQUEST_NOTE, readTableServiceError } from '../carta-table-service';
+import { CartaI18n } from '../carta-i18n';
 import { CartaIcon } from './carta-icon';
 
 const PRIMARY_BUTTON =
@@ -21,35 +22,35 @@ const SECONDARY_BUTTON =
     <div class="px-5 pb-6 pt-5">
       <h2 class="flex items-center gap-2 pr-10 text-xl font-bold tracking-tight">
         <app-carta-icon name="bell" [size]="22" class="text-primary" />
-        Llamar al mesero
+        {{ t('table.callWaiter') }}
       </h2>
       <div aria-live="polite">
         @if (open(); as r) {
-          <p class="mt-4 flex items-start gap-3 rounded-2xl bg-amber-500/15 px-4 py-3 text-[15px] font-semibold text-amber-800 dark:text-amber-300">
+          <p class="mt-4 flex items-start gap-3 rounded-2xl bg-amber-500/15 px-4 py-3 text-[0.9375rem] font-semibold text-amber-800 dark:text-amber-300">
             <app-carta-icon name="check" [size]="18" class="mt-px" />
-            <span>Ya avisamos al mesero ({{ time(r.createdAt) }})</span>
+            <span>{{ t('table.status.call', { time: time(r.createdAt) }) }}</span>
           </p>
           @if (r.note) {
-            <p class="mt-2 text-sm text-muted-foreground [overflow-wrap:anywhere]"><span class="font-semibold text-foreground">Nota:</span> {{ r.note }}</p>
+            <p class="mt-2 text-sm text-muted-foreground [overflow-wrap:anywhere]"><span class="font-semibold text-foreground">{{ t('table.noteLabel') }}</span> {{ r.note }}</p>
           }
         } @else if (service.status()?.tone === 'attended') {
-          <p class="mt-4 flex items-start gap-3 rounded-2xl bg-emerald-500/15 px-4 py-3 text-[15px] font-semibold text-emerald-800 dark:text-emerald-300">
+          <p class="mt-4 flex items-start gap-3 rounded-2xl bg-emerald-500/15 px-4 py-3 text-[0.9375rem] font-semibold text-emerald-800 dark:text-emerald-300">
             <app-carta-icon name="check" [size]="18" class="mt-px" />
-            El mesero va en camino
+            {{ t('table.status.attended') }}
           </p>
         }
       </div>
 
       @if (open()) {
-        <button type="button" class="mt-5 {{ secondary }}" (click)="done.emit()">Entendido</button>
+        <button type="button" class="mt-5 {{ secondary }}" (click)="done.emit()">{{ t('table.gotIt') }}</button>
       } @else {
-        <p class="mt-2 text-sm text-muted-foreground">Le avisaremos al mesero que lo necesitas en tu mesa.</p>
-        <label for="carta-waiter-note" class="mt-4 block text-sm font-semibold">Nota <span class="font-normal text-muted-foreground">(opcional)</span></label>
+        <p class="mt-2 text-sm text-muted-foreground">{{ t('table.waiterIntro') }}</p>
+        <label for="carta-waiter-note" class="mt-4 block text-sm font-semibold">{{ t('table.note') }} <span class="font-normal text-muted-foreground">{{ t('table.optional') }}</span></label>
         <textarea
           id="carta-waiter-note"
           rows="2"
-          class="mt-1.5 w-full resize-none rounded-2xl border border-border bg-card px-4 py-3 text-[15px] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
-          placeholder="Ej: Necesitamos más servilletas"
+          class="mt-1.5 w-full resize-none rounded-2xl border border-border bg-card px-4 py-3 text-[0.9375rem] outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
+          [placeholder]="t('table.waiterPlaceholder')"
           [maxLength]="maxNote"
           [value]="note()"
           aria-describedby="carta-waiter-note-count"
@@ -64,7 +65,7 @@ const SECONDARY_BUTTON =
         }
         <button type="button" class="mt-4 {{ primary }}" [disabled]="sending()" (click)="send()">
           <app-carta-icon name="bell" [size]="18" />
-          {{ sending() ? 'Avisando…' : 'Llamar al mesero' }}
+          {{ sending() ? t('table.sending') : t('table.callWaiter') }}
         </button>
       }
     </div>
@@ -83,6 +84,7 @@ export class CartaWaiterSheet {
   protected readonly primary = PRIMARY_BUTTON;
   protected readonly secondary = SECONDARY_BUTTON;
   protected readonly time = (iso: string) => formatClock(iso, this.timeZone());
+  protected readonly t = inject(CartaI18n).t;
 
   #sub: Subscription | null = null;
 
@@ -116,11 +118,11 @@ export class CartaWaiterSheet {
     <div class="px-5 pb-6 pt-5">
       <h2 class="flex items-center gap-2 pr-10 text-xl font-bold tracking-tight">
         <app-carta-icon name="wallet" [size]="22" class="text-primary" />
-        Tu cuenta
+        {{ t('table.yourBill') }}
       </h2>
 
       @if (loading()) {
-        <div class="mt-4 grid gap-2" aria-busy="true" aria-label="Cargando la cuenta">
+        <div class="mt-4 grid gap-2" aria-busy="true" [attr.aria-label]="t('table.loadingBill')">
           @for (i of [1, 2, 3]; track i) {
             <div class="h-10 animate-pulse rounded-xl bg-muted motion-reduce:animate-none"></div>
           }
@@ -130,16 +132,16 @@ export class CartaWaiterSheet {
           <app-carta-icon name="alert" [size]="16" class="mt-0.5" />
           {{ e }}
         </p>
-        <button type="button" class="mt-4 {{ secondary }}" (click)="load()">Reintentar</button>
+        <button type="button" class="mt-4 {{ secondary }}" (click)="load()">{{ t('table.retry') }}</button>
       } @else if (bill(); as b) {
         @if (b.open) {
           <p class="mt-1 text-sm text-muted-foreground">
             {{ b.table.name }}
             @if (b.invoiceNo) {
-              · N° {{ b.invoiceNo }}
+              · {{ t('table.invoiceNo', { n: b.invoiceNo }) }}
             }
           </p>
-          <ul class="mt-4 divide-y divide-border rounded-2xl border border-border" aria-label="Consumo de la mesa">
+          <ul class="mt-4 divide-y divide-border rounded-2xl border border-border" [attr.aria-label]="t('table.consumption')">
             @for (line of b.lines; track $index) {
               <li class="flex items-start gap-3 px-4 py-3 text-sm">
                 <span class="shrink-0 font-semibold tabular-nums">{{ line.quantity }} ×</span>
@@ -160,25 +162,25 @@ export class CartaWaiterSheet {
           <dl class="mt-4 grid gap-1.5 text-sm">
             @if (b.discount) {
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Subtotal</dt>
+                <dt class="text-muted-foreground">{{ t('table.subtotal') }}</dt>
                 <dd class="tabular-nums">{{ format(b.subtotal) }}</dd>
               </div>
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Descuento</dt>
+                <dt class="text-muted-foreground">{{ t('table.discount') }}</dt>
                 <dd class="tabular-nums">−{{ format(b.discount) }}</dd>
               </div>
             }
             <div class="flex items-baseline justify-between gap-3">
-              <dt class="font-semibold">Total</dt>
+              <dt class="font-semibold">{{ t('table.total') }}</dt>
               <dd class="text-base font-bold tabular-nums">{{ format(b.total) }}</dd>
             </div>
             @if (b.paid) {
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Pagado</dt>
+                <dt class="text-muted-foreground">{{ t('table.paid') }}</dt>
                 <dd class="tabular-nums">{{ format(b.paid) }}</dd>
               </div>
               <div class="flex justify-between gap-3">
-                <dt class="font-semibold">Pendiente</dt>
+                <dt class="font-semibold">{{ t('table.remaining') }}</dt>
                 <dd class="font-semibold tabular-nums">{{ format(b.remaining) }}</dd>
               </div>
             }
@@ -187,11 +189,11 @@ export class CartaWaiterSheet {
           @if (b.suggestedTip != null && b.suggestedTip > 0) {
             <dl class="mt-4 grid gap-1.5 rounded-2xl bg-muted px-4 py-3 text-sm">
               <div class="flex justify-between gap-3">
-                <dt class="text-muted-foreground">Propina sugerida ({{ b.suggestedTipPercent }}%)</dt>
+                <dt class="text-muted-foreground">{{ t('table.suggestedTip', { percent: b.suggestedTipPercent ?? '' }) }}</dt>
                 <dd class="tabular-nums">{{ format(b.suggestedTip) }}</dd>
               </div>
               <div class="flex items-baseline justify-between gap-3">
-                <dt class="font-semibold">Total con propina</dt>
+                <dt class="font-semibold">{{ t('table.totalWithTip') }}</dt>
                 <dd class="text-base font-bold tabular-nums">{{ format(b.total + b.suggestedTip) }}</dd>
               </div>
             </dl>
@@ -199,11 +201,11 @@ export class CartaWaiterSheet {
 
           <div class="mt-5" aria-live="polite">
             @if (requested(); as r) {
-              <p class="flex items-start gap-3 rounded-2xl bg-amber-500/15 px-4 py-3 text-[15px] font-semibold text-amber-800 dark:text-amber-300">
+              <p class="flex items-start gap-3 rounded-2xl bg-amber-500/15 px-4 py-3 text-[0.9375rem] font-semibold text-amber-800 dark:text-amber-300">
                 <app-carta-icon name="check" [size]="18" class="mt-px" />
-                <span>Ya avisamos al mesero ({{ time(r.createdAt) }}). Te traerá la cuenta</span>
+                <span>{{ t('table.billRequested', { time: time(r.createdAt) }) }}</span>
               </p>
-              <button type="button" class="mt-4 {{ secondary }}" (click)="done.emit()">Entendido</button>
+              <button type="button" class="mt-4 {{ secondary }}" (click)="done.emit()">{{ t('table.gotIt') }}</button>
             } @else {
               @if (sendError(); as e) {
                 <p class="mb-3 flex items-start gap-2 text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">
@@ -213,16 +215,16 @@ export class CartaWaiterSheet {
               }
               <button type="button" [class]="primary" [disabled]="sending()" (click)="request()">
                 <app-carta-icon name="wallet" [size]="18" />
-                {{ sending() ? 'Avisando…' : 'Pedir la cuenta' }}
+                {{ sending() ? t('table.sending') : t('table.requestBill') }}
               </button>
             }
           </div>
         } @else {
           <div class="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
             <app-carta-icon name="receipt" [size]="28" />
-            <p class="text-[15px] font-medium text-foreground">Tu mesa no tiene consumos todavía</p>
+            <p class="text-[0.9375rem] font-medium text-foreground">{{ t('table.noConsumption') }}</p>
           </div>
-          <button type="button" [class]="secondary" (click)="done.emit()">Seguir viendo la carta</button>
+          <button type="button" [class]="secondary" (click)="done.emit()">{{ t('table.keepBrowsing') }}</button>
         }
       }
     </div>
@@ -247,6 +249,7 @@ export class CartaBillSheet implements OnInit {
   protected readonly primary = PRIMARY_BUTTON;
   protected readonly secondary = SECONDARY_BUTTON;
   protected readonly time = (iso: string) => formatClock(iso, this.timeZone());
+  protected readonly t = inject(CartaI18n).t;
 
   #subs = new Subscription();
 
@@ -269,7 +272,7 @@ export class CartaBillSheet implements OnInit {
         },
         error: (e) => {
           this.loading.set(false);
-          const err = readTableServiceError(e, 'No pudimos cargar la cuenta. Intenta de nuevo');
+          const err = readTableServiceError(e, this.t('table.error.bill'));
           if (err.disabled) {
             this.service.unavailable.set(true);
             this.done.emit();

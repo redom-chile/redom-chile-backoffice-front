@@ -7,6 +7,8 @@ const ORDER_ERROR_BY_CODE: Partial<Record<string, string>> = {
   [ApiErrorCode.ORDER_HAS_PAYMENTS]: 'El pedido tiene pagos registrados. Anúlalos antes de cancelarlo.',
   [ApiErrorCode.ORDER_NOT_OPEN]: 'El pedido ya no está abierto.',
   [ApiErrorCode.TABLE_BLOCKED]: 'La mesa está bloqueada y no puede recibir pedidos.',
+  // Al cambiar el cliente de una venta con un canje de fidelización.
+  LOYALTY_REWARD_ALREADY_APPLIED: 'La venta tiene una recompensa canjeada: no se puede cambiar el cliente.',
 };
 
 /** Acepta el error normalizado (`readApiError`) o, por compatibilidad, solo el status HTTP. */

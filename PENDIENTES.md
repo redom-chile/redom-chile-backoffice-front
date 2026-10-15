@@ -3,7 +3,7 @@
 Lo que falta por hacer o mejorar, por área. Lo que depende del backend está detallado en `BACKEND-REQUESTS.md` (se cita por número).
 Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitaciones.
 
-Última actualización: 2026-10-07.
+Última actualización: 2026-10-15.
 
 ## Pruebas pendientes
 
@@ -201,7 +201,21 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Mejoras etapa 4: "Ver venta de la mesa" lleva al listado de ventas filtrado (el POS no abre una mesa por URL); la encuesta del personal trae máximo 100 respuestas; ver #53 (reservas de la carta en el listado y su visibilidad).
 - Etapa 5 implementada (retiro y delivery): en la carta sin QR, carrito online (localStorage), checkout con datos del cliente recordados, dirección con comuna o ubicación, zona con envío/mínimo/tiempo, hora lo antes posible o programada, método de pago y resumen; transferencia con datos bancarios para copiar y subida del comprobante; seguimiento en `/carta/pedido/{id}`. Para el personal: retiro y delivery, tiempo de preparación, métodos de pago, datos bancarios y zonas de reparto (comunas o radio, ordenables) en el local; tarjetas con canal, teléfono/WhatsApp, dirección, comprobante, Confirmar pago y avance Listo → En camino → Entregado en la pestaña En curso. Falta probarla de punta a punta.
 - Mejoras etapa 5: no se pueden borrar los datos bancarios (solo editar); sin selector de mapa para las coordenadas; ver #54 (URLs públicas), #55 (zona y filtros) y #56 (comunas públicas y contexto del pedido).
+- Etapa 6 implementada (API pública y widget): Configuración → API y widget con Llaves (publicables con orígenes o secretas, mostradas una sola vez, revocar), Webhooks (eventos, probar, rotar secreto, historial con payload y reenviar, ayuda con firma HMAC) y Widget (snippet iframe o script con vista previa; disponible sin plan porque usa la carta sin llave; llaves y webhooks exigen el plan Empresa). Carta con `?embed=1` (altura automática, enlaces en pestaña nueva, barra y diálogos visibles en el iframe) y `redom.cl/widget.js`. Falta probar el widget en una web real (en especial Safari de iOS).
+- Mejoras etapa 6: el historial de webhooks muestra los últimos 50 sin paginar; al ir a una categoría dentro de una web con encabezado fijo, el scroll puede quedar tapado; ver #57 (códigos de error).
+- Carta: botón "Aa" con modo Automático/Claro/Oscuro (mismo ajuste que la landing) y tamaño del texto (87,5 % a 137,5 %, se recuerda). En modo oscuro se ignoran el fondo y el texto personalizados del negocio (se mantiene su color principal). Falta probar en Safari de iOS.
+- Etapa 7 implementada (idiomas y fidelización): carta con selector de idioma (🇪🇸 🇬🇧 🇧🇷 🇩🇪, se recuerda y viaja en `?lang=`) y todos sus textos fijos en es/en/pt/de; en el local, casillas de idiomas; Configuración → Idiomas de la carta con traducción a mano, borradores, publicar y traducción con IA. Fidelización (/loyalty): programa de puntos o sellos, recompensas, clientes con movimientos y ajuste manual; en el POS, canje desde la venta abierta y asignar o cambiar el cliente de una venta abierta. El seguimiento de retiro y delivery muestra el saldo del cliente.
+- Mejoras etapa 7: revisar las traducciones de la interfaz de la carta con hablantes nativos (en/pt/de; las escribió la IA); el seguimiento abierto desde el correo no envía `lang`; los productos para sellos muestran "Producto #id" si están fuera de los primeros 100; la cuota de IA solo se conoce después de usarla (no hay GET); ver #58.
 - Configuración: `environment.publicSiteUrl` del backoffice (redom.cl en develop y prod) debe apuntar a donde está publicada la landing de cada ambiente.
+
+## Variedades de productos
+
+- [ ] E2E: crear un producto con variedades, pasar uno de precio único a variedades (la primera conserva el id), quitar una y volver a precio único; venderlas en el POS y verlas en cocina.
+- Quitar una variedad la desactiva y la deja sin precio (no hay endpoint para eliminarla): así se oculta de la carta pública, que no filtra `is_active` (#59). Volver a agregarla crea otra.
+- No se pueden reordenar: se muestran en el orden de creación (el backend no tiene posición).
+- Renombrar la primera variedad (o volver a precio único, que la renombra a `DUMMY`) cambia el nombre que muestran las ventas antiguas: el detalle de venta y cocina leen el nombre actual.
+- Cada variedad tiene su propia receta y stock; el formulario solo lo avisa, no las configura.
+- El backend no valida largo ni nombres repetidos de las variaciones: lo valida el front.
 
 ## Otros pendientes generales
 
