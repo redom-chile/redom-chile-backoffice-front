@@ -77,7 +77,7 @@ export function openLoyaltyRedeemModal(dialog: MatDialog, data: LoyaltyRedeemMod
               <span class="shrink-0 text-right text-xs">
                 <span class="text-foreground block font-semibold">{{ balance(reward.cost) }}</span>
                 @if (!reward.affordable) {
-                <span class="text-muted-foreground block">Faltan {{ reward.cost - customer.balance }}</span>
+                <span class="text-muted-foreground block">{{ missing(reward.cost - customer.balance) }}</span>
                 }
               </span>
             </button>
@@ -125,6 +125,11 @@ export class LoyaltyRedeemModalComponent {
   readonly $notFound = computed(() => readApiError(this.$error()).status === 404);
   readonly $errorMessage = computed(() => getLoyaltyErrorMessage(this.$error(), 'No se pudo cargar el saldo.', { pos: true }) ?? 'No se pudo cargar el saldo.');
   readonly $redeemingId = signal<number | null>(null);
+
+  /** "Faltan 3 puntos" / "Falta 1 sello". */
+  missing(amount: number): string {
+    return `${amount === 1 ? 'Falta' : 'Faltan'} ${this.balance(amount)}`;
+  }
 
   balance(amount: number): string {
     return formatLoyaltyBalance(amount, this.$customer()?.mechanic ?? null);

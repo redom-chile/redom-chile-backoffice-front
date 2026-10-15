@@ -63,7 +63,7 @@ const LIMIT = 50;
         } @else if (!$list()?.length) {
         <app-empty-state icon="history" title="Aún no hay envíos" description="Cuando ocurra un evento (o uses Probar) aparecerá aquí." />
         } @else {
-        <p class="text-muted-foreground mb-2 text-xs">Últimos {{ limit }} envíos. Toca una fila para ver el JSON enviado.</p>
+        <p class="text-muted-foreground mb-2 text-xs">Últimos {{ limit }} envíos. Toca un evento para ver el JSON enviado.</p>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[640px] text-left text-sm">
             <thead class="text-muted-foreground border-b border-[var(--border)] text-xs">
@@ -80,15 +80,20 @@ const LIMIT = 50;
             <tbody>
               @for (delivery of $list(); track delivery.id) {
               @let open = $expanded() === delivery.id;
-              <tr class="hover:bg-muted/30 cursor-pointer border-b border-[var(--border)]" [attr.aria-expanded]="open" (click)="toggle(delivery.id)">
+              <tr class="hover:bg-muted/30 border-b border-[var(--border)]">
                 <td class="py-2 pr-2">
-                  <span class="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    class="focus-visible:ring-primary inline-flex items-center gap-1 rounded-md text-left focus:outline-none focus-visible:ring-2"
+                    [attr.aria-expanded]="open"
+                    [attr.aria-controls]="open ? 'webhook-delivery-' + delivery.id : null"
+                    (click)="toggle(delivery.id)">
                     <app-icon class="text-muted-foreground h-4 w-4 shrink-0 transition-transform" [class.rotate-90]="open" aria-hidden="true">chevron_right</app-icon>
                     <span>
                       <span class="block">{{ eventLabel(delivery.event) }}</span>
                       <span class="text-muted-foreground block font-mono text-xs">{{ delivery.event }}</span>
                     </span>
-                  </span>
+                  </button>
                 </td>
                 <td class="px-2 py-2">
                   <span class="rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap" [class]="statusClasses[delivery.status]">{{ statusLabels[delivery.status] }}</span>
@@ -105,7 +110,7 @@ const LIMIT = 50;
                   {{ delivery.status === 'pending' && delivery.nextAttemptAt ? formatRelative(delivery.nextAttemptAt) : '—' }}
                 </td>
                 <td class="px-2 py-2 text-xs whitespace-nowrap">{{ formatDateTime(delivery.createdAt) }}</td>
-                <td class="py-2 pl-2 text-right" (click)="$event.stopPropagation()">
+                <td class="py-2 pl-2 text-right">
                   @if (delivery.status !== 'delivered') {
                   <app-button
                     *appCheckPermission="PERMISSIONS.PUBLIC_API.MANAGE"
@@ -122,7 +127,7 @@ const LIMIT = 50;
                 </td>
               </tr>
               @if (open) {
-              <tr class="border-b border-[var(--border)]">
+              <tr class="border-b border-[var(--border)]" [id]="'webhook-delivery-' + delivery.id">
                 <td colspan="7" class="py-2">
                   @if (delivery.lastError) {
                   <p class="text-destructive mb-2 text-xs">Error: {{ delivery.lastError }}</p>

@@ -9,7 +9,7 @@ import { CartaAnalytics } from '../carta-analytics';
 import { CartaEmbed } from '../carta-embed';
 import { CartaDisplay } from '../carta-display';
 import { CartaI18n, CartaLang, ct } from '../carta-i18n';
-import { CARTA_BASE_PATH, CartaLoadError, readCartaError, saveTableQr } from '../carta-utils';
+import { CARTA_BASE_PATH, CartaLoadError, readCartaError } from '../carta-utils';
 import { CartaMenuView } from '../ui/carta-menu-view';
 import { CartaRetry, CartaSkeleton, CartaUnavailable } from '../ui/carta-states';
 
@@ -81,7 +81,6 @@ export class CartaMenuPage {
         this.#location = location;
         this.#qr = validQr;
         this.qr.set(validQr);
-        if (validQr) saveTableQr(validQr);
         this.load(silent);
       });
     inject(DestroyRef).onDestroy(() => this.#request?.unsubscribe());
@@ -97,6 +96,7 @@ export class CartaMenuPage {
         this.#i18n.useMenuLanguage(menu.language);
         this.#setMeta(menu);
         this.state.set({ status: 'ready', menu });
+        this.#keepLangInUrl();
         if (silent) return;
         this.#analytics.start(menu.business.slug, menu.location.slug);
         this.#analytics.track('menu_view');
@@ -118,6 +118,14 @@ export class CartaMenuPage {
   /** Guarda la elección y la deja en la URL; el cambio de ?lang= recarga la carta. */
   protected changeLanguage(lang: CartaLang): void {
     this.#i18n.choose(lang);
+    void this.#router.navigate([], { relativeTo: this.#route, queryParams: { lang }, queryParamsHandling: 'merge', replaceUrl: true, preserveFragment: true });
+  }
+
+  /** Idioma guardado (no venía en la URL): se agrega ?lang= para que se mantenga al compartir o navegar. */
+  #keepLangInUrl(): void {
+    const lang = this.#lang;
+    if (!lang || typeof location === 'undefined' || this.#route.snapshot.queryParamMap.get('lang') === lang) return;
+    this.#i18n.requested.set(lang);
     void this.#router.navigate([], { relativeTo: this.#route, queryParams: { lang }, queryParamsHandling: 'merge', replaceUrl: true, preserveFragment: true });
   }
 

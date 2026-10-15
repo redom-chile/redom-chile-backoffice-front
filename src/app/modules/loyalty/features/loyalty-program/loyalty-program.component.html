@@ -34,7 +34,7 @@
           <p class="text-sm font-medium">{{ form.isActive ? 'Activo' : 'Pausado' }}</p>
           <p class="text-muted-foreground text-xs">Pausado no suma ni permite canjear.</p>
         </div>
-        <app-toggle [checked]="form.isActive" [disabled]="!canManage" (changed)="set('isActive', $event)" />
+        <app-toggle ariaLabel="Programa activo" [checked]="form.isActive" [disabled]="!canManage" (changed)="set('isActive', $event)" />
       </div>
     </div>
 
@@ -82,9 +82,9 @@
         <span>{{ form.pointsPerUnit === 1 ? 'punto' : 'puntos' }} por cada $</span>
         <input
           type="number"
-          inputmode="numeric"
+          inputmode="decimal"
           min="1"
-          step="1"
+          step="0.01"
           aria-label="Monto con IVA"
           class="glass-input w-28 rounded-md px-2 py-1.5 text-right"
           [class.border-red-500]="show('amountUnit')"

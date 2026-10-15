@@ -1,7 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { PublicCategoryRangeDto, PublicLocationDto, PublicScheduleDto } from '../data-access/dtos/public-menu.dto';
-import { formatTime, TABLE_QR_STORAGE_KEY } from '../data-access/public-menu-format';
+import { formatTime } from '../data-access/public-menu-format';
 import { cartaDayName, cartaDayShort, ct } from './carta-i18n';
 
 /** Ruta donde se monta la carta (la landing la monta en /carta). */
@@ -23,14 +23,6 @@ export function readCartaError(error: unknown, basePath: string): CartaLoadError
   if (api.code === 'RATE_LIMITED' || api.status === 429) return { kind: 'rate-limited' };
   if (api.code === 'MENU_NOT_FOUND' || api.status === 404 || api.status === 400) return { kind: 'not-found' };
   return { kind: 'error', offline: api.status === 0 };
-}
-
-export function saveTableQr(qr: string): void {
-  try {
-    sessionStorage.setItem(TABLE_QR_STORAGE_KEY, qr);
-  } catch {
-    // Sin almacenamiento (modo privado): el qr sigue en la URL
-  }
 }
 
 // --- Enlaces del encabezado ---

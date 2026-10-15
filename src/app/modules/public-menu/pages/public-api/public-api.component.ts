@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { PUBLIC_API_DOCS_URL } from 'src/app/modules/public-menu/data-access';
+import { TabDirective, TabListDirective } from 'src/app/modules/public-menu/features/a11y-tabs';
 import { MarketingUpsellCardComponent } from 'src/app/modules/public-menu/features/marketing-upsell-card';
 import { PublicApiKeysComponent } from 'src/app/modules/public-menu/features/public-api-keys';
 import { PublicApiWebhooksComponent } from 'src/app/modules/public-menu/features/public-api-webhooks';
@@ -22,7 +23,7 @@ const TABS: ReadonlyArray<{ id: Tab; label: string; icon: string }> = [
 /** Configuración → API y widget: llaves, webhooks y el widget de la carta. Query param: tab (keys|webhooks|widget). */
 @Component({
   selector: 'app-public-api',
-  imports: [HeaderDashboardComponent, IconComponent, MarketingUpsellCardComponent, PublicApiKeysComponent, PublicApiWebhooksComponent, PublicApiWidgetComponent],
+  imports: [TabDirective, TabListDirective, HeaderDashboardComponent, IconComponent, MarketingUpsellCardComponent, PublicApiKeysComponent, PublicApiWebhooksComponent, PublicApiWidgetComponent],
   templateUrl: './public-api.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

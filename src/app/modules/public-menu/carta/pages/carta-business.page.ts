@@ -9,7 +9,7 @@ import { CartaEmbed } from '../carta-embed';
 import { CartaDisplay } from '../carta-display';
 import { CartaI18n, ct } from '../carta-i18n';
 import { CartaDisplayMenu } from '../ui/carta-display-menu';
-import { CARTA_BASE_PATH, CartaLoadError, initials, readCartaError, saveTableQr } from '../carta-utils';
+import { CARTA_BASE_PATH, CartaLoadError, initials, readCartaError } from '../carta-utils';
 import { CartaIcon } from '../ui/carta-icon';
 import { CartaRetry, CartaSkeleton, CartaUnavailable } from '../ui/carta-states';
 
@@ -153,10 +153,8 @@ export class CartaBusinessPage {
     const qr = slug.toLowerCase();
     if (TABLE_QR_PATTERN.test(qr)) {
       this.#request = this.#api.getTable(qr).subscribe({
-        next: (t) => {
-          saveTableQr(qr);
-          void this.#router.navigate([this.basePath, t.businessSlug, t.locationSlug], { queryParams: { qr, ...this.embed.queryParams }, replaceUrl: true });
-        },
+        next: (t) =>
+          void this.#router.navigate([this.basePath, t.businessSlug, t.locationSlug], { queryParams: { qr, ...this.embed.queryParams }, replaceUrl: true }),
         error: (e) => this.#fail(e),
       });
       return;

@@ -45,6 +45,8 @@ function toForm(program: LoyaltyProgramDto | null): FormState {
 }
 
 const isInt = (value: number | null): value is number => value !== null && Number.isInteger(value);
+// Igual que el backend (IsNumber maxDecimalPlaces: 2).
+const hasMaxDecimals = (value: number, places: number) => (String(value).split('.')[1]?.length ?? 0) <= places;
 
 /** Pestaña Programa: mecánica de puntos o sellos, vencimiento y estado. */
 @Component({
@@ -144,6 +146,7 @@ export class LoyaltyProgramComponent {
     if (form.mechanic === 'points') {
       if (!isInt(form.pointsPerUnit) || form.pointsPerUnit < 1 || form.pointsPerUnit > 1000) problems.points = 'Entre 1 y 1.000 puntos.';
       if (form.amountUnit === null || !(form.amountUnit >= 1)) problems.amountUnit = 'Ingresa un monto de al menos $1.';
+      else if (!hasMaxDecimals(form.amountUnit, 2)) problems.amountUnit = 'Usa hasta 2 decimales.';
     } else if (!form.stampRule) {
       problems.stampRule = 'Elige cómo se gana un sello.';
     } else if (form.stampRule === 'visit') {

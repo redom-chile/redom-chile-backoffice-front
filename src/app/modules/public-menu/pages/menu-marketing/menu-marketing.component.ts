@@ -6,6 +6,7 @@ import { map, Observable, of } from 'rxjs';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsService, PlanFeatureCode } from 'src/app/core/services/entitlements';
+import { TabDirective, TabListDirective } from 'src/app/modules/public-menu/features/a11y-tabs';
 import { MarketingBannersComponent } from 'src/app/modules/public-menu/features/marketing-banners';
 import { MarketingBrandingComponent } from 'src/app/modules/public-menu/features/marketing-branding';
 import { MarketingPromotionsComponent } from 'src/app/modules/public-menu/features/marketing-promotions';
@@ -45,6 +46,8 @@ const TABS: ReadonlyArray<{ id: Tab; label: string; icon: string; feature: PlanF
 @Component({
   selector: 'app-menu-marketing',
   imports: [
+    TabDirective,
+    TabListDirective,
     RouterLink,
     HeaderDashboardComponent,
     IconComponent,

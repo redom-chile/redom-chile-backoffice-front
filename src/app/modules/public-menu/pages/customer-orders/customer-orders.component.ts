@@ -25,6 +25,7 @@ import {
   isInProgress,
   tableLabel,
 } from 'src/app/modules/public-menu/features/customer-order-card';
+import { TabDirective, TabListDirective } from 'src/app/modules/public-menu/features/a11y-tabs';
 import { CustomerOrderCountService } from 'src/app/modules/public-menu/features/customer-order-count';
 import { CustomerOrderFeedbackComponent } from 'src/app/modules/public-menu/features/customer-order-feedback';
 import { CustomerOrderRequestCardComponent, TABLE_REQUEST_TYPES } from 'src/app/modules/public-menu/features/customer-order-request-card';
@@ -51,6 +52,8 @@ const rank = (value: OrderFulfillment | null | undefined) => (value ? FULFILLMEN
 @Component({
   selector: 'app-customer-orders',
   imports: [
+    TabDirective,
+    TabListDirective,
     RouterLink,
     HeaderDashboardComponent,
     ButtonComponent,

@@ -90,7 +90,9 @@ function fromDateInput(value: string, timeZone: string, endOfDay: boolean): stri
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
   const [, y, m, d] = match.map(Number);
-  return zonedToInstant(y, m, d, endOfDay ? 23 : 0, endOfDay ? 59 : 0, timeZone).toISOString();
+  if (!endOfDay) return zonedToInstant(y, m, d, 0, 0, timeZone).toISOString();
+  // El backend da por terminado cuando endsAt <= ahora: 23:59:59.999 para que cuente el último minuto.
+  return new Date(zonedToInstant(y, m, d, 23, 59, timeZone).getTime() + 59_999).toISOString();
 }
 
 export function scheduleFromEntity(entity: ScheduleEntity | null | undefined, timeZone?: string | null): ScheduleFormValue {

@@ -23,13 +23,14 @@
   description="Tus clientes piden desde el QR de su mesa y tú aceptas los pedidos aquí, o los mandas directo a cocina." />
 } @else {
 <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-  <nav class="glass-input flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" role="tablist" aria-label="Pedidos">
+  <nav appTabList class="glass-input flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" aria-label="Pedidos">
     <button
       type="button"
-      role="tab"
+      id="customer-orders-tab-pending"
       class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'pending' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === 'pending'"
+      [appTab]="tab === 'pending'"
+      tabPanel="customer-orders-panel"
       (click)="selectTab('pending')">
       Pendientes
       @if (pendingCount > 0) {
@@ -43,10 +44,11 @@
     @if ($hasOnline()) {
     <button
       type="button"
-      role="tab"
+      id="customer-orders-tab-active"
       class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'active' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === 'active'"
+      [appTab]="tab === 'active'"
+      tabPanel="customer-orders-panel"
       (click)="selectTab('active')">
       En curso
       @if (activeCount > 0) {
@@ -60,19 +62,21 @@
     }
     <button
       type="button"
-      role="tab"
+      id="customer-orders-tab-history"
       class="inline-flex h-9 flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'history' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === 'history'"
+      [appTab]="tab === 'history'"
+      tabPanel="customer-orders-panel"
       (click)="selectTab('history')">
       Historial
     </button>
     <button
       type="button"
-      role="tab"
+      id="customer-orders-tab-requests"
       class="inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'requests' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === 'requests'"
+      [appTab]="tab === 'requests'"
+      tabPanel="customer-orders-panel"
       (click)="selectTab('requests')">
       Solicitudes
       @if (requestCount > 0) {
@@ -85,10 +89,11 @@
     </button>
     <button
       type="button"
-      role="tab"
+      id="customer-orders-tab-feedback"
       class="inline-flex h-9 flex-1 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-3 text-sm font-medium sm:px-4 md:flex-none"
       [class]="tab === 'feedback' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
-      [attr.aria-selected]="tab === 'feedback'"
+      [appTab]="tab === 'feedback'"
+      tabPanel="customer-orders-panel"
       (click)="selectTab('feedback')">
       Encuestas
     </button>
@@ -127,6 +132,7 @@
 </div>
 }
 
+<div id="customer-orders-panel" role="tabpanel" [attr.aria-labelledby]="'customer-orders-tab-' + tab">
 @if ($locationId()) {
 @if (tab === 'pending') {
 <!-- Pendientes -->
@@ -350,4 +356,5 @@
 }
 }
 }
+</div>
 }

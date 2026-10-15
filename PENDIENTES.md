@@ -51,15 +51,7 @@ Pendientes:
 
 **Media:** corregidos el 2026-10-15 (reservas con las 2 h dentro del horario; avisos "Se agotó" del carrito como código, recalculados y traducidos; aviso de cambios sin guardar en Personalización; mensajes del backend en marketing y 404 al borrar tratado como ya eliminado; cliente de la venta en solo lectura en el POS; variedades quitadas ocultas en selectores de inventario y recetas, con "Quitada" si tienen stock o receta, y "Sin receta" por variedad en el producto; slugs nulos sin URLs con "null" y tipos corregidos). Queda por backend: Stock, Conteos y Food cost siguen mostrando variedades quitadas (#66).
 
-**Baja**
-- [ ] Carta: el idioma guardado no se agrega a la URL (`?lang=`) si no venía en ella; `isOpenNow` no se refresca con la carta abierta mucho rato; los `href` de las categorías quedan con la URL anterior tras cambiar idioma; código muerto `saveTableQr`.
-- [ ] Comprobante: deducir el tipo por la extensión si el navegador no informa `file.type` (algunos celulares).
-- [ ] Accesibilidad: pestañas sin `tabpanel`/flechas (Pedidos de clientes, Marketing, API); fila del historial de webhooks sin teclado; menú "Agotar" sin Escape; orden de recompensas solo arrastrando; `app-toggle` sin `aria-label` en fidelización.
-- [ ] Marketing: `endsAt` de promociones y banners a las 23:59 (no 23:59:59); nombres de productos enlazados de los primeros 100.
-- [ ] Encuestas de retiro y delivery muestran "Sin mesa"; mostrar el canal.
-- [ ] Fidelización: "Faltan N" sin unidad; pestañas visibles con el plan bloqueado; `amountUnit` acepta más de 2 decimales; producto gratis sin filtrar los no vendibles.
-- [ ] Variedades: impedir una variedad llamada igual que el producto (se oculta en la carta, como `DUMMY`).
-- [ ] Menú: "Marketing de la carta" no muestra candado en Free (cae en `qr_menu`); `plan-routes` no soporta "alguna de" varias funciones.
+**Baja:** corregidos el 2026-10-15 (idioma en la URL, abierto/cerrado recalculado cada minuto, anclas de categorías, código muerto; comprobante con tipo por extensión; pestañas accesibles con flechas, historial de webhooks y menú "Agotar" con teclado, `app-toggle` con nombre accesible y recompensas con subir/bajar; promociones y banners hasta las 23:59:59 y nombres de productos enlazados fuera de los primeros 100; "Faltan N puntos"; pestañas de fidelización ocultas sin plan; 2 decimales en el monto por punto; producto gratis no vendible; variedad con el nombre del producto; candado de Marketing con "alguna de" las funciones). Queda por backend: canal en las encuestas (#67).
 
 ## 2.3 Pruebas de punta a punta
 

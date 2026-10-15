@@ -114,6 +114,9 @@
             [attr.aria-label]="'Nombre de la variedad ' + (i + 1)"
             [class]="inputClass"
             [ngClass]="{ 'border-red-500': isVarietyInvalid(variety, 'name') }" />
+          @if (isNamedAsProduct(variety)) {
+          <p class="text-destructive mt-1 text-xs">Usa un nombre distinto al del producto (por ejemplo, el tamaño o el sabor)</p>
+          }
           @if (inventoryEnabled() && $stockMode() === 'recipe' && hasNoRecipe(variety)) {
           <p class="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
             <app-icon class="h-3.5 w-3.5 shrink-0">warning</app-icon>Sin receta
