@@ -16,6 +16,14 @@
     <div class="w-52">
       <app-business-location-selector forSale (selectedLocationChange)="handleLocationChange($event)" />
     </div>
+    <!-- Acceso rápido a los agotados del local en la carta pública -->
+    <a
+      *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_AVAILABILITY"
+      routerLink="/settings/public-menu/sold-out"
+      [queryParams]="$locationId() ? { locationId: $locationId() } : {}"
+      class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium">
+      <app-icon class="h-4 w-4" aria-hidden="true">block</app-icon>Agotados
+    </a>
     }
     @if ($isReady() && $useWaiters()) {
     <div class="ml-auto flex items-center gap-2">
@@ -90,7 +98,10 @@
         (customerChange)="$customer.set($event)"
         (sendToKitchenChange)="$sendToKitchen.set($event)"
         (submitOrder)="handleSubmit()"
-        (collect)="handleCollect()" />
+        (collect)="handleCollect()"
+        (loyaltyRedeemed)="handleLoyaltyRedeemed()"
+        [savingCustomer]="$isSavingCustomer()"
+        (orderCustomerChange)="handleOrderCustomerChange($event)" />
     </div>
   </div>
   }

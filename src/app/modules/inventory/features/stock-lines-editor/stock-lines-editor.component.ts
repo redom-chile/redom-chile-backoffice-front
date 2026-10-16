@@ -405,7 +405,7 @@ export class StockLinesEditorComponent {
   // No hay búsqueda por id: se piden los primeros ítems y se filtra por la variación.
   #preselect(variationId: number) {
     this.#itemsService
-      .search('', { includeIngredients: this.#settings.$ingredientsEnabled() }, 100)
+      .search('', { includeIngredients: this.#settings.$ingredientsEnabled(), includeRemoved: true }, 100)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (items) => {

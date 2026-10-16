@@ -12,7 +12,17 @@
     [inventoryEnabled]="$inventoryEnabled()"
     [ingredientsEnabled]="$ingredientsEnabled()"
     [units]="$units()"
+    [missingRecipeIds]="$missingRecipeIds()"
+    (configureRecipe)="handleConfigureRecipe()"
     (imageChange)="onImageChange($event)" [autoSuggestSku]="false" />
+
+  @if ($tags().length) {
+  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" [note]="tagsNote" />
+  }
+
+  @if ($isPack()) {
+  <app-product-pack-editor class="mt-4 block" [content]="pack" [productId]="product.id" />
+  }
 
   <ng-template app-slot="footer">
     <div class="flex flex-wrap items-center justify-end gap-3">

@@ -3,7 +3,7 @@
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <h2 class="text-foreground truncate text-xl font-semibold">{{ data.name }}</h2>
-        <p class="text-muted-foreground text-sm font-normal tabular-nums">{{ formatCurrency(data.basePrice) }}@if ($pricing().excludesVat) { <span class="text-xs">+IVA</span> }</p>
+        <p class="text-muted-foreground text-sm font-normal tabular-nums">{{ formatCurrency($basePrice()) }}@if ($pricing().excludesVat) { <span class="text-xs">+IVA</span> }</p>
       </div>
       <button type="button" class="text-muted-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-md" aria-label="Cerrar" (click)="handleCancel()">
         <app-icon class="h-5 w-5">close</app-icon>
@@ -12,6 +12,85 @@
   </ng-template>
 
   <div class="space-y-4 px-1 pb-1">
+    @if (varieties.length) {
+    <fieldset>
+      <legend class="text-foreground mb-2 text-sm font-semibold">Variedad</legend>
+      <ul class="space-y-1.5">
+        @for (variety of varieties; track variety.variationId) {
+        @let selected = $variationId() === variety.variationId;
+        <li class="glass-row flex min-h-12 items-center rounded-lg border-2 px-3 py-1.5" [class.border-primary]="selected" [class.border-transparent]="!selected">
+          <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-1">
+            <input type="radio" name="product-variety" class="h-5 w-5 shrink-0 accent-[var(--primary)]" [checked]="selected" (change)="$variationId.set(variety.variationId)" />
+            <span class="text-foreground min-w-0 flex-1 break-words text-sm">{{ variety.name }}</span>
+            <span class="text-muted-foreground shrink-0 text-sm tabular-nums">{{ formatCurrency(variety.price) }}</span>
+          </label>
+        </li>
+        }
+      </ul>
+    </fieldset>
+    }
+
+    @if (isPack) {
+    <section aria-label="Opciones del pack" class="space-y-4">
+      <p class="text-foreground text-sm font-semibold">Elige las opciones del pack</p>
+      @if (!$pack()) {
+      <p class="text-muted-foreground text-sm">Cargando opciones…</p>
+      } @else {
+      @if ($fixedGroups().length) {
+      <div>
+        <p class="text-muted-foreground mb-1.5 text-xs font-medium uppercase tracking-wider">Incluye</p>
+        <ul class="space-y-1">
+          @for (group of $fixedGroups(); track group.id) {
+          @for (item of group.items; track item.id) {
+          <li class="text-foreground flex items-center gap-2 text-sm">
+            <app-icon class="text-primary h-4 w-4 shrink-0">check</app-icon>
+            <span class="min-w-0 flex-1 break-words">{{ packChoiceLabel(item) }}</span>
+            @if (item.extraPrice > 0) {
+            <span class="text-muted-foreground shrink-0 tabular-nums">+{{ formatCurrency(item.extraPrice) }}</span>
+            }
+          </li>
+          }
+          }
+        </ul>
+      </div>
+      }
+      @for (group of $choiceGroups(); track group.id) {
+      @let count = groupCount(group);
+      @let valid = groupIsValid(group);
+      <fieldset>
+        <legend class="mb-2 flex w-full flex-wrap items-baseline justify-between gap-x-2">
+          <span class="text-foreground text-sm font-semibold">{{ group.name }}</span>
+          <span [class]="valid ? 'text-muted-foreground text-xs' : 'text-xs font-medium text-red-600 dark:text-red-400'">
+            {{ groupHint(group) }}@if (group.maxChoices > 1) { · {{ count }}/{{ group.maxChoices }} }
+          </span>
+        </legend>
+        <ul class="space-y-1.5">
+          @for (item of group.items; track item.id) {
+          @let selected = isPackItemSelected(group, item);
+          @let blocked = !selected && group.maxChoices > 1 && count >= group.maxChoices;
+          <li class="glass-row flex min-h-12 items-center rounded-lg border-2 px-3 py-1.5" [class.border-primary]="selected" [class.border-transparent]="!selected" [class.opacity-50]="blocked">
+            <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-1">
+              <input
+                [type]="group.maxChoices === 1 && group.minChoices >= 1 ? 'radio' : 'checkbox'"
+                [name]="'pack-group-' + group.id"
+                class="h-5 w-5 shrink-0 accent-[var(--primary)]"
+                [checked]="selected"
+                [disabled]="blocked"
+                (change)="togglePackItem(group, item)" />
+              <span class="text-foreground min-w-0 flex-1 break-words text-sm">{{ packChoiceLabel(item) }}</span>
+              @if (item.extraPrice > 0) {
+              <span class="text-muted-foreground shrink-0 text-sm tabular-nums">+{{ formatCurrency(item.extraPrice) }}</span>
+              }
+            </label>
+          </li>
+          }
+        </ul>
+      </fieldset>
+      }
+      }
+    </section>
+    }
+
     @for (set of sets; track set.id) {
     <fieldset>
       <legend class="text-foreground mb-2 text-sm font-semibold">{{ set.name }}</legend>
@@ -81,7 +160,7 @@
     </div>
     <div class="grid grid-cols-2 gap-2">
       <app-button type="button" full impact="light" (buttonClick)="handleCancel()">Cancelar</app-button>
-      <app-button type="button" full impact="bold" (buttonClick)="handleConfirm()">{{ isEditing ? 'Guardar' : 'Agregar' }}</app-button>
+      <app-button type="button" full impact="bold" [disabled]="!$canConfirm()" (buttonClick)="handleConfirm()">{{ isEditing ? 'Guardar' : 'Agregar' }}</app-button>
     </div>
   </ng-template>
 </app-modal-card>

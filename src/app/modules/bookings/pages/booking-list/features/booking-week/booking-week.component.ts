@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BookingDto } from '../../data-access';
-import { addDays, dateKeyOf, fromDateKey, timeOf, toDateKey } from '../../ui';
+import { addDays, dateKeyOf, fromDateKey, isPendingMenuBooking, MENU_BOOKING_LABEL, timeOf, toDateKey } from '../../ui';
 
 type WeekColumn = Readonly<{ key: string; weekday: string; day: number; isToday: boolean; bookings: BookingDto[] }>;
 
@@ -24,6 +24,8 @@ export class BookingWeekComponent {
   protected readonly $canEdit = computed(() => this.access.can(PERMISSIONS.BOOKINGS.UPDATE_BOOKING));
 
   readonly timeOf = timeOf;
+  readonly isPendingMenuBooking = isPendingMenuBooking;
+  readonly menuBookingLabel = MENU_BOOKING_LABEL;
 
   // Las canceladas llegan solo si el filtro de estado las incluye; se muestran tachadas.
   chipClass(booking: BookingDto): string {

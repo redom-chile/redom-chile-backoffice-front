@@ -13,6 +13,14 @@
     [units]="$units()"
     (imageChange)="onImageChange($event)" />
 
+  @if ($tags().length) {
+  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" />
+  }
+
+  @if ($isPack()) {
+  <app-product-pack-editor class="mt-4 block" [content]="pack" />
+  }
+
   <ng-template app-slot="footer">
     <div class="flex justify-end gap-3">
       <app-button type="button" impact="light" [disabled]="$isLoading()" (buttonClick)="handleCancel()"> Cancelar </app-button>

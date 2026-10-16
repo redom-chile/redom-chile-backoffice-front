@@ -11,7 +11,7 @@ const BY_CODE: Record<string, string> = {
 const BY_MESSAGE: ReadonlyArray<[RegExp, string]> = [
   [/Cash register not found/i, 'No encontramos esa caja.'],
   [/Cash session not found/i, 'No encontramos ese turno.'],
-  [/cash register is inactive/i, 'La caja está desactivada. Actívala en Configuración → Cajas.'],
+  [/cash register is inactive/i, 'La caja está desactivada. Actívala en Equipos y pagos → Cajas.'],
   [/belongs to another location/i, 'La caja elegida es de otro local que el pedido.'],
   [/counted twice/i, 'Un medio de pago está contado dos veces.'],
   [/cash must be counted/i, 'Cuenta el efectivo para cerrar la caja.'],

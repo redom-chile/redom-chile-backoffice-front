@@ -15,13 +15,13 @@ position: 2
 
 | Tarea | Tipo | Te lleva a |
 |---|---|---|
-| Crea tu local | Esencial | Negocio → Sucursales |
+| Crea tu local | Esencial | Mi negocio → Sucursales |
 | Carga tu carta (al menos un producto a la venta con precio) | Esencial | Carta → Productos |
 | Toma tu primer pedido | Esencial | POS |
-| Completa los datos fiscales (RUT del negocio) | Recomendado | Negocio → Mi negocio |
+| Completa los datos fiscales (RUT del negocio) | Recomendado | Mi negocio |
 | Configura tus mesas | Opcional | Mesas |
-| Invita a tu equipo (otro usuario además de ti) | Opcional | Roles y permisos → Usuarios |
-| Conecta una impresora o una estación de cocina | Opcional | Configuración → Impresoras o Estaciones |
+| Invita a tu equipo (otro usuario además de ti) | Opcional | Equipo y permisos → Usuarios |
+| Conecta una impresora o una estación de cocina | Opcional | Equipos y pagos → Impresoras o Estaciones |
 
 ## Cómo usarla
 

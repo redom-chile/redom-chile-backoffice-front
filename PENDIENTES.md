@@ -1,9 +1,75 @@
-# Redom — Pendientes y mejoras del front
+# Redom — Lo que hay y lo que se viene (front)
 
-Lo que falta por hacer o mejorar, por área. Lo que depende del backend está detallado en `BACKEND-REQUESTS.md` (se cita por número).
-Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitaciones.
+Estado del front por módulo y lo que falta, priorizado. Lo que depende del backend está en `BACKEND-REQUESTS.md` (se cita por número).
+Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitaciones en el detalle por área.
 
-Última actualización: 2026-10-07.
+Última actualización: 2026-10-15 (revisión general de la carta pública, etapas 1 a 7).
+
+# 1. Lo que hay
+
+| Módulo | Estado | Probado |
+|---|---|---|
+| POS, pedidos, cobro (dividir, propina sugerida), mesas, sectores, cocina | Implementado | Parcial (falta E2E de dividir por productos) |
+| Inventario: fases 1 a 5 (stock, modificadores, recetas, costeo, preparaciones, OC, lotes) | Implementado | Solo fase 1 |
+| Caja y turnos; gastos y cuentas por pagar; propinas y comisiones | Implementado | No |
+| Onboarding y Mi negocio | Implementado | No |
+| Centro de ayuda y asistente con IA | Implementado | No |
+| Planes y suscripciones (fases 2 a 6: entitlements, Plataforma, pago manual, Flow, proceso diario) | Implementado | No |
+| Roles y permisos | Implementado (`enforcePermissions` encendido en todos los ambientes) | No |
+| Acceso de soporte | Implementado | No |
+| Carta pública 1: carta por local, QR, publicar, agotados, etiquetas y horarios | Implementado | No |
+| Carta pública 2: promociones, banners, ventana de ofertas, packs, personalización | Implementado | No |
+| Carta pública 3: pedidos desde la mesa y bandeja de Pedidos de clientes | Implementado | No |
+| Carta pública 4: mesero, cuenta, reservas y encuesta (barra inferior experimental) | Implementado | No |
+| Carta pública 5: retiro y delivery, zonas, pago con comprobante, seguimiento | Implementado | No |
+| Carta pública 6: llaves, webhooks, widget y carta incrustada | Implementado | No |
+| Carta pública 7: idiomas (carta y traducciones con IA) y fidelización (con canje en el POS) | Implementado | No |
+| Carta: modo oscuro y tamaño del texto ("Aa") | Implementado | No |
+| Variedades de productos (formulario, tabla, POS) | Implementado | No |
+
+**Revisión general (2026-10-15):** cuatro revisiones (carta pública, administración de la carta, fidelización/POS/variedades y contratos/permisos/planes). Los contratos con el backend calzan (rutas, campos, enums, permisos y planes). Se corrigieron 15 errores, entre ellos: "Lo antes posible" con el local cerrado programaba el pedido sin aviso; delivery sin comunas dejaba pedir y fallaba; subcategorías fuera de horario no se atenuaban; encuestas de hoy no aparecían; los textos sin guardar de la tarjeta del local se perdían al guardar otra cosa; el formulario bancario se vaciaba; variedades con precio decimal no se podían guardar; textos de errores faltantes (MENU_MOVED, PRODUCT_UNAVAILABLE, ORDER_TOO_LARGE, llaves de API).
+
+# 2. Lo que se viene
+
+## 2.1 Decisiones
+
+Tomadas (2026-10-15):
+- Permisos en producción: `enforcePermissions` encendido en `environment.prod.ts` (requiere el backend de permisos desplegado).
+- Carta en develop: sin landing propia por ahora; los QR y enlaces de develop abren `redom.cl` (API de prod).
+- Widget: lo ve cualquier rol que vea la carta (`public-menu:see-module`); Llaves y Webhooks siguen pidiendo `public-api:*` (o muestran el aviso del plan a quien configura la carta).
+- Cancelar un pedido por transferencia con el comprobante enviado: se mantiene oculto por ahora.
+- Pack con variedades: se permite; lo decide el dueño.
+- Barra inferior "liquid glass" de la carta: se queda.
+- Menú lateral reordenado por tarea: Día a día (Resumen, Ventas, Salón, Cocina) · Carta y clientes (Carta con Agotados de hoy, Carta online, Clientes con Fidelización) · Administración (Inventario, Recetas y costos, Finanzas) · Negocio (Mi negocio con Horarios, Equipo y permisos, Equipos y pagos, Plan y facturación, Ayuda) · Plataforma (SUPERADMIN) · Plantilla.
+
+Pendientes:
+- [ ] Precios de los planes y qué incluye cada uno (borrador en el prompt de planes).
+- [ ] Ítems de la plantilla en el menú (Errors, Components, Download, Gift Card, Users, Notifications, Folders): confirmar si se eliminan (hoy solo los ve el SUPERADMIN, en el grupo "Plantilla").
+- [ ] Artículos del Centro de ayuda: actualizados en `docs/help-center/` con el menú nuevo; volver a cargarlos en el backend (migración o CRUD) para que la app los muestre así.
+
+## 2.2 Errores y mejoras del front (por prioridad)
+
+**Media:** corregidos el 2026-10-15 (reservas con las 2 h dentro del horario; avisos "Se agotó" del carrito como código, recalculados y traducidos; aviso de cambios sin guardar en Personalización; mensajes del backend en marketing y 404 al borrar tratado como ya eliminado; cliente de la venta en solo lectura en el POS; variedades quitadas ocultas en selectores de inventario y recetas, con "Quitada" si tienen stock o receta, y "Sin receta" por variedad en el producto; slugs nulos sin URLs con "null" y tipos corregidos). Queda por backend: Stock, Conteos y Food cost siguen mostrando variedades quitadas (#66).
+
+**Baja:** corregidos el 2026-10-15 (idioma en la URL, abierto/cerrado recalculado cada minuto, anclas de categorías, código muerto; comprobante con tipo por extensión; pestañas accesibles con flechas, historial de webhooks y menú "Agotar" con teclado, `app-toggle` con nombre accesible y recompensas con subir/bajar; promociones y banners hasta las 23:59:59 y nombres de productos enlazados fuera de los primeros 100; "Faltan N puntos"; pestañas de fidelización ocultas sin plan; 2 decimales en el monto por punto; producto gratis no vendible; variedad con el nombre del producto; candado de Marketing con "alguna de" las funciones). Queda por backend: canal en las encuestas (#67).
+
+## 2.3 Pruebas de punta a punta
+
+- [ ] Carta pública, etapas 1 a 7, contra la API real y en un deploy de Netlify (incluye QR de mesa, pedidos, mesero/cuenta, reservas, retiro y delivery con comprobante, widget en una web real, idiomas).
+- [ ] Revisión en Safari de iOS: carta, barra inferior, modo oscuro, tamaño del texto y widget.
+- [ ] Revisión de las traducciones de la carta (en/pt/de) por hablantes nativos.
+- [ ] Fidelización: programa, recompensa de $2.000, venta con cliente, canje y anulación (pasos del prompt de la etapa 7).
+- [ ] Variedades: crear, pasar de precio único, quitar, vender en el POS y ver en cocina.
+- [ ] El resto de módulos: ver "Pruebas pendientes" abajo.
+
+## 2.4 Esperando al backend (`BACKEND-REQUESTS.md`)
+
+- **Bloqueante:** #39 (token renovado; la sesión se cierra a las 2 h).
+- **Inventario:** #66 `isActive` de variaciones en stock, recetas y food cost.
+- **Carta pública:** #51 etiquetas y horario al editar · #52 pack sin opción · #53 reservas de la carta en el listado · #54 `QR_BASE_URL` a la landing · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos en la API pública · #59 ocultar variaciones inactivas · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 horario del local en reservas · #63 datos nulos y documentación · #65 IP del cliente detrás de Netlify y develop.
+- **Otros:** #15, #16, #28–#38, #41, #43–#45, #48, #49, #58, #64.
+
+# 3. Detalle por área
 
 ## Pruebas pendientes
 
@@ -175,29 +241,53 @@ Al cerrar un punto, bórralo de aquí; al agregar una fase, anota sus limitacion
 - Fase 6 implementada (proceso diario): en Mi suscripción, mensajes para suscripción terminada ("Elegir un plan") y plan vencido ("Reactivar" con el mismo plan); en Plataforma → Resumen, botón "Ejecutar proceso diario" con su resultado. Los avisos se actualizan solos porque whoami (con entitlements) se refresca cada minuto con la pestaña activa. Falta probarlo.
 - Configuración: el `.env` del backend debe tener `BILLING_FRONT_URL=http://localhost:4200` (estaba en 4300, la landing).
 - Por confirmar con el backend: "Pagar con tarjeta" de un cobro de prorrateo usa el checkout del precio actual (como indica el prompt); falta un endpoint para cobrar una factura específica. Con el pago "en proceso" solo se vuelve a consultar una vez a los 60 s.
-- Próximas fases (esperando al backend): checkout (Flow y transferencia), "Mi suscripción", panel Plataforma del superadmin, y en Roles y permisos deshabilitar los módulos fuera del plan (cuando exista el mapa `module_codes`).
 - Detalles menores: el candado no aparece en el tooltip del menú colapsado; los días de prueba del banner no se recalculan sin recargar; los banners también se ven en `/billing/plans`; las pantallas de caja muestran "módulo apagado" según el ajuste del negocio (sus rutas ya exigen la función `cash`); la URL de `billing` en AWS está por confirmar.
 - Decisiones tomadas: prueba de 15 días en Pro (el superadmin activa o desactiva la exigencia de tarjeta), lo no incluido se muestra con candado ofreciendo subir de plan, pago manual + Flow, todos los pagos registrados y la tarjeta solo como marca y últimos 4 dígitos cifrados.
 - Asumido (confirmar): al vencer el pago hay 7 días de gracia y después el negocio baja a Free sin perder datos; los recursos sobre el límite quedan en solo lectura.
-- Por definir: precios de cada plan (mensual y anual) y qué incluye cada uno (hay un borrador en el prompt).
-- Front por hacer cuando responda el backend: Mi negocio → Plan y facturación (comparar, checkout con Flow o transferencia, tarjeta, cupón, cobros, cancelar), banner de prueba o pago vencido, candados en el menú y en Roles y permisos, interceptor de errores `PLAN_*`, grupo Plataforma del superadmin (resumen, negocios, planes, descuentos, cobros, ajustes) y sección de precios en la landing.
 
 ## Acceso de soporte (#50)
 
 - Implementado: el dueño autoriza a Redom desde Mi negocio → Soporte (1, 3, 7, 14 o 30 días, nota, extender, terminar, actividad e historial); el superadmin entra en modo soporte desde Plataforma → Negocios o Accesos de soporte (franja fija con Salir, menú y rutas solo de la carta, header `X-Support-Business-Id`, candados con el plan del negocio, sale solo al terminar o vencer). Falta probarlo E2E.
 - Mejoras: filtro por negocio en Accesos de soporte; la actividad del dueño oculta `email_failed` en el front (páginas con menos filas); el superadmin no ve la actividad de un acceso (no hay endpoint de plataforma).
 
+## Carta pública (etapas 1 a 7)
+
+- Implementada: carta para clientes en la landing (`/carta/{negocio}`, `/carta/{negocio}/{local}`, `/carta/{QR de mesa}`), con código compartido en `src/app/modules/public-menu/carta`; administración en Configuración → Carta pública (URL, QR, publicar, datos, direcciones) y Agotados de hoy (con acceso desde el POS); etiquetas en productos y horario en categorías. Falta probarla contra la API real y en un deploy de Netlify.
+- Vista previa en WhatsApp/Instagram: la carta se arma en el navegador, así que comparte la tarjeta genérica de la landing; para una por negocio hace falta una Edge Function de Netlify o SSR.
+- Esperando al backend (#51): devolver etiquetas del producto y horario de la categoría para mostrarlos al editar.
+- Mejoras: "Hasta mañana" usado después de medianoche agota hasta el día siguiente; el menú "Agotar" puede salirse de la pantalla en el celular; el QR del local no tiene vista previa (solo descarga).
+- Etapa 2 implementada (marketing): en la carta, precio con promoción y anterior tachado, carrusel de banners, ventana de ofertas con frecuencia, "Los más pedidos", packs (informativo), colores y portada, analítica por lotes; en el backoffice, Configuración → Marketing de la carta (Promociones, Banners con orden y frecuencia de la ventana, Personalización con vista previa y contraste) y el tipo "Pack / combo" con su editor en el producto. Falta probarla en el navegador.
+- Mejoras etapa 2: `GET /products/:id/pack` no trae el precio de referencia de las opciones; "Por defecto" en un grupo no se limita al máximo; al editar un banner con link a producto, el nombre sale de los primeros 100 productos; la tabla de productos no muestra un badge "Pack"; con fondo claro elegido y el dispositivo en modo oscuro, la insignia "Abierto" pierde un poco de contraste.
+- Etapa 3 implementada (pedidos desde la mesa): en la carta con QR, agregar con cantidad, nota, opciones y elección del pack, carrito por mesa, envío con los errores del backend, "Tu pedido" con seguimiento y cancelación, "Mis pedidos"; para el personal, POS → Pedidos de clientes (pendientes con sonido y aviso, aceptar o rechazar con motivo, historial, contador en el menú) y la sección Pedidos del local en Carta pública; packs en el POS (selector de opciones, productos del pack en el detalle con su estado y "Servir"). Falta probarla de punta a punta.
+- Mejoras etapa 3: "Mis pedidos" no se refresca solo; ante ORDERING_DISABLED no se recarga la carta; el sonido de pedidos nuevos solo suena con la pantalla de Pedidos de clientes abierta; el selector de locales de esa pantalla depende de que el rol pueda listar locales; el comprobante parcial impreso desde el cobro no lista los productos del pack; ver #52 (grupo opcional del pack sin opción).
+- Etapa 4 implementada (servicio en la mesa, reservas y encuesta): en la carta, barra inferior "liquid glass" experimental (`CARTA_BOTTOM_BAR` en `carta/ui/carta-bottom-bar.ts`; en false vuelven los botones flotantes) con Pedir, Mesero, Cuenta (detalle y propina sugerida), Pedidos y Reservar; formulario de reserva en la zona horaria del local; encuesta con estrellas y link a Google. Para el personal: pestañas Solicitudes y Encuestas en Pedidos de clientes, interruptores de llamar al mesero y reservas, etiqueta "Desde la carta" en Reservas. Falta probarla de punta a punta.
+- Mejoras etapa 4: "Ver venta de la mesa" lleva al listado de ventas filtrado (el POS no abre una mesa por URL); la encuesta del personal trae máximo 100 respuestas; ver #53 (reservas de la carta en el listado y su visibilidad).
+- Etapa 5 implementada (retiro y delivery): en la carta sin QR, carrito online (localStorage), checkout con datos del cliente recordados, dirección con comuna o ubicación, zona con envío/mínimo/tiempo, hora lo antes posible o programada, método de pago y resumen; transferencia con datos bancarios para copiar y subida del comprobante; seguimiento en `/carta/pedido/{id}`. Para el personal: retiro y delivery, tiempo de preparación, métodos de pago, datos bancarios y zonas de reparto (comunas o radio, ordenables) en el local; tarjetas con canal, teléfono/WhatsApp, dirección, comprobante, Confirmar pago y avance Listo → En camino → Entregado en la pestaña En curso. Falta probarla de punta a punta.
+- Mejoras etapa 5: no se pueden borrar los datos bancarios (solo editar); sin selector de mapa para las coordenadas; ver #54 (URLs públicas), #55 (zona y filtros) y #56 (comunas públicas y contexto del pedido).
+- Etapa 6 implementada (API pública y widget): Configuración → API y widget con Llaves (publicables con orígenes o secretas, mostradas una sola vez, revocar), Webhooks (eventos, probar, rotar secreto, historial con payload y reenviar, ayuda con firma HMAC) y Widget (snippet iframe o script con vista previa; disponible sin plan porque usa la carta sin llave; llaves y webhooks exigen el plan Empresa). Carta con `?embed=1` (altura automática, enlaces en pestaña nueva, barra y diálogos visibles en el iframe) y `redom.cl/widget.js`. Falta probar el widget en una web real (en especial Safari de iOS).
+- Mejoras etapa 6: el historial de webhooks muestra los últimos 50 sin paginar; al ir a una categoría dentro de una web con encabezado fijo, el scroll puede quedar tapado; ver #57 (códigos de error).
+- Carta: botón "Aa" con modo Automático/Claro/Oscuro (mismo ajuste que la landing) y tamaño del texto (87,5 % a 137,5 %, se recuerda). En modo oscuro se ignoran el fondo y el texto personalizados del negocio (se mantiene su color principal). Falta probar en Safari de iOS.
+- Etapa 7 implementada (idiomas y fidelización): carta con selector de idioma (🇪🇸 🇬🇧 🇧🇷 🇩🇪, se recuerda y viaja en `?lang=`) y todos sus textos fijos en es/en/pt/de; en el local, casillas de idiomas; Configuración → Idiomas de la carta con traducción a mano, borradores, publicar y traducción con IA. Fidelización (/loyalty): programa de puntos o sellos, recompensas, clientes con movimientos y ajuste manual; en el POS, canje desde la venta abierta y asignar o cambiar el cliente de una venta abierta. El seguimiento de retiro y delivery muestra el saldo del cliente.
+- Mejoras etapa 7: revisar las traducciones de la interfaz de la carta con hablantes nativos (en/pt/de; las escribió la IA); el seguimiento abierto desde el correo no envía `lang`; los productos para sellos muestran "Producto #id" si están fuera de los primeros 100; la cuota de IA solo se conoce después de usarla (no hay GET); ver #58.
+- Configuración: `environment.publicSiteUrl` del backoffice (redom.cl en develop y prod) debe apuntar a donde está publicada la landing de cada ambiente.
+
+## Variedades de productos
+
+- [ ] E2E: crear un producto con variedades, pasar uno de precio único a variedades (la primera conserva el id), quitar una y volver a precio único; venderlas en el POS y verlas en cocina.
+- Quitar una variedad la desactiva y la deja sin precio (no hay endpoint para eliminarla): así se oculta de la carta pública, que no filtra `is_active` (#59). Volver a agregarla crea otra.
+- No se pueden reordenar: se muestran en el orden de creación (el backend no tiene posición).
+- Renombrar la primera variedad (o volver a precio único, que la renombra a `DUMMY`) cambia el nombre que muestran las ventas antiguas: el detalle de venta y cocina leen el nombre actual.
+- Cada variedad tiene su propia receta y stock; el formulario solo lo avisa, no las configura.
+- El backend no valida largo ni nombres repetidos de las variaciones: lo valida el front.
+
 ## Otros pendientes generales
 
-- Página pública de la carta `app.redom.cl/carta/:qrCode` (`GET /restaurant/api/menu/:qrCode`, ver #7).
 - Configuración de despliegue en Netlify.
 - Etapa de permisos (roles y permisos por negocio):
-  - Falta la prueba E2E desde la UI (los 7 casos del prompt del backend). `enforcePermissions` ya está encendido en local y develop; en prod sigue apagado hasta desplegar ese backend.
+  - Falta la prueba E2E desde la UI (los 7 casos del prompt del backend). `enforcePermissions` está encendido en todos los ambientes (prod requiere ese backend desplegado).
   - El menú solo muestra pantallas sin permiso propio si están en `PUBLIC_ROUTES` (`/help`, `/profile`): los ítems de plantilla (Errors, Components, Collaboration, Folders) quedan solo para el SUPERADMIN.
   - Las constantes de `src/app/core/permissions` son copia de los enums del backend: al agregar un permiso allá, copiarlo aquí.
   - El mapa de pantalla a permiso (`permission-routes.ts`) tiene supuestos: Ingredientes → `products`, Terminal de salón → `orders`, `/finance/purchases` → `payables`.
   - "Usuarios y roles" y el selector de "Copiar permisos de" cargan hasta 100 roles.
   - Las pantallas Módulos y Permisos (plataforma) no se revisaron más allá de los códigos.
   - Un 403 `PERMISSION_DENIED` muestra un aviso propio; las pantallas que además muestran su error genérico no se ajustaron una por una (el aviso de permiso queda encima).
-- Limpiar del menú los ítems de la plantilla (Errors, Components, Download, Gift Card, Users). Falta confirmación.
-- Solicitudes al backend con workaround: #15, #16, #28–#38, #41, #43–#45. Bloqueante: #39.

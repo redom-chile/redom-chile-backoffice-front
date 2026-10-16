@@ -1,0 +1,198 @@
+@let form = $form();
+@let canManage = $canManage();
+@if (!program() && !$creating()) {
+<app-empty-state icon="loyalty" title="Crea tu programa" description="Elige si tus clientes juntan puntos por lo que gastan o sellos por visita o producto.">
+  @if (canManage) {
+  <app-button type="button" impact="bold" tone="primary" shape="rounded" (buttonClick)="$creating.set(true)">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Crear programa</span>
+  </app-button>
+  } @else {
+  <p class="text-muted-foreground text-xs">Solo el dueño o un administrador puede crearlo.</p>
+  }
+</app-empty-state>
+} @else {
+<form class="glass max-w-3xl space-y-6 rounded-[1rem] p-4 sm:p-6" (submit)="$event.preventDefault(); save()">
+  <fieldset class="contents" [disabled]="!canManage || $isSaving()">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0 flex-1">
+        <label for="loyalty-name" class="mb-1 block text-sm font-medium">Nombre del programa *</label>
+        <input
+          id="loyalty-name"
+          type="text"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('name')"
+          [maxLength]="nameMax"
+          placeholder="Club de clientes"
+          [value]="form.name"
+          (input)="setText($event)" />
+        @if (show('name'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        }
+      </div>
+      <div class="flex items-center gap-3 sm:pt-6">
+        <div class="text-right">
+          <p class="text-sm font-medium">{{ form.isActive ? 'Activo' : 'Pausado' }}</p>
+          <p class="text-muted-foreground text-xs">Pausado no suma ni permite canjear.</p>
+        </div>
+        <app-toggle ariaLabel="Programa activo" [checked]="form.isActive" [disabled]="!canManage" (changed)="set('isActive', $event)" />
+      </div>
+    </div>
+
+    <div>
+      <span class="mb-1 block text-sm font-medium">Mecánica *</span>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Mecánica">
+        <label class="cursor-pointer">
+          <input type="radio" name="loyalty-mechanic" value="points" class="peer sr-only" [checked]="form.mechanic === 'points'" (change)="set('mechanic', 'points')" />
+          <span class="glass-row peer-checked:ring-primary flex items-start gap-3 rounded-lg p-3 peer-checked:ring-2 peer-focus-visible:ring-2">
+            <app-icon class="text-primary h-6 w-6 shrink-0" aria-hidden="true">stars</app-icon>
+            <span>
+              <span class="block text-sm font-semibold">Puntos</span>
+              <span class="text-muted-foreground block text-xs">Según lo que gasta en cada compra.</span>
+            </span>
+          </span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="loyalty-mechanic" value="stamps" class="peer sr-only" [checked]="form.mechanic === 'stamps'" (change)="set('mechanic', 'stamps')" />
+          <span class="glass-row peer-checked:ring-primary flex items-start gap-3 rounded-lg p-3 peer-checked:ring-2 peer-focus-visible:ring-2">
+            <app-icon class="text-primary h-6 w-6 shrink-0" aria-hidden="true">approval</app-icon>
+            <span>
+              <span class="block text-sm font-semibold">Sellos</span>
+              <span class="text-muted-foreground block text-xs">Por visita, o por cada producto o categoría.</span>
+            </span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    @if (form.mechanic === 'points') {
+    <div class="glass-row rounded-lg p-3">
+      <p class="flex flex-wrap items-center gap-2 text-sm">
+        <span>Gana</span>
+        <input
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="1000"
+          step="1"
+          aria-label="Puntos"
+          class="glass-input w-20 rounded-md px-2 py-1.5 text-right"
+          [class.border-red-500]="show('points')"
+          [value]="form.pointsPerUnit ?? ''"
+          (input)="setNumber('pointsPerUnit', $event)" />
+        <span>{{ form.pointsPerUnit === 1 ? 'punto' : 'puntos' }} por cada $</span>
+        <input
+          type="number"
+          inputmode="decimal"
+          min="1"
+          step="0.01"
+          aria-label="Monto con IVA"
+          class="glass-input w-28 rounded-md px-2 py-1.5 text-right"
+          [class.border-red-500]="show('amountUnit')"
+          [value]="form.amountUnit ?? ''"
+          (input)="setNumber('amountUnit', $event)" />
+      </p>
+      <p class="text-muted-foreground mt-2 text-xs">El monto es con IVA. Los puntos se suman cuando la venta queda pagada.</p>
+      @for (error of [show('points'), show('amountUnit')]; track $index) {
+      @if (error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      }
+      }
+    </div>
+    } @else {
+    <div class="space-y-3">
+      <div class="glass-row space-y-3 rounded-lg p-3">
+        <label class="flex cursor-pointer flex-wrap items-center gap-2 text-sm">
+          <input type="radio" name="loyalty-stamp-rule" class="accent-[var(--primary)] h-4 w-4" [checked]="form.stampRule === 'visit'" (change)="setRule('visit')" />
+          <span>1 sello por visita sobre $</span>
+          <input
+            type="number"
+            inputmode="numeric"
+            min="0"
+            step="1"
+            aria-label="Monto mínimo de la compra"
+            class="glass-input w-28 rounded-md px-2 py-1.5 text-right"
+            [class.border-red-500]="show('stampMinAmount')"
+            [disabled]="form.stampRule !== 'visit' || !canManage"
+            [value]="form.stampMinAmount ?? ''"
+            (input)="setNumber('stampMinAmount', $event)" />
+        </label>
+        @if (show('stampMinAmount'); as error) {
+        <p class="text-destructive text-xs">{{ error }}</p>
+        }
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <label class="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              name="loyalty-stamp-rule"
+              class="accent-[var(--primary)] h-4 w-4"
+              [checked]="form.stampRule === 'product' || form.stampRule === 'category'"
+              (change)="setRule('product')" />
+            <span>1 sello por cada unidad de</span>
+          </label>
+          <select
+            aria-label="Productos o categorías"
+            class="glass-input rounded-md px-2 py-1.5"
+            [disabled]="(form.stampRule !== 'product' && form.stampRule !== 'category') || !canManage"
+            (change)="setRule($any($event.target).value)">
+            <option value="product" [selected]="form.stampRule !== 'category'">productos</option>
+            <option value="category" [selected]="form.stampRule === 'category'">categorías</option>
+          </select>
+        </div>
+        @if (form.stampRule === 'product' || form.stampRule === 'category') {
+        <app-loyalty-target-select
+          inputId="loyalty-targets"
+          [type]="form.stampRule"
+          [value]="form.stampTargetIds"
+          [disabled]="!canManage"
+          [invalid]="!!show('targets')"
+          (valueChange)="set('stampTargetIds', $event)" />
+        @if (show('targets'); as error) {
+        <p class="text-destructive text-xs">{{ error }}</p>
+        }
+        }
+        @if (show('stampRule'); as error) {
+        <p class="text-destructive text-xs">{{ error }}</p>
+        }
+      </div>
+      <p class="text-muted-foreground text-xs">Los sellos se suman cuando la venta queda pagada.</p>
+    </div>
+    }
+
+    <div class="border-t border-[var(--border)] pt-4">
+      <label class="flex cursor-pointer flex-wrap items-center gap-2 text-sm">
+        <input type="checkbox" class="accent-[var(--primary)] h-4 w-4" [checked]="form.expires" (change)="set('expires', $any($event.target).checked)" />
+        <span>El saldo vence tras</span>
+        <input
+          type="number"
+          inputmode="numeric"
+          min="7"
+          max="3650"
+          step="1"
+          aria-label="Días sin compras"
+          class="glass-input w-24 rounded-md px-2 py-1.5 text-right"
+          [class.border-red-500]="show('expireDays')"
+          [disabled]="!form.expires || !canManage"
+          [value]="form.expireDays ?? ''"
+          (input)="setNumber('expireDays', $event)" />
+        <span>días sin compras</span>
+      </label>
+      @if (show('expireDays'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      }
+    </div>
+  </fieldset>
+
+  <div class="flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-muted-foreground text-xs">
+      @if (program(); as current) { Última modificación: {{ formatDate(current.updatedAt) }} }
+      @if (!canManage) { · Solo el dueño o un administrador puede cambiarlo. }
+    </p>
+    @if (canManage) {
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="reset()">{{ program() ? 'Descartar' : 'Cancelar' }}</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="save()">{{ program() ? 'Guardar' : 'Crear programa' }}</app-button>
+    </div>
+    }
+  </div>
+</form>
+}

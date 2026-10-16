@@ -1,0 +1,130 @@
+@let v = $value();
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ banner ? 'Editar banner' : 'Nuevo banner' }}</h2>
+  </ng-template>
+
+  <form [formGroup]="form" class="space-y-5 p-2" (ngSubmit)="handleSubmit()">
+    <div>
+      <span class="mb-1 block text-sm font-medium">Dónde se muestra *</span>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Dónde se muestra">
+        <label class="cursor-pointer">
+          <input type="radio" value="banner" formControlName="display" class="peer sr-only" />
+          <span class="glass-row peer-checked:ring-primary block rounded-lg p-3 peer-checked:ring-2 peer-focus-visible:ring-2">
+            <span class="block text-sm font-semibold">Banner</span>
+            <span class="text-muted-foreground block text-xs">En el carrusel, arriba de la carta.</span>
+          </span>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" value="modal" formControlName="display" class="peer sr-only" />
+          <span class="glass-row peer-checked:ring-primary block rounded-lg p-3 peer-checked:ring-2 peer-focus-visible:ring-2">
+            <span class="block text-sm font-semibold">Ventana de ofertas</span>
+            <span class="text-muted-foreground block text-xs">Aparece al abrir la carta (la primera activa y vigente).</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label for="banner-type" class="mb-1 block text-sm font-medium">Tipo *</label>
+        <select id="banner-type" formControlName="type" class="glass-input w-full rounded-md px-3 py-2">
+          @for (type of types; track type) {
+          <option [value]="type">{{ typeLabels[type] }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label for="banner-location" class="mb-1 block text-sm font-medium">Local</label>
+        <select id="banner-location" formControlName="locationId" class="glass-input w-full rounded-md px-3 py-2">
+          <option value="">Todos los locales</option>
+          @for (location of data.locations; track location.id) {
+          <option [value]="location.id">{{ location.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="banner-title" class="mb-1 block text-sm font-medium">Título *</label>
+        <input
+          id="banner-title"
+          type="text"
+          [attr.maxlength]="titleMax"
+          formControlName="title"
+          placeholder="Ej: Menú del día a $5.990"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('title')" />
+        @if (show('title'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        }
+      </div>
+      <div class="sm:col-span-2">
+        <label for="banner-subtitle" class="mb-1 block text-sm font-medium">Texto</label>
+        <textarea
+          id="banner-subtitle"
+          rows="2"
+          [attr.maxlength]="subtitleMax"
+          formControlName="subtitle"
+          placeholder="Ej: Entrada, fondo y postre, de lunes a viernes"
+          class="glass-input w-full resize-y rounded-md px-3 py-2"
+          [class.border-red-500]="show('subtitle')"></textarea>
+        <p class="mt-1 flex justify-between gap-2 text-xs">
+          <span class="text-destructive">{{ show('subtitle') }}</span>
+          <span class="text-muted-foreground">{{ v.subtitle.length }}/{{ subtitleMax }}</span>
+        </p>
+      </div>
+    </div>
+
+    <app-image-picker
+      folder="menu_banners"
+      label="Imagen"
+      [currentUrl]="banner?.imageUrl"
+      [disabled]="$isSaving()"
+      [uploading]="$uploading()"
+      [progress]="$progress()"
+      (selectionChange)="onImage($event)" />
+
+    <!-- Enlace -->
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Al tocarlo abre</legend>
+      <select id="banner-link-type" formControlName="linkType" class="glass-input w-full rounded-md px-3 py-2" aria-label="Tipo de enlace">
+        @for (type of linkTypes; track type) {
+        <option [value]="type">{{ linkLabels[type] }}</option>
+        }
+      </select>
+      @if (v.linkType === 'product' || v.linkType === 'category') {
+      <app-marketing-target-picker [type]="v.linkType" [(selected)]="$linkTarget" [invalid]="!!show('link')" />
+      } @else if (v.linkType === 'url') {
+      <input
+        type="url"
+        inputmode="url"
+        formControlName="linkUrl"
+        placeholder="https://"
+        aria-label="Dirección web"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="show('link')" />
+      }
+      @if (show('link'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      }
+    </fieldset>
+
+    <app-marketing-schedule-field [(value)]="$schedule" [error]="show('schedule')" />
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activo</p>
+        <p class="text-muted-foreground text-xs">Inactivo no se muestra aunque esté en horario.</p>
+      </div>
+      <app-toggle [checked]="$isActive()" (changed)="$isActive.set($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ banner ? 'Guardar' : 'Crear banner' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

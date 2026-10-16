@@ -15,7 +15,7 @@ Solo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.
 
 ## Abrir la caja
 
-1. Ve a **POS → Tomar pedido**.
+1. Ve a **Ventas → Tomar pedido**.
 2. Arriba verás el aviso *"Caja principal: caja cerrada"*. Toca **Abrir caja**.
 3. Si el local tiene varias cajas, elige la **Caja**.
 4. Escribe el **Fondo inicial**: el efectivo con que parte la caja (sencillo para dar vuelto). También puedes usar los atajos *Sin fondo*, $20.000, $50.000 o $100.000.
@@ -41,7 +41,7 @@ Toca el indicador verde para abrir el panel del turno. Ahí ves quién abrió, e
 
 ## Errores comunes
 
-- **"Este local no tiene cajas activas. Actívalas en Configuración → Cajas."**: crea o activa una caja para el local.
+- **"Este local no tiene cajas activas. Actívalas en Equipos y pagos → Cajas."**: crea o activa una caja para el local.
 - **"El fondo inicial no puede ser negativo"**: ingresa 0 o un monto positivo.
 - **"Ingresa un monto mayor a cero"** o **"Indica el motivo"**: ambos campos son obligatorios en un movimiento.
 - **"El turno ya se cerró."**: otro equipo cerró la caja. Ábrela de nuevo.

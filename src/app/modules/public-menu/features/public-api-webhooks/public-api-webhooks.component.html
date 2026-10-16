@@ -1,0 +1,115 @@
+@if ($blocked()) {
+<app-marketing-upsell-card feature="public_api" [requiredPlans]="$requiredPlans()" description="Crea llaves de API para tu web y recibe los pedidos en tu servidor al instante con webhooks." />
+} @else {
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">
+    Recibe en tu servidor los eventos de los pedidos de la carta. Hasta {{ maxEndpoints }} webhooks
+    @if ($list()) { ({{ $list()!.length }}/{{ maxEndpoints }}). }
+  </p>
+  <app-button
+    *appCheckPermission="PERMISSIONS.PUBLIC_API.MANAGE"
+    type="button"
+    impact="bold"
+    tone="primary"
+    shape="rounded"
+    [disabled]="$isFull()"
+    (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nuevo webhook</span>
+  </app-button>
+</div>
+
+<div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
+  <div class="min-w-0">
+    @if ($error()) {
+    <div class="flex flex-col items-center gap-3 py-12 text-center">
+      <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+      <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+      <app-button impact="light" size="small" type="button" (buttonClick)="webhooks.reload()">Reintentar</app-button>
+    </div>
+    } @else if (webhooks.isLoading() && !$list()) {
+    <div class="space-y-3">
+      @for (row of [1, 2]; track row) {
+      <div class="glass space-y-2 rounded-[1rem] p-4">
+        <app-skeleton size="sm" style="width: 70%" />
+        <app-skeleton size="xs" style="width: 40%" />
+      </div>
+      }
+    </div>
+    } @else if (!$list()?.length) {
+    <app-empty-state icon="webhook" title="Aún no tienes webhooks" description="Agrega la URL de tu servidor para recibir los pedidos al instante." />
+    } @else {
+    <ul class="space-y-3" [class.opacity-60]="webhooks.isLoading()">
+      @for (endpoint of $list(); track endpoint.id) {
+      <li class="glass rounded-[1rem] p-4" [class.opacity-70]="!endpoint.isActive">
+        <div class="flex items-start gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground font-mono text-sm font-semibold break-all">{{ endpoint.url }}</p>
+            @if (endpoint.description) {
+            <p class="text-muted-foreground text-sm">{{ endpoint.description }}</p>
+            }
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="text-muted-foreground hidden text-xs sm:inline">{{ endpoint.isActive ? 'Activo' : 'Inactivo' }}</span>
+            <app-toggle [checked]="endpoint.isActive" [disabled]="!!$busy() || !$canManage()" (changed)="toggle(endpoint, $event)" />
+          </div>
+        </div>
+
+        <div class="mt-2 flex flex-wrap gap-1.5" aria-label="Eventos">
+          @for (event of endpoint.events; track event) {
+          <span class="bg-muted/60 text-foreground rounded-full px-2 py-0.5 text-xs" [attr.title]="event">{{ eventLabel(event) }}</span>
+          }
+        </div>
+
+        <p class="text-muted-foreground mt-2 text-xs">
+          Secreto: <span class="font-mono">{{ endpoint.secretPreview }}</span> · Actualizado {{ formatRelative(endpoint.updatedAt) }}
+        </p>
+
+        <div class="mt-3 flex flex-wrap items-center gap-1 border-t border-[var(--border)] pt-3">
+          <app-button type="button" impact="light" tone="primary" size="small" (buttonClick)="history(endpoint)">
+            <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">history</app-icon>Historial</span>
+          </app-button>
+          <ng-container *appCheckPermission="PERMISSIONS.PUBLIC_API.MANAGE">
+            <app-button
+              type="button"
+              impact="light"
+              tone="primary"
+              size="small"
+              [isLoading]="isBusy(endpoint, 'test')"
+              [disabled]="!!$busy() || !endpoint.isActive"
+              [attr.title]="endpoint.isActive ? 'Envía un ping' : 'Actívalo para probarlo'"
+              (buttonClick)="test(endpoint)">
+              <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">send</app-icon>Probar</span>
+            </app-button>
+            <app-button type="button" impact="light" tone="primary" size="small" [isLoading]="isBusy(endpoint, 'rotate')" [disabled]="!!$busy()" (buttonClick)="rotate(endpoint)">
+              <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">autorenew</app-icon>Rotar secreto</span>
+            </app-button>
+            <span class="flex-1"></span>
+            <button
+              type="button"
+              class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full"
+              [disabled]="!!$busy()"
+              aria-label="Editar webhook"
+              title="Editar"
+              (click)="edit(endpoint)">
+              <app-icon class="h-5 w-5">edit</app-icon>
+            </button>
+            <button
+              type="button"
+              class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full"
+              [disabled]="!!$busy()"
+              aria-label="Eliminar webhook"
+              title="Eliminar"
+              (click)="remove(endpoint)">
+              <app-icon class="h-5 w-5">delete</app-icon>
+            </button>
+          </ng-container>
+        </div>
+      </li>
+      }
+    </ul>
+    }
+  </div>
+
+  <app-public-api-developer-help />
+</div>
+}

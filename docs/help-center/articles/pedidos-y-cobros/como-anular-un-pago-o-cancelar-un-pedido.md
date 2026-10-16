@@ -13,7 +13,7 @@ Para anular un pago, toca el ícono de bloqueo junto al pago e indica el motivo.
 
 ## Anular un pago
 
-1. Abre el pedido desde **POS → Pedidos** y baja a la sección **Pagos**. También puedes ir a **POS → Pagos**, donde ves todos los cobros del negocio.
+1. Abre el pedido desde **Ventas → Pedidos** y baja a la sección **Pagos**. También puedes ir a **Ventas → Pagos**, donde ves todos los cobros del negocio.
 2. En la fila del pago, toca el ícono de bloqueo (**Anular pago**).
 3. Escribe el **Motivo** o elige uno: *Error de digitación*, *Método de pago incorrecto*, *Cliente cambió la forma de pago* o *Pago duplicado*.
 4. Toca **Anular pago**.
@@ -32,7 +32,7 @@ El pedido queda como **Cancelado** y la mesa se libera. Esta acción no se puede
 
 - **"Indica el motivo de la anulación"**: el motivo es obligatorio.
 - **"El pedido tiene pagos registrados. Anúlalos antes de cancelarlo."**: anula los pagos vigentes en la sección **Pagos** del pedido.
-- **"Abre la caja para devolver el efectivo"**: aparece solo si tienes activado *Caja y turnos* en **Negocio → Mi negocio → Punto de venta**. Para anular un pago en efectivo, la caja debe estar abierta, porque el dinero sale de ella. Se abre la ventana para abrir el turno y, al confirmar, la anulación continúa.
+- **"Abre la caja para devolver el efectivo"**: aparece solo si tienes activado *Caja y turnos* en **Mi negocio → Punto de venta**. Para anular un pago en efectivo, la caja debe estar abierta, porque el dinero sale de ella. Se abre la ventana para abrir el turno y, al confirmar, la anulación continúa.
 - **"Propina ya liquidada"**: la propina de ese pago ya se le pagó al equipo. Toca **Ver liquidación #N**, anula esa liquidación en **Finanzas → Propinas** y vuelve a anular el pago.
 - **"El pedido ya no está abierto."**: solo se pueden cancelar pedidos abiertos. Un pedido pagado se cierra automáticamente.
 - **"No tienes permiso para esta acción."**: tu rol no permite anular pagos ni cancelar pedidos.

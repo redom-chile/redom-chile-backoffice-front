@@ -1,4 +1,4 @@
-import { ProductStockMode } from './product.dto';
+import { ProductStockMode, ProductTypeInput } from './product.dto';
 
 export type CreateProductVariationDto = Readonly<{
   name: string;
@@ -10,7 +10,8 @@ export type CreateProductDto = Readonly<{
   name: string;
   sku: string;
   // 'ingredient' = insumo con stock que no se vende (el backend fuerza stockMode 'direct').
-  type?: 'ingredient';
+  // 'combo' = pack: su contenido va por PUT /products/:id/pack. 'single' = producto normal.
+  type?: ProductTypeInput;
   stockMode?: ProductStockMode;
   unitId?: number;
   alertQuantity?: number;

@@ -1,0 +1,250 @@
+@let id = $id();
+@let errors = $errors();
+@let canEdit = $canEdit();
+<section class="glass flex flex-col gap-4 rounded-[1rem] p-4 sm:p-5">
+  <!-- Encabezado: local y publicación -->
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0">
+      <h2 class="text-foreground truncate font-semibold">{{ settings().locationName }}</h2>
+      @if ($published()) {
+      <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-semibold text-green-700 dark:text-green-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>Publicada
+      </span>
+      } @else {
+      <span class="text-muted-foreground bg-muted/40 mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+        <span class="h-1.5 w-1.5 rounded-full bg-current"></span>Sin publicar
+      </span>
+      }
+    </div>
+    <label *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS" class="flex items-center gap-2">
+      <span class="text-foreground text-sm font-medium">Publicada</span>
+      <app-toggle [checked]="$published()" [disabled]="$isPublishing()" (changed)="setPublished($event)" />
+    </label>
+  </div>
+  @if (!$published()) {
+  <p class="text-muted-foreground -mt-2 text-xs">
+    Sin publicar, la URL muestra "no disponible", pero los QR de las mesas siguen funcionando.
+  </p>
+  }
+
+  <!-- URL pública -->
+  @if ($url(); as url) {
+  <div class="glass-row flex flex-col gap-2 rounded-xl p-3">
+    <a [href]="url" target="_blank" rel="noopener" class="text-primary break-all text-sm font-medium hover:underline">{{ url }}</a>
+    <div class="flex flex-wrap gap-2">
+      <app-button impact="light" size="small" type="button" icon="content_copy" (buttonClick)="copy()">Copiar</app-button>
+      <app-button impact="light" size="small" type="button" icon="open_in_new" (buttonClick)="open()">Abrir</app-button>
+      <app-button impact="light" size="small" type="button" icon="qr_code_2" (buttonClick)="downloadQr()">Descargar QR</app-button>
+    </div>
+    <p class="text-muted-foreground text-xs">
+      Este QR es para el mostrador o Instagram; cada mesa tiene el suyo en Mesas.
+    </p>
+  </div>
+  } @else {
+  <p class="glass-row text-muted-foreground rounded-xl p-3 text-sm">Este local aún no tiene dirección pública. Defínela en «Cambiar dirección de la carta».</p>
+  }
+
+  <!-- Datos públicos -->
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <label [for]="id + '-description'" class="text-foreground mb-1 block text-sm font-medium">Descripción</label>
+      <textarea
+        [id]="id + '-description'"
+        rows="3"
+        class="glass-input w-full resize-y rounded-md px-3 py-2 text-sm"
+        placeholder="Cuéntales a tus clientes qué hace especial a tu local"
+        [class.border-red-500]="!!errors.description"
+        [value]="$description()"
+        [disabled]="!canEdit"
+        (input)="onText('description', $event)"></textarea>
+      <div class="mt-1 flex justify-between gap-2 text-xs">
+        <span class="text-red-600 dark:text-red-400">{{ errors.description ?? '' }}</span>
+        <span class="text-muted-foreground tabular-nums" [class.text-red-600]="!!errors.description">{{ $description().trim().length }}/{{ maxLength.description }}</span>
+      </div>
+    </div>
+
+    <div class="sm:col-span-2">
+      <label [for]="id + '-address'" class="text-foreground mb-1 block text-sm font-medium">Dirección física</label>
+      <input
+        [id]="id + '-address'"
+        type="text"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="Av. Providencia 1234, Providencia"
+        [class.border-red-500]="!!errors.address"
+        [value]="$address()"
+        [disabled]="!canEdit"
+        (input)="onText('address', $event)" />
+      @if (errors.address; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+
+    <div>
+      <label [for]="id + '-latitude'" class="text-foreground mb-1 block text-sm font-medium">Latitud</label>
+      <input
+        [id]="id + '-latitude'"
+        type="number"
+        step="any"
+        inputmode="decimal"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm tabular-nums"
+        placeholder="-33.4263"
+        [class.border-red-500]="!!errors.latitude"
+        [value]="$latitude()"
+        [disabled]="!canEdit"
+        (input)="onText('latitude', $event)" />
+      @if (errors.latitude; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <div>
+      <label [for]="id + '-longitude'" class="text-foreground mb-1 block text-sm font-medium">Longitud</label>
+      <input
+        [id]="id + '-longitude'"
+        type="number"
+        step="any"
+        inputmode="decimal"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm tabular-nums"
+        placeholder="-70.6155"
+        [class.border-red-500]="!!errors.longitude"
+        [value]="$longitude()"
+        [disabled]="!canEdit"
+        (input)="onText('longitude', $event)" />
+      @if (errors.longitude; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <p class="text-muted-foreground -mt-1 text-xs sm:col-span-2">
+      Opcional; las zonas de delivery por radio las necesitan. En Google Maps, mantén presionado tu local y copia los números que aparecen.
+      @if ($mapUrl(); as mapUrl) {
+      <a [href]="mapUrl" target="_blank" rel="noopener" class="text-primary ml-1 font-medium hover:underline">Ver en mapa</a>
+      }
+    </p>
+    @if (canEdit && $canLocate) {
+    <div class="-mt-1 sm:col-span-2">
+      <app-button impact="light" size="small" type="button" icon="my_location" [isLoading]="$isLocating()" (buttonClick)="useCurrentLocation()">
+        Usar mi ubicación actual
+      </app-button>
+    </div>
+    }
+
+    <div>
+      <label [for]="id + '-phone'" class="text-foreground mb-1 block text-sm font-medium">Teléfono</label>
+      <input
+        [id]="id + '-phone'"
+        type="tel"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="+56 2 2345 6789"
+        [class.border-red-500]="!!errors.phone"
+        [value]="$phone()"
+        [disabled]="!canEdit"
+        (input)="onText('phone', $event)" />
+      @if (errors.phone; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <div>
+      <label [for]="id + '-whatsapp'" class="text-foreground mb-1 block text-sm font-medium">WhatsApp</label>
+      <input
+        [id]="id + '-whatsapp'"
+        type="tel"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="+56 9 1234 5678"
+        [class.border-red-500]="!!errors.whatsapp"
+        [value]="$whatsapp()"
+        [disabled]="!canEdit"
+        (input)="onText('whatsapp', $event)" />
+      @if (errors.whatsapp; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <div>
+      <label [for]="id + '-instagram'" class="text-foreground mb-1 block text-sm font-medium">Instagram</label>
+      <input
+        [id]="id + '-instagram'"
+        type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="@tulocal"
+        [class.border-red-500]="!!errors.instagram"
+        [value]="$instagram()"
+        [disabled]="!canEdit"
+        (input)="onText('instagram', $event)" />
+      @if (errors.instagram; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <div>
+      <label [for]="id + '-website'" class="text-foreground mb-1 block text-sm font-medium">Sitio web</label>
+      <input
+        [id]="id + '-website'"
+        type="url"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="https://tulocal.cl"
+        [class.border-red-500]="!!errors.website"
+        [value]="$website()"
+        [disabled]="!canEdit"
+        (input)="onText('website', $event)" />
+      @if (errors.website; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      }
+    </div>
+    <div class="sm:col-span-2">
+      <label [for]="id + '-review'" class="text-foreground mb-1 block text-sm font-medium">Link para reseñas de Google</label>
+      <input
+        [id]="id + '-review'"
+        type="url"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="https://g.page/r/…/review"
+        [class.border-red-500]="!!errors.googleReviewUrl"
+        [value]="$googleReviewUrl()"
+        [disabled]="!canEdit"
+        (input)="onText('googleReviewUrl', $event)" />
+      @if (errors.googleReviewUrl; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Opcional. En la encuesta del pedido, a quien califique con 4 o 5 estrellas le mostramos un botón para dejarte una reseña en Google.</p>
+      }
+    </div>
+  </div>
+
+  <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS" class="flex flex-wrap justify-end gap-2">
+    @if ($hasChanges()) {
+    <app-button impact="light" size="small" type="button" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+    }
+    <app-button
+      impact="bold"
+      tone="primary"
+      size="small"
+      type="button"
+      [disabled]="!$hasChanges() || !$isValid() || $isSaving()"
+      [isLoading]="$isSaving()"
+      (buttonClick)="save()">
+      Guardar datos
+    </app-button>
+  </div>
+
+  <!-- Pedidos de los clientes -->
+  <app-customer-order-settings [settings]="settings()" (changed)="changed.emit($event)" />
+
+  <!-- Idiomas de la carta -->
+  <app-menu-translation-languages [settings]="settings()" (changed)="changed.emit($event)" />
+
+  <!-- Slug del local -->
+  <details *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_SETTINGS" class="border-t border-[var(--border)] pt-3">
+    <summary class="text-foreground cursor-pointer text-sm font-medium">Cambiar dirección de la carta</summary>
+    <div class="mt-3">
+      <app-slug-editor
+        label="Dirección del local"
+        [current]="settings().locationSlug"
+        [locationId]="settings().locationId"
+        [prefix]="$slugPrefix()"
+        (saved)="changed.emit($event)" />
+    </div>
+  </details>
+</section>

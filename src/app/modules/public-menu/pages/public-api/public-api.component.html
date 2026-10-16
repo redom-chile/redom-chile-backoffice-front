@@ -1,0 +1,42 @@
+@let tab = $tab();
+<app-header-dashboard title="API y widget" subtitle="Conecta tu web con Redom: llaves de API, webhooks y la carta incrustada.">
+  <a
+    [href]="docsUrl"
+    target="_blank"
+    rel="noopener"
+    class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium">
+    <app-icon class="h-4 w-4" aria-hidden="true">menu_book</app-icon><span class="hidden sm:inline">Documentación para desarrolladores</span
+    ><span class="sm:hidden">Docs</span>
+    <app-icon class="h-4 w-4" aria-hidden="true">open_in_new</app-icon>
+  </a>
+</app-header-dashboard>
+
+<nav appTabList class="glass-input -mx-1 mb-4 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" aria-label="Secciones">
+  @for (item of $tabs(); track item.id) {
+  <button
+    type="button"
+    [id]="'public-api-tab-' + item.id"
+    class="inline-flex h-9 shrink-0 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium md:flex-none"
+    [class]="tab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+    [appTab]="tab === item.id"
+    tabPanel="public-api-panel"
+    (click)="selectTab(item.id)">
+    <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
+  </button>
+  }
+</nav>
+
+<div id="public-api-panel" role="tabpanel" [attr.aria-labelledby]="'public-api-tab-' + tab">
+@if (tab === 'widget') {
+<app-public-api-widget />
+} @else if (!$hasFeature()) {
+<!-- Llaves y webhooks son del plan (public_api); el widget usa la carta sin llave y no lo requiere. -->
+<app-marketing-upsell-card
+  feature="public_api"
+  description="Crea llaves de API para tu web y recibe los pedidos en tu servidor al instante con webhooks." />
+} @else if (tab === 'webhooks') {
+<app-public-api-webhooks />
+} @else {
+<app-public-api-keys />
+}
+</div>

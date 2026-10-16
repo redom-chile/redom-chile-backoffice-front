@@ -18,7 +18,7 @@ Al entrar por primera vez sin negocio, Redom abre un asistente que te deja listo
 5. **Tu foto** (opcional): sube tu foto de perfil para que tu equipo te reconozca. No aparece si ya tienes foto.
 6. **¡Listo!**: verás un resumen. Toca **Tomar mi primer pedido** para ir al POS o **Ir al panel** para ir al Resumen.
 
-Los pasos opcionales tienen el botón **Omitir**. Todo lo que configures aquí lo puedes cambiar después en **Negocio → Mi negocio**.
+Los pasos opcionales tienen el botón **Omitir**. Todo lo que configures aquí lo puedes cambiar después en **Mi negocio**.
 
 ## Si recargas la página a mitad de camino
 
@@ -28,5 +28,5 @@ Si tu negocio ya existe pero todavía no tiene local, el asistente retoma en **T
 
 - **"Ingresa el nombre de tu negocio"** o **"Ponle un nombre a tu local"**: falta completar el nombre.
 - **"Tu cuenta ya pertenece a un negocio. Te llevamos al panel."**: tu usuario ya es parte de otro negocio. Entrarás al panel de ese negocio.
-- **"No se pudo subir el logo, puedes intentarlo desde Mi negocio"**: el negocio se creó igual. Sube el logo después en **Negocio → Mi negocio**.
-- **"No pudimos guardar si atiendes con mesas. Puedes cambiarlo en Mi negocio."**: activa o desactiva *Trabajo con mesas* en **Negocio → Mi negocio → Punto de venta**.
+- **"No se pudo subir el logo, puedes intentarlo desde Mi negocio"**: el negocio se creó igual. Sube el logo después en **Mi negocio**.
+- **"No pudimos guardar si atiendes con mesas. Puedes cambiarlo en Mi negocio."**: activa o desactiva *Trabajo con mesas* en **Mi negocio → Punto de venta**.

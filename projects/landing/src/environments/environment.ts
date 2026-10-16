@@ -4,4 +4,6 @@ export const environment = {
   siteUrl: 'http://localhost:4300',
   // Misma origen: `ng serve landing` lo redirige al backend local (proxy.conf.json), así no aplica CORS.
   billingApiUrl: '/billing/api',
+  // Carta pública (API sin sesión), también por el mismo origen.
+  publicMenuApiUrl: '/restaurant/api/public/v1',
 };

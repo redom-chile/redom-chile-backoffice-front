@@ -19,13 +19,25 @@
   <link rel="icon" type="image/svg+xml" href="redom-app-icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="redom-icon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="redom-icon-180.png">
-  <!-- Aplica el modo antes de pintar (la página es HTML estático): por defecto, el del dispositivo. -->
+  <!-- Aplica el modo (y en /carta el tamaño del texto) antes de pintar (la página es HTML estático): por defecto, el del dispositivo.
+       La carta incrustada (?embed=1, widget.js) acepta &theme=light|dark de la web que la incrusta. -->
   <script>
     (function () {
       try {
-        var mode = localStorage.getItem('redom-landing.mode') || 'system';
+        var q = location.search;
+        var forced = /[?&]embed=1(&|$)/.test(q) ? (q.match(/[?&]theme=(light|dark)(&|$)/) || [])[1] : null;
+        var mode = forced;
+        if (!mode) {
+          try { mode = localStorage.getItem('redom-landing.mode'); } catch (e) {}
+        }
+        mode = mode || 'system';
         var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) document.documentElement.classList.add('dark');
+        if (/^\/carta(\/|$)/.test(location.pathname)) {
+          var size = null;
+          try { size = Number(localStorage.getItem('redom-carta.text-size')); } catch (e) {}
+          if (size >= 0.875 && size <= 1.375 && size !== 1) document.documentElement.style.fontSize = size * 100 + '%';
+        }
       } catch (e) {}
     })();
   </script>

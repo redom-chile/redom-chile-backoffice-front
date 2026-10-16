@@ -46,5 +46,5 @@ En **Documento** puedes abrir la compra, ajuste, conteo, transferencia o producc
 ## Errores comunes
 
 - **"Todavía no hay productos con stock"**: crea ingredientes o productos con *Stock propio* y registra una compra o el stock inicial.
-- **"Aún no tienes locales"**: el stock se lleva por local. Crea uno en **Negocio → Sucursales**.
+- **"Aún no tienes locales"**: el stock se lleva por local. Crea uno en **Mi negocio → Sucursales**.
 - Un plato vendido no aparece en el kardex: solo aparecen sus ingredientes, y solo si *Descontar stock al vender* está activo y el plato tiene receta.

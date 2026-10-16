@@ -25,7 +25,7 @@ import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/busin
 import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
 import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
 import { formatCurrency } from '../../../order-list/ui';
-import { GetOrderByIdService, modifierLabel, OrderDetailDto, OrderLineDto, orderVariationLabel } from '../../data-access';
+import { GetOrderByIdService, modifierLabel, OrderDetailDto, OrderLineDto, orderVariationLabel, packItemLabel } from '../../data-access';
 
 export type CollectPaymentResult = 'paid' | 'partial' | 'dismissed';
 
@@ -83,6 +83,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
   readonly formatQuantity = formatQuantity;
   readonly methodLabel = paymentMethodLabel;
   readonly modifierLabel = modifierLabel;
+  readonly packItemLabel = packItemLabel;
   readonly variationLabel = orderVariationLabel;
   readonly isDecimalLine = isDecimalLine;
 

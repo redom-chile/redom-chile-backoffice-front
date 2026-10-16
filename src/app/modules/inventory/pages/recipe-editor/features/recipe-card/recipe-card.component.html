@@ -10,6 +10,13 @@
     <div class="min-w-0">
       <h2 class="text-foreground flex flex-wrap items-center gap-2 font-semibold">
         <span class="break-words">{{ $title() }}</span>
+        @if (removed()) {
+        <span
+          class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
+          title="Ya no se vende: su receta no se usa. Puedes borrarla.">
+          <app-icon class="h-3.5 w-3.5">block</app-icon>Quitada
+        </span>
+        }
         @if (dirty) {
         <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
           <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>Sin guardar

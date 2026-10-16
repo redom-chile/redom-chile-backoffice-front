@@ -6,6 +6,7 @@ import { PaginationMeta } from 'src/app/core/standarized-response/standardized-p
 import { IconComponent, ImageThumbComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
 import { STOCK_MODE_LABELS } from 'src/app/modules/inventory/data-access';
 import { ProductDto } from '../../data-access';
+import { activeVariations, MIN_VARIETIES } from '../../ui';
 
 @Component({
   selector: 'app-products-table',
@@ -37,9 +38,19 @@ export class ProductsTableComponent {
   readonly skeletonRows = [1, 2, 3, 4, 5];
   readonly #currency = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 });
 
+  // Con variedades: "Desde $X" si los precios difieren.
   price(product: ProductDto): string {
-    const price = product.variations[0]?.sellPriceIncTax;
-    return price === null || price === undefined ? '—' : this.#currency.format(price);
+    const prices = activeVariations(product)
+      .map((variation) => variation.sellPriceIncTax)
+      .filter((price): price is number => price !== null && price !== undefined);
+    if (!prices.length) return '—';
+    const min = Math.min(...prices);
+    return prices.length > 1 && Math.max(...prices) !== min ? `Desde ${this.#currency.format(min)}` : this.#currency.format(min);
+  }
+
+  varietyCount(product: ProductDto): number {
+    const count = activeVariations(product).length;
+    return count >= MIN_VARIETIES ? count : 0;
   }
 
   categoryLabel(product: ProductDto): string {

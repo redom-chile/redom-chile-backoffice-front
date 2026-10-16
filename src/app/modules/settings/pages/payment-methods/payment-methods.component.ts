@@ -11,7 +11,7 @@ import { resultError, resultValue, toRemoteResult } from 'src/app/modules/invent
 import { ButtonComponent, HeaderDashboardComponent, IconComponent, SkeletonComponent } from 'src/ui';
 import { PaymentMethodCardComponent } from './features';
 
-/** Configuración → Medios de pago: comisión y días hasta el abono de cada medio (el efectivo no tiene). */
+/** Equipos y pagos → Medios de pago: comisión y días hasta el abono de cada medio (el efectivo no tiene). */
 @Component({
   selector: 'app-payment-methods',
   imports: [

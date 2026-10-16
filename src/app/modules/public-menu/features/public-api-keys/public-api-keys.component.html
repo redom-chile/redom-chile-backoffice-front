@@ -1,0 +1,89 @@
+@if ($blocked()) {
+<app-marketing-upsell-card feature="public_api" [requiredPlans]="$requiredPlans()" description="Crea llaves de API para tu web y recibe los pedidos en tu servidor al instante con webhooks." />
+} @else {
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">
+    Las llaves identifican a tu web ante la API pública de Redom. Puedes tener hasta 10 activas
+    @if ($list()) { ({{ $activeCount() }}/10). }
+  </p>
+  <app-button *appCheckPermission="PERMISSIONS.PUBLIC_API.MANAGE" type="button" impact="bold" tone="primary" shape="rounded" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva llave</span>
+  </app-button>
+</div>
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="keys.reload()">Reintentar</app-button>
+</div>
+} @else if (keys.isLoading() && !$list()) {
+<div class="space-y-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 140px" />
+    <app-skeleton size="sm" style="width: 60%" />
+  </div>
+  }
+</div>
+} @else if (!$list()?.length) {
+<app-empty-state icon="key" title="Aún no tienes llaves" description="Crea una llave publicable para tu web o una secreta para tu servidor." />
+} @else {
+<ul class="space-y-3" [class.opacity-60]="keys.isLoading()">
+  @for (apiKey of $list(); track apiKey.id) {
+  @let revoked = !!apiKey.revokedAt;
+  @let busy = $busyId() === apiKey.id;
+  <li class="glass flex flex-col gap-3 rounded-[1rem] p-4 sm:flex-row sm:items-start" [class.opacity-60]="revoked">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <h3 class="text-foreground truncate font-semibold" [class.line-through]="revoked">{{ apiKey.name }}</h3>
+        <span
+          class="rounded-full px-2 py-0.5 text-xs font-semibold"
+          [class]="apiKey.kind === 'secret' ? 'bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-sky-500/15 text-sky-700 dark:text-sky-300'">
+          {{ kindLabels[apiKey.kind] }}
+        </span>
+        @if (revoked) {
+        <span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold">Revocada</span>
+        } @else {
+        <span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">Activa</span>
+        }
+      </div>
+      <p class="text-muted-foreground mt-1 font-mono text-sm">{{ apiKey.prefix }}…</p>
+      @if (apiKey.kind === 'publishable') {
+      <div class="mt-2 flex flex-wrap gap-1.5" aria-label="Orígenes permitidos">
+        @for (origin of apiKey.allowedOrigins; track origin) {
+        <span class="bg-muted/60 text-foreground inline-flex max-w-full items-center gap-1 truncate rounded-full px-2 py-0.5 font-mono text-xs">
+          <app-icon class="h-3.5 w-3.5 shrink-0" aria-hidden="true">language</app-icon><span class="truncate">{{ origin }}</span>
+        </span>
+        }
+      </div>
+      } @else {
+      <p class="text-muted-foreground mt-2 inline-flex items-center gap-1 text-xs">
+        <app-icon class="h-3.5 w-3.5" aria-hidden="true">dns</app-icon>Solo desde servidores
+      </p>
+      }
+      <p class="text-muted-foreground mt-2 text-xs">
+        <span [attr.title]="formatDateTime(apiKey.lastUsedAt)">Último uso: {{ formatRelative(apiKey.lastUsedAt) }}</span>
+        · Creada {{ formatRelative(apiKey.createdAt) }}
+        @if (revoked) { · Revocada {{ formatRelative(apiKey.revokedAt) }} }
+      </p>
+    </div>
+    @if (!revoked) {
+    <div *appCheckPermission="PERMISSIONS.PUBLIC_API.MANAGE" class="flex shrink-0 items-center gap-1 self-end sm:self-start">
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full"
+        [disabled]="busy"
+        [attr.aria-label]="'Editar ' + apiKey.name"
+        title="Editar"
+        (click)="edit(apiKey)">
+        <app-icon class="h-5 w-5">edit</app-icon>
+      </button>
+      <app-button type="button" impact="light" tone="danger" size="small" [isLoading]="busy" (buttonClick)="revoke(apiKey)">Revocar</app-button>
+    </div>
+    }
+  </li>
+  }
+</ul>
+}
+}

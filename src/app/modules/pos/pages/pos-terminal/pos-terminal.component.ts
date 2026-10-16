@@ -4,6 +4,8 @@ import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
+import { PERMISSIONS } from 'src/app/core/permissions';
+import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ApiError } from 'src/app/core/utils';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
@@ -13,7 +15,8 @@ import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/
 import { GetAllTablesService, TableDto } from 'src/app/modules/tables/pages/table-list/data-access';
 import { GetAllCategoriesService } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
-import { GetOrderByIdService, OrderDetailDto } from 'src/app/modules/orders/pages/order-detail/data-access';
+import { GetOrderByIdService, OrderDetailDto, UpdateOrderService } from 'src/app/modules/orders/pages/order-detail/data-access';
+import { getOrderErrorMessage } from 'src/app/modules/orders/pages/order-list/data-access';
 import {
   CollectPaymentModalComponent,
   CollectPaymentResult,
@@ -50,6 +53,7 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
     IconComponent,
     EmptyStateComponent,
     RouterLink,
+    CheckPermissionDirective,
     BusinessLocationSelector,
     WaiterLoginComponent,
     PosTablesPanelComponent,
@@ -67,6 +71,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly inactivitySeconds = input(60);
   readonly locationName = input<string | null>(null);
   readonly locked = output<void>();
+  readonly PERMISSIONS = PERMISSIONS;
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
@@ -79,6 +84,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   private readonly categoriesService = inject(GetAllCategoriesService);
   private readonly menuService = inject(GetMenuProductsService);
   private readonly orderService = inject(GetOrderByIdService);
+  private readonly updateOrderService = inject(UpdateOrderService);
   private readonly createService = inject(CreateOrderService);
   private readonly addLinesService = inject(AddOrderLinesService);
   // Caja del equipo (solo con el módulo de caja activo).
@@ -134,6 +140,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly $isSaving = computed(
     () => (this.createService.$isLoading() ?? false) || (this.addLinesService.$isLoading() ?? false),
   );
+  // Cliente de la cuenta abierta: el servicio es global, solo se reacciona a lo pedido desde aquí.
+  readonly $isSavingCustomer = signal(false);
   readonly $panelTitle = computed(() => this.$table()?.name ?? 'Venta sin mesa');
 
   constructor() {
@@ -155,6 +163,21 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       this.addLinesService.reset();
       this.toast.show('Productos agregados a la cuenta', 'success');
       this.afterOrderSaved(this.$orderId()!);
+    });
+
+    effect(() => {
+      if (!this.$isSavingCustomer() || !this.updateOrderService.$success()) return;
+      this.$isSavingCustomer.set(false);
+      this.updateOrderService.reset();
+      this.toast.show('Cliente de la cuenta actualizado', 'success');
+      this.orderService.retry();
+    });
+
+    effect(() => {
+      const error = this.updateOrderService.$error();
+      if (!this.$isSavingCustomer() || !error) return;
+      this.$isSavingCustomer.set(false);
+      this.toast.show(getOrderErrorMessage(error), 'error');
     });
 
     effect(() => {
@@ -201,6 +224,7 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.createService.reset();
     this.addLinesService.reset();
+    if (this.$isSavingCustomer()) this.updateOrderService.reset();
     this.cashContext.clear();
   }
 
@@ -367,6 +391,22 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
         }
         if (result === 'partial') this.orderService.retry();
       });
+  }
+
+  // Asigna, cambia o quita el cliente de la cuenta abierta (PATCH /orders/:id).
+  handleOrderCustomerChange(customer: CustomerDto | null) {
+    const order = this.$order();
+    const contactId = customer?.id ?? null;
+    if (!order || this.$isSavingCustomer() || contactId === order.contactId) return;
+    // El servicio es global: se descarta un éxito anterior para no recargar antes de tiempo.
+    this.updateOrderService.reset();
+    this.$isSavingCustomer.set(true);
+    this.updateOrderService.update({ id: order.transactionId, contactId });
+  }
+
+  // El canje cambia el total o agrega el producto gratis: se recarga la cuenta.
+  handleLoyaltyRedeemed() {
+    this.orderService.retry();
   }
 
   private afterOrderSaved(orderId: number) {

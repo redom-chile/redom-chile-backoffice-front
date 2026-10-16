@@ -47,6 +47,10 @@
       [uploading]="$isUploading()"
       [progress]="$uploadProgress()"
       (selectionChange)="onImageChange($event)" />
+
+    @if ($canEditSchedule()) {
+    <app-category-schedule-field [(schedule)]="$schedule" [submitted]="$scheduleSubmitted()" />
+    }
   </form>
   <ng-template app-slot="footer">
     <div class="flex justify-end gap-3">

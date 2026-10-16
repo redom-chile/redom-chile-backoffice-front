@@ -12,9 +12,10 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
+| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas |
 | 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
@@ -360,6 +361,189 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** aplicar en desarrollo lo mismo que en producción (prompt en `docs/backend-prompts/despliegue-billing-aws.md`). En producción, poner los precios de los planes desde Plataforma: hoy `plans/public` los devuelve sin precios.
 
 **Front mientras tanto:** en desarrollo, sin entitlements no se restringe nada y las pantallas de cobros fallan.
+
+---
+
+### 51. 🟡 Carta pública: devolver etiquetas del producto y horario de la categoría
+
+**Problema:** `GET /products`, `GET /products/:id`, `GET /categories` y `GET /categories/:id` no devuelven las etiquetas del producto (`product_tag_links`) ni el horario de la categoría (`category_schedules`). Al editar, el front no puede mostrar lo que ya está guardado.
+
+**Se pide:** agregar `tags: [{ id, code, name, kind }]` al producto y `schedule: [{ locationId, dayOfWeek, startTime, endTime }]` (o `null` = todo el día) a la categoría, en el detalle y en los listados.
+
+**Front mientras tanto:** los campos parten vacíos ("Todo el día") con una nota, y solo se envían si el usuario los cambia, para no borrar lo existente. Los DTOs ya aceptan `tags?` y `schedule?`: cuando el backend los envíe, el formulario los carga solo.
+
+---
+
+### 52. 🟡 Packs: permitir elegir "ninguna" en un grupo opcional con opciones por defecto
+
+**Problema:** en `POST /public/v1/orders` (y `POST /orders` del POS) un grupo del pack sin `comboChoices` usa sus opciones por defecto. Si el grupo es opcional (`minChoices = 0`) y tiene opciones por defecto, el cliente no puede pedir "sin nada": el front no envía el grupo y el backend agrega la opción por defecto, así que el pedido y el total estimado no coinciden.
+
+**Se pide:** aceptar en `comboChoices` un grupo vacío explícito (por ejemplo `{ groupId, variationId: null }` o un campo `skippedGroupIds`) para indicar que no se quiere ninguna opción.
+
+**Front mientras tanto:** si el cliente desmarca todo en un grupo opcional con opciones por defecto, se aplican las por defecto.
+
+---
+
+### 53. 🟡 Reservas desde la carta: origen en el listado y visibilidad
+
+**Problema:**
+- `GET /bookings` no devuelve `createdBy` (ni un campo de origen), así que el listado no distingue con certeza las reservas que llegaron desde la carta. El front las detecta como "en espera y sin encargado ni mesero", lo que también marca reservas pasadas a mano a "en espera".
+- El listado filtra por `createdBy`, encargado o mesero cuando el usuario no tiene `crud_all_bookings`. Como las reservas de la carta tienen `createdBy` null, solo las ven quienes tienen ese permiso (cajeros y meseros, no).
+
+**Se pide:** agregar `createdBy` o `source: 'menu' | 'staff'` al listado de reservas, e incluir las reservas de la carta (`createdBy` null) en lo que ven los roles del local que gestionan reservas.
+
+**Front mientras tanto:** usa la aproximación descrita; en el detalle la detección es exacta (`waiting` + `createdBy === null`).
+
+---
+
+### 54. 🟡 URLs públicas: la carta vive en la landing (redom.cl), no en app.redom.cl
+
+**Problema:** el front publica la carta en la **landing** (`redom.cl/carta/...`, local `http://localhost:4300/carta/...`). El backend arma con `QR_BASE_URL` los QR de las mesas y los enlaces de los correos de seguimiento (`{QR_BASE_URL}/pedido/{id}`), y su valor por defecto es `https://app.redom.cl/carta`, que no existe en el front. Además, en el `.env` local `BILLING_FRONT_URL` apunta a `http://localhost:4300` (la landing), cuando la vuelta de Flow debe ir al backoffice.
+
+**Se pide:**
+- `QR_BASE_URL`: `https://redom.cl/carta` en producción, la URL de la landing de develop en develop y `http://localhost:4300/carta` en local. Regenerar o actualizar los QR ya impresos si apuntaban a otra dirección.
+- `BILLING_FRONT_URL` / `FRONT_URL`: el backoffice (`http://localhost:4200` en local, `https://app.redom.cl` en producción).
+
+**Front:** la carta atiende `/carta/{código de mesa}`, `/carta/{negocio}/{local}` y `/carta/pedido/{id}`.
+
+---
+
+### 55. 🟡 Pedidos online: zona en el pedido y filtros del listado
+
+**Problema:**
+- `GET /customer-orders` (vista del personal) no trae la zona de reparto aplicada (nombre), solo la comuna y el costo de envío.
+- El listado solo filtra por `status`, `locationId` y `limit`. Para la pestaña "En curso" (retiro/delivery aceptados y no entregados) el front pide `status=accepted&limit=100` y filtra en el navegador: un pedido más antiguo que los últimos 100 aceptados no aparece.
+
+**Se pide:** agregar `deliveryZone: { id, name } | null` al pedido, y filtros `channel` y `fulfillment` (o `inProgress=true`) en `GET /customer-orders`.
+
+**Front mientras tanto:** muestra comuna y costo; "En curso" se arma con los últimos 100 aceptados.
+
+---
+
+### 56. 🟡 Carta online: comunas públicas y contexto del pedido
+
+**Problema:**
+- No hay un endpoint público de comunas: la carta solo puede ofrecer las comunas listadas en las zonas. Un local que solo tiene zonas por radio no puede recibir delivery desde la carta, porque `POST /public/v1/orders` exige `communeId`.
+- `GET /public/v1/orders/{id}` no trae la zona horaria ni los slugs del negocio y del local. Una página de seguimiento abierta desde el correo no puede volver a la carta y muestra las horas en America/Santiago por defecto.
+
+**Se pide:**
+- Un `GET /public/v1/communes?search=` (o las comunas de la región del local en `online`), o no exigir `communeId` cuando hay coordenadas dentro de una zona por radio.
+- Agregar `timeZone`, `businessSlug` y `locationSlug` al pedido público.
+
+**Front mientras tanto:** el delivery se ofrece solo si alguna zona tiene comunas; el seguimiento desde el correo usa America/Santiago y no muestra "Volver a la carta".
+
+---
+
+### 57. 🟡 API pública: códigos de error en llaves y webhooks
+
+**Problema:** los 400 y 409 de `/public-api/keys` y `/public-api/webhooks` (más de 10 llaves activas, más de 5 webhooks, origen sin https, publicable sin orígenes, webhook desactivado al probar) llegan sin `code`, solo con `message` en inglés. El front los traduce comparando el texto, y si el mensaje cambia se pierde la traducción.
+
+**Se pide:** agregar códigos: `API_KEY_LIMIT_REACHED`, `API_KEY_ORIGINS_REQUIRED`, `API_KEY_ORIGIN_INVALID`, `WEBHOOK_LIMIT_REACHED`, `WEBHOOK_INACTIVE` (o los nombres que prefieran), con `details` cuando aplique.
+
+**Front mientras tanto:** traduce por el texto del mensaje y, si no lo reconoce, muestra un mensaje genérico.
+
+---
+
+### 58. 🟢 Ventas: declarar `contactId: null` para quitar el cliente
+
+**Problema:** `PATCH /orders/{id}` acepta `contactId` tipado como `number`. Con `null` hoy funciona (quita el cliente), pero no está declarado; si cambia la validación se rompe.
+
+**Se pide:** declarar `contactId?: number | null` en el DTO y en Swagger ("null quita el cliente").
+
+**Front:** ya envía `null` para quitar el cliente de una venta abierta.
+
+---
+
+### 59. 🟡 Carta pública: ocultar variaciones inactivas
+
+**Problema:** la carta pública (`public-menu.service.ts` y `find-public-menu`) trae las variaciones con `deleted_at IS NULL AND sell_price_inc_tax IS NOT NULL`, pero no filtra `is_active`: una variedad desactivada (ej. "Piña" de un jugo) sigue apareciendo en la carta. Además, `OrdersService.priceLines` (POS, carta y API) no rechaza una variación inactiva, y `PUT /products/:id` no permite eliminar una variación.
+
+**Se pide:**
+- Filtrar `v.is_active = true` en la carta pública (y en las promociones/packs que listan variaciones) y en el filtro `sellable` de `GET /products`.
+- Rechazar en la venta una variación inactiva (400 con `code`, ej. `VARIATION_INACTIVE`).
+- Opcional: poder quitar una variación por `PUT /products/:id` (soft delete, ej. `deletedVariationIds: number[]`) y un campo de posición para ordenarlas.
+
+**Front mientras tanto:** al quitar una variedad en Carta → Productos envía `{ id, isActive: false, sellPriceIncTax: null }`: sin precio no aparece en la carta y la venta la rechaza ("has no sell price"). Si se vuelve a agregar, se crea una nueva.
+
+---
+
+### 60. 🟡 Pedidos de clientes: permitir verlos con solo `online_ordering`
+
+**Problema:** `GET/POST /customer-orders*`, `table-requests` y `customer-feedback` exigen la función `table_ordering`, también para listar y gestionar pedidos de retiro y delivery. Un plan con solo `online_ordering` no podría ver sus pedidos online.
+
+**Se pide:** Aceptar `table_ordering` **o** `online_ordering` en listar, ver, aceptar, rechazar, confirmar pago y avanzar la entrega.
+
+**Front mientras tanto:** El menú y la ruta `/customer-orders` se bloquean con `table_ordering` (hoy los planes con `online_ordering` también lo tienen).
+
+---
+
+### 61. 🟡 Fidelización: un descuento canjeado se puede quitar al editar la venta
+
+**Problema:** Después de `POST /loyalty/redeem` con una recompensa de descuento, `PATCH /orders/{id}` deja cambiar o quitar `discountAmount`/`discountType`. El saldo del cliente queda descontado y la venta sin el descuento.
+
+**Se pide:** Responder 409 (`LOYALTY_REWARD_APPLIED`) si la venta tiene un canje y se cambia el descuento, o devolver el saldo al quitarlo.
+
+**Front mientras tanto:** Ninguno: el modal Editar del pedido no lo bloquea todavía.
+
+---
+
+### 62. 🟡 Reservas desde la carta: horario del local y validación de 2 horas
+
+**Problema:** `assertWithinSchedule` exige que las 2 horas de la reserva quepan en el horario, pero usa la zona horaria del negocio y no la del local. Además el 400 `BOOKING_OUTSIDE_HOURS` no dice hasta qué hora se puede reservar.
+
+**Se pide:** Usar la zona horaria del local y agregar en `details` la última hora válida del día.
+
+**Front mientras tanto:** valida que inicio + 2 h quepa en un rango del horario (también cruzando la medianoche) con la zona del local; si el backend responde 400, se muestra el mensaje.
+
+---
+
+### 63. 🟢 Datos nulos y documentación: slugs, ETA de zonas y evento add_to_cart
+
+**Problema:** `MenuSettings.locationSlug`, `businessSlug` y `publicPath` pueden venir `null` (columnas nullable); `etaMinutes` de las zonas acepta `null` por `@IsOptional` y llega a una columna NOT NULL (500); el enum de Swagger de `MenuEventRequestDto.type` no incluye `add_to_cart`; los errores de zonas (comunas o radio, comuna desconocida, falta `address`) salen sin `code`.
+
+**Se pide:** Garantizar el slug del local al crearlo o documentar cuándo es nulo; rechazar `etaMinutes: null` con 400; documentar `add_to_cart`; agregar códigos (`DELIVERY_ZONE_AREA_REQUIRED`, `COMMUNE_NOT_FOUND`, `DELIVERY_ADDRESS_REQUIRED`).
+
+**Front mientras tanto:** El formulario de zonas valida antes de enviar; el widget usa `publicPath` del local.
+
+---
+
+### 64. 🟢 Ventas: el detalle trae el teléfono del cliente
+
+**Problema:** `GET /orders/{id}` trae `contactId` y el nombre del cliente, pero no su teléfono. Al cambiar el cliente de una venta abierta, el selector muestra el nombre con la línea del teléfono vacía.
+
+**Se pide:** Agregar `customerMobile` al detalle de la venta.
+
+**Front mientras tanto:** Se muestra solo el nombre.
+
+---
+
+### 65. 🟡 Despliegue: IP del cliente detrás de Netlify y ambiente de develop de la carta
+
+**Problema:** La landing llama a la API pública a través de un redirect de Netlify. El guard de límites toma la primera IP de `X-Forwarded-For`: si llega la de Netlify, los límites por IP (10, 5 y 60 por minuto) se comparten entre todos los clientes. Además no hay landing de develop: los QR y enlaces que arma develop apuntan a `redom.cl`, que usa la API de producción.
+
+**Se pide:** Confirmar en el deploy que llega la IP real del cliente (o usar el header que entrega Netlify) y definir la URL pública de la carta en develop (deploy de rama o subdominio) para `QR_BASE_URL` (#54).
+
+**Front mientras tanto:** Ninguno; afecta a los límites y a las pruebas en develop.
+
+---
+
+### 66. 🟡 Inventario: `isActive` de las variaciones (variedades quitadas)
+
+**Problema:** una variedad quitada queda con `isActive=false` (no se puede eliminar, #59). `GET /inventory/recipes`, `GET /inventory/stock` y `GET /inventory/food-cost` no envían `isActive` por variación ni lo filtran: Stock, la planilla de conteo, el selector de transferencias y Food cost (como "Sin receta") siguen mostrando variedades quitadas, también con stock 0.
+
+**Se pide:** agregar `isActive` a cada variación en esas respuestas, y en stock un filtro (`includeInactive`, por defecto falso salvo que tengan stock ≠ 0); en food cost, excluir las inactivas.
+
+**Front mientras tanto:** los selectores de ítems y las recetas las ocultan usando `GET /products` (que sí trae `isActive`), con una llamada extra en el editor de recetas; Stock, conteos y food cost todavía las muestran.
+
+---
+
+### 67. 🟢 Encuestas: canal del pedido
+
+**Problema:** las encuestas de Pedidos de clientes (`customer-feedback`, `FeedbackItemView`) traen `tableName` y `customerName`, pero no el canal. Las de retiro y delivery se ven como "Sin mesa".
+
+**Se pide:** agregar `channel: 'table' | 'pickup' | 'delivery'` a cada ítem (desde `CustomerOrderEntity`).
+
+**Front mientras tanto:** ya lee `channel` si llega (muestra "Retiro" o "Delivery"); sin él, "Sin mesa".
 
 ---
 

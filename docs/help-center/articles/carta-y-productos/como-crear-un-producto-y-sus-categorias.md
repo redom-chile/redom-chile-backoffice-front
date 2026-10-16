@@ -36,7 +36,7 @@ Para editar o eliminar un producto, usa los íconos de lápiz o basurero en su f
 
 ## Control de stock
 
-El campo **Control de stock** aparece solo si activaste el inventario en **Negocio → Mi negocio → Inventario**. Tiene tres opciones:
+El campo **Control de stock** aparece solo si activaste el inventario en **Mi negocio → Inventario**. Tiene tres opciones:
 
 - *Sin control*: no descuenta stock.
 - *Stock propio*: el producto tiene su propio stock, como una bebida en lata. Puedes indicar la *Unidad de stock* y el *Stock mínimo*.
