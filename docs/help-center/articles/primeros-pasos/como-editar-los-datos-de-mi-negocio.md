@@ -9,7 +9,7 @@ tags: [mi negocio, logo, moneda, rut, iva, propina, mesas, meseros, configuracio
 position: 3
 ---
 
-Los datos de tu negocio se editan en **Negocio → Mi negocio**, en la pestaña **General**. Cada sección tiene su propio botón **Guardar**. Si te arrepientes antes de guardar, toca **Descartar**.
+Los datos de tu negocio se editan en **Mi negocio**, en la pestaña **General**. Cada sección tiene su propio botón **Guardar**. Si te arrepientes antes de guardar, toca **Descartar**.
 
 ## Identidad
 
@@ -46,5 +46,5 @@ La pestaña **Inventario** tiene la configuración de stock.
 
 - **"RUT inválido. Revisa el dígito verificador."**: revisa el número y el dígito final.
 - **"Debe estar entre 0 y 100."** o **"Máximo 2 decimales."**: corrige el IVA o la propina.
-- **"Cierra las cajas abiertas primero"**: no puedes apagar *Caja y turnos* mientras haya turnos abiertos. Ciérralos en **POS → Turnos de caja**.
+- **"Cierra las cajas abiertas primero"**: no puedes apagar *Caja y turnos* mientras haya turnos abiertos. Ciérralos en **Ventas → Turnos de caja**.
 - **"No tienes permiso para esta acción."**: tu rol no permite editar el negocio. Pídele al dueño que lo haga.

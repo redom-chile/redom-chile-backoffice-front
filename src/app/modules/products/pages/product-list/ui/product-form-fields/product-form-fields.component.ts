@@ -8,7 +8,18 @@ import { RouterLink } from '@angular/router';
 import { IconComponent, ImagePickerComponent } from 'src/ui';
 import { STOCK_MODE_OPTIONS, UnitDto, unitLabel } from 'src/app/modules/inventory/data-access';
 import { CategoryDto } from '../../../categories/data-access';
-import { ProductForm, suggestSku } from './product-form';
+import {
+  createVarietyForm,
+  duplicatedVarietyNames,
+  isVarietyNamedAsProduct,
+  MIN_VARIETIES,
+  normalizeVarietyName,
+  ProductForm,
+  setVarietiesMode,
+  suggestSku,
+  VARIETY_NAME_MAX,
+  VarietyForm,
+} from './product-form';
 
 @Component({
   selector: 'app-product-form-fields',
@@ -35,12 +46,26 @@ export class ProductFormFieldsComponent implements OnInit {
   readonly inventoryEnabled = input(false);
   readonly ingredientsEnabled = input(false);
   readonly units = input<readonly UnitDto[]>([]);
+  // Variedades guardadas sin receta (solo al editar un plato "Por receta"); null = no se sabe.
+  readonly missingRecipeIds = input<ReadonlySet<number> | null>(null);
+  readonly configureRecipe = output<void>();
 
   readonly stockModeOptions = STOCK_MODE_OPTIONS;
   readonly unitLabel = unitLabel;
   // La unidad del producto debe ser una unidad base (las subunidades se usan al comprar/ajustar).
   readonly $baseUnits = computed(() => this.units().filter((unit) => !unit.baseUnitId));
   readonly $stockMode = signal<string>('none');
+  readonly typeOptions = [
+    { value: false, label: 'Producto', hint: 'Un plato, bebida o artículo que se vende solo.' },
+    { value: true, label: 'Pack / combo', hint: 'Varios productos juntos a un precio (ej. lomo + bebida a elección).' },
+  ] as const;
+  readonly $isPack = signal(false);
+
+  // Variedades: reemplazan al precio único.
+  readonly varietyNameMax = VARIETY_NAME_MAX;
+  readonly $hasVarieties = signal(false);
+  // Se quitó alguna variedad ya guardada (se oculta, no se elimina).
+  readonly $removedSaved = signal(false);
 
   readonly $selectedCategoryId = signal<number | null>(null);
   readonly $subcategories = computed(() => {
@@ -52,7 +77,10 @@ export class ProductFormFieldsComponent implements OnInit {
     'w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100';
 
   ngOnInit(): void {
-    const { name, sku, categoryId, subCategoryId, stockMode } = this.form().controls;
+    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties } = this.form().controls;
+    this.$hasVarieties.set(!!hasVarieties.value);
+    this.$isPack.set(!!isPack.value);
+    isPack.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$isPack.set(!!value));
     this.$selectedCategoryId.set(categoryId.value);
     this.$stockMode.set(stockMode.value ?? 'none');
     stockMode.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$stockMode.set(value ?? 'none'));
@@ -77,6 +105,59 @@ export class ProductFormFieldsComponent implements OnInit {
   /** "Por receta" se puede mantener si ya estaba, pero no elegir sin ingredientes activos. */
   isStockModeDisabled(value: string): boolean {
     return value === 'recipe' && !this.ingredientsEnabled() && this.$stockMode() !== 'recipe';
+  }
+
+  enableVarieties() {
+    const { varieties, price, singleVariationId, hasVarieties } = this.form().controls;
+    // El precio único pasa a ser la primera variedad (mismo id: conserva ventas, stock y receta).
+    if (!varieties.length) {
+      varieties.push(createVarietyForm(singleVariationId.value, '', price.value));
+      while (varieties.length < MIN_VARIETIES) varieties.push(createVarietyForm());
+    }
+    hasVarieties.setValue(true);
+    setVarietiesMode(this.form(), true);
+    this.$hasVarieties.set(true);
+  }
+
+  disableVarieties() {
+    const { varieties, price, hasVarieties } = this.form().controls;
+    if (price.value === null && varieties.length) price.setValue(varieties.at(0).controls.price.value);
+    hasVarieties.setValue(false);
+    setVarietiesMode(this.form(), false);
+    this.$hasVarieties.set(false);
+  }
+
+  addVariety() {
+    this.form().controls.varieties.push(createVarietyForm());
+  }
+
+  removeVariety(index: number) {
+    const varieties = this.form().controls.varieties;
+    if (varieties.at(index).controls.id.value !== null) this.$removedSaved.set(true);
+    varieties.removeAt(index);
+  }
+
+  isVarietyInvalid(variety: VarietyForm, field: 'name' | 'price'): boolean {
+    const control = variety.controls[field];
+    if (control.invalid && control.touched) return true;
+    if (field !== 'name') return false;
+    return duplicatedVarietyNames(this.form()).has(normalizeVarietyName(variety.controls.name.value)) || this.isNamedAsProduct(variety);
+  }
+
+  isNamedAsProduct(variety: VarietyForm): boolean {
+    return isVarietyNamedAsProduct(this.form(), variety.controls.name.value);
+  }
+
+  hasNoRecipe(variety: VarietyForm): boolean {
+    const id = variety.controls.id.value;
+    return id !== null && !!this.missingRecipeIds()?.has(id);
+  }
+
+  /** Nombres de las variedades guardadas que aún no tienen receta. */
+  missingRecipeNames(): string[] {
+    return this.form()
+      .controls.varieties.controls.filter((variety) => this.hasNoRecipe(variety))
+      .map((variety) => variety.controls.name.value?.trim() || 'Sin nombre');
   }
 
   isInvalid(control: keyof ProductForm['controls']): boolean {

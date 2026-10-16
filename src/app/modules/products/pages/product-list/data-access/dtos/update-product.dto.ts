@@ -1,10 +1,11 @@
-import { ProductStockMode } from './product.dto';
+import { ProductStockMode, ProductTypeInput } from './product.dto';
 
 export type UpdateProductVariationDto = Readonly<{
   // Sin id, el backend crea la variación; con id, la actualiza.
   id?: number;
   name?: string;
-  sellPriceIncTax?: number;
+  // null deja la variación sin precio: se usa para ocultar las variedades quitadas (ver #59).
+  sellPriceIncTax?: number | null;
   isActive?: boolean;
 }>;
 
@@ -12,7 +13,7 @@ export type UpdateProductVariationDto = Readonly<{
 export type UpdateProductDto = Readonly<{
   name?: string;
   sku?: string;
-  type?: 'ingredient';
+  type?: ProductTypeInput;
   stockMode?: ProductStockMode;
   // null = quitar la unidad.
   unitId?: number | null;

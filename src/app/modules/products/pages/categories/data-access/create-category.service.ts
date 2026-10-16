@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
@@ -17,6 +17,9 @@ export class CreateCategoryService {
   readonly $error = toSignal(this.#error$);
   readonly $hasError = toSignal(this.#error$.pipe(map((code) => code !== undefined)));
   readonly $success = toSignal(this.#success$);
+  // Id del creado (para guardar después lo que va por otro endpoint, como etiquetas u horario).
+  readonly #createdId = signal<number | null>(null);
+  readonly $createdId = this.#createdId.asReadonly();
 
   create(dto: CreateCategoryDto) {
     this.#isLoading$.next(true);
@@ -32,10 +35,14 @@ export class CreateCategoryService {
           return EMPTY;
         })
       )
-      .subscribe(() => this.#success$.next(true));
+      .subscribe((response) => {
+        this.#createdId.set(response?.id ?? null);
+        this.#success$.next(true);
+      });
   }
 
   reset() {
+    this.#createdId.set(null);
     this.#error$.next(undefined);
     this.#success$.next(false);
     this.#isLoading$.next(false);

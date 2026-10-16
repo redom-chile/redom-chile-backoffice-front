@@ -9,11 +9,11 @@ tags: [consumo teorico, consumo real, variacion, perdidas, mermas, conteo]
 position: 4
 ---
 
-En **Inventario → Consumo** comparas lo que las ventas debieron consumir según las recetas con lo que realmente salió del stock en un local y un período.
+En **Recetas y costos → Consumo** comparas lo que las ventas debieron consumir según las recetas con lo que realmente salió del stock en un local y un período.
 
 ## Cómo usarlo
 
-1. Ve a **Inventario → Consumo**.
+1. Ve a **Recetas y costos → Consumo**.
 2. Elige el **local**.
 3. Elige el período: **Este mes**, **Mes anterior**, **Últimos 7 días** o **Personalizado** (con *Desde* y *Hasta*).
 4. Si quieres, usa **Filtrar por ítem…** para ver un solo ingrediente o producto.
@@ -46,4 +46,4 @@ Vendiste 100 hamburguesas con 150 g de carne cada una: el consumo teórico es 15
 
 - **"La fecha 'Desde' no puede ser posterior a 'Hasta'."**: corrige el período.
 - **"Sin movimientos en el período"**: no hubo ventas, compras, ajustes ni conteos en ese local entre esas fechas. Prueba con otro período o local.
-- **"Aún no tienes locales"**: crea uno en **Negocio → Sucursales**.
+- **"Aún no tienes locales"**: crea uno en **Mi negocio → Sucursales**.

@@ -1,16 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { ButtonComponent, ImagePickerComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { CreateCategoryService, GetAllCategoriesService, getCategoryErrorMessage } from '../../data-access';
 import { CategoryModalResult } from '../category-modal-result';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
+import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
+import { CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
 import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-create-category-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent],
   templateUrl: './create-category-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,11 +40,17 @@ export class CreateCategoryModalComponent implements OnDestroy {
   readonly #isSaving = signal(false);
   readonly $isLoading = computed(() => this.#isSaving() || !!this.createService.$isLoading());
   #image: ImageSelection = { kind: 'keep' };
+  readonly #access = inject(AccessService);
+  // Horario en la carta: va por otro endpoint, después de guardar la categoría (mismo permiso que editarla).
+  readonly #menuSettings = inject(MenuSettingsService);
+  readonly $canEditSchedule = computed(() => this.#access.can(PERMISSIONS.CATEGORIES.UPDATE_CATEGORY));
+  readonly $schedule = signal<CategorySchedule>(toCategorySchedule([]));
+  readonly $scheduleSubmitted = signal(false);
 
   constructor() {
     effect(() => {
       if (this.createService.$success()) {
-        this.dialogRef.close('created');
+        untracked(() => this.#afterCreate(this.createService.$createdId()));
       }
     });
 
@@ -57,6 +66,11 @@ export class CreateCategoryModalComponent implements OnDestroy {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toast.show('Completa los campos obligatorios', 'warning');
+      return;
+    }
+    if (this.$canEditSchedule() && !isScheduleValid(this.$schedule())) {
+      this.$scheduleSubmitted.set(true);
+      this.toast.show('Revisa el horario en la carta', 'warning');
       return;
     }
     this.#save();
@@ -84,6 +98,15 @@ export class CreateCategoryModalComponent implements OnDestroy {
     } finally {
       this.#isSaving.set(false);
     }
+  }
+
+  async #afterCreate(categoryId: number | null) {
+    this.#isSaving.set(true);
+    if (this.$canEditSchedule()) {
+      await saveCategoryScheduleIfChanged(this.#menuSettings, this.toast, categoryId, this.$schedule(), toCategorySchedule([]));
+    }
+    this.#isSaving.set(false);
+    this.dialogRef.close('created');
   }
 
   handleCancel() {

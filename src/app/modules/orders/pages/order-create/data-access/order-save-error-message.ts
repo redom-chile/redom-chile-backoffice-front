@@ -11,6 +11,14 @@ export function isModifierNotAvailableError(error: ApiError): boolean {
   return error.code === ApiErrorCode.MODIFIER_NOT_AVAILABLE;
 }
 
+// ": elige de 1 a 2" cuando el backend informa el rango del grupo.
+function packRange(details: Record<string, unknown>): string {
+  const min = Number(details['minChoices']);
+  const max = Number(details['maxChoices']);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || details['minChoices'] === undefined) return '';
+  return min === max ? ` (elige ${min})` : ` (elige de ${min} a ${max})`;
+}
+
 /**
  * Mensaje al crear un pedido o agregar productos. POST /orders/:id/lines responde 409 sin
  * código propio (code CONFLICT) cuando la cuenta ya se cerró o se canceló; el 409 por falta de
@@ -33,6 +41,14 @@ export function getOrderSaveErrorMessage(
     return `Una de las opciones elegidas ya no está disponible para ${name ?? 'un producto'}. Vuelve a elegirlas.`;
   if (error.code === ApiErrorCode.MODIFIER_REPEATED)
     return `Hay una opción repetida en ${name ?? 'un producto'}. Edítalo y vuelve a intentar.`;
+
+  // Packs: elecciones fuera de rango o una opción inactiva/eliminada (400).
+  if (error.code === 'PACK_CHOICES_INVALID') {
+    const range = packRange(error.details);
+    return `Revisa las opciones del pack${name ? ` ${name}` : ''}${range}. Tócalo en el ticket para corregirlas.`;
+  }
+  if (error.code === 'PRODUCT_UNAVAILABLE')
+    return `Una de las opciones del pack${name ? ` ${name}` : ''} ya no está disponible. Vuelve a elegirlas.`;
 
   const notForSale = error.status === HttpStatusCode.BadRequest ? NOT_FOR_SALE.exec(error.message) : null;
   if (notForSale) return `${notForSale[1]} ya no está a la venta. Quítalo del pedido y vuelve a intentar.`;

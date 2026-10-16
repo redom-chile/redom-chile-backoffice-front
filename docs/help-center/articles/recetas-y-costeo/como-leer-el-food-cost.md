@@ -9,7 +9,7 @@ tags: [food cost, costo, margen, rentabilidad, precio, receta]
 position: 3
 ---
 
-En **Inventario → Food cost** ves qué parte del precio sin IVA se va en costo, por cada plato *Por receta* y cada producto con *Stock propio*.
+En **Recetas y costos → Food cost** ves qué parte del precio sin IVA se va en costo, por cada plato *Por receta* y cada producto con *Stock propio*.
 
 ## Cómo se calcula
 
@@ -23,7 +23,7 @@ Ejemplo: un plato de $11.900 con IVA vale $10.000 sin IVA. Si su receta cuesta $
 
 ## Cómo leer la pantalla
 
-1. Ve a **Inventario → Food cost**.
+1. Ve a **Recetas y costos → Food cost**.
 2. Elige el local en **Local para calcular los costos**, busca por nombre o SKU y filtra por categoría.
 3. Ordena por food cost %, margen o nombre.
 
@@ -48,4 +48,4 @@ Desde cada fila puedes abrir **Ver receta** o **Ver kardex**. Toca *Sin receta o
 ## Errores comunes
 
 - **"Todavía no hay nada que analizar"**: arma recetas para tus platos *Por receta* y registra compras con costo.
-- **"El inventario no está activado"**: actívalo en **Negocio → Mi negocio**, pestaña Inventario.
+- **"El inventario no está activado"**: actívalo en **Mi negocio**, pestaña Inventario.

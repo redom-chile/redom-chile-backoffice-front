@@ -24,6 +24,14 @@
             <span class="text-muted-foreground">· {{ variation }}</span>
             }
           </p>
+          @for (item of line.packItems ?? []; track item.lineId) {
+          <div class="flex items-center justify-between gap-2 pl-4">
+            <p class="text-muted-foreground min-w-0 truncate text-xs">· {{ packItemLabel(item) }}</p>
+            @if (current.isKitchenOrder) {
+            <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="item.resLineOrderStatus" fallback="—" />
+            }
+          </div>
+          }
           @for (mod of line.modifiers; track mod.variationId) {
           <p class="text-muted-foreground truncate pl-4 text-xs">{{ lineModifierLabel(line, mod) }}</p>
           }
@@ -31,7 +39,7 @@
           <p class="truncate pl-4 text-xs italic text-amber-600 dark:text-amber-400">“{{ line.sellLineNote }}”</p>
           }
         </div>
-        @if (current.isKitchenOrder) {
+        @if (current.isKitchenOrder && !isPackLine(line)) {
         <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
         }
       </li>
@@ -45,6 +53,18 @@
       <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency(current.remaining) }}</span>
     </div>
   </div>
+  @if (current.status === 'ORDERED' && $canEditOrder()) {
+  <div [class.opacity-60]="savingCustomer()" [class.pointer-events-none]="savingCustomer()">
+    <app-customer-selector [selected]="$orderCustomer()" (selectedChange)="orderCustomerChange.emit($event)" />
+  </div>
+  } @else {
+  <!-- Sin permiso para editar: el cliente solo se muestra -->
+  <div class="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
+    <app-icon class="text-muted-foreground h-5 w-5 shrink-0">person</app-icon>
+    <span class="text-muted-foreground shrink-0">Cliente:</span>
+    <span class="text-foreground min-w-0 truncate font-medium">{{ current.contactId ? (current.customerName ?? 'Cliente') : 'Sin cliente' }}</span>
+  </div>
+  }
   } @else if (!loadingOrder()) {
   <app-customer-selector [selected]="customer()" (selectedChange)="customerChange.emit($event)" />
   }
@@ -87,6 +107,16 @@
       {{ order() ? 'Agregar a la cuenta' : 'Enviar pedido' }}
     </button>
     @if (order(); as current) {
+    @if (current.status === 'ORDERED') {
+    <app-loyalty-redeem-button
+      class="col-span-2"
+      variant="pos"
+      [transactionId]="current.transactionId"
+      [contactId]="current.contactId"
+      [customerName]="current.customerName"
+      [disabled]="saving()"
+      (redeemed)="loyaltyRedeemed.emit()" />
+    }
     @if (current.remaining > 0 && $canCollect()) {
     <button
       type="button"

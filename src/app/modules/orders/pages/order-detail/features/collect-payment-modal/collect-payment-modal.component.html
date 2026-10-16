@@ -94,6 +94,9 @@
             <p class="text-foreground break-words text-sm font-medium">
               {{ line.productName }}@if (variationLabel(line.variationName); as variation) {<span class="text-muted-foreground font-normal"> · {{ variation }}</span>}
             </p>
+            @for (item of line.packItems ?? []; track item.lineId) {
+            <p class="text-muted-foreground break-words text-xs">· {{ packItemLabel(item) }}</p>
+            }
             @for (modifier of line.modifiers ?? []; track modifier.lineId) {
             <p class="text-muted-foreground break-words text-xs">+ {{ modifierLabel(line, modifier) }}</p>
             }

@@ -10,4 +10,6 @@ export type StockableItem = Readonly<{
   unitId: number | null;
   /** Último costo de compra conocido de la variación, para sugerir. */
   defaultPurchasePrice: number | null;
+  /** Variedad quitada del producto (solo llega si se pidió con includeRemoved). */
+  removed?: boolean;
 }>;

@@ -2,15 +2,16 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { RouterLink } from '@angular/router';
 import { IconComponent } from 'src/ui';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
-import { OrderDetailDto, OrderLineDto, OrderLineModifierDto } from 'src/app/modules/orders/pages/order-detail/data-access';
+import { isPackLine, OrderDetailDto, OrderLineDto, OrderLineModifierDto, packItemLabel } from 'src/app/modules/orders/pages/order-detail/data-access';
 import { CartLine, CartNoteChange, CustomerSelectorComponent, modifierLabel, OrderTicketComponent } from 'src/app/modules/orders/pages/order-create/features';
 import { CustomerDto } from 'src/app/modules/orders/pages/order-create/data-access';
 import { formatCurrency, KITCHEN_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
+import { LoyaltyRedeemButtonComponent } from 'src/app/modules/loyalty/features/loyalty-redeem';
 
 @Component({
   selector: 'app-pos-order-panel',
   standalone: true,
-  imports: [RouterLink, IconComponent, OrderTicketComponent, CustomerSelectorComponent, StatusBadgeComponent],
+  imports: [RouterLink, IconComponent, OrderTicketComponent, CustomerSelectorComponent, StatusBadgeComponent, LoyaltyRedeemButtonComponent],
   templateUrl: './pos-order-panel.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,6 +36,18 @@ export class PosOrderPanelComponent {
   readonly sendToKitchenChange = output<boolean>();
   readonly submitOrder = output<void>();
   readonly collect = output<void>();
+  // Canje de fidelización: hay que recargar la cuenta.
+  readonly loyaltyRedeemed = output<void>();
+  // Asignar o cambiar el cliente de la cuenta abierta.
+  readonly orderCustomerChange = output<CustomerDto | null>();
+  readonly savingCustomer = input(false);
+
+  // El detalle solo trae id y nombre del cliente.
+  readonly $orderCustomer = computed<CustomerDto | null>(() => {
+    const order = this.order();
+    return order?.contactId ? { id: order.contactId, name: order.customerName ?? 'Cliente', mobile: '', email: null } : null;
+  });
+  readonly $canEditOrder = computed(() => this.access.can(PERMISSIONS.ORDERS.UPDATE_ORDER));
 
   private readonly access = inject(AccessService);
 
@@ -46,6 +59,8 @@ export class PosOrderPanelComponent {
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;
+  readonly packItemLabel = packItemLabel;
+  readonly isPackLine = isPackLine;
 
   // 'DUMMY' es la variación única de los productos sin variaciones.
   variationLabel(line: OrderLineDto): string | null {

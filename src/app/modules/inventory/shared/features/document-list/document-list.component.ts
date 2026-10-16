@@ -132,7 +132,7 @@ function toQuery(params: ParamMap): DocumentListQuery {
       <a
         routerLink="/business/location"
         class="text-primary inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline">
-        Negocio → Sucursales
+        Mi negocio → Sucursales
         <app-icon class="h-4 w-4">arrow_forward</app-icon>
       </a>
     </div>

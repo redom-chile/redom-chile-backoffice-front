@@ -1,4 +1,4 @@
-import { OrderLineDto, OrderLineModifierDto } from './dtos';
+import { OrderLineDto, OrderLineModifierDto, OrderLinePackItemDto } from './dtos';
 
 // Los productos sin variaciones reales traen null o la variación "DUMMY", que no se muestra.
 export function orderVariationLabel(name: string | null | undefined): string | null {
@@ -14,6 +14,16 @@ export function modifierTimesPerUnit(line: OrderLineDto, modifier: OrderLineModi
 export function modifierLabel(line: OrderLineDto, modifier: OrderLineModifierDto): string {
   const times = modifierTimesPerUnit(line, modifier);
   return times > 1 ? `${times} x ${modifier.name}` : modifier.name;
+}
+
+// "Bebida" o "2 x Papas" (cantidad total del pedido: packs × unidades).
+export function packItemLabel(item: OrderLinePackItemDto): string {
+  return item.quantity > 1 ? `${item.quantity} x ${item.name}` : item.name;
+}
+
+// El pack no tiene estado de cocina propio: lo tienen sus productos.
+export function isPackLine(line: OrderLineDto): boolean {
+  return (line.packItems?.length ?? 0) > 0;
 }
 
 // Estado de pago por productos. null si no hay pagos por producto (o el backend no lo informa).

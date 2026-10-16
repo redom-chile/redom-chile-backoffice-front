@@ -17,6 +17,8 @@ export type BookingDto = Readonly<{
   // Teléfono del cliente para llamarlo desde la agenda.
   customerMobile: string | null;
   tableId: number | null;
+  // El listado todavía no lo trae; si llega, null = creada desde la carta pública.
+  createdBy?: string | null;
 }>;
 
 // Detalle (GET /bookings/:id), necesario para editar: el listado no trae la nota.
@@ -33,6 +35,8 @@ export type BookingDetailDto = Readonly<{
   bookingNote: string | null;
   locationName: string;
   partySize: number;
+  // null: la pidió un cliente desde la carta pública (llega en espera).
+  createdBy?: string | null;
 }>;
 
 export type BookingFiltersDto = Readonly<{

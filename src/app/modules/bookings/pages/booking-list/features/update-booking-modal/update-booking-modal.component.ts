@@ -5,7 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
 import { BookingService, getBookingErrorMessage } from '../../data-access';
-import { BookingFormFieldsComponent, createBookingForm, toUpdateBookingDto } from '../../ui';
+import { BookingFormFieldsComponent, createBookingForm, isPendingMenuBooking, MENU_BOOKING_LABEL, toUpdateBookingDto } from '../../ui';
 import { BookingModalResult, UpdateBookingModalData } from '../booking-modal-result';
 
 @Component({
@@ -25,6 +25,8 @@ export class UpdateBookingModalComponent {
   readonly form = createBookingForm(inject(FormBuilder), { date: '', booking: this.booking });
   readonly $tables = this.tablesService.$tables;
   readonly $isSaving = signal(false);
+  readonly fromMenu = isPendingMenuBooking(this.booking);
+  readonly menuBookingLabel = MENU_BOOKING_LABEL;
 
   constructor() {
     this.tablesService.setParams(this.booking.locationId);

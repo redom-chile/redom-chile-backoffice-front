@@ -1,0 +1,100 @@
+@if (!hasProgram()) {
+<div class="glass-row mb-4 flex flex-col gap-2 rounded-[1rem] p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-foreground inline-flex items-center gap-2">
+    <app-icon class="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true">info</app-icon>Aún no creas el programa: los clientes no suman ni canjean.
+  </p>
+  <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="createProgram.emit()">Crear programa</button>
+</div>
+}
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">Se ofrecen en la caja en este orden.{{ $canManage() ? ' Arrastra o usa las flechas para cambiarlo.' : '' }}</p>
+  <app-button *appCheckPermission="PERMISSIONS.LOYALTY.MANAGE" type="button" impact="bold" tone="primary" shape="rounded" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva recompensa</span>
+  </app-button>
+</div>
+
+@if ($error()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="rewards.reload()">Reintentar</app-button>
+</div>
+} @else if (rewards.isLoading() && !$list()) {
+<div class="space-y-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass flex gap-3 rounded-[1rem] p-3">
+    <app-skeleton size="sm" style="width: 40px; height: 40px" />
+    <div class="flex-1 space-y-2">
+      <app-skeleton size="xs" style="width: 140px" />
+      <app-skeleton size="sm" style="width: 60%" />
+    </div>
+  </div>
+  }
+</div>
+} @else if (!$list()?.length) {
+<app-empty-state icon="redeem" title="Aún no tienes recompensas" description="Por ejemplo: $2.000 de descuento, 10% en la cuenta o un café gratis." />
+} @else {
+<ul
+  cdkDropList
+  cdkDropListLockAxis="y"
+  class="space-y-3"
+  [class.opacity-60]="rewards.isLoading()"
+  [cdkDropListDisabled]="$isReordering() || !$canManage()"
+  (cdkDropListDropped)="handleDrop($event)">
+  @for (reward of $list(); track reward.id; let index = $index, first = $first, last = $last) {
+  @let busy = $busyId() === reward.id;
+  <li cdkDrag class="glass flex items-center gap-2 rounded-[1rem] p-3">
+    @if ($canManage()) {
+    <button
+      type="button"
+      cdkDragHandle
+      class="text-muted-foreground hover:text-foreground -ml-1 inline-flex h-10 w-7 shrink-0 cursor-grab items-center justify-center rounded-md active:cursor-grabbing"
+      [attr.aria-label]="'Mover ' + reward.name"
+      title="Arrastra para ordenar">
+      <app-icon class="h-5 w-5">drag_indicator</app-icon>
+    </button>
+    <div class="-ml-1 flex shrink-0 flex-col">
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-6 w-7 items-center justify-center rounded-md disabled:opacity-30"
+        [disabled]="first || $isReordering()"
+        [attr.aria-label]="'Subir ' + reward.name"
+        (click)="moveBy(index, -1)">
+        <app-icon class="h-4 w-4" aria-hidden="true">keyboard_arrow_up</app-icon>
+      </button>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex h-6 w-7 items-center justify-center rounded-md disabled:opacity-30"
+        [disabled]="last || $isReordering()"
+        [attr.aria-label]="'Bajar ' + reward.name"
+        (click)="moveBy(index, 1)">
+        <app-icon class="h-4 w-4" aria-hidden="true">keyboard_arrow_down</app-icon>
+      </button>
+    </div>
+    }
+    <span class="bg-primary/10 text-primary hidden h-10 w-10 shrink-0 items-center justify-center rounded-full sm:inline-flex">
+      <app-icon class="h-5 w-5" aria-hidden="true">{{ typeIcons[reward.rewardType] }}</app-icon>
+    </span>
+    <div class="min-w-0 flex-1">
+      <h3 class="text-foreground truncate font-semibold" [class.opacity-60]="!reward.isActive">{{ reward.name }}</h3>
+      <p class="text-muted-foreground truncate text-sm">{{ typeLabels[reward.rewardType] }} · {{ valueLabel(reward) }}</p>
+      <span class="bg-primary/10 text-primary mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+        <app-icon class="h-3.5 w-3.5" aria-hidden="true">{{ mechanic() === 'stamps' ? 'approval' : 'stars' }}</app-icon>{{ cost(reward) }}
+      </span>
+    </div>
+    <div class="flex shrink-0 flex-col items-end gap-1">
+      <app-toggle [ariaLabel]="(reward.isActive ? 'Desactivar ' : 'Activar ') + reward.name" [checked]="reward.isActive" [disabled]="busy || !$canManage()" (changed)="toggle(reward, $event)" />
+      <div *appCheckPermission="PERMISSIONS.LOYALTY.MANAGE" class="flex items-center">
+        <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full" [disabled]="busy" aria-label="Editar recompensa" (click)="edit(reward)">
+          <app-icon class="h-5 w-5">edit</app-icon>
+        </button>
+        <button type="button" class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full" [disabled]="busy" aria-label="Eliminar recompensa" (click)="remove(reward)">
+          <app-icon class="h-5 w-5">delete</app-icon>
+        </button>
+      </div>
+    </div>
+  </li>
+  }
+</ul>
+}

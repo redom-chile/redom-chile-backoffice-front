@@ -9,7 +9,7 @@ tags: [unidades, subunidades, ingredientes, insumos, stock minimo, sku]
 position: 2
 ---
 
-Primero crea tus unidades en **Inventario → Unidades** y después tus insumos en **Inventario → Ingredientes**. El stock siempre se guarda en la unidad base (ej. gramos) y puedes comprar o ajustar en sus subunidades (ej. kilos).
+Primero crea tus unidades en **Inventario → Unidades** y después tus insumos en **Recetas y costos → Ingredientes**. El stock siempre se guarda en la unidad base (ej. gramos) y puedes comprar o ajustar en sus subunidades (ej. kilos).
 
 ## Unidades
 
@@ -26,11 +26,11 @@ Para eliminar una unidad base, primero elimina sus subunidades.
 
 ## Ingredientes
 
-Solo si tienes activado *Trabajar con ingredientes y recetas* en **Negocio → Mi negocio**, pestaña Inventario.
+Solo si tienes activado *Trabajar con ingredientes y recetas* en **Mi negocio**, pestaña Inventario.
 
 Un ingrediente tiene stock pero no se vende ni aparece en la carta ni en el POS (harina, tomate, aceite).
 
-1. Ve a **Inventario → Ingredientes** y toca **Nuevo ingrediente**.
+1. Ve a **Recetas y costos → Ingredientes** y toca **Nuevo ingrediente**.
 2. Completa:
    - **Nombre**.
    - **SKU**: se sugiere según el nombre; el botón de flechas propone otro.

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,13 +9,15 @@ import { getOrderErrorMessage, GetServiceStaffService } from '../../../order-lis
 import { formatCurrency } from '../../../order-list/ui';
 import { DiscountType, OrderDetailDto, UpdateOrderDto, UpdateOrderService } from '../../data-access';
 import { OrderModalResult } from '../order-modal-result';
+import { CustomerDto } from 'src/app/modules/orders/pages/order-create/data-access';
+import { CustomerSelectorComponent } from 'src/app/modules/orders/pages/order-create/features/customer-selector';
 
 type DiscountOption = DiscountType | 'none';
 
 @Component({
   selector: 'app-update-order-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, NgClass, ButtonComponent, ModalCardComponent, SlotDirective],
+  imports: [ReactiveFormsModule, NgClass, ButtonComponent, ModalCardComponent, SlotDirective, CustomerSelectorComponent],
   templateUrl: './update-order-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -42,6 +44,11 @@ export class UpdateOrderModalComponent implements OnDestroy {
     additionalNotes: [this.order.additionalNotes ?? ''],
     staffNote: [this.order.staffNote ?? ''],
   });
+
+  // El detalle solo trae id y nombre del cliente.
+  readonly $customer = signal<CustomerDto | null>(
+    this.order.contactId ? { id: this.order.contactId, name: this.order.customerName ?? 'Cliente', mobile: '', email: null } : null,
+  );
 
   readonly $discountType = toSignal(this.form.controls.discountType.valueChanges, {
     initialValue: this.form.controls.discountType.value,
@@ -104,12 +111,14 @@ export class UpdateOrderModalComponent implements OnDestroy {
     const originalType: DiscountOption = order.discountAmount > 0 ? (order.discountType ?? 'fixed') : 'none';
     const discountType = (value.discountType ?? 'none') as DiscountOption;
     const discountAmount = discountType === 'none' ? 0 : (value.discountAmount ?? 0);
+    const contactId = this.$customer()?.id ?? null;
     const discountChanged = discountType !== originalType || discountAmount !== order.discountAmount;
 
     return {
       id: order.transactionId,
       ...(value.resTableId !== null && value.resTableId !== order.resTableId && { resTableId: value.resTableId }),
       ...(value.resWaiterId && value.resWaiterId !== order.resWaiterId && { resWaiterId: value.resWaiterId }),
+      ...(contactId !== order.contactId && { contactId }),
       ...(discountChanged && {
         discountType: discountType === 'none' ? 'fixed' : discountType,
         discountAmount,

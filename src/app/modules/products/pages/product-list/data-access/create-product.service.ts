@@ -17,6 +17,9 @@ export class CreateProductService {
   readonly $error = toSignal(this.#error$);
   readonly $hasError = toSignal(this.#error$.pipe(map((code) => code !== undefined)));
   readonly $success = toSignal(this.#success$);
+  // Id del creado (para guardar después lo que va por otro endpoint, como etiquetas u horario).
+  readonly #createdId = signal<number | null>(null);
+  readonly $createdId = this.#createdId.asReadonly();
   // Error completo (el mensaje del backend sirve para las reglas de inventario).
   readonly #lastError = signal<HttpErrorResponse | null>(null);
   readonly $lastError = this.#lastError.asReadonly();
@@ -37,10 +40,14 @@ export class CreateProductService {
           return EMPTY;
         }),
       )
-      .subscribe(() => this.#success$.next(true));
+      .subscribe((response) => {
+        this.#createdId.set(response?.id ?? null);
+        this.#success$.next(true);
+      });
   }
 
   reset() {
+    this.#createdId.set(null);
     this.#lastError.set(null);
     this.#error$.next(undefined);
     this.#success$.next(false);

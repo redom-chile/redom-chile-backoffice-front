@@ -2,23 +2,23 @@
 category: primeros-pasos
 title: ¿Cómo agrego una sucursal?
 slug: como-agregar-una-sucursal
-summary: Crea, edita o elimina los locales donde vendes desde Negocio → Sucursales.
+summary: Crea, edita o elimina los locales donde vendes desde Mi negocio → Sucursales.
 module: settings
 routes: [/business/location]
 tags: [sucursal, local, multilocal, direccion]
 position: 4
 ---
 
-Para agregar una sucursal, entra a **Negocio → Sucursales** y toca **Nueva sucursal**. Cada sucursal es un local donde vendes, con su propia dirección y su propio stock.
+Para agregar una sucursal, entra a **Mi negocio → Sucursales** y toca **Nueva sucursal**. Cada sucursal es un local donde vendes, con su propia dirección y su propio stock.
 
 ## Crear una sucursal
 
-1. Ve a **Negocio → Sucursales**.
+1. Ve a **Mi negocio → Sucursales**.
 2. Toca **Nueva sucursal**. Si todavía no tienes ninguna, toca **Crear sucursal**.
 3. Completa el *Nombre*, que es el único campo obligatorio. También puedes llenar *País*, *Estado/Región*, *Ciudad*, *Código postal*, *Dirección*, *Teléfono* y *Email*.
 4. Toca **Crear**. Verás el mensaje "Sucursal creada".
 
-También llegas a esta pantalla desde **Negocio → Mi negocio**, con el acceso **Sucursales** al final de la página.
+También llegas a esta pantalla desde **Mi negocio**, con el acceso **Sucursales** al final de la página.
 
 ## Editar o eliminar
 
@@ -35,4 +35,4 @@ También llegas a esta pantalla desde **Negocio → Mi negocio**, con el acceso 
 
 - **El botón Crear está desactivado**: falta el *Nombre* o el *Email* tiene un formato inválido.
 - **"Error al crear la sucursal"** o **"Error al actualizar"**: revisa tu conexión e inténtalo de nuevo.
-- **"Primero crea tu local"** en el POS: tu negocio no tiene ninguna sucursal. Crea una desde **Negocio → Sucursales**.
+- **"Primero crea tu local"** en el POS: tu negocio no tiene ninguna sucursal. Crea una desde **Mi negocio → Sucursales**.

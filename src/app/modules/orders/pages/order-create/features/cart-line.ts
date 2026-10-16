@@ -1,6 +1,6 @@
 import { computed, Signal } from '@angular/core';
 import { BusinessSettingsService, grossSellPrice } from 'src/app/core/services/business-settings';
-import { ProductDto, ProductModifierSetDto } from 'src/app/modules/products/pages/product-list/data-access';
+import { ProductDto, ProductModifierSetDto, ProductVariationDto } from 'src/app/modules/products/pages/product-list/data-access';
 import { OrderProductDto } from '../data-access';
 
 export type CartModifier = Readonly<{
@@ -12,12 +12,29 @@ export type CartModifier = Readonly<{
   quantity: number;
 }>;
 
+/** Opción elegida en un grupo del pack. extraPrice ya viene con IVA (el backend no se lo suma). */
+export type CartPackChoice = Readonly<{
+  groupId: number;
+  variationId: number;
+  name: string;
+  // Unidades del producto por cada pack.
+  quantity: number;
+  extraPrice: number;
+}>;
+
+/** Variedad que se puede vender ("Frutilla"): activa y con precio. */
+export type CartVariety = Readonly<{ variationId: number; name: string; price: number }>;
+
 export type CartLine = Readonly<{
   // Identifica la línea: un mismo producto puede ir en varias líneas con distinta nota u opciones.
   key: string;
   productId: number;
   variationId: number;
   name: string;
+  // Variedad elegida (null si el producto tiene precio único).
+  variationName: string | null;
+  // Variedades ofrecidas al agregarlo, para poder cambiarla al editar.
+  varieties: CartVariety[];
   // Precios del catálogo (netos si el negocio vende "más IVA"): usar cartUnitPrice para mostrarlos.
   // basePrice es el producto solo; unitPrice ya suma los modificadores.
   basePrice: number;
@@ -28,13 +45,20 @@ export type CartLine = Readonly<{
   modifiers: CartModifier[];
   // Sets ofrecidos al agregarlo, para volver a editar las opciones.
   modifierSets: ProductModifierSetDto[];
+  // Producto tipo pack ('combo'): sus elecciones viajan en comboChoices.
+  isPack: boolean;
+  packChoices: CartPackChoice[];
 }>;
 
 /** Lo que devuelve el modal de opciones. */
 export type CartItemConfig = Readonly<{
+  // Solo productos con variedades; si no viene se conserva la de la línea.
+  variationId?: number;
   quantity: number;
   note: string;
   modifiers: CartModifier[];
+  // Solo packs; si no viene se conservan las de la línea.
+  packChoices?: CartPackChoice[];
 }>;
 
 export const QUICK_NOTES = ['sin palta', 'sin mayo', 'sin cebolla', 'sin tomate', 'sin sal', 'bien cocido', 'término medio', 'para llevar'];
@@ -45,8 +69,44 @@ export function hasModifierSets(product: ProductDto): boolean {
   return (product.modifierSets ?? []).some((set) => set.options.length > 0);
 }
 
+export function isPackProduct(product: Pick<ProductDto, 'type'>): boolean {
+  return product.type === 'combo';
+}
+
+/** Recargos del pack por unidad (ya con IVA). */
+export function packExtras(choices: readonly CartPackChoice[]): number {
+  return choices.reduce((sum, choice) => sum + choice.extraPrice, 0);
+}
+
+// "Bebida", "2 x Papas"
+export function packChoiceLabel(choice: Pick<CartPackChoice, 'name' | 'quantity'>): string {
+  return choice.quantity > 1 ? `${choice.quantity} x ${choice.name}` : choice.name;
+}
+
+// Activas y con precio, en orden de creación (las variedades quitadas quedan inactivas o sin precio).
+function sellableVariations(product: ProductDto): ProductVariationDto[] {
+  return product.variations
+    .filter((variation) => variation.isActive !== false && variation.sellPriceIncTax !== null)
+    .sort((a, b) => a.id - b.id);
+}
+
+/** Variedades a elegir al vender; [] si el producto tiene precio único. */
+export function productVarieties(product: ProductDto): CartVariety[] {
+  const variations = sellableVariations(product);
+  if (variations.length < 2) return [];
+  return variations.map((variation) => ({ variationId: variation.id, name: variation.name, price: variation.sellPriceIncTax ?? 0 }));
+}
+
+/** Precio único o el menor de las variedades ("Desde"). */
 export function productPrice(product: ProductDto): number {
-  return product.variations[0]?.sellPriceIncTax ?? 0;
+  const prices = sellableVariations(product).map((variation) => variation.sellPriceIncTax ?? 0);
+  return prices.length ? Math.min(...prices) : (product.variations[0]?.sellPriceIncTax ?? 0);
+}
+
+/** Las variedades tienen precios distintos: la tarjeta muestra "Desde". */
+export function hasPriceRange(product: ProductDto): boolean {
+  const prices = productVarieties(product).map((variety) => variety.price);
+  return prices.length > 1 && Math.min(...prices) !== Math.max(...prices);
 }
 
 /** Cómo pasar del precio del catálogo al que paga el cliente (Datos fiscales del negocio). */
@@ -65,13 +125,20 @@ export function grossPrice(price: number, pricing: CartPricing): number {
   return grossSellPrice(price, pricing.vatRate, pricing.excludesVat ? 'excludes' : 'includes', pricing.decimals);
 }
 
-/** Precio unitario estimado que paga el cliente: producto + opciones, con IVA. */
-export function cartUnitPrice(basePrice: number, modifiers: readonly CartModifier[], pricing: CartPricing): number {
-  return modifiers.reduce((sum, mod) => sum + grossPrice(mod.price, pricing) * mod.quantity, grossPrice(basePrice, pricing));
+/**
+ * Precio unitario estimado que paga el cliente: producto + opciones (+ recargos del pack), con IVA.
+ * Estimación: el backend recalcula y aplica la promoción "en el local" si hay.
+ */
+export function cartUnitPrice(basePrice: number, modifiers: readonly CartModifier[], pricing: CartPricing, extras = 0): number {
+  return modifiers.reduce((sum, mod) => sum + grossPrice(mod.price, pricing) * mod.quantity, grossPrice(basePrice, pricing) + extras);
+}
+
+export function cartLineUnitPrice(line: CartLine, pricing: CartPricing): number {
+  return cartUnitPrice(line.basePrice, line.modifiers, pricing, packExtras(line.packChoices ?? []));
 }
 
 export function cartLineTotal(line: CartLine, pricing: CartPricing): number {
-  return cartUnitPrice(line.basePrice, line.modifiers, pricing) * line.quantity;
+  return cartLineUnitPrice(line, pricing) * line.quantity;
 }
 
 export function cartTotal(lines: readonly CartLine[], pricing: CartPricing): number {
@@ -95,12 +162,20 @@ function modifiersSignature(modifiers: readonly CartModifier[]): string {
     .join('|');
 }
 
-function isSameItem(line: CartLine, other: Pick<CartLine, 'productId' | 'variationId' | 'note' | 'modifiers'>): boolean {
+function packSignature(choices: readonly CartPackChoice[]): string {
+  return choices
+    .map((choice) => `${choice.groupId}:${choice.variationId}`)
+    .sort()
+    .join('|');
+}
+
+function isSameItem(line: CartLine, other: Pick<CartLine, 'productId' | 'variationId' | 'note' | 'modifiers' | 'packChoices'>): boolean {
   return (
     line.productId === other.productId &&
     line.variationId === other.variationId &&
     line.note === other.note &&
-    modifiersSignature(line.modifiers) === modifiersSignature(other.modifiers)
+    modifiersSignature(line.modifiers) === modifiersSignature(other.modifiers) &&
+    packSignature(line.packChoices ?? []) === packSignature(other.packChoices ?? [])
   );
 }
 
@@ -109,7 +184,9 @@ function newKey(productId: number): string {
 }
 
 function buildLine(product: ProductDto, config: CartItemConfig): CartLine | null {
-  const variation = product.variations[0];
+  const varieties = productVarieties(product);
+  const variation =
+    product.variations.find((current) => current.id === config.variationId) ?? sellableVariations(product)[0] ?? product.variations[0];
   if (!variation) return null;
   const basePrice = variation.sellPriceIncTax ?? 0;
   return {
@@ -117,12 +194,16 @@ function buildLine(product: ProductDto, config: CartItemConfig): CartLine | null
     productId: product.id,
     variationId: variation.id,
     name: product.name,
+    variationName: varieties.length ? variation.name : null,
+    varieties,
     basePrice,
     unitPrice: unitPriceWithModifiers(basePrice, config.modifiers),
     quantity: Math.max(1, config.quantity),
     note: config.note.trim(),
     modifiers: config.modifiers,
     modifierSets: product.modifierSets ?? [],
+    isPack: isPackProduct(product),
+    packChoices: config.packChoices ?? [],
   };
 }
 
@@ -147,15 +228,23 @@ export function addConfiguredToCart(cart: CartLine[], product: ProductDto, confi
 export function updateCartLine(cart: CartLine[], key: string, config: CartItemConfig, product?: ProductDto): CartLine[] {
   const current = cart.find((line) => line.key === key);
   if (!current) return cart;
-  const basePrice = product ? productPrice(product) : current.basePrice;
+  // Precio actual de la variedad elegida (o de la que ya tenía la línea).
+  const variationId = config.variationId ?? current.variationId;
+  const variety = (product ? productVarieties(product) : current.varieties).find((item) => item.variationId === variationId);
+  const variation = product?.variations.find((item) => item.id === variationId);
+  const basePrice = variety?.price ?? (variation ? (variation.sellPriceIncTax ?? current.basePrice) : current.basePrice);
   const updated: CartLine = {
     ...current,
+    variationId,
+    variationName: variety?.name ?? current.variationName,
+    varieties: product ? productVarieties(product) : current.varieties,
     basePrice,
     unitPrice: unitPriceWithModifiers(basePrice, config.modifiers),
     quantity: Math.max(1, config.quantity),
     note: config.note.trim(),
     modifiers: config.modifiers,
     modifierSets: product?.modifierSets ?? current.modifierSets,
+    packChoices: config.packChoices ?? current.packChoices ?? [],
   };
   const rest = cart.filter((line) => line.key !== key);
   const same = rest.find((line) => isSameItem(line, updated));
@@ -187,8 +276,9 @@ export function quantitiesByProduct(cart: CartLine[]): Record<number, number> {
 
 // La nota de cada línea viaja en su propio producto (sellLineNote en el backend).
 // Los modificadores van sin precio: lo calcula el backend.
+// Los packs envían todas sus elecciones (también los grupos fijos) en comboChoices.
 export function toOrderProducts(cart: CartLine[]): OrderProductDto[] {
-  return cart.map(({ productId, variationId, quantity, note, modifiers }) => ({
+  return cart.map(({ productId, variationId, quantity, note, modifiers, packChoices }) => ({
     productId,
     variationId,
     quantity,
@@ -196,5 +286,6 @@ export function toOrderProducts(cart: CartLine[]): OrderProductDto[] {
     ...(modifiers.length
       ? { modifiers: modifiers.map((mod) => (mod.quantity > 1 ? { variationId: mod.variationId, quantity: mod.quantity } : { variationId: mod.variationId })) }
       : {}),
+    ...(packChoices?.length ? { comboChoices: packChoices.map(({ groupId, variationId }) => ({ groupId, variationId })) } : {}),
   }));
 }

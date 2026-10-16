@@ -6,7 +6,7 @@ import { catchError, debounceTime, distinctUntilChanged, map, mergeMap, of, Subj
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ModifierSetDto, ModifierSetsService } from 'src/app/modules/products/pages/modifiers/data-access';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, PaginationTableComponent, SkeletonComponent } from 'src/ui';
-import { RecipesService } from '../../data-access';
+import { isRemovedVariation, RecipesService } from '../../data-access';
 import { LoadErrorComponent, resultError, resultValue, toRemoteResult } from '../../shared';
 import { InventoryDisabledComponent } from '../../ui';
 import { RecipeProduct, RecipeProductsService, RecipeStatus, toRecipeStatus } from './data-access';
@@ -112,6 +112,8 @@ export class RecipesComponent {
   // Estado de receta por productId (el id del set también es un productId).
   readonly $statuses = signal<Readonly<Record<number, RecipeStatus>>>({});
   readonly #statusQueue$ = new Subject<number>();
+  // Variedades quitadas por producto (de GET /products) para no contarlas en el estado.
+  readonly #removedIds = new Map<number, ReadonlySet<number>>();
 
   constructor() {
     this.#statusQueue$
@@ -119,7 +121,7 @@ export class RecipesComponent {
         mergeMap(
           (productId) =>
             this.#recipes.getByProduct(productId).pipe(
-              map((data) => [productId, toRecipeStatus(data)] as const),
+              map((data) => [productId, toRecipeStatus(data, this.#removedIds.get(productId))] as const),
               catchError(() => of([productId, { kind: 'error' } as RecipeStatus] as const)),
             ),
           STATUS_CONCURRENCY,
@@ -140,13 +142,14 @@ export class RecipesComponent {
     // Solo se revisan las filas visibles de la pestaña actual.
     effect(() => {
       const tab = this.$tab();
-      const ids =
-        tab === 'platos'
-          ? this.$visibleDishes().map((dish) => dish.id)
-          : tab === 'opciones'
-            ? this.$filteredSets().map((set) => set.id)
-            : this.$preparationRows().map((ingredient) => ingredient.id);
-      untracked(() => this.#queueStatuses(ids));
+      const products = tab === 'platos' ? this.$visibleDishes() : tab === 'preparaciones' ? this.$preparationRows() : [];
+      const ids = tab === 'opciones' ? this.$filteredSets().map((set) => set.id) : products.map((product) => product.id);
+      untracked(() => {
+        products.forEach((product) =>
+          this.#removedIds.set(product.id, new Set(product.variations.filter(isRemovedVariation).map((variation) => variation.id))),
+        );
+        this.#queueStatuses(ids);
+      });
     });
 
     this.search.valueChanges.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
@@ -192,7 +195,7 @@ export class RecipesComponent {
   }
 
   variationsLabel(dish: RecipeProduct): string {
-    const count = dish.variations.length;
+    const count = dish.variations.filter((variation) => !isRemovedVariation(variation)).length;
     return count > 1 ? `${count} variaciones` : 'Sin variaciones';
   }
 

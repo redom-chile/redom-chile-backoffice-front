@@ -15,7 +15,7 @@ Solo aplica si tienes activado *Caja y turnos* en Mi negocio → Punto de venta.
 
 ## Pasos
 
-1. En **POS → Tomar pedido**, toca el indicador verde de la caja.
+1. En **Ventas → Tomar pedido**, toca el indicador verde de la caja.
 2. En el panel del turno, toca **Cerrar caja**.
 3. En **Efectivo**, indica cuántos billetes y monedas hay de cada valor ($20.000, $10.000, $5.000, $2.000, $1.000, $500, $100, $50 y $10). Usa **+** y **−** o escribe la cantidad. El *Total efectivo contado* se suma solo.
 4. En **Otros medios (opcional)**, anota los totales de Débito, Crédito, Transferencia u Otro según el cierre del POS de Transbank o la cartola. Si no los tienes, déjalos vacíos.
