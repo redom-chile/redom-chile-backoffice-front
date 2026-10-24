@@ -9,7 +9,7 @@ import { addDays, BUSINESS_MODAL_CONFIG, BusinessModalData, featureLabel, limitL
 
 export type BusinessOverrideModalData = BusinessModalData & Readonly<{ entitlements: EntitlementsDto }>;
 
-const LIMITS: readonly PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month'];
+const LIMITS: readonly PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month', 'aiMenuContentMonth'];
 const PRESETS = [30, 60, 90];
 const MAX_REASON = 300;
 

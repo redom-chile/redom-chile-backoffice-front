@@ -1,3 +1,4 @@
+import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService, MenuSortMode, SettingNotSupportedError } from 'src/app/core/services/business-settings';
@@ -68,7 +69,9 @@ export class MenuSortModeControlComponent {
         this.#toast.show(
           error instanceof SettingNotSupportedError
             ? 'El servidor no guardó el orden de la carta. Intenta nuevamente.'
-            : 'No se pudo cambiar el orden de la carta. Intenta nuevamente.',
+            : error instanceof HttpErrorResponse && error.status === HttpStatusCode.Forbidden
+              ? 'No tienes permiso para cambiar el orden de la carta.'
+              : 'No se pudo cambiar el orden de la carta. Intenta nuevamente.',
           'error',
         );
       },

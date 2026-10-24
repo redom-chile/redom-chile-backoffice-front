@@ -9,7 +9,7 @@ import {
 } from 'src/app/core/services/business-settings';
 import { formatRut, isValidRut } from 'src/app/shared/validators';
 import { ButtonComponent, CardComponent, ToastService } from 'src/ui';
-import { getBusinessErrorMessage } from '../../data-access';
+import { getBusinessErrorMessage, injectIsBusinessOwner, OWNER_ONLY_SETTING_NOTE } from '../../data-access';
 
 const DEFAULT_VAT_RATE = 19;
 const TAX_LABEL = 'RUT';
@@ -34,6 +34,10 @@ export class BusinessTaxSectionComponent {
   readonly #access = inject(AccessService);
   // Sin permiso de edición la sección queda de solo lectura.
   protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
+  // El RUT solo lo cambia el dueño; el IVA y los precios, cualquiera con permiso.
+  protected readonly $isOwner = injectIsBusinessOwner();
+  protected readonly $canEditRut = computed(() => this.$canEdit() && this.$isOwner());
+  protected readonly ownerOnlyNote = OWNER_ONLY_SETTING_NOTE;
 
   readonly #savedRut = computed(() => this.#settings.$settings()?.taxNumber1?.trim() ?? '');
   readonly #savedVatRate = computed(() => Number(this.#settings.$settings()?.vatRate ?? DEFAULT_VAT_RATE));
@@ -47,7 +51,7 @@ export class BusinessTaxSectionComponent {
 
   protected readonly $rutError = computed(() => {
     const rut = this.$rut().trim();
-    return rut && !isValidRut(rut) ? 'RUT inválido. Revisa el dígito verificador.' : null;
+    return this.$canEditRut() && rut && !isValidRut(rut) ? 'RUT inválido. Revisa el dígito verificador.' : null;
   });
   readonly #vatRateValue = computed(() => {
     const raw = this.$vatRate().trim().replace(',', '.');
@@ -61,7 +65,7 @@ export class BusinessTaxSectionComponent {
     return null;
   });
 
-  readonly #rutChanged = computed(() => this.#normalizedRut() !== this.#savedRut());
+  readonly #rutChanged = computed(() => this.$canEditRut() && this.#normalizedRut() !== this.#savedRut());
   readonly #vatRateChanged = computed(() => this.#vatRateValue() !== this.#savedVatRate());
   readonly #sellPriceTaxChanged = computed(() => this.#sellPriceTax() !== this.#savedSellPriceTax());
   protected readonly $hasChanges = computed(

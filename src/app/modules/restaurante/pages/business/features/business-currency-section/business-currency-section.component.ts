@@ -3,7 +3,7 @@ import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService, UpdateBusinessSettingsDto } from 'src/app/core/services/business-settings';
 import { TIME_ZONES } from 'src/app/modules/onboarding/pages/create-business/time-zones';
 import { ButtonComponent, CardComponent, IconComponent, ToastService } from 'src/ui';
-import { FindAllCurrenciesService, getBusinessErrorMessage } from '../../data-access';
+import { FindAllCurrenciesService, getBusinessErrorMessage, injectIsBusinessOwner, OWNER_ONLY_SETTING_NOTE } from '../../data-access';
 
 const DEFAULT_TIME_ZONE = 'America/Santiago';
 
@@ -21,6 +21,10 @@ export class BusinessCurrencySectionComponent {
   readonly #access = inject(AccessService);
   // Sin permiso de edición la sección queda de solo lectura.
   protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
+  // La moneda solo la cambia el dueño; la zona horaria, cualquiera con permiso.
+  protected readonly $isOwner = injectIsBusinessOwner();
+  protected readonly $canEditCurrency = computed(() => this.$canEdit() && this.$isOwner());
+  protected readonly ownerOnlyNote = OWNER_ONLY_SETTING_NOTE;
 
   protected readonly $currencies = computed(() =>
     [...(this.#currencies.$currencies() ?? [])].sort((a, b) => a.currency.localeCompare(b.currency, 'es')),
@@ -43,7 +47,7 @@ export class BusinessCurrencySectionComponent {
 
   protected readonly $currencyChanged = computed(() => this.$currencyId() !== this.#savedCurrencyId());
   protected readonly $timeZoneChanged = computed(() => this.$timeZone() !== this.#savedTimeZone());
-  protected readonly $hasChanges = computed(() => this.$currencyChanged() || this.$timeZoneChanged());
+  protected readonly $hasChanges = computed(() => (this.$canEditCurrency() && this.$currencyChanged()) || this.$timeZoneChanged());
   protected readonly $isSaving = signal(false);
 
   onCurrencyChange(event: Event) {
@@ -68,7 +72,7 @@ export class BusinessCurrencySectionComponent {
     if (!this.$hasChanges() || this.$isSaving()) return;
     const changes: { -readonly [K in keyof UpdateBusinessSettingsDto]: UpdateBusinessSettingsDto[K] } = {};
     const currencyId = this.$currencyId();
-    const currencyChanged = this.$currencyChanged() && currencyId !== null;
+    const currencyChanged = this.$canEditCurrency() && this.$currencyChanged() && currencyId !== null;
     if (currencyChanged) changes.currencyId = currencyId;
     if (this.$timeZoneChanged()) changes.timeZone = this.$timeZone();
     this.$isSaving.set(true);

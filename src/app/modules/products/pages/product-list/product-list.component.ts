@@ -216,6 +216,11 @@ export class ProductListComponent implements OnInit {
     this.getAllService.retry();
   }
 
+  // Etapa 9: Carta → Mejorar con IA.
+  openMenuAi() {
+    this.router.navigate(['/products/improve']);
+  }
+
   private navigate(queryParams: Record<string, string | number | null>) {
     this.router.navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge' });
   }

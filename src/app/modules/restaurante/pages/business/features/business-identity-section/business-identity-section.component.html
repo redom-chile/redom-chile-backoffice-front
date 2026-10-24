@@ -18,16 +18,18 @@
           [class.border-red-500]="$nameError()"
           [attr.maxlength]="nameMaxLength"
           [value]="$name()"
-          [disabled]="$isSavingName() || !$canEdit()"
+          [disabled]="$isSavingName() || !$canEditName()"
           [attr.aria-invalid]="!!$nameError()"
           aria-describedby="business-name-error"
           (input)="onNameInput($event)"
           (keydown.enter)="saveName()" />
         @if ($nameError(); as error) {
         <p id="business-name-error" class="mt-1 text-xs text-red-500">{{ error }}</p>
+        } @else if ($canEdit() && !$isOwner()) {
+        <p id="business-name-error" class="text-muted-foreground mt-1 text-xs">{{ ownerOnlyNote }}</p>
         }
       </div>
-      @if ($canEdit()) {
+      @if ($canEditName()) {
       <div class="flex justify-end gap-2">
         @if ($nameChanged()) {
         <app-button impact="light" type="button" [disabled]="$isSavingName()" (buttonClick)="discardName()"

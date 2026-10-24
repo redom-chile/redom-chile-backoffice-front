@@ -56,6 +56,7 @@ export class Menu {
             { label: 'Productos', route: '/products' },
             { label: 'Categorías', route: '/products/categories' },
             { label: 'Modificadores', route: '/products/modifiers' },
+            { label: 'Mejorar con IA', route: '/products/improve' },
             { label: 'Agotados de hoy', route: '/settings/public-menu/sold-out' },
           ],
         },

@@ -50,7 +50,7 @@ export class ProfileComponent {
 
   protected readonly $business = computed<ProfileBusiness | null>(() => {
     if (!this.#whoami.$whoami()?.user.restaurantId) return null;
-    const business = this.#businesses.$businesses()?.[0];
+    const business = this.#businesses.$current();
     return business ? { name: business.name, logoUrl: business.logoUrl } : null;
   });
 

@@ -23,6 +23,7 @@ const PERMISSION_ROUTES: ReadonlyArray<readonly [string, PermissionCode]> = [
   ['/products', REST.PRODUCTS.SEE_MODULE],
   ['/products/categories', REST.CATEGORIES.SEE_MODULE],
   ['/products/modifiers', REST.MODIFIERS.SEE_MODULE],
+  ['/products/improve', REST.PRODUCTS.SEE_MODULE],
   ['/finance/expenses', REST.EXPENSES.SEE_MODULE],
   ['/finance/recurring', REST.EXPENSES.SEE_MODULE],
   ['/finance/categories', REST.EXPENSES.SEE_MODULE],

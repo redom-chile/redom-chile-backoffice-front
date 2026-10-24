@@ -12,7 +12,7 @@
       <select
         id="business-currency"
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
-        [disabled]="$isSaving() || !$currencies().length || !$canEdit()"
+        [disabled]="$isSaving() || !$currencies().length || !$canEditCurrency()"
         (change)="onCurrencyChange($event)">
         @if (!$currencies().length) {
         <option value="">{{ $currenciesError() ? 'No se pudieron cargar las monedas' : 'Cargando monedas…' }}</option>
@@ -26,6 +26,8 @@
       <button type="button" class="text-primary mt-1 text-xs font-medium" (click)="retryCurrencies()">
         Reintentar
       </button>
+      } @else if ($canEdit() && !$isOwner()) {
+      <p class="text-muted-foreground mt-1 text-xs">{{ ownerOnlyNote }}</p>
       }
     </div>
 

@@ -19,13 +19,15 @@
         class="glass-input w-full rounded-md px-3 py-2 text-sm"
         [class.border-red-500]="$rutError()"
         [value]="$rut()"
-        [disabled]="$isSaving() || !$canEdit()"
+        [disabled]="$isSaving() || !$canEditRut()"
         [attr.aria-invalid]="!!$rutError()"
         aria-describedby="business-rut-hint"
         (input)="onRutInput($event)"
         (blur)="formatRutOnBlur()" />
       @if ($rutError(); as error) {
       <p id="business-rut-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
+      } @else if ($canEdit() && !$isOwner()) {
+      <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">{{ ownerOnlyNote }}</p>
       } @else {
       <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">
         RUT de la empresa o persona que vende. Opcional.

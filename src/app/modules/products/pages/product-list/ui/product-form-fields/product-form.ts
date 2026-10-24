@@ -160,12 +160,10 @@ function toUpdateChefNote(form: ProductForm, original: ProductDto, { chefNoteEna
   return note !== (original.chefNote?.trim() || null) ? { chefNote: note } : {};
 }
 
-/** La nota que se enviará al guardar, o undefined si no se envía (al crear va en un PUT aparte: el POST no la recibe). */
-export function chefNoteToSend(form: ProductForm, context: ProductStockContext, original?: ProductDto): string | null | undefined {
-  if (!context.chefNoteEnabled) return undefined;
-  if (!original) return chefNoteOf(form) ?? undefined;
-  const fields = toUpdateChefNote(form, original, context);
-  return 'chefNote' in fields ? fields.chefNote : undefined;
+/** Al crear va en el POST solo si tiene texto (con texto el backend exige menu_design). */
+function toCreateChefNote(form: ProductForm, { chefNoteEnabled }: ProductStockContext) {
+  const note = chefNoteEnabled ? chefNoteOf(form) : null;
+  return note ? { chefNote: note } : {};
 }
 
 function toBasePayload(form: ProductForm) {
@@ -197,6 +195,7 @@ export function toCreateProductDto(form: ProductForm, context: ProductStockConte
     ...product,
     ...(form.getRawValue().isPack ? { type: PACK_PRODUCT_TYPE } : {}),
     ...toCreateStockFields(form, context),
+    ...toCreateChefNote(form, context),
     variations: form.getRawValue().hasVarieties
       ? varietyRows(form).map(({ name, sellPriceIncTax }) => ({ name, sellPriceIncTax }))
       : [{ name: DEFAULT_VARIATION_NAME, sellPriceIncTax: price }],

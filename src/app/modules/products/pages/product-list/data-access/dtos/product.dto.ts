@@ -62,12 +62,14 @@ export type ProductDto = Readonly<{
   variations: ProductVariationDto[];
   // Sets de modificadores que ofrece el producto ([] si no tiene).
   modifierSets?: ProductModifierSetDto[];
-  // Etiquetas de la carta pública. El backend aún no las devuelve: si no vienen, el formulario parte vacío.
-  tags?: readonly Readonly<{ id: number }>[];
+  // Etiquetas de la carta pública por código (solo GET /products/{id}; el listado no las trae).
+  tags?: readonly ProductTagRefDto[];
   // Orden dentro de su categoría (la subcategoría si tiene) y nota del chef (≤200).
   position?: number;
   chefNote?: string | null;
 }>;
+
+export type ProductTagRefDto = Readonly<{ code: string; name: string; kind: string }>;
 
 /** PATCH /products/reorder: todos los productos de la categoría, en el nuevo orden. */
 export type ReorderProductsDto = Readonly<{ categoryId: number; ids: number[] }>;
