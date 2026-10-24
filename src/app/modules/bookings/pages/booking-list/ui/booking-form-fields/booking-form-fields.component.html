@@ -32,7 +32,7 @@
 
   <div class="col-span-2">
     <label class="text-foreground mb-1 block text-sm font-medium">Mesa</label>
-    <select formControlName="tableId" [class]="inputClass">
+    <select #tableSelect formControlName="tableId" [class]="inputClass">
       <option [ngValue]="null">Sin mesa asignada</option>
       @for (table of $availableTables(); track table.id) {
       <option [ngValue]="table.id" [disabled]="table.capacity < $partySize()">

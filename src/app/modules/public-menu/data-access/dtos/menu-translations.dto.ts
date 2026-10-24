@@ -6,7 +6,8 @@ export type ExtraMenuLanguage = Exclude<MenuLanguage, 'es'>;
 export const EXTRA_MENU_LANGUAGES: readonly ExtraMenuLanguage[] = ['en', 'pt', 'de'];
 
 export type TranslationEntity = 'product' | 'variation' | 'category' | 'banner' | 'promotion' | 'pack_group' | 'location';
-export type TranslationField = 'name' | 'description' | 'title' | 'subtitle';
+/** Etapa 8: chef_note (producto) y announcement, story, chef_picks_title (local). */
+export type TranslationField = 'name' | 'description' | 'title' | 'subtitle' | 'chef_note' | 'announcement' | 'story' | 'chef_picks_title';
 export type TranslationStatus = 'draft' | 'published';
 export type TranslationFilter = 'missing' | 'outdated' | 'draft' | 'published' | 'all';
 export type AiTranslationScope = 'missing' | 'outdated' | 'missing_and_outdated';

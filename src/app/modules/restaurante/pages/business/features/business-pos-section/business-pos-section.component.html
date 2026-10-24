@@ -90,6 +90,18 @@
       }
     </div>
 
+    <div class="flex items-start justify-between gap-4 p-4">
+      <div>
+        <p class="text-foreground text-sm font-medium">Mostrar el IVA en la precuenta</p>
+        <p class="text-muted-foreground mt-0.5 text-xs">Si lo apagas, la precuenta muestra solo el total. La boleta siempre incluye el IVA.</p>
+      </div>
+      <app-toggle
+        aria-label="Mostrar el IVA en la precuenta"
+        [checked]="$showTaxOnPreBill()"
+        [disabled]="$isSaving() || !$canEdit()"
+        (changed)="$showTaxOnPreBill.set($event)" />
+    </div>
+
     <div class="p-4 sm:max-w-md">
       <label for="business-tip-mode" class="text-foreground mb-1 block text-sm font-medium">Reparto de propinas</label>
       <select

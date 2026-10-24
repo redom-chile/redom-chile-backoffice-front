@@ -5,3 +5,4 @@ export * from './table-service.dto';
 export * from './online-orders.dto';
 export * from './public-api.dto';
 export * from './menu-translations.dto';
+export * from './menu-design.dto';

@@ -28,6 +28,8 @@ export type BillTicketData = Readonly<{
   discount: number;
   total: number;
   taxAmount: number;
+  // false: no se imprime la línea "IVA incluido" (opción del negocio). Por defecto se muestra.
+  showTax?: boolean;
   paid: number;
   remaining: number;
   // Propina sugerida en porcentaje (0 para no mostrarla).
@@ -94,7 +96,7 @@ export function billTicketHtml(bill: BillTicketData): string {
     <div class="row"><span>Subtotal</span><span>${money(bill.subtotal)}</span></div>
     ${bill.discount > 0 ? `<div class="row"><span>Descuento</span><span>-${money(bill.discount)}</span></div>` : ''}
     <div class="row total"><span>TOTAL</span><span>${money(bill.total)}</span></div>
-    <div class="row muted"><span>IVA incluido</span><span>${money(bill.taxAmount)}</span></div>
+    ${bill.showTax !== false ? `<div class="row muted"><span>IVA incluido</span><span>${money(bill.taxAmount)}</span></div>` : ''}
     ${bill.paid > 0 ? `<div class="row"><span>Pagado</span><span>${money(bill.paid)}</span></div><div class="row total"><span>SALDO</span><span>${money(bill.remaining)}</span></div>` : ''}
     ${bill.suggestedTipPercent > 0 ? `<div class="sep"></div><div class="row"><span>Propina sugerida ${bill.suggestedTipPercent}%</span><span>${money(tip)}</span></div><div class="row"><span>Total con propina</span><span>${money(bill.remaining + tip)}</span></div>` : ''}
     <div class="sep"></div>

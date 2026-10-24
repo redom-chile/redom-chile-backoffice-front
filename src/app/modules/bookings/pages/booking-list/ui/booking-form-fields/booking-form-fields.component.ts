@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, computed, DestroyRef, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule } from '@angular/forms';
 import { IconComponent } from 'src/ui';
@@ -17,6 +17,9 @@ export class BookingFormFieldsComponent implements OnInit {
   readonly form = input.required<BookingForm>();
   readonly tables = input<TableDto[]>([]);
   readonly showStatus = input(false);
+  readonly focusTable = input(false);
+
+  private readonly tableSelect = viewChild<ElementRef<HTMLSelectElement>>('tableSelect');
 
   readonly durations = DURATIONS;
   readonly statusOptions = BOOKING_STATUS_OPTIONS;
@@ -25,6 +28,12 @@ export class BookingFormFieldsComponent implements OnInit {
 
   // Mesas donde cabe el grupo (el backend también lo valida).
   readonly $availableTables = computed(() => this.tables().filter((table) => table.status !== 'blocked'));
+
+  constructor() {
+    afterNextRender(() => {
+      if (this.focusTable()) this.tableSelect()?.nativeElement.focus();
+    });
+  }
 
   ngOnInit(): void {
     const partySize = this.form().controls.partySize;

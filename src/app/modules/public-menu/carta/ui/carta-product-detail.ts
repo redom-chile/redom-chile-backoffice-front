@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { PublicPackGroupDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
@@ -8,6 +8,8 @@ import { isPackUnavailable, packChoiceLabel, promotionLabel } from '../carta-mar
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 import { CartaStepper } from './carta-stepper';
+import { CartaListenButton } from './carta-design-blocks';
+import { CartaSpeech, productSpeech } from '../carta-speech';
 
 /**
  * Detalle de un producto (dentro de app-carta-dialog): precios, promoción y, si es pack, su contenido.
@@ -16,7 +18,7 @@ import { CartaStepper } from './carta-stepper';
  */
 @Component({
   selector: 'app-carta-product-detail',
-  imports: [CartaIcon, CartaTagIcon, CartaPrice, CartaStepper],
+  imports: [CartaIcon, CartaTagIcon, CartaPrice, CartaStepper, CartaListenButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -49,8 +51,24 @@ import { CartaStepper } from './carta-stepper';
         </div>
       }
 
+      @if (canListen()) {
+        <div class="mt-3">
+          <app-carta-listen-button [active]="listening()" [label]="t('design.listenProduct', { name: p.name })" (press)="listen()" />
+        </div>
+      }
+
       @if (p.description) {
         <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{{ p.description }}</p>
+      }
+
+      @if (p.chefNote) {
+        <div class="mt-4 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3" role="note" [attr.aria-label]="t('design.chefNote')">
+          <app-carta-icon name="chef-hat" [size]="20" class="mt-0.5 text-primary" />
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold uppercase tracking-wide">{{ t('design.chefNote') }}</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-relaxed [overflow-wrap:anywhere]">{{ p.chefNote }}</p>
+          </div>
+        </div>
       }
 
       @if (productTags().length) {
@@ -298,7 +316,26 @@ export class CartaProductDetail {
   /** Motivo por el que este producto no se puede agregar ("Agotado", "Fuera de horario"...). */
   readonly blocked = input<string | null>(null);
   readonly cartFull = input(false);
+  /** Etapa 8: botón "Escuchar" (design.accessibility.readAloud). */
+  readonly readAloud = input(false);
   readonly add = output<CartAddition>();
+
+  readonly #speech = inject(CartaSpeech);
+  protected readonly canListen = computed(() => this.readAloud() && this.#speech.supported);
+  readonly #speechId = computed(() => `product-${this.product().id}`);
+  protected readonly listening = computed(() => this.#speech.speaking() === this.#speechId());
+
+  constructor() {
+    // Otro producto o detalle cerrado: se deja de leer
+    effect((onCleanup) => {
+      const id = this.#speechId();
+      onCleanup(() => this.#speech.stopIf(id));
+    });
+  }
+
+  protected listen(): void {
+    this.#speech.toggle(this.#speechId(), productSpeech(this.product(), true));
+  }
 
   protected readonly maxQuantity = MAX_LINE_QUANTITY;
   protected readonly maxModifier = MAX_MODIFIER_QUANTITY;

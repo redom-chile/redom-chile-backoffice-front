@@ -1,15 +1,18 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { UnitsService } from 'src/app/modules/inventory/data-access';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
-import { CreateProductService, getProductSaveErrorMessage } from '../../data-access';
+import { checkChefNoteSaved, CreateProductService, getProductSaveErrorMessage } from '../../data-access';
 import {
+  chefNoteToSend,
   createProductForm,
   varietiesError,
   injectEditableProductTags,
@@ -41,6 +44,11 @@ export class CreateProductModalComponent implements OnDestroy {
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
   readonly $units = computed(() => this.#units.$units() ?? []);
   readonly form = createProductForm(inject(FormBuilder));
+  readonly #http = inject(HttpClient);
+  // Nota del chef: solo con menu_design en el plan.
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #chefNoteEnabled = () => this.#entitlements.hasFeature('menu_design');
+  #sentChefNote: string | null | undefined = undefined;
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
   readonly $uploadProgress = this.#upload.$progress;
@@ -103,7 +111,9 @@ export class CreateProductModalComponent implements OnDestroy {
     this.#isSaving.set(true);
     try {
       const imageFileId = await this.#upload.resolveSelection(this.#image, 'products');
-      this.createService.create({ ...toCreateProductDto(this.form, { inventoryEnabled: this.$inventoryEnabled() }), ...(imageFileId ? { imageFileId } : {}) });
+      const context = { inventoryEnabled: this.$inventoryEnabled(), chefNoteEnabled: this.#chefNoteEnabled() };
+      this.#sentChefNote = chefNoteToSend(this.form, context);
+      this.createService.create({ ...toCreateProductDto(this.form, context), ...(imageFileId ? { imageFileId } : {}) });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');
     } finally {
@@ -113,6 +123,7 @@ export class CreateProductModalComponent implements OnDestroy {
 
   async #afterCreate(productId: number | null) {
     this.#isSaving.set(true);
+    if (this.#sentChefNote) await checkChefNoteSaved(this.#http, productId, this.#sentChefNote);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, productId, this.$tagIds(), []);
     await this.pack.saveIfChanged(productId, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);

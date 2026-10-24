@@ -163,10 +163,18 @@ export type PackDto = Readonly<{
   }>;
 }>;
 
-export type BrandingDto = Readonly<{ locationId: number; theme: MenuThemeDto; coverFileId: string | null; coverUrl: string | null }>;
+export type BrandingDto = Readonly<{
+  locationId: number;
+  theme: MenuThemeDto;
+  coverFileId: string | null;
+  coverUrl: string | null;
+  /** Etapa 8: "Nuestra historia" (≤1000). */
+  story?: string | null;
+}>;
 
 /** null en un color: vuelve al por defecto. coverFileId null: quita la portada. */
 export type UpdateBrandingDto = Readonly<{
   theme?: Readonly<{ primaryColor?: string | null; backgroundColor?: string | null; textColor?: string | null }>;
   coverFileId?: string | null;
+  story?: string | null;
 }>;

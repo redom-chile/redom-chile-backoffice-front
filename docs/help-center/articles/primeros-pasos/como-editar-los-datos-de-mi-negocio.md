@@ -5,7 +5,7 @@ slug: como-editar-los-datos-de-mi-negocio
 summary: En Mi negocio cambias el nombre, el logo, el color, la moneda, la zona horaria, los datos fiscales y la configuración del punto de venta.
 module: settings
 routes: [/business]
-tags: [mi negocio, logo, moneda, rut, iva, propina, mesas, meseros, configuracion]
+tags: [mi negocio, logo, moneda, rut, iva, propina, mesas, meseros, configuracion, precuenta]
 position: 3
 ---
 
@@ -38,6 +38,7 @@ El cambio aplica a las líneas que agregues desde ahora. Los pedidos ya creados 
 - **Mesero obligatorio al tomar pedidos**: quita la opción de continuar sin mesero en el POS. Solo se activa si *Uso meseros* está encendido.
 - **Caja y turnos**: el turno se abre con un fondo de caja y se cierra con arqueo ciego y reporte Z. Si está apagado, el POS cobra sin caja.
 - **Propina sugerida (%)**: se propone al cobrar y en la precuenta. Usa 0 si no quieres sugerir propina.
+- **Mostrar el IVA en la precuenta**: imprime la línea "IVA incluido" bajo el total de la precuenta. Si lo apagas, la precuenta muestra solo el total. La boleta siempre incluye el IVA.
 - **Reparto de propinas**: *Cada mesero lo suyo*, *Partes iguales* o *Por puntos*. Es el modo por defecto, y puedes cambiarlo en cada liquidación.
 
 La pestaña **Inventario** tiene la configuración de stock.
