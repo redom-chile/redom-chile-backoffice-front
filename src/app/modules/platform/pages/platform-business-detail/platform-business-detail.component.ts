@@ -43,7 +43,7 @@ import { SupportAccessActionsService } from '../../features/support-access-actio
 import { PaymentActionsService } from '../../features/payment-actions';
 import { invoiceAmounts, invoiceLabel, isReversible, PaymentTarget } from '../../features/payment-shared';
 
-const LIMITS: readonly PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month'];
+const LIMITS: readonly PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month', 'aiMenuContentMonth'];
 const EVENTS_PREVIEW = 10;
 
 const INVOICE_STATUS: Record<InvoiceDto['status'], Readonly<{ label: string; tone: string }>> = {

@@ -22,5 +22,7 @@ export type CreateProductDto = Readonly<{
   productDescription?: string;
   isInactive?: boolean;
   preparationTimeInMinutes?: number;
+  // Con texto requiere menu_design en el plan (403 PLAN_FEATURE_NOT_INCLUDED).
+  chefNote?: string | null;
   variations?: CreateProductVariationDto[];
 }>;

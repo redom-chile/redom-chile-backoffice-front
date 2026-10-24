@@ -14,7 +14,7 @@
     (imageChange)="onImageChange($event)" />
 
   @if ($tags().length) {
-  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" />
+  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" [aiAssist]="true" />
   }
 
   @if ($isPack()) {

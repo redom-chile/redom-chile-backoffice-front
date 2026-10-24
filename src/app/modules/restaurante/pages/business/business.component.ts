@@ -60,7 +60,7 @@ export class BusinessComponent {
   }
 
   get business() {
-    return this.$findMyBusinessesService.$businesses()?.[0];
+    return this.$findMyBusinessesService.$current();
   }
 
   get isLoading() {

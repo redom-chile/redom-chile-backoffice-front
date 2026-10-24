@@ -332,7 +332,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
     const total = this.$preview();
     const showTax = await this.businessSettings.showTaxOnPreBillFor(order.locationId);
     const html = billTicketHtml({
-      businessName: this.businessesService.$businesses()?.[0]?.name ?? 'REDOM',
+      businessName: this.businessesService.$current()?.name ?? 'REDOM',
       title: 'PRECUENTA POR PERSONA',
       invoiceNo: order.invoiceNo,
       tableName: order.tableName,

@@ -1,0 +1,150 @@
+@let canAct = $canAct();
+@let max = $max();
+@if (!store.$unavailable() && store.$isEnabled() === false) {
+<app-menu-ai-callout (openSettings)="goTo.emit('settings')" />
+}
+@if (!store.$canUpdateProducts()) {
+<p class="text-muted-foreground mb-4 text-sm" role="note">Necesitas el permiso para editar productos para pedir y aplicar descripciones.</p>
+}
+
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+  <div class="flex flex-wrap gap-2">
+    <app-button impact="bold" tone="primary" size="small" type="button" icon="auto_awesome" [disabled]="!canAct || $requesting() || $applying()" (buttonClick)="completeMissing()">
+      Completar las que faltan
+    </app-button>
+    <app-button impact="light" tone="primary" size="small" type="button" icon="checklist" [disabled]="!canAct || $requesting() || $applying()" (buttonClick)="pickProducts()">
+      Elegir productos
+    </app-button>
+  </div>
+  @if (store.$quota(); as quota) {
+  <div class="w-full lg:max-w-xs">
+    <app-menu-ai-quota [quota]="quota" />
+  </div>
+  }
+</div>
+
+@if ($requesting()) {
+<div class="glass mb-4 flex flex-col items-center gap-3 rounded-[1rem] px-5 py-8 text-center" role="status" aria-live="polite">
+  <span class="border-primary h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" aria-hidden="true"></span>
+  <p class="text-foreground font-medium">La IA está escribiendo…</p>
+  <p class="text-muted-foreground max-w-xs text-sm">Preparamos 3 opciones por producto. Puede tardar unos segundos.</p>
+</div>
+}
+
+@if ($items().length) {
+<div class="flex flex-col gap-3" [attr.aria-busy]="$applying()">
+  @for (item of $items(); track item.productId) {
+  <article class="glass rounded-[1rem] p-4" [class.opacity-60]="item.skipped" [attr.aria-labelledby]="'menu-ai-desc-' + item.productId">
+    <header class="mb-2 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h3 [id]="'menu-ai-desc-' + item.productId" class="text-foreground font-semibold">{{ item.productName }}</h3>
+        <p class="text-muted-foreground text-xs">
+          Actual: <span class="italic">{{ item.current || 'Sin descripción' }}</span>
+        </p>
+      </div>
+      <button
+        type="button"
+        class="text-muted-foreground hover:text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium"
+        [disabled]="$applying()"
+        (click)="toggleSkip(item)">
+        <app-icon class="h-4 w-4" aria-hidden="true">{{ item.skipped ? 'undo' : 'block' }}</app-icon>{{ item.skipped ? 'Deshacer' : 'Omitir' }}
+      </button>
+    </header>
+
+    @if (!item.skipped) {
+    @if (!item.options.length) {
+    <p class="text-muted-foreground flex items-start gap-2 rounded-lg bg-amber-500/15 p-3 text-sm" role="note">
+      <app-icon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true">info</app-icon>
+      La IA no encontró una buena descripción para este producto. Escríbela tú u omítelo.
+    </p>
+    } @else {
+    <div class="grid gap-2 md:grid-cols-3" role="radiogroup" [attr.aria-label]="'Opciones para ' + item.productName">
+      @for (option of item.options; track $index) {
+      <label class="cursor-pointer">
+        <input
+          type="radio"
+          class="peer sr-only"
+          [name]="'menu-ai-option-' + item.productId"
+          [checked]="item.choice === $index"
+          (change)="choose(item, $index)" />
+        <span class="glass-row peer-checked:ring-primary block h-full rounded-lg p-3 text-sm peer-checked:ring-2 peer-focus-visible:ring-2">
+          <span class="text-muted-foreground mb-1 block text-xs font-semibold">Opción {{ $index + 1 }}</span>
+          {{ option }}
+        </span>
+      </label>
+      }
+    </div>
+    }
+    @let length = trackLength(item);
+    <label [for]="'menu-ai-text-' + item.productId" class="text-foreground mt-3 mb-1 block text-sm font-medium">Descripción a guardar</label>
+    <textarea
+      [id]="'menu-ai-text-' + item.productId"
+      rows="3"
+      class="glass-input w-full resize-y rounded-lg px-3 py-2 text-sm focus:outline-none"
+      [value]="item.text"
+      [attr.aria-invalid]="length > max"
+      [attr.aria-describedby]="'menu-ai-count-' + item.productId"
+      (input)="onText(item, $event)"></textarea>
+    <p [id]="'menu-ai-count-' + item.productId" class="mt-1 text-right text-xs tabular-nums" [class]="length > max ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'">
+      {{ length }} / {{ max }}{{ length > max ? ' · Acórtala para poder aplicarla' : '' }}
+    </p>
+    }
+  </article>
+  }
+</div>
+
+<div class="sticky bottom-0 z-10 mt-4 pb-2">
+  <div class="glass flex flex-col gap-2 rounded-[1rem] p-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-foreground text-sm font-medium">
+      {{ $ready().length === 1 ? '1 descripción lista para aplicar' : $ready().length + ' descripciones listas para aplicar' }}
+      @if ($tooLong()) {
+      <span class="text-xs text-red-600 dark:text-red-400"> · {{ $tooLong() }} muy larga{{ $tooLong() === 1 ? '' : 's' }}</span>
+      }
+    </p>
+    <div class="flex flex-wrap justify-end gap-2">
+      @if ($pending().length < $items().length) {
+      <app-button impact="none" tone="primary" size="small" type="button" [disabled]="$applying()" (buttonClick)="clearSkipped()">Quitar omitidas</app-button>
+      }
+      <app-button
+        *appCheckPermission="PERMISSIONS.PRODUCTS.UPDATE_PRODUCT"
+        impact="bold"
+        tone="primary"
+        size="small"
+        type="button"
+        icon="done_all"
+        [isLoading]="$applying()"
+        [disabled]="!$ready().length || !store.$canUpdateProducts() || store.$unavailable()"
+        (buttonClick)="apply()">
+        Aplicar seleccionadas
+      </app-button>
+    </div>
+  </div>
+</div>
+}
+
+@if ($remaining(); as remaining) {
+<div class="mt-3 flex flex-col items-start gap-2 rounded-xl border border-[var(--border)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between" role="status">
+  <p class="text-muted-foreground">
+    Quedan {{ remaining === 1 ? '1 producto' : remaining + ' productos' }} sin descripción.
+    @if ($quotaExhausted()) {
+    Ya usaste la cuota del mes.
+    } @else if (!$canContinue()) {
+    Aplica u omite las de arriba para seguir.
+    }
+  </p>
+  <app-button impact="light" tone="primary" size="small" type="button" icon="play_arrow" [disabled]="!$canContinue() || !canAct || $requesting() || $quotaExhausted()" (buttonClick)="completeMissing()">
+    Continuar
+  </app-button>
+</div>
+}
+
+@if (!$items().length && !$requesting()) {
+@if ($remaining() === 0) {
+<app-empty-state icon="task_alt" title="Todo listo" description="Ya no quedan productos a la venta sin descripción." />
+} @else if (!$remaining()) {
+<app-empty-state
+  icon="edit_note"
+  title="Descripciones que venden"
+  description="Pide sugerencias para los productos sin descripción o elige cuáles mejorar. Revisas cada una antes de guardarla." />
+}
+}
