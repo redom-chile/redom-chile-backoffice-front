@@ -12,8 +12,8 @@ import {
 import { PublicCategoryDto, PublicLocationMenuDto, PublicProductDto, PublicSubcategoryDto } from '../data-access/dtos/public-menu.dto';
 
 /**
- * Etapa 8: cómo se dibuja la carta según menu.design. Sin design (backend anterior) todo queda como siempre:
- * plantilla classic, tipografía de la app, tarjetas en lista y sin opciones de accesibilidad.
+ * Etapa 8: cómo se dibuja la carta según menu.design (siempre llega; sin menu_design es el clásico con la
+ * accesibilidad del local, que por defecto ofrece alto contraste y "Escuchar"). Si faltara, queda como antes.
  */
 export type CartaDesign = Readonly<{
   template: MenuTemplate;
@@ -65,7 +65,7 @@ const byPosition = <T extends Readonly<{ name: string; position?: number }>>(lis
 
 const sortGroup = <T extends PublicSubcategoryDto>(group: T): T => ({ ...group, products: byPosition<PublicProductDto>(group.products) });
 
-/** sortMode 'manual': categorías, subcategorías y productos por position y nombre; si no, el orden del servidor. */
+/** Las listas ya llegan ordenadas; con sortMode 'manual' se reordena por position y nombre (mismo resultado). */
 export function sortMenu(menu: PublicLocationMenuDto): PublicLocationMenuDto {
   if (menu.sortMode !== 'manual') return menu;
   return {

@@ -64,7 +64,7 @@ export type ProductDto = Readonly<{
   modifierSets?: ProductModifierSetDto[];
   // Etiquetas de la carta pública. El backend aún no las devuelve: si no vienen, el formulario parte vacío.
   tags?: readonly Readonly<{ id: number }>[];
-  // Etapa 8: orden dentro de su categoría y nota del chef (≤200). Ausentes si el backend aún no los publica.
+  // Orden dentro de su categoría (la subcategoría si tiene) y nota del chef (≤200).
   position?: number;
   chefNote?: string | null;
 }>;

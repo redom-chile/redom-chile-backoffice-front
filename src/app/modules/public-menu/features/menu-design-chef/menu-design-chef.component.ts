@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, input, model, output, signal } from '@angular/core';
 import { ImageSelection } from 'src/app/core/services/file-upload';
-import { CHEF_PICKS_MAX, ChefPicksDto, DAY_SHORT } from 'src/app/modules/public-menu/data-access';
+import { CHEF_PICKS_MAX, CHEF_PICKS_REASON_MESSAGES, ChefPicksDto, ChefPicksErrorReason, DAY_SHORT } from 'src/app/modules/public-menu/data-access';
 import { WEEK_ORDER } from 'src/app/modules/public-menu/features/marketing-schedule-field';
 import { CHEF_TITLE_MAX, CHEF_TITLE_SUGGESTIONS, ChefDraft, ChefRange } from 'src/app/modules/public-menu/features/menu-design-shared';
 import { IconComponent, ImagePickerComponent, ToggleComponent } from 'src/ui';
@@ -9,7 +9,7 @@ import { IconComponent, ImagePickerComponent, ToggleComponent } from 'src/ui';
 /** Producto de la carta del local que se puede recomendar. */
 export type ChefProductOption = Readonly<{ id: number; name: string; imageUrl: string | null; soldOut: boolean; category: string }>;
 
-type Picked = Readonly<{ id: number; name: string; imageUrl: string | null; soldOut: boolean; hidden: boolean }>;
+type Picked = Readonly<{ id: number; name: string; imageUrl: string | null; soldOut: boolean; hidden: boolean; rejected: boolean }>;
 
 const normalize = (text: string) =>
   text
@@ -38,6 +38,8 @@ export class MenuDesignChefComponent {
   readonly uploading = input(false);
   readonly progress = input(0);
   readonly disabled = input(false);
+  /** Rechazo del backend (CHEF_PICKS_INVALID): motivo y productos que no se pueden recomendar. */
+  readonly invalid = input<Readonly<{ reason: string | null; productIds: readonly number[] }> | null>(null);
   readonly photoChange = output<ImageSelection>();
 
   protected readonly max = CHEF_PICKS_MAX;
@@ -50,6 +52,16 @@ export class MenuDesignChefComponent {
   protected readonly search = signal('');
 
   readonly #catalogById = computed(() => new Map(this.catalog().map((product) => [product.id, product] as const)));
+  readonly #rejected = computed(() => new Set(this.invalid()?.productIds ?? []));
+  protected readonly $invalidMessage = computed(() => {
+    const reason = this.invalid()?.reason;
+    return reason ? (CHEF_PICKS_REASON_MESSAGES[reason as ChefPicksErrorReason] ?? null) : null;
+  });
+  protected readonly $scheduleInvalid = computed(() => this.invalid()?.reason === 'schedule');
+  protected readonly $productsInvalid = computed(() => {
+    const reason = this.invalid()?.reason;
+    return !!reason && reason !== 'schedule';
+  });
   readonly #knownById = computed(() => new Map(this.known().map((product) => [product.id, product] as const)));
 
   protected readonly $picked = computed<Picked[]>(() =>
@@ -63,6 +75,7 @@ export class MenuDesignChefComponent {
         soldOut: inMenu?.soldOut ?? known?.soldOut ?? false,
         // Si no está en la carta pública del local, no se ve.
         hidden: known?.hidden ?? !inMenu,
+        rejected: this.#rejected().has(id),
       };
     }),
   );

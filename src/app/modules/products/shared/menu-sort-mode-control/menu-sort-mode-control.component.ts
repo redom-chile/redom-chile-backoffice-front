@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, sig
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService, MenuSortMode, SettingNotSupportedError } from 'src/app/core/services/business-settings';
 import { IconComponent, ToastService } from 'src/ui';
-import { REORDER_UNAVAILABLE_MESSAGE } from '../menu-order';
 
 const OPTIONS: ReadonlyArray<{ value: MenuSortMode; label: string; icon: string }> = [
   { value: 'manual', label: 'Manual', icon: 'drag_indicator' },
@@ -67,7 +66,9 @@ export class MenuSortModeControlComponent {
         this.$saving.set(false);
         this.$mode.set(previous);
         this.#toast.show(
-          error instanceof SettingNotSupportedError ? REORDER_UNAVAILABLE_MESSAGE : 'No se pudo cambiar el orden de la carta. Intenta nuevamente.',
+          error instanceof SettingNotSupportedError
+            ? 'El servidor no guardó el orden de la carta. Intenta nuevamente.'
+            : 'No se pudo cambiar el orden de la carta. Intenta nuevamente.',
           'error',
         );
       },

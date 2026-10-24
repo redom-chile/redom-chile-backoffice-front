@@ -33,8 +33,8 @@ export type PublicProductDto = Readonly<{
   /** Etapa 3: opciones que el cliente puede agregar (price con IVA, por unidad). */
   modifierSets?: ReadonlyArray<{ id: number; name: string; options: ReadonlyArray<{ variationId: number; name: string; price: number }> }>;
   /** Etapa 8: nota del chef (null sin menu_design) y posición manual. */
-  chefNote?: string | null;
-  position?: number;
+  chefNote: string | null;
+  position: number;
 }>;
 
 export type PublicSubcategoryDto = Readonly<{
@@ -49,8 +49,8 @@ export type PublicSubcategoryDto = Readonly<{
   schedule: PublicCategoryRangeDto[] | null;
   products: PublicProductDto[];
   /** Etapa 8: ícono (nombre tipo lucide) y posición manual. */
-  icon?: string | null;
-  position?: number;
+  icon: string | null;
+  position: number;
 }>;
 
 export type PublicCategoryDto = PublicSubcategoryDto & Readonly<{ subcategories: PublicSubcategoryDto[] }>;
@@ -116,12 +116,16 @@ export type PublicLocationMenuDto = Readonly<{
   /** Etapa 7: idioma de los textos (lo no traducido llega en español) y los que ofrece el local. */
   language?: MenuLanguage;
   availableLanguages?: MenuLanguage[];
-  /** Etapa 8 (ausentes = la carta de siempre): diseño, orden, anuncio, historia y recomendaciones del chef. */
-  design?: PublicMenuDesignDto;
-  sortMode?: MenuSortMode;
-  announcement?: Readonly<{ text: string }> | null;
-  story?: string | null;
-  chefPicks?: PublicChefPicksDto | null;
+  /**
+   * Etapa 8. design siempre llega: sin menu_design es el clásico con la accesibilidad del local. Las listas ya
+   * vienen en el orden de sortMode. announcement y chefPicks: null fuera de fecha/horario o sin menu_design;
+   * story: null sin menu_branding.
+   */
+  design: PublicMenuDesignDto;
+  sortMode: MenuSortMode;
+  announcement: Readonly<{ text: string }> | null;
+  story: string | null;
+  chefPicks: PublicChefPicksDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */

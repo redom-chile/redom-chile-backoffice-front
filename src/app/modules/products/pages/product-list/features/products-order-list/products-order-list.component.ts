@@ -4,8 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
 import { IconComponent, ImageThumbComponent, ProgressBarComponent, ToastService } from 'src/ui';
-import { getReorderErrorMessage, moveInList, sortForMenu } from 'src/app/modules/products/shared';
-import { ProductDto, ReorderProductsService } from '../../data-access';
+import { getReorderErrorMessage, moveInList } from 'src/app/modules/products/shared';
+import { mergeGroupOrder, ProductDto, ReorderProductsService } from '../../data-access';
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -29,6 +29,8 @@ export class ProductsOrderListComponent {
 
   protected readonly $status = signal<Status>('loading');
   protected readonly $products = signal<ProductDto[]>([]);
+  // Grupo completo que valida el backend (incluye sets de modificadores e ingredientes, que no se muestran).
+  #group: ProductDto[] = [];
   protected readonly $saving = signal(false);
   #load?: Subscription;
 
@@ -46,8 +48,9 @@ export class ProductsOrderListComponent {
       .getCategoryProducts(categoryId)
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
-        next: (products) => {
-          this.$products.set(sortForMenu(products, 'manual'));
+        next: ({ all, visible }) => {
+          this.#group = all;
+          this.$products.set(visible);
           this.$status.set('ready');
         },
         error: () => this.$status.set('error'),
@@ -70,7 +73,7 @@ export class ProductsOrderListComponent {
     this.$products.set(next);
     this.$saving.set(true);
     this.#service
-      .reorder({ categoryId: this.categoryId(), ids: next.map((product) => product.id) })
+      .reorder({ categoryId: this.categoryId(), ids: mergeGroupOrder(this.#group, next) })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: () => this.$saving.set(false),

@@ -14,7 +14,7 @@ export type CategoryDto = Readonly<{
   subcategories?: CategoryDto[];
   // Horario en la carta pública ([] = todo el día). El backend aún no lo devuelve: si no viene, se desconoce.
   schedule?: readonly CategoryScheduleRangeDto[];
-  // Etapa 8 (#68): orden dentro de su padre e ícono de la carta. Ausentes si el backend aún no los publica.
+  // Orden dentro de su padre (#68) e ícono de la carta (todos los planes).
   position?: number;
   icon?: string | null;
 }>;
@@ -25,6 +25,7 @@ export type CreateCategoryDto = Readonly<{
   parentId?: number;
   description?: string;
   imageFileId?: string;
+  // Clave ^[a-z0-9-]{1,40}$; null = sin ícono.
   icon?: string | null;
 }>;
 

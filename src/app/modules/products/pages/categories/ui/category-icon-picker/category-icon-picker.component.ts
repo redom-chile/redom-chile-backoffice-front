@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, model } from '@angular/core';
 import { MENU_CATEGORY_ICONS } from 'src/app/modules/public-menu/data-access';
 import { CartaIcon, CartaIconName } from 'src/app/modules/public-menu/carta/ui/carta-icon';
-import { PlanLockBadgeComponent } from 'src/app/modules/products/shared';
 
 const LABELS = new Map<string, string>(MENU_CATEGORY_ICONS.map((icon) => [icon.name, icon.label]));
 
@@ -33,21 +32,15 @@ export class CategoryIconBadgeComponent {
 /** Selector del ícono de la categoría en la carta (null = sin ícono). */
 @Component({
   selector: 'app-category-icon-picker',
-  imports: [CartaIcon, PlanLockBadgeComponent],
+  imports: [CartaIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <fieldset [disabled]="locked()">
-      <legend class="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-        Ícono en la carta
-        @if (locked()) {
-        <app-plan-lock-badge feature="menu_design" />
-        }
-      </legend>
+    <fieldset>
+      <legend class="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Ícono en la carta</legend>
       <div
         role="radiogroup"
         aria-label="Ícono en la carta"
-        class="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto p-0.5 sm:grid-cols-5"
-        [class.opacity-60]="locked()">
+        class="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto p-0.5 sm:grid-cols-5">
         <button type="button" role="radio" [attr.aria-checked]="value() === null" [class]="optionClass(value() === null)" (click)="value.set(null)">
           <span class="text-muted-foreground inline-flex h-5 items-center text-lg leading-none" aria-hidden="true">—</span>
           <span class="text-xs">Sin ícono</span>
@@ -65,15 +58,13 @@ export class CategoryIconBadgeComponent {
         }
       </div>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        @if (locked()) { Los íconos son parte del diseño de la carta. } @else { Se muestra junto al nombre de la categoría en la carta. }
+        Se muestra junto al nombre de la categoría en la carta.
       </p>
     </fieldset>
   `,
 })
 export class CategoryIconPickerComponent {
   readonly value = model<string | null>(null);
-  // Sin la función menu_design del plan: se ve, pero no se puede cambiar.
-  readonly locked = input(false);
   protected readonly icons = MENU_CATEGORY_ICONS;
   protected readonly asName = (name: string) => name as CartaIconName;
 

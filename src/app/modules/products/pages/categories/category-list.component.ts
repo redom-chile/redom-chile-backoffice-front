@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { throttledRefresh } from 'src/app/core/services/file-upload';
 import { MatDialog } from '@angular/material/dialog';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
-import { BusinessSettingsService, MenuSortMode } from 'src/app/core/services/business-settings';
-import { getReorderErrorMessage, MenuSortModeControlComponent, sortForMenu, takeStage8Notice } from 'src/app/modules/products/shared';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { getReorderErrorMessage, MenuSortModeControlComponent, sortCategoryTree } from 'src/app/modules/products/shared';
 import { hasApiErrorCode } from 'src/app/core/utils/api-error';
 import {
   GetAllCategoriesService,
@@ -55,7 +55,7 @@ export class CategoryListComponent implements OnInit {
   readonly $categories = this.getAllService.$categories;
   // Orden de la carta: manual (arrastrable) o alfabético (las posiciones guardadas no se tocan).
   readonly $sortMode = inject(BusinessSettingsService).$menuSortMode;
-  readonly $sortedCategories = computed(() => sortTree(this.$categories() ?? [], this.$sortMode()));
+  readonly $sortedCategories = computed(() => sortCategoryTree(this.$categories() ?? [], this.$sortMode()));
   readonly #access = inject(AccessService);
   readonly $canReorder = computed(() => this.#access.can(PERMISSIONS.CATEGORIES.UPDATE_CATEGORY));
   readonly $isReordering = signal(false);
@@ -108,9 +108,7 @@ export class CategoryListComponent implements OnInit {
     };
     const message = result ? messages[result] : undefined;
     if (!message) return;
-    // Ícono sin guardar (backend sin etapa 8): se avisa una vez, en el mismo toast.
-    const notice = takeStage8Notice();
-    this.toast.show(notice ? `${message}. El ícono ${notice.toLowerCase()}.` : message, notice ? 'warning' : 'success');
+    this.toast.show(message, 'success');
     this.getAllService.getAll();
   }
 
@@ -127,7 +125,7 @@ export class CategoryListComponent implements OnInit {
         this.getAllService.setLocal(previous);
         this.toast.show(getReorderErrorMessage(error), 'error');
         // Alguien creó o borró categorías mientras tanto: se trae la lista real.
-        if (hasApiErrorCode(error, 'REORDER_IDS_MISMATCH')) this.getAllService.getAll();
+        if (hasApiErrorCode(error, 'REORDER_IDS_MISMATCH') || error?.status === 404) this.getAllService.getAll();
       },
     });
   }
@@ -135,12 +133,6 @@ export class CategoryListComponent implements OnInit {
   handleRetry() {
     this.getAllService.retry();
   }
-}
-
-function sortTree(categories: readonly CategoryDto[], mode: MenuSortMode): CategoryDto[] {
-  return sortForMenu(categories, mode).map((category) =>
-    category.subcategories?.length ? { ...category, subcategories: sortForMenu(category.subcategories, mode) } : category,
-  );
 }
 
 /** Asigna position = índice al grupo reordenado (principales si parentId es null). */

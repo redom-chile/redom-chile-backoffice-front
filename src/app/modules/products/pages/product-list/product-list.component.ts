@@ -18,7 +18,7 @@ import {
   ProductsTableComponent,
   UpdateProductModalComponent,
 } from './features';
-import { takeStage8Notice } from 'src/app/modules/products/shared';
+import { sortCategoryTree } from 'src/app/modules/products/shared';
 import { FiltersProductTableComponent, ProductTableFilters } from './ui';
 
 const PER_PAGE = 10;
@@ -92,7 +92,8 @@ export class ProductListComponent implements OnInit {
   readonly $response = this.getAllService.$products;
   readonly $products = computed(() => this.$response()?.data ?? []);
   readonly $pagination = computed(() => this.$response()?.pagination ?? null);
-  readonly $categories = computed(() => this.getAllCategoriesService.$categories() ?? []);
+  // En el orden de la carta (filtro y nombres).
+  readonly $categories = computed(() => sortCategoryTree(this.getAllCategoriesService.$categories() ?? [], this.$sortMode()));
   readonly $errorMessage = computed(() => {
     const status = this.getAllService.$error();
     return status ? getProductErrorMessage(status) : null;
@@ -204,9 +205,7 @@ export class ProductListComponent implements OnInit {
     };
     const message = result ? messages[result] : undefined;
     if (!message) return;
-    // Nota del chef sin guardar (backend sin etapa 8): se avisa una vez, en el mismo toast.
-    const notice = takeStage8Notice();
-    this.toast.show(notice ? `${message}. La nota del chef ${notice.toLowerCase()}.` : message, notice ? 'warning' : 'success');
+    this.toast.show(message, 'success');
 
     // Si se eliminó el último producto de la página, volver a la anterior.
     const { page } = this.$query();

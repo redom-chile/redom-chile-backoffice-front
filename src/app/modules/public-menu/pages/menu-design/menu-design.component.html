@@ -52,7 +52,7 @@
 @if ($stageMissing()) {
 <div class="mb-4 flex items-start gap-2 rounded-[1rem] border border-sky-500/40 bg-sky-500/10 p-3 text-sm" role="status">
   <app-icon class="h-5 w-5 shrink-0 text-sky-700 dark:text-sky-400" aria-hidden="true">info</app-icon>
-  <p class="text-foreground">El servidor todavía no tiene el diseño de la carta (etapa 8). Puedes probar la vista previa; guardar estará disponible cuando se publique.</p>
+  <p class="text-foreground">Este servidor no tiene el diseño de la carta. Puedes probar la vista previa, pero por ahora no se puede guardar.</p>
 </div>
 }
 @if (!canEdit) {
@@ -88,9 +88,10 @@
     } @else if ($draftDesign(); as draft) {
     <app-menu-design-editor
       [draft]="draft"
-      (draftChange)="$draftDesign.set($event)"
+      (draftChange)="onDesignDraft($event)"
       [story]="$draftStory()"
-      (storyChange)="$draftStory.set($event)"
+      (storyChange)="onStory($event)"
+      [fieldError]="$designFieldError()"
       [categories]="$categories()"
       [categoriesNote]="$menuNote()"
       [hasDesign]="$hasDesign()"
@@ -138,7 +139,8 @@
     } @else if ($draftChef(); as draft) {
     <app-menu-design-chef
       [draft]="draft"
-      (draftChange)="$draftChef.set($event)"
+      (draftChange)="onChefDraft($event)"
+      [invalid]="$chefInvalid()"
       [catalog]="$catalog()"
       [catalogNote]="$menuNote()"
       [known]="$savedChefDto()?.products ?? []"
@@ -178,7 +180,7 @@
     } @else if ($versionsMissing()) {
     <div class="glass rounded-[1rem] px-5 py-10 text-center">
       <app-icon class="text-muted-foreground h-10 w-10" aria-hidden="true">history</app-icon>
-      <p class="text-muted-foreground mt-2 text-sm">El historial estará disponible cuando el servidor publique el diseño de la carta.</p>
+      <p class="text-muted-foreground mt-2 text-sm">Este servidor no tiene el historial del diseño de la carta.</p>
     </div>
     } @else {
     <app-menu-design-history
@@ -187,7 +189,7 @@
       [error]="$versionsError()"
       [viewingId]="$viewVersion()?.id ?? null"
       [restoringId]="$restoringId()"
-      [canRestore]="canEdit"
+      [canRestore]="canEdit && $hasDesign()"
       [timeZone]="$timeZone()"
       (view)="viewVersion($event)"
       (restore)="restoreVersion($event)"

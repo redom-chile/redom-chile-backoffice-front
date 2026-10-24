@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, catchError, EMPTY, map, Subject, tap } from 'rxjs';
+import { BehaviorSubject, catchError, EMPTY, map, Observable, Subject, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { UpdateProductDto } from './dtos';
 
@@ -38,6 +38,11 @@ export class UpdateProductService {
         }),
       )
       .subscribe(() => this.#success$.next(true));
+  }
+
+  /** Solo la nota del chef (el POST de creación no la recibe): sin tocar el estado del servicio. */
+  saveChefNote(id: number, chefNote: string | null): Observable<unknown> {
+    return this.#httpClient.put(`${ApiPathEnum.RESTAURANT}/products/${id}`, { chefNote } satisfies UpdateProductDto);
   }
 
   reset() {

@@ -19,7 +19,8 @@ export function getProductErrorMessage(status: HttpStatusCode | undefined): stri
 
 /** Igual que getProductErrorMessage, pero traduce las reglas de inventario (unidad, recetas, ingredientes). */
 export function getProductSaveErrorMessage(status: HttpStatusCode | undefined, error: HttpErrorResponse | null): string {
-  const message = readApiError(error).message;
+  const { code, message } = readApiError(error);
+  if (code === 'PLAN_FEATURE_NOT_INCLUDED') return 'La nota del chef requiere un plan con diseño de la carta.';
   const translated = message ? translateInventoryMessage(message) : '';
   return translated && translated !== message ? translated : getProductErrorMessage(status);
 }
