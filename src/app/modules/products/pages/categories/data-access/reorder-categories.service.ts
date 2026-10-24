@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { ReorderCategoriesDto } from './dtos';
 
-/** Orden manual de categorías (etapa 8, #68). Se envía el grupo completo después de cada movimiento. */
+/** Orden manual de categorías (#68). Se envía el grupo completo después de cada movimiento. */
 @Injectable({ providedIn: 'root' })
 export class ReorderCategoriesService {
   readonly #http = inject(HttpClient);

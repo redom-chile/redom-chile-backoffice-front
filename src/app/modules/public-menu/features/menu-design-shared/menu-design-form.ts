@@ -4,7 +4,7 @@ import {
   ChefPicksDto,
   DEFAULT_MENU_DESIGN,
   MenuAccessibilityDto,
-  MenuAnnouncementDto,
+  MenuAnnouncementInputDto,
   MenuCardStyle,
   MenuChefScheduleDto,
   MenuDesignDto,
@@ -35,6 +35,7 @@ export type ChefRange = Readonly<{ days: readonly number[]; startTime: string; e
 export type ChefDraft = Readonly<{ isActive: boolean; title: string; productIds: readonly number[]; ranges: readonly ChefRange[] }>;
 
 export const EMPTY_CHEF_PICKS: ChefPicksDto = {
+  locationId: 0,
   isActive: false,
   title: DEFAULT_CHEF_TITLE,
   photoFileId: null,
@@ -45,14 +46,10 @@ export const EMPTY_CHEF_PICKS: ChefPicksDto = {
   updatedAt: null,
 };
 
-/**
- * El backend todavía no publica la etapa 8: la ruta no existe (404/405) o la toma otra ruta con parámetros (400
- * sin código de la etapa).
- */
+/** El servidor no tiene la ruta (backend sin la etapa 8): 405 o 404 de Nest "Cannot GET …", no un local inexistente. */
 export function isStageMissing(error: unknown): boolean {
-  const { status, code } = readApiError(error);
-  if (status === 404 || status === 405) return !code || code === 'NOT_FOUND' || code === 'METHOD_NOT_ALLOWED';
-  return status === 400 && !/^(MENU_|CHEF_|PLAN_)/.test(code ?? '');
+  const { status, message } = readApiError(error);
+  return status === 405 || (status === 404 && /^Cannot (GET|POST|PUT|PATCH)\b/i.test(message));
 }
 
 // --- Fechas en la zona del negocio ---
@@ -88,6 +85,7 @@ export function isoToLocalInput(iso: string | null | undefined, timeZone?: strin
   return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
 }
 
+/** ISO con el offset de la zona del negocio, p. ej. 2026-10-30T20:00:00-03:00. */
 export function localInputToIso(value: string, timeZone?: string | null): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value);
   if (!match) return null;
@@ -95,10 +93,14 @@ export function localInputToIso(value: string, timeZone?: string | null): string
   const zone = safeZone(timeZone);
   const guess = Date.UTC(y, m - 1, d, h, min);
   const first = offsetMs(new Date(guess), zone);
-  let time = guess - first;
-  const second = offsetMs(new Date(time), zone);
-  if (second !== first) time = guess - second;
-  return new Date(time).toISOString();
+  let offset = first;
+  const second = offsetMs(new Date(guess - first), zone);
+  if (second !== first) offset = second;
+  const p = partsIn(new Date(guess - offset), zone);
+  const minutes = Math.round(offset / 60_000);
+  const sign = minutes < 0 ? '-' : '+';
+  const abs = Math.abs(minutes);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:00${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
 }
 
 // --- Diseño ---
@@ -120,9 +122,10 @@ export function designFromDto(dto: MenuDesignDto | null | undefined, timeZone?: 
   };
 }
 
-export function announcementToDto(form: AnnouncementForm, timeZone?: string | null): MenuAnnouncementDto | null {
+/** Sin texto se quita (null); si no, va completo. */
+export function announcementToDto(form: AnnouncementForm, timeZone?: string | null): MenuAnnouncementInputDto | null {
   const text = form.text.trim();
-  if (!form.isActive && !text && !form.startsAt && !form.endsAt) return null;
+  if (!text) return null;
   return { text, startsAt: localInputToIso(form.startsAt, timeZone), endsAt: localInputToIso(form.endsAt, timeZone), isActive: form.isActive };
 }
 
@@ -138,7 +141,7 @@ const sortedRecord = (record: Readonly<Record<string, unknown>>) =>
   Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-/** Solo las claves que cambiaron. */
+/** Solo las claves que cambiaron; categoryStyles va con el mapa completo (el backend lo reemplaza). */
 export function designChanges(saved: DesignDraft, draft: DesignDraft, timeZone?: string | null): UpdateMenuDesignDto {
   const changes: { -readonly [K in keyof UpdateMenuDesignDto]: UpdateMenuDesignDto[K] } = {};
   if (saved.template !== draft.template) changes.template = draft.template;
@@ -183,11 +186,12 @@ export function chefSchedule(ranges: readonly ChefRange[]): MenuChefScheduleDto[
   return [...unique.values()].sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime));
 }
 
-export function chefToDto(draft: ChefDraft, photoFileId: string | null): SaveChefPicksDto {
+/** PUT parcial: photoFileId solo si se eligió o quitó la foto (undefined = se mantiene). */
+export function chefToDto(draft: ChefDraft, photoFileId: string | null | undefined): SaveChefPicksDto {
   return {
     isActive: draft.isActive,
     title: draft.title.trim() || DEFAULT_CHEF_TITLE,
-    photoFileId,
+    ...(photoFileId !== undefined ? { photoFileId } : {}),
     productIds: [...draft.productIds],
     schedule: chefSchedule(draft.ranges),
   };
@@ -199,6 +203,7 @@ export const sameChef = (a: ChefDraft, b: ChefDraft) =>
 export function chefProblem(draft: ChefDraft): string | null {
   if (draft.title.trim().length > CHEF_TITLE_MAX) return `El título puede tener hasta ${CHEF_TITLE_MAX} caracteres.`;
   if (draft.productIds.length > CHEF_PICKS_MAX) return `Puedes elegir hasta ${CHEF_PICKS_MAX} productos.`;
+  if (new Set(draft.productIds).size !== draft.productIds.length) return 'Hay un producto repetido en las recomendaciones.';
   if (draft.isActive && !draft.productIds.length) return 'Elige al menos un producto o desactiva las recomendaciones.';
   for (const range of draft.ranges) {
     if (!range.startTime || !range.endTime) return 'Indica la hora de inicio y de término de cada horario.';

@@ -35,7 +35,7 @@ export type BusinessSettingsDto = Readonly<{
   cashManagementEnabled?: boolean;
   // Reparto de propinas por defecto (se puede cambiar en cada liquidación).
   tipDistributionMode?: 'individual' | 'equal' | 'points';
-  // Ausente mientras el backend no publique la etapa 8 (#68): se asume alfabético.
+  // Sin valor se asume alfabético (valor por defecto del backend).
   menuSortMode?: MenuSortMode;
 }>;
 

@@ -169,12 +169,13 @@ export type BrandingDto = Readonly<{
   coverFileId: string | null;
   coverUrl: string | null;
   /** Etapa 8: "Nuestra historia" (≤1000). */
-  story?: string | null;
+  story: string | null;
 }>;
 
 /** null en un color: vuelve al por defecto. coverFileId null: quita la portada. */
 export type UpdateBrandingDto = Readonly<{
   theme?: Readonly<{ primaryColor?: string | null; backgroundColor?: string | null; textColor?: string | null }>;
   coverFileId?: string | null;
+  /** ≤1000; null o vacío la quita. 400 MENU_DESIGN_INVALID con details.field 'story'. */
   story?: string | null;
 }>;

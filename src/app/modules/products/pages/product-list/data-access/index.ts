@@ -6,4 +6,3 @@ export * from './product-error-message';
 export * from './dtos';
 export * from './pack-options.service';
 export * from './reorder-products.service';
-export * from './chef-note-check';
