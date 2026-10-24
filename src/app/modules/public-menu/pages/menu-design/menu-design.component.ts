@@ -9,11 +9,14 @@ import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { FileUploadService, getUploadErrorMessage, ImageSelection, ImageUploadError } from 'src/app/core/services/file-upload';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared/data-access';
 import {
+  chefPicksError,
   ChefPicksDto,
   DEFAULT_MENU_DESIGN,
   getPublicMenuErrorMessage,
   MenuDesignService,
   MenuDesignVersionDto,
+  menuDesignErrorField,
+  menuDesignFieldMessage,
   MenuMarketingService,
   MenuSettingsService,
   PublicLocationMenuDto,
@@ -27,11 +30,13 @@ import { DesignCategoryOption, MenuDesignEditorComponent } from 'src/app/modules
 import { MenuDesignHistoryComponent } from 'src/app/modules/public-menu/features/menu-design-history';
 import { MenuDesignPreviewComponent } from 'src/app/modules/public-menu/features/menu-design-preview';
 import {
+  ChefDraft,
   chefFromDto,
   chefProblem,
   chefToDto,
   DEFAULT_CHEF_TITLE,
   designChanges,
+  DesignDraft,
   designFromDto,
   designProblem,
   EMPTY_CHEF_PICKS,
@@ -164,6 +169,8 @@ export class MenuDesignComponent {
     return this.$designError() ? null : designFromDto(null);
   });
   readonly $draftDesign = linkedSignal(() => this.$savedDesign());
+  /** Campo que rechazó el backend (details.field de MENU_DESIGN_INVALID); se limpia al editar. */
+  readonly $designFieldError = signal<Readonly<{ field: string; message: string }> | null>(null);
   readonly $designDirty = computed(() => {
     const saved = this.$savedDesign();
     const draft = this.$draftDesign();
@@ -212,6 +219,8 @@ export class MenuDesignComponent {
     if (photo.kind === 'remove') return null;
     return this.$savedChefDto()?.photoUrl ?? null;
   });
+  /** Rechazo del backend (CHEF_PICKS_INVALID): motivo y productos a marcar; se limpia al editar. */
+  readonly $chefInvalid = signal<Readonly<{ reason: string | null; productIds: readonly number[] }> | null>(null);
   readonly $chefDirty = computed(() => {
     const saved = this.$savedChef();
     const draft = this.$draftChef();
@@ -261,7 +270,10 @@ export class MenuDesignComponent {
     return [...seen.values()];
   });
 
-  /** La carta real con lo que se está editando (sin plan, como la verá el cliente: diseño por defecto). */
+  /**
+   * La carta real con lo que se está editando (sin plan, como la verá el cliente: clásica con su accesibilidad).
+   * Al mirar una versión se aplican su diseño, sus colores y su historia (la portada sigue siendo la actual).
+   */
   readonly $previewMenu = computed<PublicLocationMenuDto | null>(() => {
     const menu = this.$menu();
     if (!menu) return null;
@@ -270,16 +282,19 @@ export class MenuDesignComponent {
     const full = this.$hasDesign();
     const text = draft.announcement.text.trim();
     const chef = this.$draftChef();
-    const story = this.$hasBranding() ? this.$draftStory().trim() || null : null;
+    const branded = this.$hasBranding();
+    const draftStory = version ? (version.branding.story ?? '') : this.$draftStory();
+    const story = branded ? draftStory.trim() || null : null;
+    const branding = version && menu.branding ? { ...menu.branding, theme: version.branding.theme } : menu.branding;
     return {
       ...menu,
+      branding,
       design: full ? publicDesign(draft) : { ...DEFAULT_MENU_DESIGN, accessibility: draft.accessibility },
-      sortMode: menu.sortMode ?? 'alphabetical',
       announcement: full && draft.announcement.isActive && text ? { text } : null,
-      story: this.$storyReady() ? story : (menu.story ?? null),
+      story: version || this.$storyReady() ? story : menu.story,
       chefPicks:
-        full && chef?.isActive && chef.productIds.length
-          ? { title: chef.title.trim() || DEFAULT_CHEF_TITLE, photoUrl: this.$chefPhotoUrl(), productIds: [...chef.productIds] }
+        full && chef?.isActive && this.#visibleChefIds(chef.productIds).length
+          ? { title: chef.title.trim() || DEFAULT_CHEF_TITLE, photoUrl: this.$chefPhotoUrl(), productIds: this.#visibleChefIds(chef.productIds) }
           : null,
     };
   });
@@ -291,6 +306,8 @@ export class MenuDesignComponent {
       untracked(() => {
         this.#resetChefPhoto();
         this.$viewVersion.set(null);
+        this.$designFieldError.set(null);
+        this.$chefInvalid.set(null);
       });
     });
     inject(DestroyRef).onDestroy(() => this.#revokeChefPreview());
@@ -341,11 +358,28 @@ export class MenuDesignComponent {
   discardDesign() {
     this.$draftDesign.set(this.$savedDesign());
     this.$draftStory.set(this.$savedStory());
+    this.$designFieldError.set(null);
   }
 
   discardChef() {
     this.$draftChef.set(this.$savedChef());
     this.#resetChefPhoto();
+    this.$chefInvalid.set(null);
+  }
+
+  onDesignDraft(draft: DesignDraft) {
+    this.$draftDesign.set(draft);
+    this.$designFieldError.set(null);
+  }
+
+  onStory(story: string) {
+    this.$draftStory.set(story);
+    if (this.$designFieldError()?.field === 'story') this.$designFieldError.set(null);
+  }
+
+  onChefDraft(draft: ChefDraft) {
+    this.$draftChef.set(draft);
+    this.$chefInvalid.set(null);
   }
 
   onChefPhoto(selection: ImageSelection) {
@@ -365,9 +399,12 @@ export class MenuDesignComponent {
       return;
     }
     const timeZone = this.$timeZone();
-    const changes = designChanges(saved, draft, timeZone);
+    const all = designChanges(saved, draft, timeZone);
+    // Sin menu_design solo se guarda la accesibilidad (lo demás respondería 403).
+    const changes = this.$hasDesign() ? all : all.accessibility ? { accessibility: all.accessibility } : {};
     const storyDirty = this.$storyDirty();
     this.$isSaving.set(true);
+    this.$designFieldError.set(null);
     try {
       if (Object.keys(changes).length) {
         const result = await firstValueFrom(this.#designService.updateDesign(locationId, changes));
@@ -376,14 +413,12 @@ export class MenuDesignComponent {
       }
       if (storyDirty) {
         const result = await firstValueFrom(this.#marketing.updateBranding(locationId, { story: this.$draftStory().trim() || null }));
-        if (result.story === undefined) {
-          this.#toast.show('El servidor todavía no guarda la historia del local. El resto del diseño sí se guardó.', 'warning');
-          return;
-        }
         if (locationId === this.$locationId()) this.$savedStory.set(result.story ?? '');
       }
       this.#toast.show('Diseño guardado', 'success');
     } catch (error) {
+      const field = menuDesignErrorField(error);
+      if (field !== null && locationId === this.$locationId()) this.$designFieldError.set({ field, message: menuDesignFieldMessage(field) });
       const message = marketingSaveError(error, 'No se pudo guardar el diseño.');
       if (message) this.#toast.show(message, 'error');
     } finally {
@@ -402,15 +437,18 @@ export class MenuDesignComponent {
       return;
     }
     this.$isSaving.set(true);
+    this.$chefInvalid.set(null);
     try {
       const photoFileId = await this.#upload.resolveSelection(this.$chefPhoto(), 'menu_chef');
-      const result = await firstValueFrom(this.#designService.saveChefPicks(locationId, chefToDto(draft, photoFileId === undefined ? saved.photoFileId : photoFileId)));
+      const result = await firstValueFrom(this.#designService.saveChefPicks(locationId, chefToDto(draft, photoFileId)));
       if (locationId === this.$locationId()) {
         this.$savedChefDto.set(result);
         this.#resetChefPhoto();
       }
       this.#toast.show('Recomendaciones guardadas', 'success');
     } catch (error) {
+      const invalid = chefPicksError(error);
+      if (invalid && locationId === this.$locationId()) this.$chefInvalid.set(invalid);
       const message = error instanceof ImageUploadError ? getUploadErrorMessage(error) : marketingSaveError(error, 'No se pudieron guardar las recomendaciones.');
       if (message) this.#toast.show(message, 'error');
     } finally {
@@ -432,9 +470,9 @@ export class MenuDesignComponent {
         width: '440px',
         maxWidth: '95vw',
         data: {
-          title: 'Restaurar este diseño',
-          message: `La carta vuelve a verse como el ${this.#formatDate(version.createdAt)}. El diseño actual queda guardado en el historial.${lost}`,
-          confirmText: 'Restaurar',
+          title: 'Volver a este diseño',
+          message: `La carta vuelve a verse como el ${this.#formatDate(version.createdAt)}: diseño, colores, portada, historia y anuncio. Lo actual queda guardado en el historial.${lost}`,
+          confirmText: 'Volver a este diseño',
           cancelText: 'Cancelar',
         },
       })
@@ -446,6 +484,7 @@ export class MenuDesignComponent {
           const result = await firstValueFrom(this.#designService.restoreVersion(locationId, version.id));
           if (locationId === this.$locationId()) {
             this.$savedDesign.set(designFromDto(result, this.$timeZone()));
+            this.$designFieldError.set(null);
             this.$viewVersion.set(null);
             this.versions.reload();
             // La versión puede incluir colores, portada o historia.
@@ -460,6 +499,15 @@ export class MenuDesignComponent {
           this.$restoringId.set(null);
         }
       });
+  }
+
+  /** Como en la carta pública: solo los que se ven en el local y no están agotados. */
+  #visibleChefIds(ids: readonly number[]): number[] {
+    const catalog = new Map(this.$catalog().map((product) => [product.id, product] as const));
+    return ids.filter((id) => {
+      const product = catalog.get(id);
+      return !!product && !product.soldOut;
+    });
   }
 
   #formatDate(iso: string): string {

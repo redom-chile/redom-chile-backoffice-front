@@ -25,10 +25,10 @@ const DEFAULT_INVENTORY: InventorySettings = {
 
 const DEFAULT_VAT_RATE = 19;
 
-/** El PATCH respondió bien pero el backend no guardó el campo (aún no lo conoce). */
+/** El PATCH respondió bien pero al releer el campo no quedó guardado. */
 export class SettingNotSupportedError extends Error {
   constructor(readonly field: string) {
-    super(`El servidor aún no guarda ${field}`);
+    super(`El servidor no guardó ${field}`);
   }
 }
 // Propina sugerida si la configuración aún no llega (comportamiento previo).
@@ -170,7 +170,7 @@ export class BusinessSettingsService {
     return Number.isFinite(value) && value >= 0 ? value : 0;
   });
 
-  /** Orden de la carta; sin valor guardado (o sin backend de la etapa 8) es alfabético. */
+  /** Orden de la carta; sin valor guardado es alfabético. */
   readonly $menuSortMode = computed<MenuSortMode>(() => (this.#settings()?.menuSortMode === 'manual' ? 'manual' : 'alphabetical'));
 
   constructor() {
@@ -226,8 +226,8 @@ export class BusinessSettingsService {
   }
 
   /**
-   * Cambia el orden de la carta. El backend descarta los campos que no conoce sin error,
-   * así que se relee la configuración: si no quedó guardado, falla con SettingNotSupportedError.
+   * Cambia el orden de la carta y relee la configuración para confirmarlo
+   * (si no quedó guardado, falla con SettingNotSupportedError).
    */
   updateMenuSortMode(mode: MenuSortMode): Observable<MenuSortMode> {
     const businessId = this.$businessId();

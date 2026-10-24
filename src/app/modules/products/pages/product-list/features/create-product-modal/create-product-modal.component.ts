@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
-import { HttpClient } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -10,7 +9,9 @@ import { BusinessSettingsService } from 'src/app/core/services/business-settings
 import { UnitsService } from 'src/app/modules/inventory/data-access';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
-import { checkChefNoteSaved, CreateProductService, getProductSaveErrorMessage } from '../../data-access';
+import { sortCategoryTree } from 'src/app/modules/products/shared';
+import { firstValueFrom } from 'rxjs';
+import { CreateProductService, getProductSaveErrorMessage, UpdateProductService } from '../../data-access';
 import {
   chefNoteToSend,
   createProductForm,
@@ -37,14 +38,16 @@ export class CreateProductModalComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly createService = inject(CreateProductService);
 
-  readonly $categories = inject(GetAllCategoriesService).$categories;
   readonly #settings = inject(BusinessSettingsService);
+  readonly #allCategories = inject(GetAllCategoriesService).$categories;
+  // En el orden de la carta.
+  readonly $categories = computed(() => sortCategoryTree(this.#allCategories() ?? [], this.#settings.$menuSortMode()));
   readonly #units = inject(UnitsService);
   readonly $inventoryEnabled = this.#settings.$inventoryEnabled;
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
   readonly $units = computed(() => this.#units.$units() ?? []);
   readonly form = createProductForm(inject(FormBuilder));
-  readonly #http = inject(HttpClient);
+  readonly #updateService = inject(UpdateProductService);
   // Nota del chef: solo con menu_design en el plan.
   readonly #entitlements = inject(EntitlementsService);
   readonly #chefNoteEnabled = () => this.#entitlements.hasFeature('menu_design');
@@ -123,11 +126,21 @@ export class CreateProductModalComponent implements OnDestroy {
 
   async #afterCreate(productId: number | null) {
     this.#isSaving.set(true);
-    if (this.#sentChefNote) await checkChefNoteSaved(this.#http, productId, this.#sentChefNote);
+    await this.#saveChefNote(productId);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, productId, this.$tagIds(), []);
     await this.pack.saveIfChanged(productId, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);
     this.dialogRef.close('created');
+  }
+
+  async #saveChefNote(productId: number | null) {
+    if (!productId || !this.#sentChefNote) return;
+    try {
+      await firstValueFrom(this.#updateService.saveChefNote(productId, this.#sentChefNote));
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      this.toast.show(`Producto creado, pero no se guardó la nota del chef. ${getProductSaveErrorMessage(status, error as never)}`, 'warning');
+    }
   }
 
   handleCancel() {

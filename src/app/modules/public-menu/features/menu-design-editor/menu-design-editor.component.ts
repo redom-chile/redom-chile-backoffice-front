@@ -37,6 +37,8 @@ export class MenuDesignEditorComponent {
   /** Sin permiso o guardando. */
   readonly disabled = input(false);
   readonly timeZone = input<string | null>(null);
+  /** Campo que rechazó el backend (details.field de MENU_DESIGN_INVALID). */
+  readonly fieldError = input<Readonly<{ field: string; message: string }> | null>(null);
 
   protected readonly templates = TEMPLATE_OPTIONS;
   protected readonly fonts = FONT_OPTIONS;
@@ -52,6 +54,12 @@ export class MenuDesignEditorComponent {
     const { startsAt, endsAt } = this.draft().announcement;
     return !!startsAt && !!endsAt && endsAt <= startsAt;
   });
+  /** Mensaje del backend si el campo (o uno que empieza así, p. ej. categoryStyles.12) es el rechazado. */
+  protected errorFor(field: string): string | null {
+    const error = this.fieldError();
+    return error && (error.field === field || error.field.startsWith(field + '.')) ? error.message : null;
+  }
+
   protected readonly $customCategories = computed(() => Object.keys(this.draft().categoryStyles).length);
 
   /** Se cambió la tarjeta a mano: elegir plantilla ya no la sugiere. */

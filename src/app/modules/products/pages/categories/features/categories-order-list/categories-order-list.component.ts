@@ -43,6 +43,11 @@ export class CategoriesOrderListComponent {
 
   #emit(parentId: number | null, list: readonly CategoryDto[], from: number, to: number) {
     if (from === to || to < 0 || to >= list.length || this.busy()) return;
-    this.reorder.emit({ parentId, ids: moveInList(list, from, to).map((category) => category.id) });
+    // El grupo del backend son las categorías con ese padre (0 = principales): las huérfanas que el árbol muestra arriba no van.
+    const group = parentId ?? 0;
+    const ids = moveInList(list, from, to)
+      .filter((category) => (category.parentId || 0) === group)
+      .map((category) => category.id);
+    this.reorder.emit({ parentId, ids });
   }
 }

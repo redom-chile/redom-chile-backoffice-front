@@ -50,7 +50,7 @@ export function createProductForm(fb: FormBuilder, product?: ProductDto) {
     subCategoryId: [product?.subCategoryId ?? (null as number | null)],
     price: [variation?.sellPriceIncTax ?? (null as number | null), [Validators.required, Validators.min(0)]],
     productDescription: [product?.productDescription ?? ''],
-    // Nota del chef (etapa 8, plan menu_design): se destaca en la carta.
+    // Nota del chef (plan con menu_design): se destaca en la carta.
     chefNote: [product?.chefNote ?? '', [Validators.maxLength(CHEF_NOTE_MAX)]],
     preparationTimeInMinutes: [
       product?.preparationTimeInMinutes ?? (null as number | null),
@@ -160,7 +160,7 @@ function toUpdateChefNote(form: ProductForm, original: ProductDto, { chefNoteEna
   return note !== (original.chefNote?.trim() || null) ? { chefNote: note } : {};
 }
 
-/** La nota que se enviará al guardar, o undefined si no se envía. */
+/** La nota que se enviará al guardar, o undefined si no se envía (al crear va en un PUT aparte: el POST no la recibe). */
 export function chefNoteToSend(form: ProductForm, context: ProductStockContext, original?: ProductDto): string | null | undefined {
   if (!context.chefNoteEnabled) return undefined;
   if (!original) return chefNoteOf(form) ?? undefined;
@@ -197,7 +197,6 @@ export function toCreateProductDto(form: ProductForm, context: ProductStockConte
     ...product,
     ...(form.getRawValue().isPack ? { type: PACK_PRODUCT_TYPE } : {}),
     ...toCreateStockFields(form, context),
-    ...(context.chefNoteEnabled && chefNoteOf(form) ? { chefNote: chefNoteOf(form)! } : {}),
     variations: form.getRawValue().hasVarieties
       ? varietyRows(form).map(({ name, sellPriceIncTax }) => ({ name, sellPriceIncTax }))
       : [{ name: DEFAULT_VARIATION_NAME, sellPriceIncTax: price }],

@@ -1,4 +1,5 @@
 import { readApiError } from 'src/app/core/utils/api-error';
+import { ChefPicksErrorReason } from './dtos/menu-design.dto';
 
 /** Errores de la carta pública y su administración. */
 export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo completar la operación.'): string {
@@ -80,9 +81,9 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
     case 'AI_TRANSLATIONS_UNAVAILABLE':
       return 'La IA no está disponible ahora, intenta más tarde.';
     case 'MENU_DESIGN_INVALID':
-      return 'Revisa los datos del diseño de la carta.';
+      return menuDesignFieldMessage(typeof api.details['field'] === 'string' ? api.details['field'] : '');
     case 'CHEF_PICKS_INVALID':
-      return 'Revisa las recomendaciones del chef: máximo 12 productos a la venta y un horario válido.';
+      return CHEF_PICKS_REASON_MESSAGES[api.details['reason'] as ChefPicksErrorReason] ?? 'Revisa las recomendaciones del chef.';
     case 'REORDER_IDS_MISMATCH':
       return 'La lista cambió mientras ordenabas. Recarga e inténtalo de nuevo.';
     case 'RATE_LIMITED':
@@ -97,3 +98,41 @@ export const SLUG_REASON_LABELS = {
   reserved: 'Palabra reservada.',
   taken: 'Ya está en uso.',
 } as const;
+
+/** Texto para el campo de details.field de 400 MENU_DESIGN_INVALID. */
+export function menuDesignFieldMessage(field: string): string {
+  if (field === 'template') return 'Elige una de las plantillas disponibles.';
+  if (field === 'font') return 'Elige una de las tipografías disponibles.';
+  if (field === 'cardStyle') return 'Elige una forma de tarjeta válida.';
+  if (field.startsWith('categoryStyles')) return 'Una categoría tiene una forma de tarjeta no válida.';
+  if (field.startsWith('accessibility')) return 'Revisa las opciones de accesibilidad.';
+  if (field === 'announcement.text') return 'El anuncio debe tener entre 1 y 160 caracteres.';
+  if (field === 'announcement.startsAt') return 'La fecha de inicio del anuncio no es válida.';
+  if (field === 'announcement.endsAt') return 'El término del anuncio debe ser una fecha válida y posterior al inicio.';
+  if (field === 'story') return 'La historia puede tener hasta 1000 caracteres.';
+  return 'Revisa los datos del diseño de la carta.';
+}
+
+export const CHEF_PICKS_REASON_MESSAGES: Readonly<Record<ChefPicksErrorReason, string>> = {
+  too_many: 'Puedes recomendar hasta 12 productos.',
+  duplicated: 'Hay un producto repetido en las recomendaciones.',
+  not_found: 'Uno de los productos ya no existe. Quítalo de la lista.',
+  not_for_sale: 'Uno de los productos no está a la venta. Quítalo de la lista.',
+  schedule: 'Revisa el horario: cada tramo necesita días y horas de inicio y término distintas.',
+};
+
+/** details de 400 MENU_DESIGN_INVALID (null si es otro error). */
+export function menuDesignErrorField(error: unknown): string | null {
+  const api = readApiError(error);
+  if (api.code !== 'MENU_DESIGN_INVALID') return null;
+  return typeof api.details['field'] === 'string' ? api.details['field'] : '';
+}
+
+/** details de 400 CHEF_PICKS_INVALID (null si es otro error). */
+export function chefPicksError(error: unknown): Readonly<{ reason: ChefPicksErrorReason | null; productIds: number[] }> | null {
+  const api = readApiError(error);
+  if (api.code !== 'CHEF_PICKS_INVALID') return null;
+  const reason = typeof api.details['reason'] === 'string' ? (api.details['reason'] as ChefPicksErrorReason) : null;
+  const ids = Array.isArray(api.details['productIds']) ? api.details['productIds'] : [];
+  return { reason, productIds: ids.map(Number).filter(Number.isFinite) };
+}

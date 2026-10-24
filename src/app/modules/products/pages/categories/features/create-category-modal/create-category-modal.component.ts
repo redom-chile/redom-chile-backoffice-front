@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { ButtonComponent, ImagePickerComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
-import { checkCategoryIconSaved, CreateCategoryService, GetAllCategoriesService, getCategoryErrorMessage } from '../../data-access';
+import { CreateCategoryService, GetAllCategoriesService, getCategoryErrorMessage } from '../../data-access';
 import { CategoryModalResult } from '../category-modal-result';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { CategoryIconPickerComponent, CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
 import { NgClass } from '@angular/common';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { sortForMenu } from 'src/app/modules/products/shared';
 
 @Component({
   selector: 'app-create-category-modal',
@@ -33,8 +33,11 @@ export class CreateCategoryModalComponent implements OnDestroy {
     parentId: [0],
   });
 
-  // Solo las categorías principales pueden ser padre; la lista ya viene en árbol desde el API.
-  readonly $parentOptions = computed(() => this.getAllService.$categories() ?? []);
+  // Solo las categorías principales pueden ser padre, en el orden de la carta.
+  readonly #sortMode = inject(BusinessSettingsService).$menuSortMode;
+  readonly $parentOptions = computed(() =>
+    sortForMenu((this.getAllService.$categories() ?? []).filter((category) => !category.parentId), this.#sortMode()),
+  );
 
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
@@ -48,12 +51,8 @@ export class CreateCategoryModalComponent implements OnDestroy {
   readonly $canEditSchedule = computed(() => this.#access.can(PERMISSIONS.CATEGORIES.UPDATE_CATEGORY));
   readonly $schedule = signal<CategorySchedule>(toCategorySchedule([]));
   readonly $scheduleSubmitted = signal(false);
-  // Ícono en la carta (etapa 8): null = sin ícono.
+  // Ícono en la carta (todos los planes): null = sin ícono.
   readonly $icon = signal<string | null>(null);
-  readonly #http = inject(HttpClient);
-  // Íconos de la carta: plan con menu_design (el backend responde 403 sin la función).
-  readonly #entitlements = inject(EntitlementsService);
-  readonly $canUseIcons = computed(() => this.#entitlements.hasFeature('menu_design'));
 
   constructor() {
     effect(() => {
@@ -100,7 +99,7 @@ export class CreateCategoryModalComponent implements OnDestroy {
         description: value.description || undefined,
         parentId: value.parentId || 0,
         ...(imageFileId ? { imageFileId } : {}),
-        ...(this.$canUseIcons() && this.$icon() ? { icon: this.$icon() } : {}),
+        ...(this.$icon() ? { icon: this.$icon() } : {}),
       });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');
@@ -111,7 +110,6 @@ export class CreateCategoryModalComponent implements OnDestroy {
 
   async #afterCreate(categoryId: number | null) {
     this.#isSaving.set(true);
-    if (this.$canUseIcons() && this.$icon()) await checkCategoryIconSaved(this.#http, categoryId, this.$icon());
     if (this.$canEditSchedule()) {
       await saveCategoryScheduleIfChanged(this.#menuSettings, this.toast, categoryId, this.$schedule(), toCategorySchedule([]));
     }

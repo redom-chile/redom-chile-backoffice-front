@@ -1,7 +1,8 @@
 /**
- * Etapa 8: diseño de la carta (plan menu_design). Contrato: docs/backend-prompts/carta-etapa-8-diseno.md.
- * Mientras el backend no lo publique, los campos públicos llegan ausentes y la carta se ve como hoy.
+ * Etapa 8: diseño de la carta (plan menu_design; la accesibilidad en todos los planes).
+ * Backend: libs/restaurant/public-menu/src/lib/menu-design-dto.ts.
  */
+import { MenuThemeDto } from './menu-marketing.dto';
 
 export const MENU_TEMPLATES = ['classic', 'minimal', 'magazine', 'chalkboard', 'grid'] as const;
 export type MenuTemplate = (typeof MENU_TEMPLATES)[number];
@@ -16,7 +17,11 @@ export type MenuSortMode = 'manual' | 'alphabetical';
 
 export type MenuAccessibilityDto = Readonly<{ highContrast: boolean; readAloud: boolean }>;
 
+/** Fechas ISO (UTC al leer). */
 export type MenuAnnouncementDto = Readonly<{ text: string; startsAt: string | null; endsAt: string | null; isActive: boolean }>;
+
+/** Al guardar va completo: text 1-160, fechas ISO con offset (null = sin fecha), isActive por defecto true. */
+export type MenuAnnouncementInputDto = Readonly<{ text: string; startsAt?: string | null; endsAt?: string | null; isActive?: boolean }>;
 
 /** Lo que usa la carta para dibujarse (público y vista previa). */
 export type PublicMenuDesignDto = Readonly<{
@@ -38,41 +43,74 @@ export const DEFAULT_MENU_DESIGN: PublicMenuDesignDto = {
 
 export type MenuDesignDto = PublicMenuDesignDto & Readonly<{ announcement: MenuAnnouncementDto | null; updatedAt: string | null }>;
 
-export type UpdateMenuDesignDto = Partial<Omit<MenuDesignDto, 'updatedAt'>>;
+/**
+ * PATCH parcial. categoryStyles reemplaza el mapa completo; accessibility se mezcla; announcement null lo quita.
+ * Sin menu_design solo se puede enviar accessibility (lo demás responde 403).
+ */
+export type UpdateMenuDesignDto = Readonly<{
+  template?: MenuTemplate;
+  font?: MenuFont;
+  cardStyle?: MenuCardStyle;
+  categoryStyles?: Readonly<Record<string, MenuCardStyle>>;
+  accessibility?: Partial<MenuAccessibilityDto>;
+  announcement?: MenuAnnouncementInputDto | null;
+}>;
+
+/** Campo de details.field en 400 MENU_DESIGN_INVALID (categoryStyles.{id}, accessibility.{key}). */
+export type MenuDesignErrorField =
+  | 'template'
+  | 'font'
+  | 'cardStyle'
+  | 'categoryStyles'
+  | `categoryStyles.${string}`
+  | `accessibility.${string}`
+  | 'announcement.text'
+  | 'announcement.startsAt'
+  | 'announcement.endsAt'
+  | 'announcement.isActive'
+  | 'story';
 
 export type MenuDesignVersionDto = Readonly<{
   id: number;
   design: MenuDesignDto;
+  /** Colores, portada e historia de ese momento (también se restauran). */
+  branding: Readonly<{ theme: MenuThemeDto; coverFileId: string | null; story: string | null }>;
   createdAt: string;
-  createdBy: Readonly<{ code: string; name: string }> | null;
+  createdBy: Readonly<{ code: string; name: string | null }> | null;
 }>;
 
 export type MenuChefScheduleDto = Readonly<{ dayOfWeek: number; startTime: string; endTime: string }>;
 
 export type ChefPicksDto = Readonly<{
+  locationId: number;
   isActive: boolean;
   title: string;
   photoFileId: string | null;
   photoUrl: string | null;
   /** En orden; máximo 12. */
   productIds: number[];
+  /** soldOut: agotado ahora en el local; hidden: no se ve en la carta del local (oculto, inactivo, no a la venta o eliminado). */
   products: ReadonlyArray<{ id: number; name: string; imageUrl: string | null; soldOut: boolean; hidden: boolean }>;
   /** Vacío: siempre. */
   schedule: MenuChefScheduleDto[];
   updatedAt: string | null;
 }>;
 
+/** PUT parcial: lo que no se envía mantiene su valor. photoFileId: archivo de la carpeta menu_chef (null = sin foto). */
 export type SaveChefPicksDto = Readonly<{
-  isActive: boolean;
-  title: string;
-  photoFileId: string | null;
-  productIds: number[];
-  schedule: MenuChefScheduleDto[];
+  isActive?: boolean;
+  title?: string;
+  photoFileId?: string | null;
+  productIds?: number[];
+  schedule?: MenuChefScheduleDto[];
 }>;
+
+/** details.reason de 400 CHEF_PICKS_INVALID; not_found y not_for_sale traen details.productIds. */
+export type ChefPicksErrorReason = 'too_many' | 'duplicated' | 'not_found' | 'not_for_sale' | 'schedule';
 
 export const CHEF_PICKS_MAX = 12;
 
-/** En la carta pública: solo si está activa y dentro de su horario. */
+/** En la carta pública: activa, dentro de su horario y solo con productos visibles y no agotados (si no, null). */
 export type PublicChefPicksDto = Readonly<{ title: string; photoUrl: string | null; productIds: number[] }>;
 
 /** Íconos de categoría (la carta los dibuja en carta/ui/carta-icon.ts; el backend guarda el nombre). */

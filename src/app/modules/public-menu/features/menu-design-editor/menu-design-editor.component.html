@@ -31,6 +31,9 @@
         </label>
         }
       </div>
+      @if (errorFor('template'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
     </fieldset>
   </section>
 
@@ -57,6 +60,9 @@
         </label>
         }
       </div>
+      @if (errorFor('font'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
     </fieldset>
   </section>
 
@@ -78,6 +84,9 @@
         </label>
         }
       </div>
+      @if (errorFor('cardStyle'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
       @if ($suggestedCard()) {
       <p class="text-muted-foreground mt-2 flex items-center gap-1 text-xs">
         <app-icon class="h-4 w-4" aria-hidden="true">auto_awesome</app-icon>Sugerido para esta plantilla
@@ -105,6 +114,8 @@
           <select
             [id]="id + '-cat-' + category.id"
             class="glass-input w-40 shrink-0 rounded-md px-2 py-1.5 text-sm focus:outline-none"
+            [class.border-red-500]="!!errorFor('categoryStyles.' + category.id)"
+            [attr.aria-invalid]="!!errorFor('categoryStyles.' + category.id) || null"
             [disabled]="off"
             (change)="setCategoryStyle(category.id, $any($event.target).value)">
             <option value="" [selected]="!d.categoryStyles[category.id]">Igual que la general</option>
@@ -115,6 +126,9 @@
         </li>
         }
       </ul>
+      @if (errorFor('categoryStyles'); as message) {
+      <p class="text-destructive mt-1 text-xs" role="alert">{{ message }}</p>
+      }
       } @else {
       <p class="text-muted-foreground text-xs">{{ categoriesNote() || 'Este local aún no tiene categorías en su carta.' }}</p>
       }
@@ -136,6 +150,8 @@
         [id]="id + '-announcement'"
         rows="2"
         class="glass-input w-full resize-none rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="!!errorFor('announcement.text')"
+        [attr.aria-invalid]="!!errorFor('announcement.text') || null"
         [attr.maxlength]="announcementMax"
         [attr.aria-describedby]="id + '-announcement-count'"
         placeholder="Hoy: música en vivo desde las 21:00"
@@ -145,14 +161,22 @@
       <p [id]="id + '-announcement-count'" class="mt-1 text-right text-xs" [class]="$announcementLength() > announcementMax ? 'text-destructive' : 'text-muted-foreground'">
         {{ $announcementLength() }}/{{ announcementMax }}
       </p>
-      @if (d.announcement.isActive && !d.announcement.text.trim()) {
+      @if (errorFor('announcement.text'); as message) {
+      <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+      } @else if (d.announcement.isActive && !d.announcement.text.trim()) {
       <p class="text-destructive text-xs">Escribe el texto del anuncio.</p>
       }
     </div>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <label [for]="id + '-from'" class="text-foreground mb-1 block text-xs font-medium">Desde (opcional)</label>
-        <input [id]="id + '-from'" type="datetime-local" class="glass-input w-full rounded-md px-3 py-2 text-sm" [value]="d.announcement.startsAt" [disabled]="off" (change)="patchAnnouncement({ startsAt: $any($event.target).value })" />
+        <input
+          [id]="id + '-from'"
+          type="datetime-local"
+          class="glass-input w-full rounded-md px-3 py-2 text-sm"
+          [class.border-red-500]="!!errorFor('announcement.startsAt')"
+          [attr.aria-invalid]="!!errorFor('announcement.startsAt') || null"
+          [value]="d.announcement.startsAt" [disabled]="off" (change)="patchAnnouncement({ startsAt: $any($event.target).value })" />
       </div>
       <div>
         <label [for]="id + '-to'" class="text-foreground mb-1 block text-xs font-medium">Hasta (opcional)</label>
@@ -160,7 +184,8 @@
           [id]="id + '-to'"
           type="datetime-local"
           class="glass-input w-full rounded-md px-3 py-2 text-sm"
-          [class.border-red-500]="$datesInvalid()"
+          [class.border-red-500]="$datesInvalid() || !!errorFor('announcement.endsAt')"
+          [attr.aria-invalid]="$datesInvalid() || !!errorFor('announcement.endsAt') || null"
           [attr.min]="d.announcement.startsAt || null"
           [value]="d.announcement.endsAt"
           [disabled]="off"
@@ -169,6 +194,8 @@
     </div>
     @if ($datesInvalid()) {
     <p class="text-destructive text-xs">El término debe ser posterior al inicio.</p>
+    } @else if (errorFor('announcement.startsAt') || errorFor('announcement.endsAt'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
     }
     <p class="text-muted-foreground text-xs">Sin fechas, se muestra mientras esté activo. Hora del negocio ({{ $zone() }}). La vista previa lo muestra aunque esté fuera de sus fechas.</p>
   </section>
@@ -194,6 +221,9 @@
       </div>
       <app-toggle [checked]="d.accessibility.readAloud" [disabled]="off" ariaLabel="Ofrecer lectura en voz alta" (changed)="patchAccessibility({ readAloud: $event })" />
     </div>
+    @if (errorFor('accessibility'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+    }
   </section>
 
   <!-- Nuestra historia (menu_branding) -->
@@ -207,6 +237,8 @@
       [id]="id + '-story'"
       rows="5"
       class="glass-input w-full rounded-md px-3 py-2 text-sm"
+      [class.border-red-500]="!!errorFor('story')"
+      [attr.aria-invalid]="!!errorFor('story') || null"
       [attr.maxlength]="storyMax"
       [attr.aria-describedby]="id + '-story-count'"
       placeholder="Abrimos en 2015 con las recetas de la abuela…"
@@ -214,6 +246,9 @@
       [disabled]="off"
       (input)="story.set($any($event.target).value)"></textarea>
     <p [id]="id + '-story-count'" class="text-right text-xs" [class]="$storyLength() > storyMax ? 'text-destructive' : 'text-muted-foreground'">{{ $storyLength() }}/{{ storyMax }}</p>
+    @if (errorFor('story'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+    }
   </section>
   } @else {
   <app-marketing-upsell-card feature="menu_branding" description="Cuenta la historia de tu local al pie de la carta, junto a tus colores y tu portada." />
