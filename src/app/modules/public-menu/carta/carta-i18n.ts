@@ -3,6 +3,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CartaLang } from './i18n/carta-dict';
 import { COMMON_DICT } from './i18n/common';
+import { DESIGN_DICT } from './i18n/design';
 import { ORDER_DICT } from './i18n/order';
 import { SERVICE_DICT } from './i18n/service';
 import { TRACKING_DICT } from './i18n/tracking';
@@ -26,7 +27,7 @@ export const CARTA_LANG_META: Readonly<Record<CartaLang, Readonly<{ flag: string
 /** Elección del cliente (selector de idioma). */
 const STORAGE_KEY = 'redom-menu-lang';
 
-const DICTS = [COMMON_DICT, ORDER_DICT, TRACKING_DICT, SERVICE_DICT] as const;
+const DICTS = [COMMON_DICT, ORDER_DICT, TRACKING_DICT, SERVICE_DICT, DESIGN_DICT] as const;
 
 type EsKeys<D> = D extends { es: infer E } ? keyof E : never;
 export type CartaKey = EsKeys<(typeof DICTS)[number]> & string;

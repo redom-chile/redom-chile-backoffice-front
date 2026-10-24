@@ -79,6 +79,12 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Usaste las traducciones con IA de este mes.';
     case 'AI_TRANSLATIONS_UNAVAILABLE':
       return 'La IA no está disponible ahora, intenta más tarde.';
+    case 'MENU_DESIGN_INVALID':
+      return 'Revisa los datos del diseño de la carta.';
+    case 'CHEF_PICKS_INVALID':
+      return 'Revisa las recomendaciones del chef: máximo 12 productos a la venta y un horario válido.';
+    case 'REORDER_IDS_MISMATCH':
+      return 'La lista cambió mientras ordenabas. Recarga e inténtalo de nuevo.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }

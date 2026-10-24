@@ -22,6 +22,7 @@ export const PLAN_FEATURES = [
   'menu_translations',
   'menu_ai_translations',
   'loyalty',
+  'menu_design',
 ] as const;
 export type PlanFeatureCode = (typeof PLAN_FEATURES)[number];
 

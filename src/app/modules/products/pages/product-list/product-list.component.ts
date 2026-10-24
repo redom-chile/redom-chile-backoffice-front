@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,9 +14,11 @@ import {
   CreateProductModalComponent,
   DeleteProductModalComponent,
   ProductModalResult,
+  ProductsOrderListComponent,
   ProductsTableComponent,
   UpdateProductModalComponent,
 } from './features';
+import { takeStage8Notice } from 'src/app/modules/products/shared';
 import { FiltersProductTableComponent, ProductTableFilters } from './ui';
 
 const PER_PAGE = 10;
@@ -42,6 +44,7 @@ function toQuery(params: ParamMap): ProductListQuery {
     IconComponent,
     EmptyStateComponent,
     ProductsTableComponent,
+    ProductsOrderListComponent,
     FiltersProductTableComponent,
     CheckPermissionDirective,
   ],
@@ -65,6 +68,17 @@ export class ProductListComponent implements OnInit {
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
 
   private readonly filtersComponent = viewChild(FiltersProductTableComponent);
+
+  // "Ordenar": con una categoría elegida y el orden de la carta en manual.
+  readonly $sortMode = this.#settings.$menuSortMode;
+  readonly $ordering = signal(false);
+  readonly $selectedCategory = computed(() => {
+    const id = this.$query().categoryId;
+    if (id === null) return null;
+    const all = this.$categories().flatMap((category) => [category, ...(category.subcategories ?? [])]);
+    return all.find((category) => category.id === id) ?? null;
+  });
+  readonly $canOrder = computed(() => this.$query().categoryId !== null && this.$sortMode() === 'manual');
 
   readonly $query = toSignal(this.route.queryParamMap.pipe(map(toQuery)), {
     initialValue: toQuery(this.route.snapshot.queryParamMap),
@@ -104,6 +118,22 @@ export class ProductListComponent implements OnInit {
     collect(this.$categories());
     return names;
   });
+
+  constructor() {
+    // Sin categoría o en orden alfabético no hay nada que ordenar a mano.
+    effect(() => {
+      if (!this.$canOrder()) untracked(() => this.$ordering.set(false));
+    });
+  }
+
+  startOrdering() {
+    if (this.$canOrder()) this.$ordering.set(true);
+  }
+
+  finishOrdering() {
+    this.$ordering.set(false);
+    this.getAllService.retry();
+  }
 
   ngOnInit(): void {
     if (!this.$categories().length) this.getAllCategoriesService.getAll();
@@ -174,7 +204,9 @@ export class ProductListComponent implements OnInit {
     };
     const message = result ? messages[result] : undefined;
     if (!message) return;
-    this.toast.show(message, 'success');
+    // Nota del chef sin guardar (backend sin etapa 8): se avisa una vez, en el mismo toast.
+    const notice = takeStage8Notice();
+    this.toast.show(notice ? `${message}. La nota del chef ${notice.toLowerCase()}.` : message, notice ? 'warning' : 'success');
 
     // Si se eliminó el último producto de la página, volver a la anterior.
     const { page } = this.$query();

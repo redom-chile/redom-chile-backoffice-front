@@ -38,6 +38,8 @@ export type PosDetailsResponseDto = Readonly<{
   resTableId: number | null;
   resWaiterId: string | null;
   isServiceStaffRequired: boolean;
+  // Mostrar "IVA incluido" en la precuenta impresa (#70).
+  showTaxOnPreBill?: boolean;
 }>;
 
 // Mesero con sesión abierta en el POS (solo front).

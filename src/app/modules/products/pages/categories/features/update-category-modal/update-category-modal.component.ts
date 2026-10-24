@@ -1,19 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { ButtonComponent, ImagePickerComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
-import { UpdateCategoryService, CategoryDto, getCategoryErrorMessage } from '../../data-access';
+import { checkCategoryIconSaved, UpdateCategoryService, CategoryDto, getCategoryErrorMessage } from '../../data-access';
 import { CategoryModalResult } from '../category-modal-result';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
-import { CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
+import { CategoryIconPickerComponent, CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
 import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-update-category-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent, CategoryIconPickerComponent],
   templateUrl: './update-category-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -44,6 +46,14 @@ export class UpdateCategoryModalComponent implements OnDestroy {
   readonly #initialSchedule: CategorySchedule | null = this.category.schedule ? toCategorySchedule(this.category.schedule) : null;
   readonly $schedule = signal<CategorySchedule>(this.#initialSchedule ?? toCategorySchedule([]));
   readonly $scheduleSubmitted = signal(false);
+  // Ícono en la carta (etapa 8): solo se envía si cambia.
+  readonly #initialIcon = this.category.icon ?? null;
+  readonly $icon = signal<string | null>(this.#initialIcon);
+  readonly #http = inject(HttpClient);
+  // Íconos de la carta: plan con menu_design (el backend responde 403 sin la función).
+  readonly #entitlements = inject(EntitlementsService);
+  readonly $canUseIcons = computed(() => this.#entitlements.hasFeature('menu_design'));
+  readonly #iconChanged = () => this.$canUseIcons() && this.$icon() !== this.#initialIcon;
   readonly scheduleNote = this.category.schedule
     ? null
     : 'El horario actual de la categoría aún no se muestra aquí: si lo cambias, reemplaza al anterior.';
@@ -93,6 +103,7 @@ export class UpdateCategoryModalComponent implements OnDestroy {
         shortCode: value.shortCode?.trim() || undefined,
         description: value.description || undefined,
         ...(imageFileId !== undefined ? { imageFileId } : {}),
+        ...(this.#iconChanged() ? { icon: this.$icon() } : {}),
       });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');
@@ -103,6 +114,7 @@ export class UpdateCategoryModalComponent implements OnDestroy {
 
   async #afterUpdate() {
     this.#isSaving.set(true);
+    if (this.#iconChanged()) await checkCategoryIconSaved(this.#http, this.category.id, this.$icon());
     if (this.$canEditSchedule()) {
       await saveCategoryScheduleIfChanged(this.#menuSettings, this.toast, this.category.id, this.$schedule(), this.#initialSchedule);
     }

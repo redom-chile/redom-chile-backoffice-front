@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
@@ -10,8 +12,9 @@ import { RecipesService, UnitsService } from 'src/app/modules/inventory/data-acc
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
-import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
+import { checkChefNoteSaved, ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
 import {
+  chefNoteToSend,
   createProductForm,
   varietiesError,
   injectEditableProductTags,
@@ -53,6 +56,11 @@ export class UpdateProductModalComponent implements OnDestroy {
   readonly $units = computed(() => this.#units.$units() ?? []);
   readonly product = inject<ProductDto>(MAT_DIALOG_DATA);
   readonly form = createProductForm(inject(FormBuilder), this.product);
+  readonly #http = inject(HttpClient);
+  // Nota del chef: solo con menu_design en el plan.
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #chefNoteEnabled = () => this.#entitlements.hasFeature('menu_design');
+  #sentChefNote: string | null | undefined = undefined;
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
   readonly $uploadProgress = this.#upload.$progress;
@@ -131,8 +139,10 @@ export class UpdateProductModalComponent implements OnDestroy {
     this.#isSaving.set(true);
     try {
       const imageFileId = await this.#upload.resolveSelection(this.#image, 'products');
+      const context = { inventoryEnabled: this.$inventoryEnabled(), chefNoteEnabled: this.#chefNoteEnabled() };
+      this.#sentChefNote = chefNoteToSend(this.form, context, this.product);
       this.updateService.update(this.product.id, {
-        ...toUpdateProductDto(this.form, this.product, { inventoryEnabled: this.$inventoryEnabled() }),
+        ...toUpdateProductDto(this.form, this.product, context),
         ...(imageFileId !== undefined ? { imageFileId } : {}),
       });
     } catch (error) {
@@ -144,6 +154,7 @@ export class UpdateProductModalComponent implements OnDestroy {
 
   async #afterUpdate() {
     this.#isSaving.set(true);
+    if (this.#sentChefNote !== undefined) await checkChefNoteSaved(this.#http, this.product.id, this.#sentChefNote);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, this.product.id, this.$tagIds(), this.#initialTagIds);
     await this.pack.saveIfChanged(this.product.id, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);

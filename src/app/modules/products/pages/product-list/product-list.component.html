@@ -15,6 +15,19 @@
     <app-button full impact="light" tone="primary" shape="rounded" size="medium" icon="refresh" (buttonClick)="handleRetry()">
       Actualizar
     </app-button>
+    @if ($canOrder() && !$ordering()) {
+    <app-button
+      *appCheckPermission="PERMISSIONS.PRODUCTS.UPDATE_PRODUCT"
+      full
+      impact="light"
+      tone="primary"
+      shape="rounded"
+      size="medium"
+      icon="swap_vert"
+      (buttonClick)="startOrdering()">
+      Ordenar
+    </app-button>
+    }
     }
   </app-header-dashboard>
 
@@ -48,6 +61,13 @@
     [initialFilters]="initialFilters"
     (filtersChange)="handleFiltersChange($event)" />
 
+  @if ($ordering() && $query().categoryId; as categoryId) {
+  <app-products-order-list
+    [categoryId]="categoryId"
+    [categoryName]="$selectedCategory()?.name ?? ''"
+    [hasSubcategories]="!!$selectedCategory()?.subcategories?.length"
+    (done)="finishOrdering()" />
+  } @else {
   <app-products-table
     [products]="$products()"
     [loading]="$isLoading()"
@@ -61,5 +81,5 @@
     (pageChange)="handlePageChange($event)"
     (clearFilters)="handleClearFilters()"
     (imageExpired)="refreshExpiredImages()" />
-  }
+  } }
 </div>

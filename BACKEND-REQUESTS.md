@@ -12,11 +12,11 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario · #71 asignar mesero y encargado a una reserva |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) · #68 orden manual de categorías y productos · #69 etapa 8: diseño de la carta |
 | 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -384,11 +384,13 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 ---
 
-### 53. 🟡 Reservas desde la carta: origen en el listado y visibilidad
+### 53. 🟢 Reservas desde la carta: no aparecen en el listado (origen y visibilidad) (resuelta 2026-10-23)
 
 **Problema:**
 - `GET /bookings` no devuelve `createdBy` (ni un campo de origen), así que el listado no distingue con certeza las reservas que llegaron desde la carta. El front las detecta como "en espera y sin encargado ni mesero", lo que también marca reservas pasadas a mano a "en espera".
 - El listado filtra por `createdBy`, encargado o mesero cuando el usuario no tiene `crud_all_bookings`. Como las reservas de la carta tienen `createdBy` null, solo las ven quienes tienen ese permiso (cajeros y meseros, no).
+
+**Actualización 2026-10-23:** el listado usa el permiso antiguo `crud_all_bookings`, que no existe en el sistema actual: **nadie** (ni el dueño) ve las reservas de la carta. Prompt con la corrección: `docs/backend-prompts/reservas-visibilidad.md`.
 
 **Se pide:** agregar `createdBy` o `source: 'menu' | 'staff'` al listado de reservas, e incluir las reservas de la carta (`createdBy` null) en lo que ven los roles del local que gestionan reservas.
 
@@ -544,6 +546,46 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** agregar `channel: 'table' | 'pickup' | 'delivery'` a cada ítem (desde `CustomerOrderEntity`).
 
 **Front mientras tanto:** ya lee `channel` si llega (muestra "Retiro" o "Delivery"); sin él, "Sin mesa".
+
+---
+
+### 68. 🔵 Orden manual de categorías y productos (arrastrar y soltar)
+
+**Problema:** categorías y productos no tienen posición: `GET /categories` ordena por creación y la carta pública por nombre. El negocio no puede definir el orden de su carta.
+
+**Se pide:** columna `position` en categorías (por padre) y productos (por categoría), `PATCH /categories/reorder` y `PATCH /products/reorder` con la lista completa en el nuevo orden, ajuste `menuSortMode` (`manual` | `alphabetical`, por defecto alfabético) y respetar el orden en la carta pública y el POS. Detalle y prompt: `docs/backend-prompts/orden-categorias-y-productos.md`.
+
+**Front mientras tanto:** nada; el arrastrar y soltar en Carta → Categorías y productos se implementa cuando exista el endpoint.
+
+---
+
+### 69. 🔵 Etapa 8 de la carta: diseño (plantillas, tipografías, anuncio, historia, recomendaciones del chef)
+
+**Problema:** la personalización guarda solo tres colores y la portada; no hay plantillas, tipografías, forma de tarjetas, íconos de categoría, anuncio, historia, recomendaciones ni nota del chef, ni historial para volver atrás.
+
+**Se pide:** el prompt completo `docs/backend-prompts/carta-etapa-8-diseno.md` (función de plan `menu_design`, `GET/PATCH /menu-settings/{id}/design` con historial, `chef-picks`, `chefNote`, `story`, `icon` de categoría, campos nuevos en la carta pública y en las traducciones). Incluye el #68.
+
+**Front mientras tanto:** nada; se implementa contra este contrato.
+
+---
+
+### 70. 🟢 Opción para ocultar el IVA en la precuenta (resuelta 2026-10-23)
+
+**Problema:** la precuenta impresa muestra "IVA incluido $X" y a algunos clientes les confunde. Las opciones del POS (`pos_settings`) solo aceptan `waiterEnabled`, `tablesEnabled` e `isServiceStaffRequired`: una opción nueva se descarta.
+
+**Se pide:** `posSettings.showTaxOnPreBill` (por defecto `true`) en el DTO, en `parsePosSettings`/`mergePosSettings` y en el GET. Prompt: `docs/backend-prompts/precuenta-sin-iva.md`.
+
+**Resuelta:** `posSettings.show_tax_on_pre_bill` en GET/PATCH `/business/{id}/settings` y `showTaxOnPreBill` en `POST /pos/details`. El front usa la configuración del negocio y, si el usuario no puede leerla (cajero, mesero), `POST /pos/details` del local del pedido.
+
+---
+
+### 71. 🟡 Reservas: asignar mesero y encargado
+
+**Problema:** `bookings` tiene `waiter_id` y `correspondent_id` (y de ellos depende quién ve cada reserva, #53), pero `PUT /bookings/{id}` y `POST /bookings` no los aceptan. Una reserva de la carta confirmada queda sin responsable y la ve todo el que gestiona reservas.
+
+**Se pide:** `waiterId` y `correspondentId` (o `null`) en el PUT parcial y en el POST, validados, y devueltos con sus nombres en listado, hoy y detalle. Prompt: `docs/backend-prompts/reservas-asignar-responsable.md`.
+
+**Front mientras tanto:** en las reservas de la carta ofrece "Confirmar" y "Asignar mesa"; asignar mesero queda pendiente.
 
 ---
 

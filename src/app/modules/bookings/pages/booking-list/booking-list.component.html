@@ -26,6 +26,18 @@
       <option [value]="option.value" [selected]="$query().status === option.value">{{ option.label }}</option>
       }
     </select>
+    @if ($pendingMenuCount() || $query().onlyMenu) {
+    <button
+      type="button"
+      class="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
+      [class]="$query().onlyMenu ? 'bg-amber-500 text-white' : 'bg-amber-500/15 text-amber-800 dark:text-amber-300'"
+      [attr.aria-pressed]="$query().onlyMenu"
+      (click)="toggleOnlyMenu()">
+      <app-icon class="h-4 w-4" aria-hidden="true">menu_book</app-icon>
+      Por confirmar desde la carta
+      <span class="rounded-full bg-black/10 px-1.5 text-xs tabular-nums dark:bg-white/15">{{ $pendingMenuCount() }}</span>
+    </button>
+    }
     <div class="ml-auto inline-flex rounded-lg p-1" role="tablist" aria-label="Vista">
       <button type="button" role="tab" class="rounded-md px-3 py-1.5 text-sm font-medium" [class]="$query().view === 'day' ? 'bg-primary text-white' : 'glass-row'" [attr.aria-selected]="$query().view === 'day'" (click)="setView('day')">Día</button>
       <button type="button" role="tab" class="ml-1 rounded-md px-3 py-1.5 text-sm font-medium" [class]="$query().view === 'week' ? 'bg-primary text-white' : 'glass-row'" [attr.aria-selected]="$query().view === 'week'" (click)="setView('week')">Semana</button>
@@ -44,11 +56,15 @@
   <p class="text-muted-foreground py-10 text-center text-sm">Cargando reservas…</p>
   } @else if ($query().view === 'week') {
   <app-booking-week [weekStart]="$weekStart()" [bookings]="$bookings()" (selectDay)="openDay($event)" (edit)="handleEdit($event)" />
+  } @else if (!$bookings().length && $query().onlyMenu) {
+  <app-empty-state icon="task_alt" title="No hay reservas de la carta por confirmar" description="Las que pidan tus clientes desde la carta aparecerán aquí en espera.">
+    <app-button impact="light" shape="rounded" (buttonClick)="toggleOnlyMenu()">Ver todas</app-button>
+  </app-empty-state>
   } @else if (!$bookings().length) {
   <app-empty-state icon="event_available" [title]="$query().status ? 'Sin reservas con ese estado este día' : 'Sin reservas este día'" description="Las reservas que registres aparecerán aquí ordenadas por hora.">
     <app-button *appCheckPermission="PERMISSIONS.BOOKINGS.CREATE_BOOKING" impact="bold" tone="primary" shape="rounded" icon="add" [disabled]="!$locationId()" (buttonClick)="handleCreate()">Nueva reserva</app-button>
   </app-empty-state>
   } @else {
-  <app-booking-agenda [bookings]="$bookings()" [busyIds]="$busyIds()" (edit)="handleEdit($event)" (changeStatus)="handleStatus($event)" />
+  <app-booking-agenda [bookings]="$bookings()" [busyIds]="$busyIds()" (edit)="handleEdit($event)" (changeStatus)="handleStatus($event)" (assignTable)="handleAssignTable($event)" />
   }
 </div>

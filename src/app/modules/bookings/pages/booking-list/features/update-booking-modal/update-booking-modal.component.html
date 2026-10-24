@@ -6,21 +6,30 @@
   <div class="space-y-4">
     <div class="glass-row flex items-center gap-3 rounded-lg px-3 py-2">
       <app-icon class="text-primary h-5 w-5">person</app-icon>
-      <div>
+      <div class="min-w-0 flex-1">
         <p class="text-foreground text-sm font-medium">{{ booking.customerName }}</p>
-        <p class="text-muted-foreground text-xs">{{ booking.locationName }}</p>
+        <p class="text-muted-foreground text-xs">
+          {{ booking.locationName }}
+          @if (author) { · {{ author }} }
+          @if (booking.waiterName) { · Mesero: {{ booking.waiterName }} }
+        </p>
       </div>
+      @if (fromMenu) {
+      <span class="bg-primary/10 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+        <app-icon class="h-3.5 w-3.5" aria-hidden="true">menu_book</app-icon>Desde la carta
+      </span>
+      }
     </div>
-    @if (fromMenu) {
-    <div class="bg-primary/10 text-primary flex gap-2 rounded-lg px-3 py-2 text-sm" role="note">
-      <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">menu_book</app-icon>
+    @if (pendingFromMenu) {
+    <div class="flex gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300" role="note">
+      <app-icon class="h-5 w-5 shrink-0" aria-hidden="true">pending_actions</app-icon>
       <div>
-        <p class="font-semibold">{{ menuBookingLabel }}</p>
-        <p class="text-foreground/80 text-xs">Para confirmarla, cambia el estado a "Confirmada" y, si quieres, asígnale una mesa.</p>
+        <p class="font-semibold">Pendiente de confirmar</p>
+        <p class="text-foreground/80 text-xs">Un cliente la pidió desde la carta. Para confirmarla, cambia el estado a "Confirmada" y, si quieres, asígnale una mesa.</p>
       </div>
     </div>
     }
-    <app-booking-form-fields [form]="form" [tables]="$tables()" [showStatus]="true" />
+    <app-booking-form-fields [form]="form" [tables]="$tables()" [showStatus]="true" [focusTable]="focusTable" />
   </div>
 
   <ng-template app-slot="footer">

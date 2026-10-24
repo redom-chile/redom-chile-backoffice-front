@@ -171,6 +171,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   }
 
   async handlePrintBill(order: OrderDetailDto) {
+    const showTax = await this.businessSettings.showTaxOnPreBillFor(order.locationId);
     const html = billTicketHtml({
       businessName: this.businessesService.$businesses()?.[0]?.name ?? 'REDOM',
       invoiceNo: order.invoiceNo,
@@ -190,6 +191,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       discount: order.totalBeforeTax - order.finalTotal,
       total: order.finalTotal,
       taxAmount: order.taxAmount,
+      showTax,
       paid: order.totalPaid,
       remaining: order.remaining,
       suggestedTipPercent: this.businessSettings.$suggestedTipPercent(),

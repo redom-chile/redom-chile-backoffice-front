@@ -23,6 +23,7 @@ export const PLAN_FEATURE_LABELS: Record<PlanFeatureCode, string> = {
   menu_translations: 'Carta en varios idiomas',
   menu_ai_translations: 'Traducción de la carta con IA',
   loyalty: 'Fidelización',
+  menu_design: 'Diseño de la carta',
 };
 
 export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: string }> = {

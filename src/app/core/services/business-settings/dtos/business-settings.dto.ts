@@ -1,3 +1,6 @@
+/** Orden de la carta (categorías, subcategorías y productos): manual o por nombre. Etapa 8, #68. */
+export type MenuSortMode = 'manual' | 'alphabetical';
+
 export type StockDeductionMoment = 'on_order' | 'on_payment';
 /** includes: el precio del producto incluye IVA; excludes: es neto y el IVA se suma al vender. */
 export type SellPriceTax = 'includes' | 'excludes';
@@ -32,6 +35,8 @@ export type BusinessSettingsDto = Readonly<{
   cashManagementEnabled?: boolean;
   // Reparto de propinas por defecto (se puede cambiar en cada liquidación).
   tipDistributionMode?: 'individual' | 'equal' | 'points';
+  // Ausente mientras el backend no publique la etapa 8 (#68): se asume alfabético.
+  menuSortMode?: MenuSortMode;
 }>;
 
 /** Opciones del POS (PATCH parcial: solo cambian las que se envían). */
@@ -39,6 +44,8 @@ export type PosSettings = Readonly<{
   tablesEnabled?: boolean;
   waiterEnabled?: boolean;
   isServiceStaffRequired?: boolean;
+  // Línea "IVA incluido" en la precuenta impresa; ausente = true (#70).
+  showTaxOnPreBill?: boolean;
   // Solo del front: false si el negocio nunca guardó estas opciones (no se envía al backend).
   configured?: boolean;
 }>;
@@ -58,6 +65,7 @@ export type UpdateBusinessSettingsDto = Partial<
     suggestedTipPercent: number;
     cashManagementEnabled: boolean;
     tipDistributionMode: 'individual' | 'equal' | 'points';
+    menuSortMode: MenuSortMode;
   }>
 >;
 

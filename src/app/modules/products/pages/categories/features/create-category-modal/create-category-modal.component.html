@@ -41,6 +41,8 @@
       </select>
     </div>
 
+    <app-category-icon-picker [(value)]="$icon" [locked]="!$canUseIcons()" />
+
     <app-image-picker
       folder="categories"
       label="Imagen"
