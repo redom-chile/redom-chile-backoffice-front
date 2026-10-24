@@ -173,7 +173,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   async handlePrintBill(order: OrderDetailDto) {
     const showTax = await this.businessSettings.showTaxOnPreBillFor(order.locationId);
     const html = billTicketHtml({
-      businessName: this.businessesService.$businesses()?.[0]?.name ?? 'REDOM',
+      businessName: this.businessesService.$current()?.name ?? 'REDOM',
       invoiceNo: order.invoiceNo,
       tableName: order.tableName,
       waiterName: order.waiterName,

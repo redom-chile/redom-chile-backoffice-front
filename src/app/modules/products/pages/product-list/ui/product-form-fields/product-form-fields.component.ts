@@ -11,6 +11,7 @@ import { IconComponent, ImagePickerComponent } from 'src/ui';
 import { STOCK_MODE_OPTIONS, UnitDto, unitLabel } from 'src/app/modules/inventory/data-access';
 import { CategoryDto } from '../../../categories/data-access';
 import { CHEF_NOTE_MAX } from '../../data-access';
+import { ProductDescriptionAiComponent } from '../menu-ai-assist';
 import {
   createVarietyForm,
   duplicatedVarietyNames,
@@ -26,7 +27,7 @@ import {
 
 @Component({
   selector: 'app-product-form-fields',
-  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent, PlanLockBadgeComponent],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent, PlanLockBadgeComponent, ProductDescriptionAiComponent],
   templateUrl: './product-form-fields.component.html',
 })
 export class ProductFormFieldsComponent implements OnInit {
@@ -48,6 +49,8 @@ export class ProductFormFieldsComponent implements OnInit {
   readonly categories = input<CategoryDto[]>([]);
   // Solo al crear: al editar, el SKU existente no debe cambiar al renombrar.
   readonly autoSuggestSku = input(true);
+  // Producto guardado (al editar): habilita "Sugerir con IA" en la descripción.
+  readonly productId = input<number | null>(null);
   readonly currentImageUrl = input<string | null | undefined>(null);
   readonly uploading = input(false);
   readonly uploadProgress = input(0);
@@ -110,6 +113,13 @@ export class ProductFormFieldsComponent implements OnInit {
 
   showChefNotePlans() {
     this.#upsell.open({ features: ['menu_design'] });
+  }
+
+  /** La sugerencia elegida queda en el formulario; se guarda con "Guardar". */
+  setDescription(text: string) {
+    const control = this.form().controls.productDescription;
+    control.setValue(text);
+    control.markAsDirty();
   }
 
   regenerateSku() {

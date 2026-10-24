@@ -24,6 +24,7 @@ export const PLAN_FEATURE_LABELS: Record<PlanFeatureCode, string> = {
   menu_ai_translations: 'Traducción de la carta con IA',
   loyalty: 'Fidelización',
   menu_design: 'Diseño de la carta',
+  menuAiContent: 'Contenido de la carta con IA',
 };
 
 export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: string }> = {
@@ -31,6 +32,7 @@ export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: strin
   max_users: { one: 'usuario', many: 'usuarios' },
   max_registers: { one: 'caja', many: 'cajas' },
   ai_questions_month: { one: 'pregunta al asistente', many: 'preguntas al asistente' },
+  aiMenuContentMonth: { one: 'sugerencia con IA', many: 'sugerencias con IA' },
 };
 
 /** "1 de 3 locales" / "2 locales (ilimitado)". */

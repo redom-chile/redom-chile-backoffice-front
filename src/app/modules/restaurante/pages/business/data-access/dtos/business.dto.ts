@@ -3,6 +3,8 @@ export type BusinessDto = Readonly<{
   name: string;
   currencyId: number;
   ownerId: string;
+  // #75: el usuario puede ver negocios donde tiene un rol; isOwner indica si es el dueño.
+  isOwner?: boolean;
   timeZone: string;
   dateFormat: string;
   timeFormat: string;

@@ -90,7 +90,8 @@ function normalizeSettings(settings: BusinessSettingsDto): BusinessSettingsDto {
 }
 
 /**
- * Configuración del negocio actual (GET/PATCH /business/:id/settings).
+ * Configuración del negocio actual (GET/PATCH /business/:id/settings): la leen el dueño y quien tiene
+ * business:get-settings, y la guardan el dueño y quien tiene business:update-settings (#73).
  * Se carga al conocer el restaurantId y la comparten el menú, productos e inventario.
  */
 @Injectable({ providedIn: 'root' })
@@ -136,7 +137,7 @@ export class BusinessSettingsService {
   readonly $showTaxOnPreBill = computed(() => this.$posSettings().showTaxOnPreBill);
   readonly #preBillTaxByLocation = new Map<number, boolean>();
 
-  /** Para imprimir la precuenta: quien no puede leer la configuración (cajero, mesero) la toma de POST /pos/details. */
+  /** Para imprimir la precuenta: sin business:get-settings (cajero, mesero) se toma de POST /pos/details. */
   async showTaxOnPreBillFor(locationId: number | null | undefined): Promise<boolean> {
     if (this.#settings()) return this.$showTaxOnPreBill();
     if (!locationId) return true;

@@ -79,7 +79,7 @@ Tamaño: **S** ≈ 1 semana, **M** ≈ 2 a 3, **L** ≈ 4 a 5, **XL** ≈ 6 o m�
 
 **Funciones**
 1. **Descripciones con IA:** desde el nombre, los ingredientes (recetas) y el estilo del local, propone 2 o 3 descripciones; el dueño elige y edita. También en lote ("completar las que faltan").
-2. **Mejorar fotos:** recorte y encuadre automático, luz y color, fondo limpio o difuminado. Siempre con antes/después y aprobación.
+2. **Mejorar fotos (etapa 9b, después de medir el costo):** recorte y encuadre automático, luz y color, fondo limpio o difuminado. Siempre con antes/después y aprobación.
 3. **Sugerencias de precio y promociones** con las ventas, el food cost y los días flojos: "este plato tiene margen bajo", "2x1 los martes", "sube $500 el más pedido".
 4. **Etiquetas sugeridas** (vegano, sin gluten, picante) a partir de la receta, para revisar.
 
@@ -227,14 +227,14 @@ Tamaño: **S** ≈ 1 semana, **M** ≈ 2 a 3, **L** ≈ 4 a 5, **XL** ≈ 6 o m�
 
 ## Transversal a todas las etapas
 
-- **Planes:** nuevas funciones en `PLAN_FEATURES` (por ejemplo `menu_design`, `menu_ai_content`, `customer_profiles`, `menu_dynamic`, `table_sessions`, `menu_community`, `menu_assistant`) con su candado y aviso de mejora, como las etapas anteriores.
+- **Planes:** nuevas funciones en `PLAN_FEATURES` (por ejemplo `menu_design`, `menuAiContent`, `customer_profiles`, `menu_dynamic`, `table_sessions`, `menu_community`, `menu_assistant`) con su candado y aviso de mejora, como las etapas anteriores.
 - **Idiomas:** todo texto nuevo del dueño (mensajes, historia, momentos, premios) entra en las traducciones de la etapa 7; los textos fijos, en los diccionarios de la carta.
 - **Analítica:** ampliar los eventos de la carta (vistas, agregar, sugerencias aceptadas, chat, compartidos) y mostrarlos en un panel "Rendimiento de la carta".
 - **Rendimiento:** imágenes y videos con tamaños por dispositivo, carga diferida y presupuesto de peso por página.
 - **Privacidad y seguridad:** consentimiento, borrado de datos, límites por IP y teléfono, moderación.
 - **Costos de IA:** cuotas por plan, caché de respuestas repetidas, registro de uso en la Plataforma.
 
-## Planes (propuesta 2026-10-22, por confirmar)
+## Planes (decidido 2026-10-24)
 
 Sigue la lógica de las etapas 1 a 7: Free = carta básica; Emprende = vender y verse bien; Pro = crecer con IA y clientes; Empresa = escala y diferenciación.
 
@@ -248,7 +248,7 @@ Sigue la lógica de las etapas 1 a 7: Free = carta básica; Emprende = vender y 
 | Cartas por momento y temporadas (`menu_dynamic`) | — | ✅ | ✅ | ✅ |
 | Clima, plato del día con porciones y "completa tu pedido" automático | — | Reglas manuales | ✅ | ✅ |
 | Cliente reconocido: preferencias y "Lo de siempre" (`customer_profiles`) | — | ✅ | ✅ | ✅ |
-| Contenido con IA (`menu_ai_content`): descripciones / fotos al mes | — | — | 100 / 20 | 500 / 100 |
+| Contenido con IA (`menuAiContent`): descripciones / fotos al mes | — | — | 100 / 20 | 500 / 100 |
 | Sugerencias de precios y promociones | — | — | ✅ | ✅ |
 | Mesa compartida y dividir la cuenta (`table_sessions`) | — | — | ✅ | ✅ |
 | Pago online desde la carta | — | — | ✅ (comisión) | ✅ (comisión) |
@@ -258,7 +258,7 @@ Sigue la lógica de las etapas 1 a 7: Free = carta básica; Emprende = vender y 
 
 Los números son un punto de partida: se ajustan desde Plataforma → Planes (límites por plan) después de medir el uso y el costo real.
 
-## Límites de archivos (propuesta 2026-10-22, por confirmar)
+## Límites de archivos (decidido 2026-10-24)
 
 | Qué | Free | Emprende | Pro | Empresa |
 |---|---|---|---|---|
@@ -277,7 +277,8 @@ Los números son un punto de partida: se ajustan desde Plataforma → Planes (l�
 
 - **Perfil del cliente:** global de Redom. Sirve en todos los locales; cada negocio ve solo los pedidos y la fidelización que tiene con él.
 - **Juegos con premio:** los configura cada negocio (con compra o sin compra). Redom entrega bases tipo para publicar y topes por cliente.
-- **Planes, límites y proveedores:** propuestas en las tablas de arriba, por confirmar.
+- **Planes y límites:** confirmados (2026-10-24), tablas de arriba. Proveedores: recomendación, por confirmar con sus tarifas.
+- **Etapa 9 sin fotos con IA:** descripciones, etiquetas y sugerencias de precio y promociones; la mejora de fotos queda para una etapa 9b, después de medir el costo.
 
 ## Decisiones abiertas
 

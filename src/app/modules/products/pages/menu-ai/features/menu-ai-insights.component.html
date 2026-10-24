@@ -1,0 +1,119 @@
+@if (!store.$unavailable() && store.$insightsEnabled() === false) {
+<app-menu-ai-callout
+  setting="insightsEnabled"
+  text="Las sugerencias de precio y promociones están apagadas. Actívalas en Configuración para recibirlas cada semana o cada mes."
+  (openSettings)="goTo.emit('settings')" />
+}
+
+<div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <div class="w-full md:max-w-xs">
+    <label for="menu-ai-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+    @if ($isLoadingLocations()) {
+    <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+    } @else {
+    <select id="menu-ai-location" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" (change)="onLocationChange($event)">
+      <option value="" [selected]="!$locationId()">Todos los locales</option>
+      @for (location of $locations(); track location.id) {
+      <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+      }
+    </select>
+    }
+  </div>
+  <div class="flex flex-col items-start gap-1 md:items-end">
+    <app-button
+      impact="light"
+      tone="primary"
+      size="small"
+      type="button"
+      icon="refresh"
+      [isLoading]="$refreshing()"
+      [disabled]="store.$unavailable() || store.$insightsEnabled() === false || !!$nextAt()"
+      (buttonClick)="refresh()">
+      Actualizar sugerencias
+    </app-button>
+    @if ($nextAt(); as nextAt) {
+    <p class="text-muted-foreground text-xs" role="status">Ya las actualizaste hoy. Podrás volver a hacerlo el {{ nextAt | date: "d 'de' MMMM 'a las' HH:mm" }}.</p>
+    } @else {
+    <p class="text-muted-foreground text-xs">Una vez al día.</p>
+    }
+  </div>
+</div>
+
+@if ($isLoading()) {
+<div class="flex flex-col gap-3" aria-busy="true">
+  @for (i of [1, 2, 3]; track i) {
+  <div class="bg-muted h-32 animate-pulse rounded-[1rem]"></div>
+  }
+</div>
+} @else if ($items(); as items) {
+@if (items.length) {
+<ul class="flex flex-col gap-3" [class.opacity-60]="insights.isLoading() || $refreshing()">
+  @for (insight of items; track insight.id) {
+  @let kind = kinds[insight.kind];
+  @let busy = $busyId() === insight.id;
+  <li class="glass rounded-[1rem] p-4" [attr.aria-busy]="busy">
+    <div class="flex items-start gap-3">
+      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full" [class]="kind?.tone ?? 'bg-muted/60 text-muted-foreground'">
+        <app-icon class="h-5 w-5" aria-hidden="true">{{ kind?.icon ?? 'lightbulb' }}</app-icon>
+      </span>
+      <div class="min-w-0 flex-1">
+        <p class="text-muted-foreground text-xs font-semibold uppercase tracking-wide">
+          {{ kind?.label ?? 'Sugerencia' }}{{ insight.productName ? ' · ' + insight.productName : '' }}
+        </p>
+        <h3 class="text-foreground font-semibold">{{ insight.title }}</h3>
+        <p class="text-muted-foreground mt-0.5 text-sm">{{ insight.detail }}</p>
+        @let metrics = metricsOf(insight.metrics);
+        @if (metrics.length) {
+        <dl class="mt-2 flex flex-wrap gap-2">
+          @for (metric of metrics; track metric.label) {
+          <div class="bg-muted/60 rounded-lg px-2.5 py-1">
+            <dt class="text-muted-foreground text-[11px]">{{ metric.label }}</dt>
+            <dd class="text-foreground text-sm font-semibold tabular-nums">{{ metric.value }}</dd>
+          </div>
+          }
+        </dl>
+        }
+      </div>
+    </div>
+    <div class="mt-3 flex flex-wrap justify-end gap-2">
+      <app-button
+        impact="none"
+        tone="primary"
+        size="small"
+        type="button"
+        icon="visibility_off"
+        title="Lo descartado no vuelve en 30 días"
+        [disabled]="busy || store.$unavailable()"
+        (buttonClick)="dismiss(insight)">
+        Ocultar
+      </app-button>
+      @if (insight.action; as action) {
+      @if (canRun(action)) {
+      <app-button impact="bold" tone="primary" size="small" type="button" [icon]="actionIcon(action)" [isLoading]="busy" [disabled]="!!$busyId()" (buttonClick)="run(insight)">
+        {{ actionLabel(action) }}
+      </app-button>
+      }
+      }
+    </div>
+  </li>
+  }
+</ul>
+} @else {
+<app-empty-state
+  icon="lightbulb"
+  title="Sin sugerencias por ahora"
+  description="Cuando tengas ventas suficientes te diremos qué platos tienen margen bajo, cuáles subir de precio y qué día conviene una promoción." />
+}
+@if ($showCostHint()) {
+<p class="text-muted-foreground mt-3 flex items-start gap-2 text-xs" role="note">
+  <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">info</app-icon>
+  Para recibir avisos de margen bajo y de precios a subir, activa el inventario con recetas: así conocemos el costo de cada plato.
+</p>
+}
+} @else if ($error() && !store.$unavailable()) {
+<app-empty-state icon="cloud_off" title="No se pudieron cargar las sugerencias" [description]="$errorMessage()">
+  <app-button impact="light" tone="primary" size="small" type="button" icon="refresh" (buttonClick)="insights.reload()">Reintentar</app-button>
+</app-empty-state>
+} @else if (store.$unavailable()) {
+<app-empty-state icon="lightbulb" title="Sugerencias no disponibles" description="Este servidor no tiene la IA para la carta." />
+}

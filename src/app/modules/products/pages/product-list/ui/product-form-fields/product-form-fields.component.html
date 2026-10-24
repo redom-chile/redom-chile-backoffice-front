@@ -200,14 +200,15 @@
     </select>
   </div>
 
-  <div class="sm:col-span-2">
-    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+  <app-product-description-ai class="block sm:col-span-2" [productId]="productId()" (pick)="setDescription($event)">
+    <label for="product-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
     <textarea
+      id="product-description"
       formControlName="productDescription"
       rows="2"
       placeholder="Opcional. Se mostrará en la carta"
       [class]="inputClass"></textarea>
-  </div>
+  </app-product-description-ai>
 
   <div class="sm:col-span-2">
     <div class="mb-1 flex items-center gap-2">

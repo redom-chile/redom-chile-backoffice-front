@@ -10,10 +10,8 @@ import { UnitsService } from 'src/app/modules/inventory/data-access';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
 import { sortCategoryTree } from 'src/app/modules/products/shared';
-import { firstValueFrom } from 'rxjs';
-import { CreateProductService, getProductSaveErrorMessage, UpdateProductService } from '../../data-access';
+import { CreateProductService, getProductSaveErrorMessage } from '../../data-access';
 import {
-  chefNoteToSend,
   createProductForm,
   varietiesError,
   injectEditableProductTags,
@@ -47,11 +45,9 @@ export class CreateProductModalComponent implements OnDestroy {
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
   readonly $units = computed(() => this.#units.$units() ?? []);
   readonly form = createProductForm(inject(FormBuilder));
-  readonly #updateService = inject(UpdateProductService);
   // Nota del chef: solo con menu_design en el plan.
   readonly #entitlements = inject(EntitlementsService);
   readonly #chefNoteEnabled = () => this.#entitlements.hasFeature('menu_design');
-  #sentChefNote: string | null | undefined = undefined;
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
   readonly $uploadProgress = this.#upload.$progress;
@@ -115,7 +111,6 @@ export class CreateProductModalComponent implements OnDestroy {
     try {
       const imageFileId = await this.#upload.resolveSelection(this.#image, 'products');
       const context = { inventoryEnabled: this.$inventoryEnabled(), chefNoteEnabled: this.#chefNoteEnabled() };
-      this.#sentChefNote = chefNoteToSend(this.form, context);
       this.createService.create({ ...toCreateProductDto(this.form, context), ...(imageFileId ? { imageFileId } : {}) });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');
@@ -126,21 +121,10 @@ export class CreateProductModalComponent implements OnDestroy {
 
   async #afterCreate(productId: number | null) {
     this.#isSaving.set(true);
-    await this.#saveChefNote(productId);
     await saveProductTagsIfChanged(this.#menuSettings, this.toast, productId, this.$tagIds(), []);
     await this.pack.saveIfChanged(productId, !!this.form.controls.isPack.value, this.toast);
     this.#isSaving.set(false);
     this.dialogRef.close('created');
-  }
-
-  async #saveChefNote(productId: number | null) {
-    if (!productId || !this.#sentChefNote) return;
-    try {
-      await firstValueFrom(this.#updateService.saveChefNote(productId, this.#sentChefNote));
-    } catch (error) {
-      const status = (error as { status?: number })?.status;
-      this.toast.show(`Producto creado, pero no se guardó la nota del chef. ${getProductSaveErrorMessage(status, error as never)}`, 'warning');
-    }
   }
 
   handleCancel() {
