@@ -53,7 +53,16 @@ Pendientes:
 
 **Baja:** corregidos el 2026-10-15 (idioma en la URL, abierto/cerrado recalculado cada minuto, anclas de categorías, código muerto; comprobante con tipo por extensión; pestañas accesibles con flechas, historial de webhooks y menú "Agotar" con teclado, `app-toggle` con nombre accesible y recompensas con subir/bajar; promociones y banners hasta las 23:59:59 y nombres de productos enlazados fuera de los primeros 100; "Faltan N puntos"; pestañas de fidelización ocultas sin plan; 2 decimales en el monto por punto; producto gratis no vendible; variedad con el nombre del producto; candado de Marketing con "alguna de" las funciones). Queda por backend: canal en las encuestas (#67).
 
-## 2.3 Pruebas de punta a punta
+- [ ] Precuenta sin IVA (#70, backend listo): probar el interruptor de Mi negocio → Punto de venta y la impresión con la opción apagada, también con un usuario cajero o mesero (lee `POST /pos/details`).
+
+- [ ] Reservas de la carta (#53 resuelto): probar en Salón → Reservas la etiqueta "Desde la carta", "Creada por…", el filtro "Por confirmar desde la carta" y las acciones Confirmar y Asignar mesa; con un mesero, que vea sus reservas y las de la carta sin responsable. Asignar mesero espera al backend (#71).
+
+## 2.3 Próximas funciones (plan)
+
+- [ ] **Etapa 8 (Diseño de la carta): front adelantado, esperando al backend (#68, #69).** Carta: 5 plantillas, 7 tipografías (bistró con Caveat), tarjetas lista/foto/texto por categoría, alto contraste y "Escuchar", anuncio, "Nuestra historia", recomendaciones y nota del chef, íconos de categoría y orden manual; sin los campos nuevos se ve como hoy. Backoffice: Carta online → Diseño (editor con vista previa en vivo en un celular con claro/oscuro, recomendaciones del chef, historial) con guardar desactivado mientras el servidor no tenga la etapa; Carta → Categorías con orden manual/alfabético, arrastrar y soltar, ícono por categoría; "Ordenar" productos por categoría; nota del chef en el producto. Falta: revisión visual en navegador (sobre todo Pizarra y alto contraste con colores de marca), probar contra el backend y Safari de iOS; en vista previa clara con el backoffice oscuro algunos colores `dark:` siguen al backoffice; el color principal rojo por defecto tiene poco contraste sobre la pizarra; el filtro de categorías de productos y el selector de categoría padre no siguen el orden manual; la foto del chef necesita la carpeta `menu_chef` en el backend.
+- [ ] Carta personalizada e innovadora, etapas 8 a 14: ver `docs/plan-carta-personalizada.md` (diseño de la carta, contenido con IA, cliente reconocido, carta dinámica, mesa compartida, comunidad y juegos, mesero virtual con IA). Próximo paso: prompt del backend de la etapa 8.
+
+## 2.4 Pruebas de punta a punta
 
 - [ ] Carta pública, etapas 1 a 7, contra la API real y en un deploy de Netlify (incluye QR de mesa, pedidos, mesero/cuenta, reservas, retiro y delivery con comprobante, widget en una web real, idiomas).
 - [ ] Revisión en Safari de iOS: carta, barra inferior, modo oscuro, tamaño del texto y widget.
@@ -62,7 +71,7 @@ Pendientes:
 - [ ] Variedades: crear, pasar de precio único, quitar, vender en el POS y ver en cocina.
 - [ ] El resto de módulos: ver "Pruebas pendientes" abajo.
 
-## 2.4 Esperando al backend (`BACKEND-REQUESTS.md`)
+## 2.5 Esperando al backend (`BACKEND-REQUESTS.md`)
 
 - **Bloqueante:** #39 (token renovado; la sesión se cierra a las 2 h).
 - **Inventario:** #66 `isActive` de variaciones en stock, recetas y food cost.

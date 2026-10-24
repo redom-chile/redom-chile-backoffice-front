@@ -2,6 +2,7 @@
 import { MenuOrderingSettingsDto } from './customer-orders.dto';
 import { PublicOnlineDto } from './online-orders.dto';
 import { ExtraMenuLanguage, MenuLanguage } from './menu-translations.dto';
+import { MenuSortMode, PublicChefPicksDto, PublicMenuDesignDto } from './menu-design.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -31,6 +32,9 @@ export type PublicProductDto = Readonly<{
   pack?: Readonly<{ groups: PublicPackGroupDto[] }> | null;
   /** Etapa 3: opciones que el cliente puede agregar (price con IVA, por unidad). */
   modifierSets?: ReadonlyArray<{ id: number; name: string; options: ReadonlyArray<{ variationId: number; name: string; price: number }> }>;
+  /** Etapa 8: nota del chef (null sin menu_design) y posición manual. */
+  chefNote?: string | null;
+  position?: number;
 }>;
 
 export type PublicSubcategoryDto = Readonly<{
@@ -44,6 +48,9 @@ export type PublicSubcategoryDto = Readonly<{
   /** null: todo el día. */
   schedule: PublicCategoryRangeDto[] | null;
   products: PublicProductDto[];
+  /** Etapa 8: ícono (nombre tipo lucide) y posición manual. */
+  icon?: string | null;
+  position?: number;
 }>;
 
 export type PublicCategoryDto = PublicSubcategoryDto & Readonly<{ subcategories: PublicSubcategoryDto[] }>;
@@ -109,6 +116,12 @@ export type PublicLocationMenuDto = Readonly<{
   /** Etapa 7: idioma de los textos (lo no traducido llega en español) y los que ofrece el local. */
   language?: MenuLanguage;
   availableLanguages?: MenuLanguage[];
+  /** Etapa 8 (ausentes = la carta de siempre): diseño, orden, anuncio, historia y recomendaciones del chef. */
+  design?: PublicMenuDesignDto;
+  sortMode?: MenuSortMode;
+  announcement?: Readonly<{ text: string }> | null;
+  story?: string | null;
+  chefPicks?: PublicChefPicksDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */

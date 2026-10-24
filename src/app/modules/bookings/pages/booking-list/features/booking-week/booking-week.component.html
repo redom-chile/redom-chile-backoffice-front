@@ -18,12 +18,14 @@
           class="block w-full rounded-md px-2 py-1 text-left text-xs"
           [class]="chipClass(booking)"
           [disabled]="!$canEdit()"
-          [attr.title]="$canEdit() ? null : 'No tienes permiso para esta acción'"
+          [attr.title]="chipTitle(booking)"
           (click)="edit.emit(booking)">
           <span class="font-semibold tabular-nums">{{ timeOf(booking.start) }}</span> {{ booking.customerName }}
           <span class="block opacity-80">{{ booking.partySize }} pers.{{ booking.tableName ? ' · ' + booking.tableName : '' }}</span>
-          @if (isPendingMenuBooking(booking)) {
-          <span class="mt-0.5 block font-semibold" [attr.title]="menuBookingLabel">Desde la carta</span>
+          @if (isMenuBooking(booking)) {
+          <span class="mt-0.5 inline-flex items-center gap-0.5 font-semibold">
+            <app-icon class="h-3 w-3" aria-hidden="true">menu_book</app-icon>{{ isPendingMenuBooking(booking) ? 'Carta · por confirmar' : menuBookingLabel }}
+          </span>
           }
         </button>
         }

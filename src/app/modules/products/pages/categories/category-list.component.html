@@ -1,4 +1,4 @@
-@let categories = $categories() ?? []; @let isLoading = $isLoading() ?? false;
+@let categories = $sortedCategories(); @let isLoading = $isLoading() ?? false;
 
 <div>
   <app-header-dashboard title="Categorías" subtitle="Gestiona las categorías de tu carta">
@@ -52,11 +52,25 @@
     </app-button>
   </app-empty-state>
   } @else {
+  <div class="mb-4">
+    <app-menu-sort-mode-control />
+  </div>
+  @if ($sortMode() === 'manual') {
+  <app-categories-order-list
+    [categories]="categories"
+    [isLoading]="isLoading"
+    [canReorder]="$canReorder()"
+    [busy]="$isReordering()"
+    (reorder)="handleReorder($event)"
+    (onUpdate)="handleUpdate($event)"
+    (onDelete)="handleDelete($event)"
+    (imageExpired)="refreshExpiredImages()" />
+  } @else {
   <app-categories-table
     [categories]="categories"
     [isLoading]="isLoading"
     (onUpdate)="handleUpdate($event)"
     (onDelete)="handleDelete($event)"
     (imageExpired)="refreshExpiredImages()" />
-  }
+  } }
 </div>

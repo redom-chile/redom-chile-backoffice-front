@@ -65,6 +65,7 @@ export class Menu {
           route: '/settings/public-menu',
           children: [
             { label: 'Carta pública', route: '/settings/public-menu' },
+            { label: 'Diseño', route: '/settings/public-menu/design' },
             { label: 'Marketing', route: '/settings/public-menu/marketing' },
             { label: 'Idiomas', route: '/settings/menu-translations' },
             { label: 'API y widget', route: '/settings/public-api' },

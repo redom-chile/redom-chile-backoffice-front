@@ -1,0 +1,227 @@
+@let tab = $tab();
+@let canEdit = $canEdit();
+<app-header-dashboard title="Diseño de la carta" subtitle="Plantilla, tipografía, anuncio y recomendaciones del chef de tu carta pública.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE"
+    routerLink="/settings/public-menu"
+    class="glass-row text-foreground hidden h-9 items-center gap-1 rounded-full px-3 text-sm font-medium sm:inline-flex">
+    <app-icon class="h-4 w-4" aria-hidden="true">qr_code_2</app-icon>Carta pública
+  </a>
+</app-header-dashboard>
+
+<div class="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+  <nav appTabList class="glass-input -mx-1 flex w-full gap-1 overflow-x-auto rounded-full p-1 md:w-fit" aria-label="Secciones del diseño">
+    @for (item of tabs; track item.id) {
+    <button
+      type="button"
+      [id]="'design-tab-' + item.id"
+      class="inline-flex h-9 shrink-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium md:flex-none"
+      [class]="tab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [appTab]="tab === item.id"
+      tabPanel="design-panel"
+      (click)="selectTab(item.id)">
+      <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
+    </button>
+    }
+  </nav>
+
+  <div class="flex w-full items-end gap-2 md:max-w-xs">
+    <div class="min-w-0 flex-1">
+      <label for="design-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+      @if ($isLoadingLocations()) {
+      <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+      } @else {
+      <select id="design-location" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" [disabled]="!$locations().length" (change)="onLocationChange($event)">
+        @for (location of $locations(); track location.locationId) {
+        <option [value]="location.locationId" [selected]="location.locationId === $locationId()">{{ location.locationName }}</option>
+        }
+      </select>
+      }
+    </div>
+    <button
+      type="button"
+      class="glass-row text-foreground inline-flex h-[42px] shrink-0 items-center gap-1 rounded-lg px-3 text-sm font-medium lg:hidden"
+      aria-controls="design-preview"
+      [attr.aria-expanded]="$previewOpen()"
+      (click)="$previewOpen.set(true)">
+      <app-icon class="h-4 w-4" aria-hidden="true">smartphone</app-icon>Ver vista previa
+    </button>
+  </div>
+</div>
+
+@if ($stageMissing()) {
+<div class="mb-4 flex items-start gap-2 rounded-[1rem] border border-sky-500/40 bg-sky-500/10 p-3 text-sm" role="status">
+  <app-icon class="h-5 w-5 shrink-0 text-sky-700 dark:text-sky-400" aria-hidden="true">info</app-icon>
+  <p class="text-foreground">El servidor todavía no tiene el diseño de la carta (etapa 8). Puedes probar la vista previa; guardar estará disponible cuando se publique.</p>
+</div>
+}
+@if (!canEdit) {
+<p class="text-muted-foreground mb-4 flex items-center gap-1 text-xs">
+  <app-icon class="h-4 w-4" aria-hidden="true">lock</app-icon>
+  Solo quien administra la carta pública puede cambiar el diseño. Puedes mirar las opciones y la vista previa.
+</p>
+}
+
+@if ($settingsError(); as message) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ message }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="settings.reload()">Reintentar</app-button>
+</div>
+} @else if (!$isLoadingLocations() && !$locations().length) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+  <app-icon class="text-muted-foreground h-10 w-10" aria-hidden="true">storefront</app-icon>
+  <p class="text-foreground font-medium">Aún no tienes locales</p>
+  <a routerLink="/business/location" class="text-primary text-sm font-medium hover:underline">Crear local</a>
+</div>
+} @else {
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+  <div id="design-panel" role="tabpanel" class="min-w-0" [attr.aria-labelledby]="'design-tab-' + tab">
+    @switch (tab) {
+    @case ('design') {
+    @if ($designError(); as message) {
+    <div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+      <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+      <p class="text-muted-foreground text-sm">{{ message }}</p>
+      <app-button impact="light" size="small" type="button" (buttonClick)="design.reload()">Reintentar</app-button>
+    </div>
+    } @else if ($draftDesign(); as draft) {
+    <app-menu-design-editor
+      [draft]="draft"
+      (draftChange)="$draftDesign.set($event)"
+      [story]="$draftStory()"
+      (storyChange)="$draftStory.set($event)"
+      [categories]="$categories()"
+      [categoriesNote]="$menuNote()"
+      [hasDesign]="$hasDesign()"
+      [hasBranding]="$hasBranding()"
+      [disabled]="$designLocked()"
+      [timeZone]="$timeZone()" />
+
+    @if (canEdit) {
+    @let dirty = $designDirty() || $storyDirty();
+    <div class="sticky bottom-0 z-10 mt-4 pb-2">
+      <div class="glass flex flex-col gap-2 rounded-[1rem] p-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm" [class]="dirty ? 'text-foreground font-medium' : 'text-muted-foreground'">{{ dirty ? 'Tienes cambios sin guardar' : 'Sin cambios' }}</p>
+        <div class="flex justify-end gap-2">
+          <app-button impact="none" tone="primary" size="small" type="button" [disabled]="!dirty || $isSaving()" (buttonClick)="discardDesign()">Descartar</app-button>
+          <app-button impact="bold" tone="primary" size="small" type="button" [isLoading]="$isSaving()" [disabled]="!dirty || $designMissing()" (buttonClick)="saveDesign()">
+            Guardar cambios
+          </app-button>
+        </div>
+      </div>
+    </div>
+    }
+    } @else {
+    <div class="space-y-4">
+      @for (card of [1, 2, 3]; track card) {
+      <div class="glass space-y-3 rounded-[1rem] p-5">
+        <app-skeleton size="xs" style="width: 140px" />
+        <app-skeleton size="lg" style="width: 100%" />
+      </div>
+      }
+    </div>
+    }
+    }
+
+    @case ('chef') {
+    @if (!$hasDesign()) {
+    <app-marketing-upsell-card
+      feature="menu_design"
+      description="Destaca arriba de la carta los platos que recomienda tu chef, con su foto y en el horario que quieras." />
+    } @else if ($chefError(); as message) {
+    <div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+      <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+      <p class="text-muted-foreground text-sm">{{ message }}</p>
+      <app-button impact="light" size="small" type="button" (buttonClick)="chef.reload()">Reintentar</app-button>
+    </div>
+    } @else if ($draftChef(); as draft) {
+    <app-menu-design-chef
+      [draft]="draft"
+      (draftChange)="$draftChef.set($event)"
+      [catalog]="$catalog()"
+      [catalogNote]="$menuNote()"
+      [known]="$savedChefDto()?.products ?? []"
+      [photoUrl]="$savedChefDto()?.photoUrl ?? null"
+      [pickerKey]="$chefPickerKey()"
+      [uploading]="$uploading()"
+      [progress]="$progress()"
+      [disabled]="$designLocked()"
+      (photoChange)="onChefPhoto($event)" />
+
+    @if (canEdit) {
+    @let dirty = $chefDirty();
+    <div class="sticky bottom-0 z-10 mt-4 pb-2">
+      <div class="glass flex flex-col gap-2 rounded-[1rem] p-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm" [class]="dirty ? 'text-foreground font-medium' : 'text-muted-foreground'">{{ dirty ? 'Tienes cambios sin guardar' : 'Sin cambios' }}</p>
+        <div class="flex justify-end gap-2">
+          <app-button impact="none" tone="primary" size="small" type="button" [disabled]="!dirty || $isSaving()" (buttonClick)="discardChef()">Descartar</app-button>
+          <app-button impact="bold" tone="primary" size="small" type="button" [isLoading]="$isSaving()" [disabled]="!dirty || $chefMissing()" (buttonClick)="saveChef()">
+            Guardar
+          </app-button>
+        </div>
+      </div>
+    </div>
+    }
+    } @else {
+    <div class="glass space-y-3 rounded-[1rem] p-5">
+      <app-skeleton size="xs" style="width: 160px" />
+      <app-skeleton size="lg" style="width: 100%" />
+      <app-skeleton size="sm" style="width: 70%" />
+    </div>
+    }
+    }
+
+    @case ('history') {
+    @if (!$hasDesign()) {
+    <app-marketing-upsell-card feature="menu_design" description="Vuelve a un diseño anterior de tu carta cuando quieras: guardamos las últimas 10 versiones." />
+    } @else if ($versionsMissing()) {
+    <div class="glass rounded-[1rem] px-5 py-10 text-center">
+      <app-icon class="text-muted-foreground h-10 w-10" aria-hidden="true">history</app-icon>
+      <p class="text-muted-foreground mt-2 text-sm">El historial estará disponible cuando el servidor publique el diseño de la carta.</p>
+    </div>
+    } @else {
+    <app-menu-design-history
+      [versions]="$versions()"
+      [loading]="versions.isLoading()"
+      [error]="$versionsError()"
+      [viewingId]="$viewVersion()?.id ?? null"
+      [restoringId]="$restoringId()"
+      [canRestore]="canEdit"
+      [timeZone]="$timeZone()"
+      (view)="viewVersion($event)"
+      (restore)="restoreVersion($event)"
+      (retry)="versions.reload()" />
+    }
+    }
+    }
+  </div>
+
+  <!-- Vista previa: columna fija en escritorio; hoja a pantalla completa en el celular -->
+  <aside
+    id="design-preview"
+    class="lg:sticky lg:top-4 lg:block lg:self-start"
+    [class]="$previewOpen() ? 'bg-background/95 fixed inset-0 z-50 block overflow-y-auto p-4 backdrop-blur lg:static lg:z-auto lg:overflow-visible lg:bg-transparent lg:p-0 lg:backdrop-blur-none' : 'hidden'"
+    [attr.role]="$previewOpen() ? 'dialog' : null"
+    [attr.aria-modal]="$previewOpen() ? 'true' : null"
+    aria-label="Vista previa de la carta">
+    @if ($previewOpen()) {
+    <div class="mb-3 flex justify-end lg:hidden">
+      <button type="button" class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium" (click)="$previewOpen.set(false)">
+        <app-icon class="h-4 w-4" aria-hidden="true">close</app-icon>Cerrar vista previa
+      </button>
+    </div>
+    }
+    <app-menu-design-preview [menu]="$previewMenu()" [loading]="publicMenu.isLoading() || settings.isLoading()" [message]="$menuNote()" [locationName]="$location()?.locationName ?? ''">
+      @if (tab === 'history' && $viewVersion(); as version) {
+      <div class="bg-primary/10 text-foreground mb-2 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs">
+        <span>Viendo una versión anterior</span>
+        <button type="button" class="text-primary font-semibold hover:underline" (click)="viewVersion(null)">Volver a la actual</button>
+      </div>
+      } @else if ((tab === 'design' && ($designDirty() || $storyDirty())) || (tab === 'chef' && $chefDirty())) {
+      <p class="text-muted-foreground mb-2 text-xs">Así se verá cuando guardes los cambios.</p>
+      }
+    </app-menu-design-preview>
+  </aside>
+</div>
+}

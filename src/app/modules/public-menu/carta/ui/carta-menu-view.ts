@@ -15,11 +15,14 @@ import {
   untracked,
   viewChild,
   viewChildren,
+  ViewEncapsulation,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
+import { MenuCardStyle } from '../../data-access/dtos/menu-design.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { CartaAnalytics } from '../carta-analytics';
 import { BLOCK_LABELS, blockedProducts, CartAddition, CartaCart } from '../carta-cart';
@@ -45,7 +48,7 @@ import {
 } from '../carta-utils';
 import { CartaBannerContent, CartaBanners } from './carta-banners';
 import { CartaDialog } from './carta-dialog';
-import { CartaIcon, CartaIconName, CartaTagIcon } from './carta-icon';
+import { CartaIcon, CartaIconName, CartaTagIcon, categoryIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 import { CartaProductCard } from './carta-product-card';
 import { CartaOrdering } from './carta-ordering';
@@ -62,11 +65,22 @@ import { CARTA_BOTTOM_BAR, CartaBarAction, CartaBottomBar } from './carta-bottom
 import { CartaBookingSheet } from './carta-booking-sheet';
 import { CartaTableFabs } from './carta-table-fabs';
 import { CartaBillSheet, CartaWaiterSheet } from './carta-table-sheets';
+import { CARTA_DESIGN_CSS, CartaFonts, cardStyleFor, chalkboardVars, fontVars, previewTokens, resolveDesign, scrollParent, sortMenu } from '../carta-design';
+import { CartaSpeech, productSpeech } from '../carta-speech';
+import { CartaAnnouncement, CartaListenButton, CartaStory } from './carta-design-blocks';
 
 /** Hojas de la etapa 4 (servicio en la mesa y reservas). */
 type ServicePanel = 'waiter' | 'bill' | 'booking';
 
-type Group = Readonly<{ id: string; name: string; description: string | null; products: PublicProductDto[] }>;
+type Group = Readonly<{
+  id: string;
+  name: string;
+  description: string | null;
+  products: PublicProductDto[];
+  /** Etapa 8: tarjeta de sus productos e ícono. */
+  style: MenuCardStyle;
+  icon: CartaIconName | null;
+}>;
 
 /** Subcategoría: puede estar fuera de horario aunque su categoría no lo esté. */
 type Subgroup = Group & Readonly<{ availableNow: boolean; availability: string | null }>;
@@ -93,6 +107,29 @@ const CONTAINS = /^(contiene|contains|cont[eé]m|enth[aä]lt)\s+/i;
 const allergenFilterLabel = (tag: PublicTagDto) =>
   ct('menu.without', { name: CONTAINS.test(tag.name) ? tag.name.replace(CONTAINS, '') : tag.name.toLowerCase() });
 
+/** Clave corta y estable para recordar un anuncio cerrado. */
+function hashText(text: string): string {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (Math.imul(31, h) + text.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+function readSession(key: string): boolean {
+  try {
+    return typeof sessionStorage !== 'undefined' && sessionStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeSession(key: string): void {
+  try {
+    sessionStorage.setItem(key, '1');
+  } catch {
+    /* sin almacenamiento: solo hasta recargar */
+  }
+}
+
 /**
  * Carta de un local (solo presentación). La usa la carta pública de la landing y puede usarla el backoffice como vista
  * previa: no toca el título ni la URL salvo el ancla de la categoría.
@@ -100,6 +137,10 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
 @Component({
   selector: 'app-carta-menu-view',
   imports: [
+    NgTemplateOutlet,
+    CartaAnnouncement,
+    CartaListenButton,
+    CartaStory,
     CartaDisplayMenu,
     CartaLanguageMenu,
     CartaIcon,
@@ -119,9 +160,16 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
   ],
   providers: [CartaCart, CartaTableService],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[style]': 'themeStyle()' },
+  // Estilos de las plantillas (etapa 8): globales pero colgados de las clases del host
+  encapsulation: ViewEncapsulation.None,
+  styles: [CARTA_DESIGN_CSS],
+  host: { class: 'block min-h-dvh bg-background text-foreground antialiased', '[class]': 'designClass()', '[style]': 'themeStyle()' },
   template: `
     @let m = liveMenu();
+    @let d = design();
+    @if (announcement(); as text) {
+      <app-carta-announcement [text]="text" (dismiss)="dismissAnnouncement()" />
+    }
     <!-- Encabezado -->
     <header class="relative">
       @if (!preview()) {
@@ -129,7 +177,7 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
           @if (languages().length > 1) {
             <app-carta-language-menu [languages]="languages()" (choose)="languageChange.emit($event)" />
           }
-          <app-carta-display-menu />
+          <app-carta-display-menu [contrast]="d.highContrast" />
         </div>
       }
       @if (hasCover()) {
@@ -139,12 +187,12 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
             alt=""
             decoding="async"
             fetchpriority="high"
-            class="h-40 w-full bg-muted object-cover sm:h-56 sm:rounded-3xl"
+            class="carta-cover h-40 w-full bg-muted object-cover sm:h-56 sm:rounded-3xl"
             (error)="coverFailed.set(true)"
           />
         </div>
       } @else {
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 to-transparent" aria-hidden="true"></div>
+        <div class="carta-hero-glow pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/15 to-transparent" aria-hidden="true"></div>
       }
       <div class="relative mx-auto max-w-2xl px-4 pb-4" [class]="hasCover() ? 'pt-0' : 'pt-8 sm:pt-10'">
         <div class="flex items-start gap-4" [style.margin-top.rem]="hasCover() ? -2 : null">
@@ -167,7 +215,7 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
             >
           }
           <div class="min-w-0 flex-1" [class.pt-9]="hasCover()" [class.pr-12]="!hasCover() && !preview() && languages().length <= 1" [class.pr-28]="!hasCover() && !preview() && languages().length > 1">
-            <h1 class="text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{{ m.business.name }}</h1>
+            <h1 class="carta-title text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{{ m.business.name }}</h1>
             <p class="mt-0.5 text-[0.9375rem] font-medium text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
             <p
               class="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -313,10 +361,10 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
                 [href]="pageUrl() + '#' + s.anchor"
                 [attr.data-anchor]="s.anchor"
                 [attr.aria-current]="active() === s.anchor ? 'true' : null"
-                class="shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
+                class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition"
                 [class]="active() === s.anchor ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
                 (click)="goTo($event, s.anchor)"
-                >{{ s.name }}</a
+                >@if (s.icon) {<app-carta-icon [name]="s.icon" [size]="16" />}{{ s.name }}</a
               >
             }
           </nav>
@@ -370,6 +418,60 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
 
     <!-- Productos -->
     <main class="mx-auto max-w-2xl px-4 pb-10 pt-4">
+      <ng-template #tile let-p>
+        <button
+          type="button"
+          class="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-primary"
+          [class.opacity-60]="p.soldOut"
+          (click)="openProduct(p)"
+        >
+          @if (p.imageUrl) {
+            <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" class="aspect-square w-full bg-muted object-cover" />
+          } @else {
+            <span class="flex aspect-square w-full items-center justify-center bg-muted text-muted-foreground" aria-hidden="true">
+              <app-carta-icon name="utensils" [size]="28" />
+            </span>
+          }
+          <span class="flex flex-1 flex-col gap-1 p-2.5">
+            <span class="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{{ p.name }}</span>
+            @if (cheapest(p); as v) {
+              <span class="mt-auto text-sm font-semibold"><app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" /></span>
+            }
+            @if (p.soldOut) {
+              <span class="text-xs font-medium text-muted-foreground">{{ t('common.soldOut') }}</span>
+            }
+          </span>
+        </button>
+      </ng-template>
+      @if (chefPicks(); as picks) {
+        <section class="pt-4" aria-labelledby="carta-chef-picks">
+          <div class="flex items-center gap-3">
+            @if (picks.photoUrl && !chefPhotoFailed()) {
+              <img
+                [src]="picks.photoUrl"
+                [alt]="t('design.chefPhoto')"
+                width="48"
+                height="48"
+                loading="lazy"
+                decoding="async"
+                class="size-12 shrink-0 rounded-full bg-muted object-cover ring-2 ring-primary/40"
+                (error)="chefPhotoFailed.set(true)"
+              />
+            }
+            <h2 id="carta-chef-picks" class="flex min-w-0 items-center gap-2 text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
+              <app-carta-icon name="chef-hat" [size]="20" class="text-primary" />
+              {{ picks.title }}
+            </h2>
+          </div>
+          <ul class="-mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            @for (p of picks.products; track p.id) {
+              <li class="w-36 shrink-0 snap-start sm:w-40">
+                <ng-container [ngTemplateOutlet]="tile" [ngTemplateOutletContext]="{ $implicit: p }" />
+              </li>
+            }
+          </ul>
+        </section>
+      }
       @if (mostOrdered().length) {
         <section class="pt-4" aria-labelledby="carta-most-ordered">
           <h2 id="carta-most-ordered" class="flex items-center gap-2 text-xl font-bold tracking-tight">
@@ -379,41 +481,28 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
           <ul class="-mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             @for (p of mostOrdered(); track p.id) {
               <li class="w-36 shrink-0 snap-start sm:w-40">
-                <button
-                  type="button"
-                  class="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-primary"
-                  [class.opacity-60]="p.soldOut"
-                  (click)="openProduct(p)"
-                >
-                  @if (p.imageUrl) {
-                    <img [src]="p.imageUrl" alt="" loading="lazy" decoding="async" class="aspect-square w-full bg-muted object-cover" />
-                  } @else {
-                    <span class="flex aspect-square w-full items-center justify-center bg-muted text-muted-foreground" aria-hidden="true">
-                      <app-carta-icon name="utensils" [size]="28" />
-                    </span>
-                  }
-                  <span class="flex flex-1 flex-col gap-1 p-2.5">
-                    <span class="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{{ p.name }}</span>
-                    @if (cheapest(p); as v) {
-                      <span class="mt-auto text-sm font-semibold"><app-carta-price [price]="v.price" [originalPrice]="v.originalPrice" /></span>
-                    }
-                    @if (p.soldOut) {
-                      <span class="text-xs font-medium text-muted-foreground">{{ t('common.soldOut') }}</span>
-                    }
-                  </span>
-                </button>
+                <ng-container [ngTemplateOutlet]="tile" [ngTemplateOutletContext]="{ $implicit: p }" />
               </li>
             }
           </ul>
         </section>
       }
       @for (s of sections(); track s.id) {
-        <section #section [id]="s.anchor" [attr.data-anchor]="s.anchor" class="pt-6" [attr.aria-labelledby]="'carta-h-' + s.anchor">
+        <section #section [id]="s.anchor" [attr.data-anchor]="s.anchor" class="carta-section pt-6" [attr.aria-labelledby]="'carta-h-' + s.anchor">
           <div [class.opacity-60]="!s.availableNow">
             @if (s.imageUrl) {
               <img [src]="s.imageUrl" alt="" loading="lazy" decoding="async" class="mb-3 h-32 w-full rounded-2xl bg-muted object-cover sm:h-40" />
             }
-            <h2 [id]="'carta-h-' + s.anchor" class="text-xl font-bold tracking-tight [overflow-wrap:anywhere]">{{ s.name }}</h2>
+            <div [class]="canListen() ? 'flex items-start gap-2' : ''">
+              <h2 [id]="'carta-h-' + s.anchor" class="carta-section-title text-xl font-bold tracking-tight [overflow-wrap:anywhere]" [class.min-w-0]="canListen()" [class.flex-1]="canListen()">
+                @if (s.icon) {
+                  <app-carta-icon [name]="s.icon" [size]="22" class="mr-2 align-[-0.2em] text-primary" />
+                }{{ s.name }}
+              </h2>
+              @if (canListen()) {
+                <app-carta-listen-button [compact]="true" [active]="speech.speaking() === 'section-' + s.id" [label]="t('design.listenCategory', { name: s.name })" (press)="listenSection(s)" />
+              }
+            </div>
             @if (s.description) {
               <p class="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ s.description }}</p>
             }
@@ -424,15 +513,19 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
               </p>
             }
             @if (s.products.length) {
-              <div class="mt-3 grid gap-3">
+              <div class="carta-products mt-3 grid gap-3" [class]="gridClass(s.style)">
                 @for (p of s.products; track p.id) {
-                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" (view)="openProduct($event)" />
+                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="s.style" [compact]="isGrid(s.style)" (view)="openProduct($event)" />
                 }
               </div>
             }
             @for (sub of s.subgroups; track sub.id) {
               <div class="mt-5 scroll-mt-20" [id]="'carta-sub-' + sub.id" [class.opacity-60]="!!sub.availability">
-                <h3 class="text-base font-semibold text-foreground [overflow-wrap:anywhere]">{{ sub.name }}</h3>
+                <h3 class="carta-sub-title text-base font-semibold text-foreground [overflow-wrap:anywhere]">
+                  @if (sub.icon) {
+                    <app-carta-icon [name]="sub.icon" [size]="18" class="mr-1.5 align-[-0.2em] text-primary" />
+                  }{{ sub.name }}
+                </h3>
                 @if (sub.description) {
                   <p class="mt-0.5 text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ sub.description }}</p>
                 }
@@ -442,9 +535,9 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
                     <span>{{ sub.availability }}</span>
                   </p>
                 }
-                <div class="mt-2 grid gap-3">
+                <div class="carta-products mt-2 grid gap-3" [class]="gridClass(sub.style)">
                   @for (p of sub.products; track p.id) {
-                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" (view)="openProduct($event)" />
+                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="sub.style" [compact]="isGrid(sub.style)" (view)="openProduct($event)" />
                   }
                 </div>
               </div>
@@ -462,6 +555,9 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
           }
         </div>
       }
+      @if (m.story?.trim(); as story) {
+        <app-carta-story [text]="story" />
+      }
     </main>
 
     <!-- Detalle del producto -->
@@ -474,6 +570,7 @@ const allergenFilterLabel = (tag: PublicTagDto) =>
           [orderable]="canOrder()"
           [blocked]="blockedLabel(p)"
           [cartFull]="cart.full()"
+          [readAloud]="d.readAloud"
           (add)="addToCart(p, $event)"
         />
       </app-carta-dialog>
@@ -586,6 +683,8 @@ export class CartaMenuView {
   readonly menu = input.required<PublicLocationMenuDto>();
   /** Vista previa (backoffice): sin la ventana de ofertas. */
   readonly preview = input(false);
+  /** Solo en la vista previa: true / false fuerza oscuro / claro sin depender del modo del backoffice; null, como siempre. */
+  readonly previewDark = input<boolean | null>(null);
 
   /** Código del QR de la mesa (?qr=), validado por la página. */
   readonly qr = input<string | null>(null);
@@ -606,6 +705,7 @@ export class CartaMenuView {
   readonly #embed = inject(CartaEmbed);
   protected readonly embedded = this.#embed.active;
   readonly #injector = inject(Injector);
+  readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly sectionRefs = viewChildren<ElementRef<HTMLElement>>('section');
   private readonly stickyBar = viewChild<ElementRef<HTMLElement>>('stickyBar');
   private readonly categoryNav = viewChild<ElementRef<HTMLElement>>('categoryNav');
@@ -662,7 +762,8 @@ export class CartaMenuView {
 
   protected readonly allergenLabel = allergenFilterLabel;
   /** Con <base href="/">, un href "#x" apuntaría a la portada. Se recalcula al navegar (p. ej. al agregar ?lang=). */
-  readonly #navigated = toSignal(inject(Router).events.pipe(filter((e) => e instanceof NavigationEnd)));
+  readonly #router = inject(Router);
+  readonly #navigated = toSignal(this.#router.events.pipe(filter((e) => e instanceof NavigationEnd)));
   protected readonly pageUrl = computed(() => {
     this.#navigated();
     return typeof location === 'undefined' ? '' : location.pathname + location.search;
@@ -676,8 +777,10 @@ export class CartaMenuView {
     return now == null ? l.isOpenNow : (isOpenAt(l.schedule, l.timeZone, now) ?? l.isOpenNow);
   });
   /** La carta con isOpenNow al día: la usan el encabezado, los avisos y el pedido. */
+  /** Etapa 8: con orden manual, por posición (la vista previa puede traer un orden sin guardar). */
+  readonly #sorted = computed(() => sortMenu(this.menu()));
   protected readonly liveMenu = computed(() => {
-    const m = this.menu();
+    const m = this.#sorted();
     const open = this.#openNow();
     return open === m.location.isOpenNow ? m : { ...m, location: { ...m.location, isOpenNow: open } };
   });
@@ -686,7 +789,63 @@ export class CartaMenuView {
   protected readonly safe = safeUrl;
   protected readonly cheapest = cheapestVariation;
   readonly #display = inject(CartaDisplay);
-  protected readonly themeStyle = computed(() => brandingStyle(this.menu().branding?.theme, !this.preview() && this.#display.dark()));
+  // --- Etapa 8: diseño ---
+  protected readonly design = computed(() => resolveDesign(this.menu().design));
+  protected readonly speech = inject(CartaSpeech);
+  readonly #fonts = inject(CartaFonts);
+  /** Alto contraste: el local lo ofrece y el cliente lo activó en "Aa" (no en la vista previa). */
+  /** Modo oscuro de la carta: el del cliente o, en la vista previa, el que pide el backoffice. */
+  readonly #dark = computed(() => (this.preview() ? !!this.previewDark() : this.#display.dark()));
+  readonly #highContrast = computed(() => this.design().highContrast && !this.preview() && this.#display.highContrast());
+  /** Pizarra con su fondo propio: sin colores de marca de fondo o texto. */
+  readonly #chalk = computed(() => {
+    if (this.design().template !== 'chalkboard' || this.#highContrast()) return false;
+    return !('--background' in brandingStyle(this.menu().branding?.theme, false));
+  });
+  protected readonly designClass = computed(() => {
+    const d = this.design();
+    const list = [`carta-tpl-${d.template}`];
+    if (d.font !== 'modern') list.push('carta-font-custom', `carta-font-${d.font}`);
+    if (this.#chalk()) list.push('carta-chalk');
+    if (this.#highContrast()) list.push('carta-hc', ...(this.#dark() ? ['carta-hc-dark'] : []));
+    // Vista previa en oscuro: las variantes dark: quedan dentro de la carta
+    if (this.preview() && this.previewDark() === true) list.push('dark');
+    return list.join(' ');
+  });
+  protected readonly themeStyle = computed(() => {
+    const forced = this.preview() ? this.previewDark() : null;
+    const vars = { ...(forced == null ? {} : previewTokens(forced)), ...brandingStyle(this.menu().branding?.theme, this.#dark()) };
+    const fonts = fontVars(this.design().font);
+    if (!this.#chalk()) return { ...vars, ...fonts };
+    // La pizarra reemplaza fondo y texto, no el color principal
+    return { ...vars, ...chalkboardVars(), ...fonts };
+  });
+  protected readonly canListen = computed(() => this.design().readAloud && this.speech.supported);
+  protected readonly isGrid = (style: MenuCardStyle) => style === 'photo' && this.design().template === 'grid';
+  protected readonly gridClass = (style: MenuCardStyle) => (this.isGrid(style) ? 'carta-products-grid grid-cols-2 sm:grid-cols-3' : '');
+
+  /** Anuncio cerrado: se recuerda por texto durante la visita (en la vista previa, solo en memoria). */
+  readonly #dismissed = signal<ReadonlySet<string>>(new Set());
+  readonly #announcementKey = computed(() => {
+    const m = this.menu();
+    const text = m.announcement?.text?.trim();
+    return text ? `redom-carta.announcement:${m.business.slug}/${m.location.slug}:${hashText(text)}` : null;
+  });
+  protected readonly announcement = computed(() => {
+    const key = this.#announcementKey();
+    if (!key || this.#dismissed().has(key) || (!this.preview() && readSession(key))) return null;
+    return this.menu().announcement!.text.trim();
+  });
+
+  protected readonly chefPhotoFailed = linkedSignal({ source: () => this.menu().chefPicks?.photoUrl, computation: () => false });
+  /** Recomendaciones del chef: en el orden de productIds, sin los que no están en la carta. */
+  protected readonly chefPicks = computed(() => {
+    const picks = this.menu().chefPicks;
+    if (!picks?.productIds?.length) return null;
+    const byId = this.#productsById();
+    const products = picks.productIds.map((id) => byId.get(id)).filter((p): p is PublicProductDto => !!p);
+    return products.length ? { title: picks.title, photoUrl: picks.photoUrl, products } : null;
+  });
   protected readonly coverUrl = computed(() => this.menu().branding?.coverUrl ?? null);
   protected readonly hasCover = computed(() => !!this.coverUrl() && !this.coverFailed());
   protected readonly banners = computed(() => this.menu().marketing?.banners ?? []);
@@ -745,7 +904,8 @@ export class CartaMenuView {
   });
 
   protected readonly sections = computed<Section[]>(() => {
-    const m = this.menu();
+    const m = this.#sorted();
+    const design = this.design();
     const matches = this.#matches();
     const used = new Set<string>();
     const anchorFor = (slug: string | null, id: string) => {
@@ -757,6 +917,7 @@ export class CartaMenuView {
     const result: Section[] = [];
     for (const c of m.categories) {
       const products = c.products.filter(matches);
+      const style = cardStyleFor(design, c.id);
       const subgroups = c.subcategories
         .map((s) => ({
           id: String(s.id),
@@ -764,6 +925,8 @@ export class CartaMenuView {
           description: s.description,
           products: s.products.filter(matches),
           availableNow: s.availableNow,
+          style: cardStyleFor(design, s.id, style),
+          icon: categoryIcon(s.icon),
           // Con la categoría fuera de horario ya se muestra el de la categoría
           availability: c.availableNow && !s.availableNow ? categoryAvailabilityText(s.schedule) : null,
         }))
@@ -776,6 +939,8 @@ export class CartaMenuView {
         description: c.description,
         imageUrl: c.imageUrl,
         availableNow: c.availableNow,
+        style,
+        icon: categoryIcon(c.icon),
         availability: c.availableNow ? null : categoryAvailabilityText(c.schedule),
         products,
         subgroups,
@@ -792,6 +957,8 @@ export class CartaMenuView {
         availableNow: true,
         availability: null,
         products: others,
+        style: cardStyleFor(design, 'otros'),
+        icon: null,
         subgroups: [],
       });
     }
@@ -803,6 +970,14 @@ export class CartaMenuView {
   #scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // Tipografía elegida (la hoja de Google Fonts se pide una vez)
+    effect(() => {
+      const font = this.design().font;
+      untracked(() => this.#fonts.load(font));
+    });
+    // La lectura en voz alta se corta al navegar o al salir de la carta
+    this.#router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => this.speech.stop());
+
     // Textos fijos en el idioma de la carta (también en la vista previa)
     effect(() => {
       const lang = this.menu().language;
@@ -845,7 +1020,7 @@ export class CartaMenuView {
           const first = elements.find((el) => visible.get(el.dataset['anchor']!));
           if (first) this.active.set(first.dataset['anchor']!);
         },
-        { rootMargin: '-120px 0px -55% 0px' },
+        { root: this.preview() ? scrollParent(this.#host.nativeElement) : null, rootMargin: '-120px 0px -55% 0px' },
       );
       elements.forEach((el) => this.#observer!.observe(el));
     });
@@ -874,6 +1049,7 @@ export class CartaMenuView {
 
     // Ancla inicial (#bebidas)
     afterNextRender(() => {
+      if (this.preview()) return;
       const hash = decodeURIComponent(window.location.hash.slice(1));
       if (hash && this.sections().some((s) => s.anchor === hash)) setTimeout(() => this.#scrollTo(hash, 'auto'));
     }, { injector: this.#injector });
@@ -905,9 +1081,28 @@ export class CartaMenuView {
     }, { injector: this.#injector });
 
     this.#destroyRef.onDestroy(() => {
+      this.speech.stop();
       this.#observer?.disconnect();
       if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     });
+  }
+
+  protected dismissAnnouncement(): void {
+    const key = this.#announcementKey();
+    if (!key) return;
+    this.#dismissed.update((set) => new Set(set).add(key));
+    if (!this.preview()) writeSession(key);
+  }
+
+  /** Nombre y descripción de la categoría y, por cada producto, nombre, descripción, nota del chef y precio. */
+  protected listenSection(section: Section): void {
+    const parts = [section.name, section.description ?? ''];
+    section.products.forEach((p) => parts.push(...productSpeech(p)));
+    for (const sub of section.subgroups) {
+      parts.push(sub.name, sub.description ?? '');
+      sub.products.forEach((p) => parts.push(...productSpeech(p)));
+    }
+    this.speech.toggle(`section-${section.id}`, parts);
   }
 
   /** Solo cierra si sigue abierta la misma hoja. */
@@ -963,8 +1158,7 @@ export class CartaMenuView {
       const sub = document.getElementById(`carta-sub-${id}`);
       if (sub) {
         this.active.set(section.anchor);
-        const offset = (this.stickyBar()?.nativeElement.offsetHeight ?? 0) + 8;
-        this.#embed.scrollTo(sub.getBoundingClientRect().top + window.scrollY - offset, 'smooth');
+        this.#scrollToElement(sub, (this.stickyBar()?.nativeElement.offsetHeight ?? 0) + 8, 'smooth');
       } else this.#scrollTo(section.anchor, 'smooth');
     };
     if (this.selected().size && !this.sections().some((s) => s.id === String(parent.id))) {
@@ -993,6 +1187,8 @@ export class CartaMenuView {
   protected goTo(event: Event, anchor: string): void {
     event.preventDefault();
     this.#scrollTo(anchor, 'smooth');
+    // En la vista previa no se toca la URL del backoffice
+    if (this.preview()) return;
     try {
       history.replaceState(history.state, '', `${location.pathname}${location.search}#${encodeURIComponent(anchor)}`);
     } catch {
@@ -1008,6 +1204,17 @@ export class CartaMenuView {
     this.#scrollingTo = anchor;
     if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     this.#scrollTimer = setTimeout(() => (this.#scrollingTo = null), 900);
-    this.#embed.scrollTo(target.getBoundingClientRect().top + window.scrollY - offset + 1, behavior);
+    this.#scrollToElement(target, offset - 1, behavior);
+  }
+
+  /** En la vista previa se desplaza el contenedor con scroll (el marco del teléfono), no la ventana. */
+  #scrollToElement(el: HTMLElement, offset: number, behavior: ScrollBehavior): void {
+    const container = this.preview() ? scrollParent(this.#host.nativeElement) : null;
+    if (container) {
+      const top = el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - offset;
+      container.scrollTo({ top, behavior });
+      return;
+    }
+    this.#embed.scrollTo(el.getBoundingClientRect().top + window.scrollY - offset, behavior);
   }
 }

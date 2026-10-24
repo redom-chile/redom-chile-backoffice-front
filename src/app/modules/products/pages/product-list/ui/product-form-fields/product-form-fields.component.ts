@@ -3,11 +3,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
+import { PlanLockBadgeComponent } from 'src/app/modules/products/shared';
 import { ImageSelection } from 'src/app/core/services/file-upload';
 import { RouterLink } from '@angular/router';
 import { IconComponent, ImagePickerComponent } from 'src/ui';
 import { STOCK_MODE_OPTIONS, UnitDto, unitLabel } from 'src/app/modules/inventory/data-access';
 import { CategoryDto } from '../../../categories/data-access';
+import { CHEF_NOTE_MAX } from '../../data-access';
 import {
   createVarietyForm,
   duplicatedVarietyNames,
@@ -23,7 +26,7 @@ import {
 
 @Component({
   selector: 'app-product-form-fields',
-  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent, PlanLockBadgeComponent],
   templateUrl: './product-form-fields.component.html',
 })
 export class ProductFormFieldsComponent implements OnInit {
@@ -33,6 +36,13 @@ export class ProductFormFieldsComponent implements OnInit {
   // Según "Datos fiscales": el precio incluye IVA (lo habitual) o es neto y el IVA se suma al vender.
   readonly $pricesExcludeVat = this.businessSettings.$pricesExcludeVat;
   readonly $vatRate = this.businessSettings.$vatRate;
+
+  // Nota del chef: requiere menu_design; sin la función se muestra bloqueada con la mejora de plan.
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #upsell = inject(PlanUpsellService);
+  readonly $chefNoteEnabled = computed(() => this.#entitlements.hasFeature('menu_design'));
+  readonly chefNoteMax = CHEF_NOTE_MAX;
+  readonly $chefNoteLength = signal(0);
 
   readonly form = input.required<ProductForm>();
   readonly categories = input<CategoryDto[]>([]);
@@ -77,7 +87,9 @@ export class ProductFormFieldsComponent implements OnInit {
     'w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100';
 
   ngOnInit(): void {
-    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties } = this.form().controls;
+    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties, chefNote } = this.form().controls;
+    this.$chefNoteLength.set(chefNote.value?.length ?? 0);
+    chefNote.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$chefNoteLength.set(value?.length ?? 0));
     this.$hasVarieties.set(!!hasVarieties.value);
     this.$isPack.set(!!isPack.value);
     isPack.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$isPack.set(!!value));
@@ -94,6 +106,10 @@ export class ProductFormFieldsComponent implements OnInit {
       this.$selectedCategoryId.set(value);
       subCategoryId.setValue(null);
     });
+  }
+
+  showChefNotePlans() {
+    this.#upsell.open({ features: ['menu_design'] });
   }
 
   regenerateSku() {

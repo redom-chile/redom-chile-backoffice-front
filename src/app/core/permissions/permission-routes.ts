@@ -44,6 +44,7 @@ const PERMISSION_ROUTES: ReadonlyArray<readonly [string, PermissionCode]> = [
   ['/settings/menu-translations', REST.PUBLIC_MENU.SEE_MODULE],
   ['/loyalty', REST.LOYALTY.SEE_MODULE],
   ['/settings/public-menu/sold-out', REST.PUBLIC_MENU.MANAGE_AVAILABILITY],
+  ['/settings/public-menu/design', REST.PUBLIC_MENU.SEE_MODULE],
   ['/settings/public-menu/marketing', REST.PUBLIC_MENU.SEE_MODULE],
   ['/settings/public-menu', REST.PUBLIC_MENU.SEE_MODULE],
   ['/settings/schedules', REST.SCHEDULES.SEE_MODULE],

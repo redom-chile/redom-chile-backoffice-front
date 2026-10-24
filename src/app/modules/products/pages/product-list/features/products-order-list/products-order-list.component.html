@@ -1,0 +1,74 @@
+@let products = $products();
+@let saving = $saving();
+@let moveClass = 'text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-[var(--muted)]/30 disabled:opacity-30';
+
+<section class="glass rounded-[1rem] p-3 sm:p-4" aria-labelledby="products-order-title">
+  <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="min-w-0">
+      <h2 id="products-order-title" class="text-foreground truncate font-semibold">Ordenar {{ categoryName() || 'categoría' }}</h2>
+      <p class="text-muted-foreground text-xs">
+        Arrastra o usa las flechas. Se guarda solo y la carta lo muestra en este orden.
+        @if (hasSubcategories()) { Los productos de cada subcategoría se ordenan eligiéndola en el filtro. }
+      </p>
+    </div>
+    <button
+      type="button"
+      class="bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center gap-1 rounded-full px-4 py-2 text-sm font-medium disabled:opacity-60"
+      [disabled]="saving"
+      (click)="done.emit()">
+      <app-icon class="h-4 w-4" aria-hidden="true">check</app-icon>Listo
+    </button>
+  </div>
+
+  @switch ($status()) {
+  @case ('loading') {
+  <div class="py-4"><app-progress-bar /></div>
+  }
+  @case ('error') {
+  <div class="flex flex-wrap items-center gap-3 py-4">
+    <p class="text-sm text-red-600 dark:text-red-400">No se pudieron cargar los productos de la categoría.</p>
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="load()">Reintentar</button>
+  </div>
+  }
+  @default {
+  @if (!products.length) {
+  <p class="text-muted-foreground py-6 text-center text-sm">Esta categoría no tiene productos propios para ordenar.</p>
+  } @else {
+  <ol
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="space-y-2"
+    [attr.aria-label]="'Productos de ' + categoryName()"
+    [attr.aria-busy]="saving"
+    [cdkDropListDisabled]="saving"
+    (cdkDropListDropped)="drop($event)">
+    @for (product of products; track product.id; let index = $index, first = $first, last = $last) {
+    <li cdkDrag class="bg-card flex items-center gap-2 rounded-xl border border-[var(--border)] px-2 py-2" [class.opacity-60]="product.isInactive">
+      <button
+        type="button"
+        cdkDragHandle
+        class="text-muted-foreground inline-flex h-9 w-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        [attr.aria-label]="'Arrastra para mover ' + product.name"
+        title="Arrastra para ordenar">
+        <app-icon class="h-5 w-5">drag_indicator</app-icon>
+      </button>
+      <span class="text-muted-foreground w-6 shrink-0 text-center text-xs tabular-nums">{{ index + 1 }}</span>
+      <app-image-thumb class="bg-primary/10 text-primary size-9 shrink-0 text-xs" [src]="product.imageUrl" [name]="product.name" icon="restaurant" [alt]="product.name" />
+      <div class="min-w-0 flex-1">
+        <p class="text-foreground truncate text-sm font-medium">{{ product.name }}</p>
+        @if (product.isInactive) {
+        <p class="text-muted-foreground text-xs">No disponible</p>
+        }
+      </div>
+      <button type="button" [class]="moveClass" [disabled]="saving || first" [attr.aria-label]="'Subir ' + product.name" title="Subir" (click)="move(index, -1)">
+        <app-icon class="h-5 w-5">keyboard_arrow_up</app-icon>
+      </button>
+      <button type="button" [class]="moveClass" [disabled]="saving || last" [attr.aria-label]="'Bajar ' + product.name" title="Bajar" (click)="move(index, 1)">
+        <app-icon class="h-5 w-5">keyboard_arrow_down</app-icon>
+      </button>
+    </li>
+    }
+  </ol>
+  } }
+  }
+</section>

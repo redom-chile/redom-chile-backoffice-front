@@ -7,3 +7,4 @@ export * from './menu-marketing.service';
 export * from './customer-orders.service';
 export * from './public-api.service';
 export * from './menu-translations.service';
+export * from './menu-design.service';

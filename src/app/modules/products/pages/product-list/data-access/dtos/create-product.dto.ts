@@ -23,4 +23,5 @@ export type CreateProductDto = Readonly<{
   isInactive?: boolean;
   preparationTimeInMinutes?: number;
   variations?: CreateProductVariationDto[];
+  chefNote?: string;
 }>;
