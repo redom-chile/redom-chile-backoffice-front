@@ -6,3 +6,4 @@ export * from './online-orders.dto';
 export * from './public-api.dto';
 export * from './menu-translations.dto';
 export * from './menu-design.dto';
+export * from './customer-profiles.dto';

@@ -16,7 +16,7 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75 |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -626,6 +626,18 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** devolver los negocios donde el usuario es dueño o tiene un rol, con `isOwner`; revisar el mismo filtro en onboarding y primeros pasos. Prompt: `docs/backend-prompts/mis-negocios-miembros.md`.
 
 **Resuelta:** `GET /business/my-businesses` devuelve los negocios con rol y `isOwner`; onboarding y primeros pasos responden a los usuarios del negocio. El front usa el negocio activo (`restaurantId` de whoami) e `isOwner` para los campos de solo dueño.
+
+---
+
+### 76. 🟢 Etapa 10 de la carta: cliente reconocido (resuelta 2026-10-24)
+
+**Problema:** la carta no reconoce al cliente: no recuerda sus preferencias entre locales, no ofrece "Lo de siempre" ni muestra su saldo antes de pedir.
+
+**Se pide:** el prompt completo `docs/backend-prompts/carta-etapa-10-cliente-reconocido.md` (función `customerProfiles`, límite `customerOtpMonth`, configuración por local, perfil global con código **por correo** (versión 2; WhatsApp después, en una etapa de mensajería), `/customers/me`, "Lo de siempre", saldo, borrado, `isVerified` en clientes).
+
+**Front mientras tanto:** se adelanta contra este contrato; los avisos de alérgenos con preferencias del navegador funcionan sin backend.
+
+**Resuelta:** backend implementado (`libs/restaurant/public-menu`: `customer-profiles.ts`, `public-customers.service.ts`). menu-settings trae `defaultConsentText` y `consentVersion`; la carta pública, `consentVersion` y `redomPrivacyUrl`; OTP con `attemptsLeft`, `retryAt` y `OTP_QUOTA_EXCEEDED` (`used`, `limit`); `PHONE_INVALID` para el teléfono opcional; 409 `CUSTOMER_PROFILES_DISABLED` con `details.setting`; saldo con `locationSlug` (cuerpo vacío sin programa); `isVerified` y `verifiedAt` en clientes. El front quedó alineado.
 
 ---
 

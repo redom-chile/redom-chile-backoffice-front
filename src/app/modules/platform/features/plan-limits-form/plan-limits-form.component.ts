@@ -9,7 +9,7 @@ import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import { getPlatformErrorMessage, PlatformPlanDto, PlatformService } from '../../data-access';
 import { confirmPlanAction, planImpactMessage } from '../plan-shared';
 
-const LIMIT_CODES: PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month', 'aiMenuContentMonth'];
+const LIMIT_CODES: PlanLimitCode[] = ['max_locations', 'max_users', 'max_registers', 'ai_questions_month', 'aiMenuContentMonth', 'customerOtpMonth'];
 
 const LIMIT_TITLES: Record<PlanLimitCode, string> = {
   max_locations: 'Locales',
@@ -17,6 +17,7 @@ const LIMIT_TITLES: Record<PlanLimitCode, string> = {
   max_registers: 'Cajas',
   ai_questions_month: 'Preguntas al asistente por mes',
   aiMenuContentMonth: 'Sugerencias de la carta con IA por mes',
+  customerOtpMonth: 'Códigos para clientes por mes (WhatsApp/SMS)',
 };
 
 type LimitGroup = FormGroup<{ value: FormControl<number | null>; unlimited: FormControl<boolean> }>;

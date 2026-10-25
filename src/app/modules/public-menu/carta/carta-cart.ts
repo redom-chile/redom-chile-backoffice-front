@@ -393,8 +393,8 @@ export class CartaCart {
     this.orderIds.set(Array.isArray(ids) ? ids.filter((i): i is string => typeof i === 'string' && ORDER_ID_PATTERN.test(i)).slice(0, MAX_TRACKED_ORDERS) : []);
   }
 
-  /** false si el carrito ya tiene el máximo de líneas distintas. */
-  add(addition: CartAddition): boolean {
+  /** false si el carrito ya tiene el máximo de líneas distintas. quiet: sin el aviso "Agregado" (repetir un pedido). */
+  add(addition: CartAddition, quiet = false): boolean {
     const sig = signature(addition.line);
     const items = this.items();
     const same = items.find((i) => !i.issue && signature(i.line) === sig);
@@ -405,7 +405,7 @@ export class CartaCart {
       if (items.length >= MAX_CART_LINES) return false;
       this.#set([...items, { ...addition, key: newKey(), issue: null }]);
     }
-    this.flash(ct('cart.added'));
+    if (!quiet) this.flash(ct('cart.added'));
     return true;
   }
 
@@ -480,10 +480,10 @@ export class CartaCart {
     if (this.#ordersKey) writeJson(local, this.#ordersKey, this.orderIds().length ? this.orderIds() : null);
   }
 
-  flash(text: string): void {
+  flash(text: string, ms = 2500): void {
     if (this.#noticeTimer) clearTimeout(this.#noticeTimer);
     this.notice.set(text);
-    this.#noticeTimer = setTimeout(() => this.notice.set(null), 2500);
+    this.#noticeTimer = setTimeout(() => this.notice.set(null), ms);
   }
 
   #set(items: readonly CartItem[]): void {

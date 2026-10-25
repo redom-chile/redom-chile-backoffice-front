@@ -86,6 +86,34 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return CHEF_PICKS_REASON_MESSAGES[api.details['reason'] as ChefPicksErrorReason] ?? 'Revisa las recomendaciones del chef.';
     case 'REORDER_IDS_MISMATCH':
       return 'La lista cambió mientras ordenabas. Recarga e inténtalo de nuevo.';
+    case 'EMAIL_INVALID':
+      return 'Revisa el correo.';
+    case 'PHONE_INVALID':
+      return 'Revisa el teléfono: móvil chileno de 9 dígitos o internacional con +';
+    case 'OTP_CHANNEL_NOT_SUPPORTED':
+      return 'Por ahora el código se envía solo por correo.';
+    case 'OTP_INVALID':
+      return 'El código no es correcto.';
+    case 'OTP_EXPIRED':
+      return 'El código venció. Pide uno nuevo.';
+    case 'OTP_TOO_MANY_ATTEMPTS':
+      return 'Demasiados intentos. Pide un código nuevo.';
+    case 'OTP_RATE_LIMITED':
+      return 'Pediste varios códigos seguidos. Espera un momento.';
+    case 'OTP_QUOTA_EXCEEDED':
+      return 'Este local no puede enviar más códigos este mes. Tus preferencias se guardarán en este dispositivo.';
+    case 'OTP_UNAVAILABLE':
+      return 'No pudimos enviar el código. Inténtalo de nuevo.';
+    case 'CONSENT_REQUIRED':
+      return 'Debes aceptar el uso de tus datos para continuar.';
+    case 'CUSTOMER_TOKEN_INVALID':
+      return 'Tu sesión venció. Vuelve a identificarte.';
+    case 'CUSTOMER_PROFILES_DISABLED':
+      return 'Este local no tiene activado el reconocimiento de clientes.';
+    case 'CUSTOMER_EMAIL_MISMATCH':
+      return 'El correo del pedido no coincide con el de tu perfil.';
+    case 'MENU_SETTINGS_INVALID':
+      return 'Revisa los datos de la configuración.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }
