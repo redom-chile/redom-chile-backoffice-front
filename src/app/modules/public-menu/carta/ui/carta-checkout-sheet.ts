@@ -23,6 +23,7 @@ import { CartaI18n, cartaErrorMessage, ct } from '../carta-i18n';
 import { CartaCustomer } from '../carta-customer';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CartaIcon, CartaIconName } from './carta-icon';
+import { CartaSuggestionsList } from './carta-suggestions-list';
 
 type Field = 'name' | 'phone' | 'email' | 'street' | 'commune' | 'when' | 'payment';
 
@@ -50,7 +51,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
  */
 @Component({
   selector: 'app-carta-checkout-sheet',
-  imports: [CartaIcon],
+  imports: [CartaIcon, CartaSuggestionsList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -400,6 +401,8 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             (input)="cart.setNote($any($event.target).value)"
           ></textarea>
         </div>
+
+        <app-carta-suggestions-list />
 
         <section aria-labelledby="carta-co-summary" class="rounded-2xl border border-border bg-card px-4 py-3">
           <h3 id="carta-co-summary" class="text-base font-semibold">{{ t('checkout.summary') }}</h3>

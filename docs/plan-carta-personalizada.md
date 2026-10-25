@@ -127,7 +127,11 @@ Tamaño: **S** ≈ 1 semana, **M** ≈ 2 a 3, **L** ≈ 4 a 5, **XL** ≈ 6 o m�
 
 ---
 
-## Etapa 10.1 · Consentimientos y documentos legales (próximo evolutivo)
+## Etapa 10.1 · Consentimientos y documentos legales (próximo evolutivo; **alcance global de Redom**)
+
+> Decidido 2026-10-25: el módulo legal es **de todo el proyecto**, no solo de la carta: dueños al registrarse, negocio al
+> contratar un plan (términos del servicio y acuerdo de tratamiento de datos), usuarios del backoffice, desarrolladores de
+> la API y comensales. Prompt del backend: `docs/backend-prompts/legal-consentimientos-global.md` (#77).
 
 **Objetivo:** cumplir la Ley 21.719 (y la 19.628 mientras rige) con consentimientos **auditables**: qué documento exacto
 aceptó cada persona, cuándo y desde dónde, y pedir de nuevo la aceptación cuando un documento cambia.

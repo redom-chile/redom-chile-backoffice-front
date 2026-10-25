@@ -7,3 +7,4 @@ export * from './public-api.dto';
 export * from './menu-translations.dto';
 export * from './menu-design.dto';
 export * from './customer-profiles.dto';
+export * from './menu-dynamic.dto';

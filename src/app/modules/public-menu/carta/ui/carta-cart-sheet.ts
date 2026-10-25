@@ -9,6 +9,7 @@ import { CartaI18n } from '../carta-i18n';
 import { CartaCustomer } from '../carta-customer';
 import { CartaIcon } from './carta-icon';
 import { CartaStepper } from './carta-stepper';
+import { CartaSuggestionsList } from './carta-suggestions-list';
 
 const fieldClass =
   'mt-1.5 block w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30';
@@ -19,7 +20,7 @@ const fieldClass =
  */
 @Component({
   selector: 'app-carta-cart-sheet',
-  imports: [CartaIcon, CartaStepper],
+  imports: [CartaIcon, CartaStepper, CartaSuggestionsList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -112,6 +113,9 @@ const fieldClass =
         </ul>
         @if (items.length >= maxLines) {
           <p class="mt-2 text-xs text-muted-foreground">{{ t('cart.maxLines', { max: maxLines }) }}</p>
+        }
+        @if (!cart.full()) {
+          <app-carta-suggestions-list class="mt-5" />
         }
 
         @if (!online()) {

@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { MenuCardStyle } from '../../data-access/dtos/menu-design.dto';
 import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { CartaI18n } from '../carta-i18n';
-import { cheapestVariation, isPackUnavailable, promotionLabel } from '../carta-marketing';
+import { cheapestVariation, isPackUnavailable, promotionIcon, promotionLabel } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 
@@ -46,7 +46,7 @@ import { CartaPrice } from './carta-price';
         <div class="mt-1.5 flex flex-wrap gap-1.5">
           @if (promotion(); as promo) {
             <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[0.6875rem] font-semibold text-primary-foreground">
-              <app-carta-icon name="tag" [size]="12" />
+              <app-carta-icon [name]="promotionIcon()" [size]="12" />
               {{ promo }}
             </span>
           }
@@ -204,6 +204,7 @@ export class CartaProductCard {
     return prices.every((price) => price === prices[0]);
   });
 
+  protected readonly promotionIcon = computed(() => promotionIcon(this.product().promotion));
   protected readonly promotion = computed(() => {
     const promo = this.product().promotion;
     return promo ? promotionLabel(promo, this.timeZone()) : null;

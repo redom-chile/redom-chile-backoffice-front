@@ -114,6 +114,14 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'El correo del pedido no coincide con el de tu perfil.';
     case 'MENU_SETTINGS_INVALID':
       return 'Revisa los datos de la configuración.';
+    case 'MENU_DYNAMIC_INVALID':
+      return 'Revisa los datos ingresados.';
+    case 'MENU_MOMENT_OVERLAP':
+      return 'Ese horario se cruza con otro momento activo del local.';
+    case 'MENU_DAILY_SPECIAL_OVERLAP':
+      return 'Ya hay un plato del día en ese horario para este local.';
+    case 'MENU_WEATHER_NO_LOCATION':
+      return 'Para usar el clima, agrega la ubicación (latitud y longitud) del local en Carta pública.';
     case 'RATE_LIMITED':
       return 'Demasiadas solicitudes, intenta en un minuto.';
   }
