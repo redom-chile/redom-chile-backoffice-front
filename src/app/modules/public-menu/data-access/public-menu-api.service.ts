@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { PublicSuggestionDto } from './dtos/menu-dynamic.dto';
 import {
   CreateOnlineOrderDto,
   ReceiptUploadUrlDto,
@@ -117,6 +118,14 @@ export class PublicMenuApiService {
   /** → paymentStatus to_verify. 409 RECEIPT_NOT_ALLOWED. */
   confirmReceipt(id: string, fileId: string): Observable<PublicOrderDto> {
     return this.#http.post<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}/receipt/confirm`, { fileId });
+  }
+
+  /** Etapa 11: "Completa tu pedido". Sin reglas o sin plan: { suggestions: [] }. */
+  getSuggestions(businessSlug: string, locationSlug: string, items: ReadonlyArray<{ productId: number; variationId: number }>): Observable<{ suggestions: PublicSuggestionDto[] }> {
+    return this.#http.post<{ suggestions: PublicSuggestionDto[] }>(
+      `${this.#base}/menus/${encodeURIComponent(businessSlug)}/${encodeURIComponent(locationSlug)}/suggestions`,
+      { items },
+    );
   }
 }
 

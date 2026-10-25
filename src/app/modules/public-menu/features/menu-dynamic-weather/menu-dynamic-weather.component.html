@@ -1,0 +1,155 @@
+@let locked = $locked();
+@let draft = $draft();
+@if ($blocked()) {
+<app-marketing-upsell-card
+  feature="menuDynamicPlus"
+  [requiredPlans]="$requiredPlans()"
+  description="Destaca sopas cuando llueve o bebidas frías con calor, según el clima actual de cada local." />
+} @else {
+@if ($missing()) {
+<app-menu-dynamic-stage-banner class="mb-4 block" />
+}
+
+@if ($noLocation()) {
+<div class="mb-4 flex items-start gap-2 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
+  <app-icon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true">location_off</app-icon>
+  <div>
+    <p class="text-foreground">Para usar el clima, el local necesita su ubicación (latitud y longitud).</p>
+    <a routerLink="/settings/public-menu" class="text-primary mt-1 inline-block text-sm font-medium hover:underline">Agregar ubicación en Carta pública</a>
+  </div>
+</div>
+}
+
+@if ($errorMessage(); as message) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ message }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="settings.reload()">Reintentar</app-button>
+</div>
+} @else if (settings.isLoading() && !$saved()) {
+<div class="space-y-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 160px" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else {
+<section class="glass mb-4 flex items-center justify-between gap-3 rounded-[1rem] p-4">
+  <div>
+    <h3 class="text-foreground font-semibold">Usar el clima en la carta</h3>
+    <p class="text-muted-foreground text-sm">Con el clima actual del local se destaca una sección. Se actualiza cada 30 minutos; si el servicio falla, la carta se ve normal.</p>
+  </div>
+  <app-toggle ariaLabel="Usar el clima en la carta" [checked]="draft.enabled" [disabled]="locked || ($noLocation() && !draft.enabled)" (changed)="setEnabled($event)" />
+</section>
+@if ($currentWeather(); as now) {
+<p class="text-muted-foreground -mt-2 mb-4 flex items-center gap-1.5 text-sm" role="status">
+  <app-icon class="h-4 w-4" aria-hidden="true">thermostat</app-icon>{{ now }}
+</p>
+}
+
+<div class="space-y-3" [class.opacity-60]="!draft.enabled">
+  @for (rule of rules; track rule.key) {
+  @let value = draft.rules[rule.key];
+  <section class="glass rounded-[1rem] p-4" [attr.aria-labelledby]="'weather-' + rule.key + '-title'">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="bg-primary/10 text-primary inline-flex size-9 shrink-0 items-center justify-center rounded-xl">
+          <app-icon class="h-5 w-5" aria-hidden="true">{{ rule.icon }}</app-icon>
+        </span>
+        <div class="min-w-0">
+          <h4 [id]="'weather-' + rule.key + '-title'" class="text-foreground font-semibold">
+            {{ rule.label }}{{ rule.key === 'hot' && value.temp !== null ? ' (≥ ' + value.temp + ' °C)' : rule.key === 'cold' && value.temp !== null ? ' (≤ ' + value.temp + ' °C)' : '' }}
+          </h4>
+          <p class="text-muted-foreground text-xs">{{ rule.hint }}</p>
+        </div>
+      </div>
+      <app-toggle [ariaLabel]="'Regla de ' + rule.label" [checked]="value.on" [disabled]="locked" (changed)="updateRule(rule.key, { on: $event })" />
+    </div>
+
+    @if (value.on) {
+    <div class="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
+      <div [class]="rule.tempLabel ? 'grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]' : 'grid grid-cols-1 gap-3'">
+        <div>
+          <label [for]="'weather-' + rule.key + '-name'" class="mb-1 block text-sm font-medium">Título de la sección</label>
+          <input
+            [id]="'weather-' + rule.key + '-name'"
+            type="text"
+            [attr.maxlength]="titleMax"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="problem(rule.key, 'title')"
+            [disabled]="locked"
+            [value]="value.title"
+            (input)="updateRule(rule.key, { title: $any($event.target).value })" />
+          @if (problem(rule.key, 'title'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          }
+        </div>
+        @if (rule.tempLabel) {
+        <div>
+          <label [for]="'weather-' + rule.key + '-temp'" class="mb-1 block text-sm font-medium">{{ rule.tempLabel }}</label>
+          <div class="relative">
+            <input
+              [id]="'weather-' + rule.key + '-temp'"
+              type="number"
+              inputmode="numeric"
+              step="1"
+              min="-30"
+              max="50"
+              class="glass-input w-full rounded-md py-2 pl-3 pr-10"
+              [class.border-red-500]="problem(rule.key, 'temp')"
+              [disabled]="locked"
+              [value]="value.temp ?? ''"
+              (input)="setTemp(rule.key, $any($event.target).value)" />
+            <span class="text-muted-foreground pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm">°C</span>
+          </div>
+          @if (problem(rule.key, 'temp'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          }
+        </div>
+        }
+      </div>
+      <div>
+        <label [for]="'weather-' + rule.key + '-products'" class="mb-1 block text-sm font-medium">Productos</label>
+        <app-menu-dynamic-items-select
+          kind="product"
+          [inputId]="'weather-' + rule.key + '-products'"
+          [catalog]="catalog()"
+          [loading]="catalogLoading()"
+          [disabled]="locked"
+          [invalid]="!!problem(rule.key, 'items')"
+          [value]="value.productIds"
+          (valueChange)="updateRule(rule.key, { productIds: $event })" />
+      </div>
+      <div>
+        <label [for]="'weather-' + rule.key + '-categories'" class="mb-1 block text-sm font-medium">Categorías</label>
+        <app-menu-dynamic-items-select
+          kind="category"
+          [inputId]="'weather-' + rule.key + '-categories'"
+          [catalog]="catalog()"
+          [loading]="catalogLoading()"
+          [disabled]="locked"
+          [invalid]="!!problem(rule.key, 'items')"
+          [value]="value.categoryIds"
+          (valueChange)="updateRule(rule.key, { categoryIds: $event })" />
+      </div>
+      @if (problem(rule.key, 'items'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      }
+    </div>
+    }
+  </section>
+  }
+</div>
+
+@if ($canManage()) {
+<div class="mt-4 flex justify-end gap-2">
+  @if ($dirty()) {
+  <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="discard()">Descartar</app-button>
+  }
+  <app-button type="button" impact="bold" tone="primary" [disabled]="!$dirty() || locked" [isLoading]="$isSaving()" (buttonClick)="save()">Guardar</app-button>
+</div>
+}
+}
+}

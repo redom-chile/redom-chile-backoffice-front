@@ -39,9 +39,26 @@ export type PublicPackGroupDto = Readonly<{
   items: ReadonlyArray<{ variationId: number; productId: number; name: string; quantity: number; extraPrice: number; isDefault: boolean; soldOut: boolean }>;
 }>;
 
-export type PublicPromotionDto = Readonly<{ id: number; name: string; endsAt: string | null }>;
+export type PublicPromotionDto = Readonly<{
+  id: number;
+  name: string;
+  endsAt: string | null;
+  /** dailySpecial: precio del plato del día (etapa 11); id es el del plato del día. */
+  kind?: 'promotion' | 'dailySpecial';
+}>;
 
-export type MenuEventType = 'menu_view' | 'banner_view' | 'banner_click' | 'modal_view' | 'product_view' | 'pack_view' | 'add_to_cart';
+export type MenuEventType =
+  | 'menu_view'
+  | 'banner_view'
+  | 'banner_click'
+  | 'modal_view'
+  | 'product_view'
+  | 'pack_view'
+  | 'add_to_cart'
+  // Etapa 11.
+  | 'suggestionShown'
+  | 'suggestionAccepted'
+  | 'dailySpecialView';
 
 /** POST /events: 1 a 20 eventos; refId = banner o producto. */
 export type MenuEventsRequestDto = Readonly<{

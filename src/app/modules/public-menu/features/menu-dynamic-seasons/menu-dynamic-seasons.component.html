@@ -1,0 +1,78 @@
+@let locked = $locked();
+@if ($missing()) {
+<app-menu-dynamic-stage-banner class="mb-4 block" />
+}
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">Destacados que se activan solos entre dos fechas, en la hora del negocio.</p>
+  <app-button *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" type="button" impact="bold" tone="primary" shape="rounded" [disabled]="locked" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva temporada</span>
+  </app-button>
+</div>
+
+@if ($error() && !$missing()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="seasons.reload()">Reintentar</app-button>
+</div>
+} @else if (seasons.isLoading() && !$loaded()) {
+<div class="space-y-3">
+  @for (row of [1, 2]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 160px" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if (!$list().length) {
+<app-empty-state icon="celebration" title="Aún no tienes temporadas" description="Ej.: Fiestas Patrias del 15 al 21 de septiembre con empanadas y terremotos destacados." />
+} @else {
+<ul class="space-y-3" [class.opacity-60]="seasons.isLoading()">
+  @for (season of $list(); track season.id) {
+  @let busy = $busyId() === season.id;
+  @let state = status(season);
+  <li class="glass flex flex-col gap-3 rounded-[1rem] p-4 sm:flex-row sm:items-start sm:justify-between" [class.opacity-70]="state === 'ended'">
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="text-foreground min-w-0 truncate font-semibold">{{ season.name }}</h3>
+        <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="statusClasses[state]">{{ statusLabels[state] }}</span>
+      </div>
+      @if (season.title) {
+      <p class="text-muted-foreground mt-0.5 text-sm">Sección: <span class="text-foreground">{{ season.title }}</span></p>
+      }
+      @if (season.productIds.length) {
+      <p class="text-muted-foreground mt-0.5 text-sm">{{ products(season) }}</p>
+      }
+      <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
+        <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+          <app-icon class="h-3.5 w-3.5" aria-hidden="true">date_range</app-icon>{{ range(season) }}
+        </span>
+        <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+          <app-icon class="h-3.5 w-3.5" aria-hidden="true">storefront</app-icon>{{ season.locationId === null ? 'Todos los locales' : locationName() || 'Este local' }}
+        </span>
+        @if (bannerName(season); as banner) {
+        <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+          <app-icon class="h-3.5 w-3.5" aria-hidden="true">view_carousel</app-icon>{{ banner }}
+        </span>
+        }
+      </div>
+    </div>
+    <div class="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground">{{ season.isActive ? 'Activa' : 'Inactiva' }}</span>
+        <app-toggle [ariaLabel]="'Activar ' + season.name" [checked]="season.isActive" [disabled]="busy || locked" (changed)="toggle(season, $event)" />
+      </label>
+      <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" class="flex items-center">
+        <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Editar ' + season.name" (click)="edit(season)">
+          <app-icon class="h-5 w-5" aria-hidden="true">edit</app-icon>
+        </button>
+        <button type="button" class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Eliminar ' + season.name" (click)="remove(season)">
+          <app-icon class="h-5 w-5" aria-hidden="true">delete</app-icon>
+        </button>
+      </div>
+    </div>
+  </li>
+  }
+</ul>
+}

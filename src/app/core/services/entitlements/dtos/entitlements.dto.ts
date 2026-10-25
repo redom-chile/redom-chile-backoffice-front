@@ -25,6 +25,8 @@ export const PLAN_FEATURES = [
   'menu_design',
   'menuAiContent',
   'customerProfiles',
+  'menuDynamic',
+  'menuDynamicPlus',
 ] as const;
 export type PlanFeatureCode = (typeof PLAN_FEATURES)[number];
 

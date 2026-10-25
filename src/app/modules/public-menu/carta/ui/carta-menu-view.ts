@@ -71,6 +71,9 @@ import { CartaBillSheet, CartaWaiterSheet } from './carta-table-sheets';
 import { CARTA_DESIGN_CSS, CartaFonts, cardStyleFor, chalkboardVars, fontVars, previewTokens, resolveDesign, scrollParent, sortMenu } from '../carta-design';
 import { CartaSpeech, productSpeech } from '../carta-speech';
 import { CartaAnnouncement, CartaListenButton, CartaStory } from './carta-design-blocks';
+import { dynamicBoundaries, dynamicProducts, dynamicTime, momentIcon, WEATHER_ICONS } from '../carta-dynamic';
+import { CartaSuggestions } from '../carta-suggestions';
+import { CartaDailySpecial } from './carta-daily-special';
 
 /** Hojas de la etapa 4 (servicio en la mesa y reservas) y "Tu perfil" (etapa 10). */
 type ServicePanel = 'waiter' | 'bill' | 'booking' | 'profile';
@@ -96,6 +99,9 @@ type Section = Group &
     availability: string | null;
     subgroups: Subgroup[];
   }>;
+
+/** Etapa 11: momento (modo highlight), temporada o clima, como carrusel bajo el plato del día. */
+type Rail = Readonly<{ id: 'moment' | 'season' | 'weather'; title: string; icon: CartaIconName; note: string | null; products: PublicProductDto[] }>;
 
 type Action = Readonly<{ label: string; href: string; icon: CartaIconName; primary?: boolean; external: boolean }>;
 
@@ -160,8 +166,9 @@ function writeSession(key: string): void {
     CartaBookingSheet,
     CartaProfileSheet,
     CartaUsual,
+    CartaDailySpecial,
   ],
-  providers: [CartaCart, CartaTableService],
+  providers: [CartaCart, CartaTableService, CartaSuggestions],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Estilos de las plantillas (etapa 8): globales pero colgados de las clases del host
   encapsulation: ViewEncapsulation.None,
@@ -248,6 +255,19 @@ function writeSession(key: string): void {
                 <app-carta-icon name="star" [size]="13" class="text-primary" />
                 <span class="tabular-nums">{{ t(l.mechanic === 'stamps' ? 'customer.chipStamps' : 'customer.chipPoints', { n: l.balance }) }}</span>
               </button>
+            }
+            @if (moment(); as mo) {
+              <p class="carta-moment ml-1.5 mt-2 inline-flex max-w-full items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-foreground">
+                <app-carta-icon [name]="mo.icon ?? 'clock'" [size]="13" class="text-primary" />
+                <span class="[overflow-wrap:anywhere]">{{ t('dynamic.now', { name: mo.name }) }}</span>
+              </p>
+            }
+            @if (upcomingMoments().length) {
+              <p class="mt-1.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                @for (u of upcomingMoments(); track u.id; let last = $last) {
+                  <span class="whitespace-nowrap">{{ t('dynamic.upcoming', { time: u.time, name: u.name }) }}</span>@if (!last) {<span aria-hidden="true"> · </span>}
+                }
+              </p>
             }
           </div>
         </div>
@@ -468,6 +488,27 @@ function writeSession(key: string): void {
           </span>
         </button>
       </ng-template>
+      @if (dailySpecial(); as ds) {
+        <app-carta-daily-special [special]="ds.special" [product]="ds.product" [endsLabel]="ds.endsLabel" [minutesLeft]="ds.minutesLeft" (open)="openProduct($event)" />
+      }
+      @for (r of dynamicRails(); track r.id) {
+        <section class="pt-4" [attr.aria-labelledby]="'carta-dyn-' + r.id">
+          <h2 [id]="'carta-dyn-' + r.id" class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
+            <app-carta-icon [name]="r.icon" [size]="20" class="text-primary" />
+            <span class="min-w-0">{{ r.title }}</span>
+            @if (r.note) {
+              <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{{ r.note }}</span>
+            }
+          </h2>
+          <ul class="-mx-4 mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            @for (p of r.products; track p.id) {
+              <li class="w-36 shrink-0 snap-start sm:w-40">
+                <ng-container [ngTemplateOutlet]="tile" [ngTemplateOutletContext]="{ $implicit: p }" />
+              </li>
+            }
+          </ul>
+        </section>
+      }
       @if (usual(); as u) {
         <app-carta-usual [usual]="u" [products]="productsMap()" [blockedLabel]="usualBlocked" [canOrder]="canOrder()" (open)="openProduct($event)" (repeat)="repeatOrder($event)" />
       }
@@ -816,6 +857,69 @@ export class CartaMenuView {
   });
   protected readonly usualBlocked = (p: PublicProductDto) => this.blockedLabel(p);
 
+  // --- Etapa 11: carta dinámica (sin dynamic, la carta es la de siempre) ---
+  protected readonly suggestions = inject(CartaSuggestions);
+  /** Reloj de la cuenta regresiva y de los cambios de momento (cada minuto, pausado con la pestaña oculta). */
+  readonly #clock = signal(Date.now());
+  #lastTick = Date.now();
+  readonly #dynamic = computed(() => this.menu().dynamic ?? null);
+  protected readonly moment = computed(() => {
+    const mo = this.#dynamic()?.moment;
+    if (!mo) return null;
+    const now = this.#clock();
+    const end = dynamicTime(mo.endsAt, this.menu().location.timeZone);
+    if (end?.at != null && end.at <= now) return null;
+    return { name: mo.name, icon: momentIcon(mo.icon), mode: mo.mode, categoryIds: mo.categoryIds, productIds: mo.productIds };
+  });
+  /** "Desde las 12:00: Almuerzo" (los que aún no empiezan). */
+  protected readonly upcomingMoments = computed(() => {
+    const list = this.#dynamic()?.upcomingMoments ?? [];
+    const now = this.#clock();
+    const tz = this.menu().location.timeZone;
+    return list
+      .map((u) => ({ id: u.id, name: u.name, time: dynamicTime(u.startsAt, tz) }))
+      .filter((u): u is { id: number; name: string; time: NonNullable<typeof u.time> } => !!u.time && (u.time.at == null || u.time.at > now))
+      .slice(0, 2)
+      .map((u) => ({ id: u.id, name: u.name, time: u.time.label }));
+  });
+  protected readonly dailySpecial = computed(() => {
+    const special = this.#dynamic()?.dailySpecial;
+    const product = special ? this.#productsById().get(special.productId) : undefined;
+    if (!special || !product) return null;
+    const now = this.#clock();
+    const end = dynamicTime(special.endsAt, this.menu().location.timeZone);
+    if (end?.at != null && end.at <= now) return null;
+    const minutesLeft = end?.at != null ? Math.ceil((end.at - now) / 60_000) : null;
+    return { special, product, endsLabel: end?.label ?? null, minutesLeft };
+  });
+  protected readonly dynamicRails = computed<Rail[]>(() => {
+    const d = this.#dynamic();
+    if (!d) return [];
+    const m = this.menu();
+    const byId = this.#productsById();
+    const now = this.#clock();
+    const rails: Rail[] = [];
+    const mo = this.moment();
+    // Con el modo "only" la carta ya viene filtrada: basta el aviso del encabezado
+    if (mo && mo.mode === 'highlight') {
+      const products = dynamicProducts(m, byId, mo.productIds, mo.categoryIds);
+      if (products.length) rails.push({ id: 'moment', title: mo.name, icon: mo.icon ?? 'clock', note: null, products });
+    }
+    const season = d.season;
+    const seasonEnd = season ? dynamicTime(season.endsAt, m.location.timeZone) : null;
+    if (season && !(seasonEnd?.at != null && seasonEnd.at <= now)) {
+      const products = dynamicProducts(m, byId, season.productIds);
+      if (products.length) rails.push({ id: 'season', title: season.title?.trim() || season.name, icon: 'sparkles', note: null, products });
+    }
+    const weather = d.weather;
+    if (weather) {
+      const products = dynamicProducts(m, byId, weather.productIds, weather.categoryIds);
+      const temp = Number.isFinite(weather.temperatureC) ? ct('dynamic.temperature', { n: Math.round(weather.temperatureC) }) : null;
+      if (products.length) rails.push({ id: 'weather', title: weather.title, icon: WEATHER_ICONS[weather.condition] ?? 'sun', note: temp, products });
+    }
+    return rails;
+  });
+
   protected readonly logoFailed = signal(false);
   protected readonly coverFailed = signal(false);
   /** Producto abierto en el detalle. */
@@ -1067,6 +1171,25 @@ export class CartaMenuView {
       });
     });
 
+    // Etapa 11: "Completa tu pedido" (solo si se puede pedir) y un producto sugerido que necesita su detalle
+    effect(() => {
+      const menu = this.canOrder() ? this.menu() : null;
+      untracked(() => this.suggestions.configure(menu));
+    });
+    effect(() => {
+      const product = this.suggestions.detail();
+      if (!product) return;
+      untracked(() => {
+        this.suggestions.detail.set(null);
+        this.cart.sheet.set(null);
+        this.openProduct(product);
+      });
+    });
+    effect(() => {
+      const ds = this.preview() ? null : this.dailySpecial();
+      if (ds) untracked(() => this.analytics?.trackOnce('dailySpecialView', ds.special.id));
+    });
+
     // Etapa 10: perfil del cliente (no en la vista previa)
     effect(() => {
       const menu = this.preview() ? null : this.menu();
@@ -1145,7 +1268,11 @@ export class CartaMenuView {
         if (timer) clearInterval(timer);
         timer = null;
       };
-      const tick = () => this.#now.set(Date.now());
+      const tick = () => {
+        const now = Date.now();
+        this.#now.set(now);
+        this.#dynamicTick(now);
+      };
       const start = () => {
         stop();
         timer = setInterval(tick, 60_000);
@@ -1168,6 +1295,18 @@ export class CartaMenuView {
       this.#observer?.disconnect();
       if (this.#scrollTimer) clearTimeout(this.#scrollTimer);
     });
+  }
+
+  /**
+   * Etapa 11: avanza el reloj y, si empezó o terminó un momento, la temporada o el plato del día, recarga la carta
+   * (con el modo "only" cambian las categorías). Cada instante se cruza una sola vez.
+   */
+  #dynamicTick(now: number): void {
+    const since = this.#lastTick;
+    this.#lastTick = now;
+    this.#clock.set(now);
+    const crossed = dynamicBoundaries(this.menu().dynamic, this.menu().location.timeZone).some((at) => at > since && at <= now);
+    if (crossed) this.refresh.emit();
   }
 
   protected dismissAnnouncement(): void {
@@ -1206,6 +1345,7 @@ export class CartaMenuView {
     if (!this.canOrder() || this.#blocked().has(product.id)) return;
     if (!this.cart.add(addition)) return;
     this.analytics?.track('add_to_cart', product.id);
+    this.suggestions.added(product.id);
     this.detail.set(null);
   }
 

@@ -1,0 +1,181 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ moment ? 'Editar momento' : 'Nuevo momento' }}</h2>
+  </ng-template>
+
+  <form class="space-y-5 p-2" (submit)="$event.preventDefault(); handleSubmit()">
+    @if (!moment) {
+    <div>
+      <p class="text-muted-foreground mb-2 text-xs">Parte desde uno típico y ajústalo:</p>
+      <div class="flex flex-wrap gap-2">
+        @for (preset of presets; track preset.name) {
+        <button type="button" class="glass-row text-foreground hover:border-primary rounded-full px-3 py-1.5 text-xs font-medium" (click)="applyPreset(preset)">
+          {{ preset.label }}
+        </button>
+        }
+      </div>
+    </div>
+    }
+
+    <div>
+      <label for="moment-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="moment-name"
+        type="text"
+        [attr.maxlength]="nameMax"
+        placeholder="Ej: Almuerzo"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="show('name')"
+        [value]="$name()"
+        (input)="setName($any($event.target).value)"
+        (blur)="$touchedName.set(true)" />
+      @if (show('name'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Tus clientes lo ven en la carta ("Ahora: Almuerzo").</p>
+      }
+    </div>
+
+    <fieldset>
+      <legend class="mb-1 text-sm font-medium">Ícono</legend>
+      <div role="radiogroup" aria-label="Ícono del momento" class="grid max-h-40 grid-cols-5 gap-1.5 overflow-y-auto p-0.5 sm:grid-cols-9" [class.ring-2]="show('icon')" [class.ring-red-500]="show('icon')">
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="$icon() === null"
+          title="Sin ícono"
+          class="flex h-10 items-center justify-center rounded-md border text-sm"
+          [class]="$icon() === null ? 'border-primary bg-primary/10 text-primary' : 'text-muted-foreground border-[var(--border)]'"
+          (click)="setIcon(null)">
+          —<span class="sr-only">Sin ícono</span>
+        </button>
+        @for (icon of icons; track icon.name) {
+        <button
+          type="button"
+          role="radio"
+          [attr.aria-checked]="$icon() === icon.name"
+          [title]="icon.label"
+          class="flex h-10 items-center justify-center rounded-md border"
+          [class]="$icon() === icon.name ? 'border-primary bg-primary/10 text-primary' : 'text-foreground border-[var(--border)] hover:bg-muted/50'"
+          (click)="setIcon(icon.name)">
+          <app-carta-icon [name]="asIcon(icon.name)" [size]="18" />
+          <span class="sr-only">{{ icon.label }}</span>
+        </button>
+        }
+      </div>
+      @if (show('icon'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      }
+    </fieldset>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Cuándo</legend>
+      <div>
+        <p class="mb-1 text-sm font-medium" id="moment-days-label">Días *</p>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-labelledby="moment-days-label">
+          @for (day of weekOrder; track day) {
+          @let on = $days().includes(day);
+          <button
+            type="button"
+            class="h-9 min-w-11 rounded-full px-3 text-sm font-medium"
+            [class]="on ? 'bg-primary text-primary-foreground' : 'glass-row text-muted-foreground hover:text-foreground'"
+            [attr.aria-pressed]="on"
+            (click)="toggleDay(day)">
+            {{ dayShort[day] }}
+          </button>
+          }
+        </div>
+        @if (show('days'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">{{ $daysLabel() }}</p>
+        }
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="moment-start" class="mb-1 block text-sm font-medium">Desde *</label>
+          <input id="moment-start" type="time" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('time')" [value]="$startTime()" (change)="setTime('start', $any($event.target).value)" />
+        </div>
+        <div>
+          <label for="moment-end" class="mb-1 block text-sm font-medium">Hasta *</label>
+          <input id="moment-end" type="time" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('time')" [value]="$endTime()" (change)="setTime('end', $any($event.target).value)" />
+        </div>
+      </div>
+      @if (show('time'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      } @else if ($crossesMidnight()) {
+      <p class="text-muted-foreground text-xs">Termina al día siguiente (cruza la medianoche).</p>
+      }
+      @if (show('overlap'); as error) {
+      <div class="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-2.5 text-xs" role="alert">
+        <app-icon class="text-destructive h-4 w-4 shrink-0" aria-hidden="true">event_busy</app-icon>
+        <p class="text-foreground">{{ error }}</p>
+      </div>
+      }
+    </fieldset>
+
+    <fieldset class="space-y-2 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Cómo cambia la carta</legend>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Modo">
+        @for (mode of modes; track mode) {
+        <label class="glass-row flex cursor-pointer items-start gap-2 rounded-md p-3" [class.border-primary]="$mode() === mode">
+          <input type="radio" name="moment-mode" class="accent-primary mt-0.5 h-4 w-4" [checked]="$mode() === mode" (change)="setMode(mode)" />
+          <span>
+            <span class="block text-sm font-medium">{{ modeLabels[mode] }}</span>
+            <span class="text-muted-foreground block text-xs">{{ modeHints[mode] }}</span>
+          </span>
+        </label>
+        }
+      </div>
+      @if (show('mode'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      }
+    </fieldset>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Qué muestra *</legend>
+      <div>
+        <label for="moment-categories" class="mb-1 block text-sm font-medium">Categorías</label>
+        <app-menu-dynamic-items-select
+          kind="category"
+          inputId="moment-categories"
+          [catalog]="data.catalog()"
+          [loading]="data.catalogLoading()"
+          [invalid]="!!show('items')"
+          [value]="$categoryIds()"
+          (valueChange)="setItems('category', $event)" />
+      </div>
+      <div>
+        <label for="moment-products" class="mb-1 block text-sm font-medium">Productos</label>
+        <app-menu-dynamic-items-select
+          kind="product"
+          inputId="moment-products"
+          [catalog]="data.catalog()"
+          [loading]="data.catalogLoading()"
+          [invalid]="!!show('items')"
+          [value]="$productIds()"
+          (valueChange)="setItems('product', $event)" />
+      </div>
+      @if (show('items'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      }
+    </fieldset>
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activo</p>
+        <p class="text-muted-foreground text-xs">Inactivo no cambia la carta aunque esté en horario.</p>
+      </div>
+      <app-toggle ariaLabel="Momento activo" [checked]="$isActive()" (changed)="setActive($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ moment ? 'Guardar' : 'Crear momento' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

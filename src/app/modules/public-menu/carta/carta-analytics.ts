@@ -3,7 +3,10 @@ import { DestroyRef, inject, Injectable, PLATFORM_ID } from '@angular/core';
 import { MenuEventsRequestDto, MenuEventType } from '../data-access/dtos/menu-marketing.dto';
 import { PublicMenuApiService } from '../data-access/public-menu-api.service';
 
-type MenuEvent = MenuEventsRequestDto['events'][number];
+/** Etapa 11: eventos de la carta dinámica (el backend los acepta desde esa etapa). */
+export type CartaEventType = MenuEventType | 'suggestionShown' | 'suggestionAccepted' | 'dailySpecialView';
+
+type MenuEvent = Readonly<{ type: CartaEventType; refId?: number }>;
 
 const SESSION_KEY = 'redom-menu-session';
 const BATCH_SIZE = 20;
@@ -74,7 +77,7 @@ export class CartaAnalytics {
     this.#sessionId ??= sessionId();
   }
 
-  track(type: MenuEventType, refId?: number): void {
+  track(type: CartaEventType, refId?: number): void {
     if (!this.#browser || !this.#context) return;
     this.#queue.push(refId == null ? { type } : { type, refId });
     if (this.#queue.length >= BATCH_SIZE) this.flush(false);
@@ -82,7 +85,7 @@ export class CartaAnalytics {
   }
 
   /** Una vez por carta abierta (p. ej. banner_view). */
-  trackOnce(type: MenuEventType, refId?: number): void {
+  trackOnce(type: CartaEventType, refId?: number): void {
     const key = `${type}:${refId ?? ''}`;
     if (this.#once.has(key)) return;
     this.#once.add(key);
@@ -95,7 +98,7 @@ export class CartaAnalytics {
     const ctx = this.#context;
     if (!ctx) return;
     while (this.#queue.length) {
-      const dto: MenuEventsRequestDto = { ...ctx, sessionId: this.#sessionId, events: this.#queue.splice(0, BATCH_SIZE) };
+      const dto: MenuEventsRequestDto = { ...ctx, sessionId: this.#sessionId, events: this.#queue.splice(0, BATCH_SIZE) as MenuEventsRequestDto['events'] };
       try {
         if (leaving) this.#beacon(dto);
         else this.#api.sendEvents(dto).subscribe({ error: () => undefined });

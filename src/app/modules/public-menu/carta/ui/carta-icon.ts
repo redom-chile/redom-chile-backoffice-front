@@ -73,7 +73,10 @@ export type CartaIconName =
   | 'contrast'
   | 'megaphone'
   | 'book-open'
-  | 'mail';
+  | 'mail'
+  | 'cloud-rain'
+  | 'snowflake'
+  | 'sparkles';
 
 /** Íconos SVG en línea (la landing no carga Material Symbols). Decorativos: aria-hidden. */
 @Component({
@@ -414,6 +417,17 @@ export type CartaIconName =
         @case ('megaphone') {
           <path d="m3 11 18-5v12L3 14v-3z" />
           <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+        }
+        @case ('cloud-rain') {
+          <path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.24" />
+          <path d="M16 14v6M8 14v6M12 16v6" />
+        }
+        @case ('snowflake') {
+          <path d="M2 12h20M12 2v20" />
+          <path d="m20 16-4-4 4-4M4 8l4 4-4 4M16 4l-4 4-4-4M8 20l4-4 4 4" />
+        }
+        @case ('sparkles') {
+          <path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z" />
         }
         @case ('book-open') {
           <path d="M12 7v14" />

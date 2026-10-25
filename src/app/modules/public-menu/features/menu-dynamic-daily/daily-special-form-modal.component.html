@@ -1,0 +1,160 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ special ? 'Editar plato del día' : 'Nuevo plato del día' }}</h2>
+  </ng-template>
+
+  <form class="space-y-5 p-2" (submit)="$event.preventDefault(); handleSubmit()">
+    <div>
+      <label for="daily-product" class="mb-1 block text-sm font-medium">Producto *</label>
+      <app-menu-dynamic-items-select
+        kind="product"
+        inputId="daily-product"
+        [max]="1"
+        [catalog]="data.catalog()"
+        [loading]="data.catalogLoading()"
+        [disabled]="productLocked"
+        [invalid]="!!show('product')"
+        [value]="$productIds()"
+        (valueChange)="setProduct($event)" />
+      @if (show('product'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else if (productLocked) {
+      <p class="text-muted-foreground mt-1 text-xs">Ya se vendieron porciones: el producto no se puede cambiar. Crea otro plato del día.</p>
+      }
+    </div>
+
+    @if ($variations().length > 1) {
+    <div>
+      <label for="daily-variation" class="mb-1 block text-sm font-medium">Variedad</label>
+      <select id="daily-variation" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('variation')" (change)="setVariation($any($event.target).value)">
+        <option value="" [selected]="$variationId() === null">Cualquiera</option>
+        @for (variation of $variations(); track variation.id) {
+        <option [value]="variation.id" [selected]="variation.id === $variationId()">{{ variation.label }}</option>
+        }
+      </select>
+      @if (show('variation'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      }
+    </div>
+    }
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label for="daily-title" class="mb-1 block text-sm font-medium">Título *</label>
+        <input
+          id="daily-title"
+          type="text"
+          [attr.maxlength]="titleMax"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('title')"
+          [value]="$title()"
+          (input)="setText('title', $any($event.target).value)" />
+        @if (show('title'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        }
+      </div>
+      <div class="sm:col-span-2">
+        <label for="daily-note" class="mb-1 block text-sm font-medium">Nota</label>
+        <textarea
+          id="daily-note"
+          rows="2"
+          [attr.maxlength]="noteMax"
+          placeholder="Ej: Incluye ensalada y bebida"
+          class="glass-input w-full resize-none rounded-md px-3 py-2"
+          [class.border-red-500]="show('note')"
+          [value]="$note()"
+          (input)="setText('note', $any($event.target).value)"></textarea>
+        @if (show('note'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-right text-xs">{{ $note().length }}/{{ noteMax }}</p>
+        }
+      </div>
+      <div>
+        <label for="daily-price" class="mb-1 block text-sm font-medium">Precio (IVA incluido)</label>
+        <div class="relative">
+          <span class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm">$</span>
+          <input
+            id="daily-price"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            [placeholder]="$catalogPrice() ?? 'El de la carta'"
+            class="glass-input w-full rounded-md py-2 pl-7 pr-3"
+            [class.border-red-500]="show('price')"
+            [value]="$price()"
+            (input)="setText('price', $any($event.target).value)" />
+        </div>
+        @if (show('price'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Vacío: se cobra el precio de la carta{{ $catalogPrice() ? ' (' + $catalogPrice() + ')' : '' }}.</p>
+        }
+      </div>
+      <div>
+        <label for="daily-portions" class="mb-1 block text-sm font-medium">Porciones</label>
+        <input
+          id="daily-portions"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          placeholder="Sin límite"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('portions')"
+          [value]="$portions()"
+          (input)="setText('portions', $any($event.target).value)" />
+        @if (show('portions'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Al venderlas todas se muestra "Agotado".</p>
+        }
+      </div>
+    </div>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Cuándo</legend>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <label for="daily-date" class="mb-1 block text-sm font-medium">Día *</label>
+          <input id="daily-date" type="date" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('time')" [value]="$date()" (change)="setTime('date', $any($event.target).value)" />
+        </div>
+        <div>
+          <label for="daily-start" class="mb-1 block text-sm font-medium">Desde *</label>
+          <input id="daily-start" type="time" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('time')" [value]="$startTime()" (change)="setTime('start', $any($event.target).value)" />
+        </div>
+        <div>
+          <label for="daily-end" class="mb-1 block text-sm font-medium">Hasta *</label>
+          <input id="daily-end" type="time" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('time')" [value]="$endTime()" (change)="setTime('end', $any($event.target).value)" />
+        </div>
+      </div>
+      @if (show('time'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      } @else if (show('overlap'); as error) {
+      <p class="text-destructive text-xs" role="alert">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground text-xs">
+        {{ $dateLabel() }}{{ $crossesMidnight() ? ', termina al día siguiente' : '' }}. La carta muestra la cuenta regresiva hasta la hora de término.
+      </p>
+      }
+    </fieldset>
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activo</p>
+        <p class="text-muted-foreground text-xs">Inactivo no aparece en la carta.</p>
+      </div>
+      <app-toggle ariaLabel="Plato del día activo" [checked]="$isActive()" (changed)="setActive($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ special ? 'Guardar' : 'Crear plato del día' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

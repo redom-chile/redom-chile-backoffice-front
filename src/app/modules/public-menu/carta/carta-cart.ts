@@ -3,8 +3,9 @@ import { readApiError } from 'src/app/core/utils/api-error';
 import { CartLineDto, PublicOrderDto } from '../data-access/dtos/customer-orders.dto';
 import { PublicLocationMenuDto, PublicProductDto } from '../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../data-access/public-menu-format';
-import { CartaKey, cartaErrorMessage, cartaLanguage, ct } from './carta-i18n';
+import { CartaKey, cartaErrorMessage, cartaLanguage, ct, ctn } from './carta-i18n';
 import { isPackUnavailable, productsById } from './carta-marketing';
+import { soldOutSpecialProduct } from './carta-dynamic';
 
 // --- Límites del backend (customer-orders-dto.ts) ---
 
@@ -74,6 +75,9 @@ export function blockedProducts(menu: PublicLocationMenuDto): Map<number, Produc
     c.subcategories.forEach((s) => check(s.products, c.availableNow && s.availableNow));
   }
   check(menu.uncategorized, true);
+  // Etapa 11: el plato del día sin porciones se rechaza al pedirlo
+  const special = soldOutSpecialProduct(menu, productsById(menu));
+  if (special != null) map.set(special, 'sold_out');
   return map;
 }
 
@@ -91,7 +95,16 @@ export const BLOCK_LABELS: Readonly<Record<ProductBlock, string>> = {
 };
 
 /** Motivo de una línea que no se puede pedir (de la carta o de PRODUCT_UNAVAILABLE / PACK_CHOICES_INVALID). */
-export type CartIssue = 'sold_out' | 'out_of_schedule' | 'not_in_menu' | 'pack_unavailable' | 'pack_choices' | 'unknown';
+export type CartIssue =
+  | 'sold_out'
+  | 'out_of_schedule'
+  | 'not_in_menu'
+  | 'pack_unavailable'
+  | 'pack_choices'
+  | 'unknown'
+  /** Etapa 11 (PRODUCT_UNAVAILABLE.reason). */
+  | 'dailySpecialSoldOut'
+  | 'outOfMoment';
 
 const ISSUE_KEYS: Readonly<Record<CartIssue, CartaKey>> = {
   sold_out: 'cart.reason.sold_out',
@@ -100,7 +113,11 @@ const ISSUE_KEYS: Readonly<Record<CartIssue, CartaKey>> = {
   pack_unavailable: 'cart.block.pack_unavailable',
   pack_choices: 'cart.reason.pack_choices',
   unknown: 'cart.reason.unknown',
+  dailySpecialSoldOut: 'cart.reason.dailySpecialSoldOut',
+  outOfMoment: 'cart.reason.outOfMoment',
 };
+
+const SERVER_REASONS: ReadonlySet<string> = new Set<CartIssue>(['sold_out', 'out_of_schedule', 'not_in_menu', 'dailySpecialSoldOut', 'outOfMoment']);
 
 const isCartIssue = (value: unknown): value is CartIssue => typeof value === 'string' && value in ISSUE_KEYS;
 
@@ -136,8 +153,18 @@ export function readOrderError(error: unknown): OrderSendError {
       const productId = typeof d['productId'] === 'number' ? d['productId'] : undefined;
       const reason = typeof d['reason'] === 'string' ? d['reason'] : undefined;
       if (productId != null) {
-        const issue: CartIssue = reason === 'sold_out' || reason === 'out_of_schedule' || reason === 'not_in_menu' ? reason : 'unknown';
-        return { message: ct('order.error.productUnavailable'), productId, reason: issue, reload: true };
+        const issue: CartIssue = reason && SERVER_REASONS.has(reason) ? (reason as CartIssue) : 'unknown';
+        // dailySpecialSoldOut con portionsLeft > 0: se pidieron más porciones de las que quedan
+        const left = Number(d['portionsLeft']);
+        const message =
+          issue === 'dailySpecialSoldOut'
+            ? Number.isInteger(left) && left > 0
+              ? ctn('order.error.dailySpecialLeft', left)
+              : ct('order.error.dailySpecialSoldOut')
+            : issue === 'outOfMoment'
+              ? ct('order.error.outOfMoment')
+              : ct('order.error.productUnavailable');
+        return { message, productId, reason: issue, reload: true };
       }
       // 400: una opción de un pack quedó inactiva
       return { message: ct('order.error.packChoices'), pack: true, groupId: typeof d['groupId'] === 'number' ? d['groupId'] : undefined, reload: true };
@@ -459,7 +486,9 @@ export class CartaCart {
     const blocked = blockedProducts(menu);
     const current = this.items();
     const items = current.map((i) => {
-      const issue = lineIssue(i.line, products.get(i.line.productId), blocked);
+      const found = lineIssue(i.line, products.get(i.line.productId), blocked);
+      // Sigue sin poder pedirse: se mantiene el motivo más preciso del servidor (etapa 11)
+      const issue = found && (i.issue === 'dailySpecialSoldOut' || i.issue === 'outOfMoment') ? i.issue : found;
       return issue !== i.issue ? { ...i, issue } : i;
     });
     if (items.some((item, idx) => item !== current[idx])) this.#set(items);

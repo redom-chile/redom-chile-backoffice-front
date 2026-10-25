@@ -4,6 +4,7 @@ import { PublicOnlineDto } from './online-orders.dto';
 import { ExtraMenuLanguage, MenuLanguage } from './menu-translations.dto';
 import { MenuSortMode, PublicChefPicksDto, PublicMenuDesignDto } from './menu-design.dto';
 import { CustomerProfilesSettingsDto, PublicCustomerProfilesDto } from './customer-profiles.dto';
+import { PublicMenuDynamicDto } from './menu-dynamic.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -129,6 +130,8 @@ export type PublicLocationMenuDto = Readonly<{
   chefPicks: PublicChefPicksDto | null;
   /** Etapa 10: cliente reconocido (null: apagado o sin plan). */
   customerProfiles?: PublicCustomerProfilesDto | null;
+  /** Etapa 11: carta dinámica (null: nada activo o sin plan; ausente: backend sin la etapa). */
+  dynamic?: PublicMenuDynamicDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */
