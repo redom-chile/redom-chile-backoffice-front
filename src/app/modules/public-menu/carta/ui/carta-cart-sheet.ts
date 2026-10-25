@@ -6,6 +6,7 @@ import { PublicMenuApiService } from '../../data-access/public-menu-api.service'
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaCart, cartIssueText, MAX_CART_LINES, MAX_CUSTOMER_NAME, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_ORDER_NOTE, readOrderError, toOrderLine } from '../carta-cart';
 import { CartaI18n } from '../carta-i18n';
+import { CartaCustomer } from '../carta-customer';
 import { CartaIcon } from './carta-icon';
 import { CartaStepper } from './carta-stepper';
 
@@ -226,8 +227,13 @@ export class CartaCartSheet {
 
   #request: Subscription | null = null;
 
+  readonly #customer = inject(CartaCustomer);
+
   constructor() {
     inject(DestroyRef).onDestroy(() => this.#request?.unsubscribe());
+    // Etapa 10: el nombre del perfil, si no escribió otro
+    const name = this.#customer.verified() ? this.#customer.profile()?.name : null;
+    if (name && !this.cart.customerName()) this.cart.setCustomerName(name);
   }
 
   protected send(): void {
@@ -239,17 +245,23 @@ export class CartaCartSheet {
     this.editingNote.set(null);
     const name = this.cart.customerName().trim().slice(0, MAX_CUSTOMER_NAME);
     const note = this.cart.note().trim().slice(0, MAX_ORDER_NOTE);
-    this.#request = this.#api
-      .createOrder({
-        qrCode: qr,
-        items: items.map(toOrderLine),
-        ...(name ? { customerName: name } : {}),
-        ...(note ? { note } : {}),
-      })
+    this.#request = this.#customer
+      .withCustomer((headers) =>
+        this.#api.createOrder(
+          {
+            qrCode: qr,
+            items: items.map(toOrderLine),
+            ...(name ? { customerName: name } : {}),
+            ...(note ? { note } : {}),
+          },
+          headers,
+        ),
+      )
       .subscribe({
         next: (order) => {
           this.sending.set(false);
           this.cart.ordered(order);
+          this.#customer.reloadUsual();
           this.ordered.emit(order);
         },
         error: (e) => {

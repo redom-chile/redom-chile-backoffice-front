@@ -25,7 +25,10 @@ import { PublicBannerDto } from '../../data-access/dtos/menu-marketing.dto';
 import { MenuCardStyle } from '../../data-access/dtos/menu-design.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { CartaAnalytics } from '../carta-analytics';
-import { BLOCK_LABELS, blockedProducts, CartAddition, CartaCart } from '../carta-cart';
+import { BLOCK_LABELS, blockedProducts, CartAddition, CartaCart, MAX_LINE_QUANTITY } from '../carta-cart';
+import { allergenShortName, CartaCustomer, productConflicts } from '../carta-customer';
+import { CartaProfileSheet } from './carta-profile-sheet';
+import { CartaUsual, UsualOrder } from './carta-usual';
 import {
   brandingStyle,
   cheapestVariation,
@@ -60,7 +63,7 @@ import { CartaEmbed } from '../carta-embed';
 import { CartaDisplay } from '../carta-display';
 import { CartaDisplayMenu } from './carta-display-menu';
 import { CartaLanguageMenu } from './carta-language-menu';
-import { CartaI18n, CartaKey, CartaLang, ct } from '../carta-i18n';
+import { CartaI18n, CartaKey, CartaLang, ct, ctn } from '../carta-i18n';
 import { CARTA_BOTTOM_BAR, CartaBarAction, CartaBottomBar } from './carta-bottom-bar';
 import { CartaBookingSheet } from './carta-booking-sheet';
 import { CartaTableFabs } from './carta-table-fabs';
@@ -69,8 +72,8 @@ import { CARTA_DESIGN_CSS, CartaFonts, cardStyleFor, chalkboardVars, fontVars, p
 import { CartaSpeech, productSpeech } from '../carta-speech';
 import { CartaAnnouncement, CartaListenButton, CartaStory } from './carta-design-blocks';
 
-/** Hojas de la etapa 4 (servicio en la mesa y reservas). */
-type ServicePanel = 'waiter' | 'bill' | 'booking';
+/** Hojas de la etapa 4 (servicio en la mesa y reservas) y "Tu perfil" (etapa 10). */
+type ServicePanel = 'waiter' | 'bill' | 'booking' | 'profile';
 
 type Group = Readonly<{
   id: string;
@@ -103,9 +106,7 @@ const TAG_GROUPS: ReadonlyArray<{ kind: 'diet' | 'allergen' | 'badge'; label: Ca
 ];
 
 /** "Contiene gluten" → "Sin gluten" (las etiquetas llegan traducidas: "Contains gluten" → "No gluten"). */
-const CONTAINS = /^(contiene|contains|cont[eé]m|enth[aä]lt)\s+/i;
-const allergenFilterLabel = (tag: PublicTagDto) =>
-  ct('menu.without', { name: CONTAINS.test(tag.name) ? tag.name.replace(CONTAINS, '') : tag.name.toLowerCase() });
+const allergenFilterLabel = (tag: PublicTagDto) => ct('menu.without', { name: allergenShortName(tag) });
 
 /** Clave corta y estable para recordar un anuncio cerrado. */
 function hashText(text: string): string {
@@ -157,6 +158,8 @@ function writeSession(key: string): void {
     CartaWaiterSheet,
     CartaBillSheet,
     CartaBookingSheet,
+    CartaProfileSheet,
+    CartaUsual,
   ],
   providers: [CartaCart, CartaTableService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -178,6 +181,17 @@ function writeSession(key: string): void {
             <app-carta-language-menu [languages]="languages()" (choose)="languageChange.emit($event)" />
           }
           <app-carta-display-menu [contrast]="d.highContrast" />
+          @if (profileInHeader()) {
+            <button
+              type="button"
+              class="flex size-10 items-center justify-center rounded-full border border-border bg-background/85 text-foreground shadow-sm backdrop-blur transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+              [attr.aria-label]="t('customer.title')"
+              [attr.title]="t('customer.title')"
+              (click)="panel.set('profile')"
+            >
+              <app-carta-icon name="user" [size]="18" />
+            </button>
+          }
         </div>
       }
       @if (hasCover()) {
@@ -214,7 +228,7 @@ function writeSession(key: string): void {
               >{{ logoInitials() }}</span
             >
           }
-          <div class="min-w-0 flex-1" [class.pt-9]="hasCover()" [class.pr-12]="!hasCover() && !preview() && languages().length <= 1" [class.pr-28]="!hasCover() && !preview() && languages().length > 1">
+          <div class="min-w-0 flex-1" [class.pt-9]="hasCover()" [class]="titlePad()">
             <h1 class="carta-title text-2xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{{ m.business.name }}</h1>
             <p class="mt-0.5 text-[0.9375rem] font-medium text-muted-foreground [overflow-wrap:anywhere]">{{ m.location.name }}</p>
             <p
@@ -224,6 +238,17 @@ function writeSession(key: string): void {
               <span class="size-2 rounded-full" [class]="m.location.isOpenNow ? 'bg-emerald-500' : 'bg-muted-foreground'" aria-hidden="true"></span>
               {{ t(m.location.isOpenNow ? 'common.openNow' : 'common.closed') }}
             </p>
+            @if (loyalty(); as l) {
+              <button
+                type="button"
+                class="ml-1.5 mt-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-foreground transition hover:bg-primary/25 focus-visible:outline-2 focus-visible:outline-primary"
+                [attr.aria-label]="tn(l.mechanic === 'stamps' ? 'customer.balanceStamps' : 'customer.balancePoints', l.balance, { program: l.programName })"
+                (click)="panel.set('profile')"
+              >
+                <app-carta-icon name="star" [size]="13" class="text-primary" />
+                <span class="tabular-nums">{{ t(l.mechanic === 'stamps' ? 'customer.chipStamps' : 'customer.chipPoints', { n: l.balance }) }}</span>
+              </button>
+            }
           </div>
         </div>
 
@@ -443,6 +468,9 @@ function writeSession(key: string): void {
           </span>
         </button>
       </ng-template>
+      @if (usual(); as u) {
+        <app-carta-usual [usual]="u" [products]="productsMap()" [blockedLabel]="usualBlocked" [canOrder]="canOrder()" (open)="openProduct($event)" (repeat)="repeatOrder($event)" />
+      }
       @if (chefPicks(); as picks) {
         <section class="pt-4" aria-labelledby="carta-chef-picks">
           <div class="flex items-center gap-3">
@@ -515,7 +543,7 @@ function writeSession(key: string): void {
             @if (s.products.length) {
               <div class="carta-products mt-3 grid gap-3" [class]="gridClass(s.style)">
                 @for (p of s.products; track p.id) {
-                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="s.style" [compact]="isGrid(s.style)" (view)="openProduct($event)" />
+                  <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="s.style" [compact]="isGrid(s.style)" [warn]="warned().has(p.id)" (view)="openProduct($event)" />
                 }
               </div>
             }
@@ -537,7 +565,7 @@ function writeSession(key: string): void {
                 }
                 <div class="carta-products mt-2 grid gap-3" [class]="gridClass(sub.style)">
                   @for (p of sub.products; track p.id) {
-                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="sub.style" [compact]="isGrid(sub.style)" (view)="openProduct($event)" />
+                    <app-carta-product-card [product]="p" [tagsByCode]="tagsByCode()" [timeZone]="m.location.timeZone" [orderable]="canAdd(p)" [variant]="sub.style" [compact]="isGrid(sub.style)" [warn]="warned().has(p.id)" (view)="openProduct($event)" />
                   }
                 </div>
               </div>
@@ -571,6 +599,7 @@ function writeSession(key: string): void {
           [blocked]="blockedLabel(p)"
           [cartFull]="cart.full()"
           [readAloud]="d.readAloud"
+          [conflicts]="conflictsOf(p)"
           (add)="addToCart(p, $event)"
         />
       </app-carta-dialog>
@@ -649,6 +678,11 @@ function writeSession(key: string): void {
           <app-carta-booking-sheet [menu]="m" (done)="bookingDialog.close()" (unavailable)="bookingsOff.set(true)" />
         </app-carta-dialog>
       }
+      @case ('profile') {
+        <app-carta-dialog [label]="t('customer.title')" (closed)="closePanel('profile')">
+          <app-carta-profile-sheet [menu]="m" (language)="preferLanguage($event)" />
+        </app-carta-dialog>
+      }
     }
 
     @if (m.business.showRedomBadge) {
@@ -671,6 +705,7 @@ function writeSession(key: string): void {
         [cartLabel]="onlineOrdering() ? 'order' : 'cart'"
         [ordersCount]="canOrder() ? cart.orderIds().length : 0"
         [booking]="bookings()"
+        [profile]="profileInBar()"
         [notice]="canOrder() ? cart.notice() : null"
         [status]="tableActive() ? tables.status() : null"
         (action)="onBarAction($event)"
@@ -695,6 +730,7 @@ export class CartaMenuView {
 
   readonly #i18n = inject(CartaI18n);
   protected readonly t = this.#i18n.t;
+  protected readonly tn = this.#i18n.tn;
   protected readonly languages = computed(() => this.menu().availableLanguages ?? []);
 
   /** Solo la provee la página pública: la vista previa no envía analítica. */
@@ -747,6 +783,38 @@ export class CartaMenuView {
     const block = this.#blocked().get(p.id);
     return block ? BLOCK_LABELS[block] : null;
   };
+
+  // --- Etapa 10: cliente reconocido ---
+  protected readonly customer = inject(CartaCustomer);
+  /** "Perfil" en la barra inferior solo si el local activó el perfil; si no, el botón del encabezado (preferencias en el navegador). */
+  protected readonly profileInBar = computed(() => this.bottomBar && !this.preview() && !!this.menu().customerProfiles?.enabled);
+  protected readonly profileInHeader = computed(() => !this.preview() && !this.profileInBar());
+  /** Espacio a la derecha del nombre para los botones del encabezado (sin portada). */
+  protected readonly titlePad = computed(() => {
+    if (this.hasCover() || this.preview()) return '';
+    const langs = this.languages().length > 1;
+    if (this.profileInHeader()) return langs ? 'pr-40' : 'pr-24';
+    return langs ? 'pr-28' : 'pr-12';
+  });
+  protected readonly loyalty = computed(() => (!this.preview() && this.customer.showLoyalty() ? this.customer.loyalty() : null));
+  protected readonly usual = computed(() => {
+    const u = !this.preview() && this.customer.showUsual() ? this.customer.usual() : null;
+    return u && (u.favorites.length || u.lastOrders.length) ? u : null;
+  });
+  readonly #prefs = computed(() => (this.preview() ? null : this.customer.preferences()));
+  protected readonly conflictsOf = (p: PublicProductDto) => {
+    const prefs = this.#prefs();
+    return prefs ? productConflicts(p, prefs, this.tagsByCode()) : null;
+  };
+  /** Productos con un alérgeno que el cliente evita (marca sutil en la lista). */
+  protected readonly warned = computed(() => {
+    const prefs = this.#prefs();
+    const ids = new Set<number>();
+    if (!prefs?.allergenTags.length) return ids;
+    for (const p of this.#productsById().values()) if (productConflicts(p, prefs, this.tagsByCode())?.allergens.length) ids.add(p.id);
+    return ids;
+  });
+  protected readonly usualBlocked = (p: PublicProductDto) => this.blockedLabel(p);
 
   protected readonly logoFailed = signal(false);
   protected readonly coverFailed = signal(false);
@@ -850,6 +918,7 @@ export class CartaMenuView {
   protected readonly hasCover = computed(() => !!this.coverUrl() && !this.coverFailed());
   protected readonly banners = computed(() => this.menu().marketing?.banners ?? []);
   readonly #productsById = computed(() => productsById(this.menu()));
+  protected readonly productsMap = this.#productsById;
   /** Los ids que no están en la carta se ignoran. */
   protected readonly mostOrdered = computed(() => {
     const byId = this.#productsById();
@@ -998,6 +1067,20 @@ export class CartaMenuView {
       });
     });
 
+    // Etapa 10: perfil del cliente (no en la vista previa)
+    effect(() => {
+      const menu = this.preview() ? null : this.menu();
+      untracked(() => this.customer.configure(menu));
+    });
+    // Idioma del perfil al identificarse o al cargarlo (si no se entró con ?lang=)
+    effect(() => {
+      if (!this.customer.loadedAt()) return;
+      untracked(() => {
+        const lang = this.customer.preferences().language;
+        if (lang && !this.#i18n.entryLang) this.preferLanguage(lang);
+      });
+    });
+
     // Solicitudes de la mesa (solo en el navegador)
     effect(() => {
       const enabled = this.#tableRequests();
@@ -1124,6 +1207,48 @@ export class CartaMenuView {
     if (!this.cart.add(addition)) return;
     this.analytics?.track('add_to_cart', product.id);
     this.detail.set(null);
+  }
+
+  /** Idioma elegido en las preferencias: se aplica si esta carta lo ofrece. */
+  protected preferLanguage(lang: CartaLang): void {
+    if (this.preview() || lang === this.menu().language || !this.languages().includes(lang)) return;
+    this.languageChange.emit(lang);
+  }
+
+  /**
+   * "Repetir pedido": agrega lo disponible tal cual; un pack o un producto con modificadores abre su detalle (se
+   * eligen las opciones de nuevo). Un aviso dice qué se agregó y qué no.
+   */
+  protected repeatOrder(order: UsualOrder): void {
+    if (!this.canOrder()) return;
+    const byId = this.#productsById();
+    const skipped: string[] = [];
+    let added = 0;
+    let choose: PublicProductDto | null = null;
+    for (const item of order.items) {
+      const p = byId.get(item.productId);
+      const variation = p?.variations.find((v) => v.id === item.variationId);
+      if (!p || !variation || !item.available || this.#blocked().has(p.id)) {
+        skipped.push(item.name);
+        continue;
+      }
+      if (p.pack || p.modifierSets?.some((set) => set.options.length)) {
+        choose ??= p;
+        continue;
+      }
+      const quantity = Math.min(MAX_LINE_QUANTITY, Math.max(1, Math.round(item.quantity)));
+      const line = { productId: p.id, variationId: variation.id, quantity };
+      if (this.cart.add({ name: p.name, details: p.variations.length > 1 ? [variation.name] : [], unitPrice: variation.price, line }, true)) added += quantity;
+      else skipped.push(item.name);
+    }
+    const parts: string[] = [];
+    if (added) parts.push(ctn('customer.repeatAdded', added));
+    if (skipped.length) parts.push(ct('customer.repeatSkipped', { names: skipped.join(', ') }));
+    if (choose) parts.push(ct('customer.repeatChoose', { name: choose.name }));
+    if (!added && !choose) parts.splice(0, parts.length, ct('customer.repeatNone'));
+    this.cart.flash(parts.join('. '), 6000);
+    if (added) this.analytics?.track('add_to_cart', order.items[0]?.productId);
+    if (choose) this.openProduct(choose);
   }
 
   protected openProduct(product: PublicProductDto): void {

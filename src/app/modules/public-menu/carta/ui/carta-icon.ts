@@ -34,6 +34,8 @@ export type CartaIconName =
   | 'bell'
   | 'star'
   | 'users'
+  | 'user'
+  | 'repeat'
   | 'wallet'
   | 'truck'
   | 'copy'
@@ -70,7 +72,8 @@ export type CartaIconName =
   | 'stop'
   | 'contrast'
   | 'megaphone'
-  | 'book-open';
+  | 'book-open'
+  | 'mail';
 
 /** Íconos SVG en línea (la landing no carga Material Symbols). Decorativos: aria-hidden. */
 @Component({
@@ -216,6 +219,20 @@ export type CartaIconName =
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        }
+        @case ('mail') {
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        }
+        @case ('user') {
+          <circle cx="12" cy="8" r="4" />
+          <path d="M20 21a8 8 0 0 0-16 0" />
+        }
+        @case ('repeat') {
+          <path d="m17 2 4 4-4 4" />
+          <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+          <path d="m7 22-4-4 4-4" />
+          <path d="M21 13v1a4 4 0 0 1-4 4H3" />
         }
         @case ('wallet') {
           <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />

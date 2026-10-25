@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
@@ -61,8 +61,9 @@ export class PublicMenuApiService {
   // --- Pedidos desde la mesa (etapa 3) ---
 
   /** 403 ORDERING_DISABLED, 409 LOCATION_CLOSED / TABLE_BLOCKED / PRODUCT_UNAVAILABLE, 400 PACK_CHOICES_INVALID / ORDER_TOO_LARGE, 429. */
-  createOrder(dto: CreatePublicOrderDto): Observable<PublicOrderDto> {
-    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  /** headers: etapa 10, X-Redom-Customer (customerHeaders). */
+  createOrder(dto: CreatePublicOrderDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto, { headers });
   }
 
   getOrder(id: string): Observable<PublicOrderDto> {
@@ -104,8 +105,8 @@ export class PublicMenuApiService {
 
   /** Sin qrCode. Errores: ORDERING_DISABLED, PAYMENT_METHOD_NOT_ACCEPTED, ORDER_SCHEDULE_INVALID, LOCATION_CLOSED,
    *  OUTSIDE_DELIVERY_AREA, BELOW_MINIMUM_ORDER, más los de la etapa 3. */
-  createOnlineOrder(dto: CreateOnlineOrderDto): Observable<PublicOrderDto> {
-    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  createOnlineOrder(dto: CreateOnlineOrderDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto, { headers });
   }
 
   /** contentType imagen o PDF, ≤ 5 MB. Luego PUT uploadUrl con exactamente los headers recibidos. */

@@ -15,12 +15,13 @@ import {
   PAYMENT_LABELS,
   phoneDigits,
   readOnlineOrderError,
-  readSavedCustomer,
   saveCustomer,
   scheduleDays,
   zoneCommunes,
 } from '../carta-online';
-import { CartaI18n, ct } from '../carta-i18n';
+import { CartaI18n, cartaErrorMessage, ct } from '../carta-i18n';
+import { CartaCustomer } from '../carta-customer';
+import { readApiError } from 'src/app/core/utils/api-error';
 import { CartaIcon, CartaIconName } from './carta-icon';
 
 type Field = 'name' | 'phone' | 'email' | 'street' | 'commune' | 'when' | 'payment';
@@ -134,22 +135,44 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
             }
           </div>
           <div>
-            <label for="carta-co-email" class="block text-sm font-semibold">{{ t('checkout.email') }} <span class="font-normal text-muted-foreground">{{ t('cart.optional') }}</span></label>
+            @let locked = lockedEmail();
+            <label for="carta-co-email" class="block text-sm font-semibold">
+              {{ t('checkout.email') }}
+              @if (!locked) {
+                <span class="font-normal text-muted-foreground">{{ t('cart.optional') }}</span>
+              }
+            </label>
             <input
               id="carta-co-email"
               type="email"
               inputmode="email"
               autocomplete="email"
               [placeholder]="t('checkout.emailPlaceholder')"
-              [class]="inputClass('email')"
+              [class]="inputClass('email') + (locked ? ' bg-muted text-muted-foreground' : '')"
               [maxLength]="limits.email"
-              [value]="email()"
+              [readOnly]="!!locked"
+              [value]="locked ?? email()"
               [attr.aria-invalid]="!!errors().email"
               [attr.aria-describedby]="errors().email ? 'carta-co-email-error' : 'carta-co-email-hint'"
               (input)="email.set($any($event.target).value)"
             />
             @if (errors().email; as e) {
               <p id="carta-co-email-error" class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ e }}</p>
+              @if (profileEmail(); as p) {
+                <button type="button" class="mt-1 text-sm font-semibold text-primary underline-offset-4 hover:underline" (click)="useProfileEmail(p)">
+                  {{ t('customer.useEmail', { email: p }) }}
+                </button>
+              } @else if (locked) {
+                <p class="mt-1 text-xs text-muted-foreground">
+                  {{ t('customer.notYou') }}
+                  <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline" (click)="notMe()">{{ t('customer.logout') }}</button>
+                </p>
+              }
+            } @else if (locked) {
+              <p id="carta-co-email-hint" class="mt-1 text-xs text-muted-foreground">
+                {{ t('customer.emailLocked') }} {{ t('customer.notYou') }}
+                <button type="button" class="font-semibold text-primary underline-offset-4 hover:underline" (click)="notMe()">{{ t('customer.logout') }}</button>
+              </p>
             } @else {
               <p id="carta-co-email-hint" class="mt-1 text-xs text-muted-foreground">{{ t('checkout.emailHint') }}</p>
             }
@@ -470,7 +493,13 @@ export class CartaCheckoutSheet {
     return choice && list.includes(choice) ? choice : (list[0] ?? 'pickup');
   });
 
-  readonly #saved = readSavedCustomer();
+  readonly #customer = inject(CartaCustomer);
+  /** Etapa 10: perfil del cliente (si está identificado) o lo recordado en redom-customer. */
+  readonly #saved = this.#customer.checkoutDefaults();
+  /** Identificado: el pedido va con el correo del perfil (no se edita). */
+  protected readonly lockedEmail = this.#customer.profileEmail;
+  /** CUSTOMER_EMAIL_MISMATCH: el correo del perfil para ofrecerlo. */
+  protected readonly profileEmail = signal<string | null>(null);
   protected readonly name = signal(this.#saved.name);
   protected readonly phone = signal(this.#saved.phone);
   protected readonly email = signal(this.#saved.email);
@@ -541,6 +570,24 @@ export class CartaCheckoutSheet {
     });
   }
 
+  protected useProfileEmail(email: string): void {
+    this.email.set(email);
+    this.profileEmail.set(null);
+    this.errors.update(({ email: _e, ...rest }) => rest);
+    this.error.set(null);
+  }
+
+  /** "¿No eres tú?": cierra la sesión del cliente y deja el formulario sin sus datos. */
+  protected notMe(): void {
+    const profile = this.#customer.profile();
+    this.#customer.logout();
+    this.email.set('');
+    if (profile?.name && this.name() === profile.name) this.name.set('');
+    if (profile?.phone && this.phone() === profile.phone) this.phone.set('');
+    this.profileEmail.set(null);
+    setTimeout(() => this.#host.nativeElement.querySelector<HTMLElement>('#carta-co-email')?.focus());
+  }
+
   protected setChannel(channel: OnlineChannel): void {
     this.#channelChoice.set(channel);
     this.errors.update(({ street: _s, commune: _c, payment: _p, ...rest }) => rest);
@@ -588,7 +635,7 @@ export class CartaCheckoutSheet {
     else if (name.length > ONLINE_LIMITS.name) errors.name = ct('checkout.err.nameMax', { max: ONLINE_LIMITS.name });
     const digits = phoneDigits(this.phone());
     if (digits < ONLINE_LIMITS.minPhoneDigits || digits > ONLINE_LIMITS.maxPhoneDigits) errors.phone = ct('checkout.err.phone');
-    const email = this.email().trim();
+    const email = this.lockedEmail() ?? this.email().trim();
     if (email && !isEmail(email)) errors.email = ct('checkout.err.email');
 
     if (channel === 'delivery') {
@@ -623,37 +670,51 @@ export class CartaCheckoutSheet {
     const coords = this.coords();
     this.sending.set(true);
     this.#sub?.unsubscribe();
-    this.#sub = this.#api
-      .createOnlineOrder({
-        businessSlug: m.business.slug,
-        locationSlug: m.location.slug,
-        channel,
-        items: items.map(toOrderLine),
-        customer: { name, phone, email: email || null },
-        ...(channel === 'delivery'
-          ? {
-              address: {
-                street: this.street().trim().slice(0, ONLINE_LIMITS.street),
-                ...(this.number().trim() ? { number: this.number().trim().slice(0, ONLINE_LIMITS.number) } : {}),
-                ...(this.details().trim() ? { details: this.details().trim().slice(0, ONLINE_LIMITS.details) } : {}),
-                communeId: this.communeId() as number,
-                ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
-              },
-            }
-          : {}),
-        scheduledFor,
-        paymentMethod: payment,
-        ...(note ? { note } : {}),
-      })
+    this.profileEmail.set(null);
+    this.#sub = this.#customer
+      .withCustomer((headers) =>
+        this.#api.createOnlineOrder(
+          {
+            businessSlug: m.business.slug,
+            locationSlug: m.location.slug,
+            channel,
+            items: items.map(toOrderLine),
+            customer: { name, phone, email: email || null },
+            ...(channel === 'delivery'
+              ? {
+                  address: {
+                    street: this.street().trim().slice(0, ONLINE_LIMITS.street),
+                    ...(this.number().trim() ? { number: this.number().trim().slice(0, ONLINE_LIMITS.number) } : {}),
+                    ...(this.details().trim() ? { details: this.details().trim().slice(0, ONLINE_LIMITS.details) } : {}),
+                    communeId: this.communeId() as number,
+                    ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
+                  },
+                }
+              : {}),
+            scheduledFor,
+            paymentMethod: payment,
+            ...(note ? { note } : {}),
+          },
+          headers,
+        ),
+      )
       .subscribe({
         next: (order) => {
           this.sending.set(false);
           saveCustomer({ name, phone, email });
           this.cart.ordered(order);
+          this.#customer.reloadUsual();
           this.ordered.emit(order);
         },
         error: (e) => {
           this.sending.set(false);
+          if (readApiError(e).code === 'CUSTOMER_EMAIL_MISMATCH') {
+            const profileEmail = this.#customer.profile()?.email ?? null;
+            this.errors.set({ email: cartaErrorMessage(e) });
+            this.profileEmail.set(profileEmail && profileEmail !== email ? profileEmail : null);
+            setTimeout(() => this.#host.nativeElement.querySelector<HTMLElement>('#carta-co-email')?.focus());
+            return;
+          }
           const err = readOnlineOrderError(e, channel, scheduledFor != null, this.online().prepMinutes);
           this.error.set(err.message);
           if (err.accepted?.length) this.#accepted.set(err.accepted);
