@@ -19,6 +19,16 @@ function packRange(details: Record<string, unknown>): string {
   return min === max ? ` (elige ${min})` : ` (elige de ${min} a ${max})`;
 }
 
+/** 409 PRODUCT_UNAVAILABLE con reason 'dailySpecialSoldOut' (details.portionsLeft); null si es otro error. */
+function dailySpecialSoldOutMessage(error: ApiError, productName?: (productId: number) => string | undefined): string | null {
+  if (error.code !== 'PRODUCT_UNAVAILABLE' || error.details['reason'] !== 'dailySpecialSoldOut') return null;
+  const name = productName?.(Number(error.details['productId']));
+  const left = Number(error.details['portionsLeft']);
+  if (Number.isInteger(left) && left > 0)
+    return `Plato del día${name ? ` (${name})` : ''}: ${left === 1 ? 'queda 1 porción' : `quedan ${left} porciones`}. Ajusta la cantidad o repón porciones.`;
+  return `Plato del día agotado${name ? ` (${name})` : ''}: repón porciones en Carta dinámica.`;
+}
+
 /**
  * Mensaje al crear un pedido o agregar productos. POST /orders/:id/lines responde 409 sin
  * código propio (code CONFLICT) cuando la cuenta ya se cerró o se canceló; el 409 por falta de
@@ -31,6 +41,9 @@ export function getOrderSaveErrorMessage(
   productName?: (productId: number) => string | undefined,
 ): string {
   if (isNotEnoughStockError(error)) return notEnoughStockMessage(error);
+  // 409 del plato del día sin porciones (va antes: al agregar, un 409 sin código propio es "cuenta cerrada")
+  const special = dailySpecialSoldOutMessage(error, productName);
+  if (special) return special;
 
   const notOpen =
     error.code === ApiErrorCode.ORDER_NOT_OPEN || (adding && error.status === HttpStatusCode.Conflict);

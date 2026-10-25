@@ -4,7 +4,7 @@ import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-me
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartAddition, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_MODIFIER_QUANTITY } from '../carta-cart';
 import { CartaI18n, ct } from '../carta-i18n';
-import { isPackUnavailable, packChoiceLabel, promotionLabel } from '../carta-marketing';
+import { isPackUnavailable, packChoiceLabel, promotionIcon, promotionLabel } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 import { CartaStepper } from './carta-stepper';
@@ -39,7 +39,7 @@ import { allergenShortName, ProductConflicts } from '../carta-customer';
           }
           @if (promotion(); as promo) {
             <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-              <app-carta-icon name="tag" [size]="13" />
+              <app-carta-icon [name]="promotionIcon()" [size]="13" />
               {{ promo }}
             </span>
           }
@@ -512,6 +512,7 @@ export class CartaProductDetail {
   protected readonly requiredWithoutOptions = (g: { minChoices: number; items: readonly { soldOut: boolean }[] }) =>
     g.minChoices > 0 && g.items.every((i) => i.soldOut);
 
+  protected readonly promotionIcon = computed(() => promotionIcon(this.product().promotion));
   protected readonly promotion = computed(() => {
     const promo = this.product().promotion;
     return promo ? promotionLabel(promo, this.timeZone()) : null;

@@ -9,3 +9,4 @@ export * from './public-api.service';
 export * from './menu-translations.service';
 export * from './menu-design.service';
 export * from './public-customer-api.service';
+export * from './menu-dynamic.service';

@@ -26,6 +26,8 @@ export const PLAN_FEATURE_LABELS: Record<PlanFeatureCode, string> = {
   menu_design: 'Diseño de la carta',
   menuAiContent: 'Contenido de la carta con IA',
   customerProfiles: 'Cliente reconocido en la carta',
+  menuDynamic: 'Carta dinámica (momentos y temporadas)',
+  menuDynamicPlus: 'Carta dinámica avanzada (clima, plato del día, sugerencias automáticas)',
 };
 
 export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: string }> = {
