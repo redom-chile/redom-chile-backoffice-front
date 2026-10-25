@@ -7,7 +7,18 @@
   <!-- Encabezado -->
   <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <h1 class="text-foreground text-2xl font-semibold">{{ customer.name }}</h1>
+      <div class="flex flex-wrap items-center gap-2">
+        <h1 class="text-foreground text-2xl font-semibold">{{ customer.name }}</h1>
+        @if (customer.isVerified) {
+        <span
+          class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+          tabindex="0"
+          [matTooltip]="customer.verifiedAt ? 'Se identificó con código el ' + formatDateTime(customer.verifiedAt) : 'Se identificó con código en la carta'"
+          matTooltipPosition="above">
+          <app-icon class="h-3.5 w-3.5" aria-hidden="true">verified</app-icon>Verificado en la carta
+        </span>
+        }
+      </div>
       <div class="text-muted-foreground mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm">
         <a [href]="'tel:' + customer.mobile" class="hover:text-primary inline-flex items-center gap-1"><app-icon class="h-4 w-4">call</app-icon>{{ customer.mobile }}</a>
         @if (customer.email) {

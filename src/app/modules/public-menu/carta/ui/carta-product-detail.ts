@@ -10,6 +10,7 @@ import { CartaPrice } from './carta-price';
 import { CartaStepper } from './carta-stepper';
 import { CartaListenButton } from './carta-design-blocks';
 import { CartaSpeech, productSpeech } from '../carta-speech';
+import { allergenShortName, ProductConflicts } from '../carta-customer';
 
 /**
  * Detalle de un producto (dentro de app-carta-dialog): precios, promoción y, si es pack, su contenido.
@@ -80,6 +81,26 @@ import { CartaSpeech, productSpeech } from '../carta-speech';
             </li>
           }
         </ul>
+      }
+
+      <!-- Etapa 10: lo que choca con las preferencias del cliente -->
+      @if (conflicts(); as c) {
+        @if (c.allergens.length) {
+          <div class="mt-4 flex gap-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm" role="note">
+            <app-carta-icon name="alert" [size]="20" class="mt-px text-rose-600 dark:text-rose-400" />
+            <ul class="grid min-w-0 flex-1 gap-0.5 font-semibold">
+              @for (tag of c.allergens; track tag.code) {
+                <li>{{ t('customer.allergenWarn', { name: short(tag) }) }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @for (tag of c.diets; track tag.code) {
+          <p class="mt-2 flex items-start gap-2 text-sm text-muted-foreground" role="note">
+            <app-carta-icon name="info" [size]="16" class="mt-0.5" />
+            {{ t('customer.dietHint', { name: tag.name }) }}
+          </p>
+        }
       }
 
       <!-- Precios -->
@@ -288,6 +309,10 @@ import { CartaSpeech, productSpeech } from '../carta-speech';
             <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">{{ t('product.cartFull') }}</p>
           } @else if (triedAdd() && firstError(); as err) {
             <p class="mb-2 text-center text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">{{ err }}</p>
+          } @else if (confirming() && conflicts()?.allergens?.length) {
+            <p class="mb-2 text-center text-sm font-semibold text-rose-600 dark:text-rose-400" role="alert">
+              {{ t('customer.allergenWarn', { name: short(conflicts()!.allergens[0]) }) }} {{ t('customer.confirmQuestion') }}
+            </p>
           }
           <div class="flex items-center gap-3">
             <app-carta-stepper [value]="quantity()" [min]="1" [max]="maxQuantity" [label]="p.name" (change)="quantity.set($event)" />
@@ -297,7 +322,7 @@ import { CartaSpeech, productSpeech } from '../carta-speech';
               [disabled]="cartFull()"
               (click)="submit()"
             >
-              <span>{{ t('common.add') }}</span>
+              <span>{{ confirming() ? t('customer.confirmAdd') : t('common.add') }}</span>
               <span class="tabular-nums">{{ format(lineTotal()) }}</span>
             </button>
           </div>
@@ -318,7 +343,13 @@ export class CartaProductDetail {
   readonly cartFull = input(false);
   /** Etapa 8: botón "Escuchar" (design.accessibility.readAloud). */
   readonly readAloud = input(false);
+  /** Etapa 10: alérgenos que el cliente evita (piden confirmar antes de agregar) y dietas que no cumple (solo aviso). */
+  readonly conflicts = input<ProductConflicts | null>(null);
   readonly add = output<CartAddition>();
+
+  protected readonly short = allergenShortName;
+  /** Primer "Agregar" con alérgenos que evita: pide confirmar. */
+  protected readonly confirming = linkedSignal({ source: this.product, computation: () => false });
 
   readonly #speech = inject(CartaSpeech);
   protected readonly canListen = computed(() => this.readAloud() && this.#speech.supported);
@@ -432,6 +463,10 @@ export class CartaProductDetail {
     const p = this.product();
     const variation = p.variations.find((v) => v.id === this.variationId());
     if (this.blocked() || this.cartFull() || !variation || this.firstError()) return;
+    if (this.conflicts()?.allergens.length && !this.confirming()) {
+      this.confirming.set(true);
+      return;
+    }
 
     const details: string[] = [];
     if (p.variations.length > 1) details.push(variation.name);

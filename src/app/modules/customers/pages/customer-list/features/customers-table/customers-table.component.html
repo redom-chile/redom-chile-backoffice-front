@@ -23,6 +23,16 @@
             <a [routerLink]="['/customers', customer.id]" class="flex items-center gap-3">
               <span class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">{{ initials(customer.name) }}</span>
               <span class="text-foreground hover:text-primary font-medium">{{ customer.name }}</span>
+              @if (customer.isVerified) {
+              <span
+                class="text-primary inline-flex shrink-0"
+                role="img"
+                [attr.aria-label]="verifiedLabel(customer.verifiedAt)"
+                [matTooltip]="verifiedLabel(customer.verifiedAt)"
+                matTooltipPosition="above">
+                <app-icon class="h-4 w-4" aria-hidden="true">verified</app-icon>
+              </span>
+              }
             </a>
           </td>
           <td class="px-4 py-3">

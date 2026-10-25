@@ -24,10 +24,11 @@ export const PLAN_FEATURES = [
   'loyalty',
   'menu_design',
   'menuAiContent',
+  'customerProfiles',
 ] as const;
 export type PlanFeatureCode = (typeof PLAN_FEATURES)[number];
 
-export type PlanLimitCode = 'max_locations' | 'max_users' | 'max_registers' | 'ai_questions_month' | 'aiMenuContentMonth';
+export type PlanLimitCode = 'max_locations' | 'max_users' | 'max_registers' | 'ai_questions_month' | 'aiMenuContentMonth' | 'customerOtpMonth';
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'expired' | 'cancelled';
 

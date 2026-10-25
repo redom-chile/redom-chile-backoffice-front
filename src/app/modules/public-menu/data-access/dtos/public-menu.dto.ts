@@ -3,6 +3,7 @@ import { MenuOrderingSettingsDto } from './customer-orders.dto';
 import { PublicOnlineDto } from './online-orders.dto';
 import { ExtraMenuLanguage, MenuLanguage } from './menu-translations.dto';
 import { MenuSortMode, PublicChefPicksDto, PublicMenuDesignDto } from './menu-design.dto';
+import { CustomerProfilesSettingsDto, PublicCustomerProfilesDto } from './customer-profiles.dto';
 import { ModalFrequency, PriceChannel, PublicBrandingDto, PublicMarketingDto, PublicPackGroupDto, PublicPromotionDto } from './menu-marketing.dto';
 
 // --- Carta pública (sin sesión) ---
@@ -126,6 +127,8 @@ export type PublicLocationMenuDto = Readonly<{
   announcement: Readonly<{ text: string }> | null;
   story: string | null;
   chefPicks: PublicChefPicksDto | null;
+  /** Etapa 10: cliente reconocido (null: apagado o sin plan). */
+  customerProfiles?: PublicCustomerProfilesDto | null;
 }>;
 
 /** GET /tables/{qr}: abrir /carta/{businessSlug}/{locationSlug}?qr=… */
@@ -157,10 +160,17 @@ export type MenuSettingsDto = Readonly<{
   ordering?: MenuOrderingSettingsDto;
   /** Etapa 7: idiomas extra que ofrece la carta (plan menu_translations). */
   languages?: ExtraMenuLanguage[];
+  /** Etapa 10. */
+  customerProfiles?: CustomerProfilesSettingsDto;
+  /** Etapa 10: texto de consentimiento de Redom (cuando customerProfiles.consentText es null) y su versión. */
+  defaultConsentText?: string;
+  consentVersion?: string;
 }>;
 
 /** Solo los campos que cambian. URLs con https://. ordering: solo cambian las claves enviadas. */
 export type UpdateMenuSettingsDto = {
+  /** Etapa 10 (parcial). */
+  customerProfiles?: Partial<CustomerProfilesSettingsDto>;
   /** Etapa 7. */
   languages?: ExtraMenuLanguage[];
   ordering?: Partial<

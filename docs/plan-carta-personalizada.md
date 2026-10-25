@@ -26,6 +26,8 @@ Cada etapa tiene abajo su apartado **"Lo que configura el negocio"**.
 | 8 | Diseño de la carta | Dueño | M | — | Ver "Planes" |
 | 9 | Contenido con IA | Dueño | M | 8 (opcional) | Ver "Planes" |
 | 10 | Cliente reconocido | Cliente | L | Fidelización (etapa 7) | Ver "Planes" |
+| 10.1 | Consentimientos y documentos legales | Superadmin, cliente y negocio | L | 10 | Todos (obligatorio por ley) |
+| 10.2 | Mensajería y panel de clientes (correo; WhatsApp después) | Negocio y cliente | L | 10, 10.1 | Ver "Planes" |
 | 11 | Carta dinámica | Cliente y dueño | M | 8 | Ver "Planes" |
 | 12 | Mesa compartida | Cliente | L | Pedidos en la mesa (etapa 3) | Ver "Planes" |
 | 13 | Comunidad y juegos | Cliente y dueño | L | 10 | Ver "Planes" |
@@ -33,7 +35,7 @@ Cada etapa tiene abajo su apartado **"Lo que configura el negocio"**.
 
 Tamaño: **S** ≈ 1 semana, **M** ≈ 2 a 3, **L** ≈ 4 a 5, **XL** ≈ 6 o más (front + backend, una persona por lado).
 
-**Orden recomendado:** 8 → 9 → 10 → 11 → 12 → 13 → 14.
+**Orden recomendado:** 8 → 9 → 10 → 10.1 → 10.2 → 11 → 12 → 13 → 14.
 - La 8 es la más visible y casi todo es front: el backend solo amplía la personalización que ya existe (`theme`).
 - La 9 reutiliza la IA que ya está (asistente de ayuda y traducciones), y mejora el contenido que usará la 14.
 - La 10 crea la identidad del cliente, que necesitan "Lo de siempre", las reseñas, los juegos y el mesero virtual.
@@ -122,6 +124,58 @@ Tamaño: **S** ≈ 1 semana, **M** ≈ 2 a 3, **L** ≈ 4 a 5, **XL** ≈ 6 o m�
 **Métrica:** clientes identificados, recompra a 30 días, uso de "Lo de siempre".
 
 **Lo que configura el negocio:** activar o no el perfil del cliente por local; si pide verificación por código o solo recuerda en el navegador; el canal preferido (WhatsApp o SMS); qué datos pide (teléfono, nombre, correo opcional); si muestra "Lo de siempre" y el saldo de fidelización; el texto de consentimiento y su política de privacidad.
+
+---
+
+## Etapa 10.1 · Consentimientos y documentos legales (próximo evolutivo)
+
+**Objetivo:** cumplir la Ley 21.719 (y la 19.628 mientras rige) con consentimientos **auditables**: qué documento exacto
+aceptó cada persona, cuándo y desde dónde, y pedir de nuevo la aceptación cuando un documento cambia.
+
+**Funciones**
+1. **Módulo de superadmin (Plataforma → Legal):** crear y versionar documentos: términos y condiciones para comensales,
+   política de privacidad de Redom, consentimiento de datos del perfil, consentimiento de comunicaciones (marketing) y,
+   si se quiere, los términos para restaurantes y usuarios del backoffice.
+   - Cada **versión** tiene texto (y/o archivo PDF), idioma, fecha de entrada en vigencia, si es **obligatoria** u
+     opcional y si el cambio es **sustancial** (exige volver a aceptar). Una versión publicada **no se edita**: se crea otra.
+   - Se guarda un **hash** del contenido de cada versión para probar qué texto exacto se aceptó.
+   - Historial de versiones, vista previa y publicación programada.
+2. **Registro de aceptaciones:** cada aceptación guarda la persona (correo o perfil), la versión exacta (id y hash), la
+   fecha y hora, el canal (carta, backoffice, correo), el negocio y local si aplica, la IP y el navegador. También el
+   **retiro** del consentimiento (por ejemplo, darse de baja de comunicaciones), sin borrar el historial.
+3. **Detección de pendientes por correo:** al identificarse (código por correo) o al entrar al backoffice, el sistema
+   revisa si a ese correo le falta aceptar la versión vigente de algún documento obligatorio y le pide aceptarla antes
+   de seguir; los opcionales se ofrecen sin bloquear.
+4. **Textos por negocio:** el consentimiento propio de cada local (etapa 10) pasa a ser una versión de documento del
+   negocio, con el mismo registro.
+5. **Auditoría:** buscar por correo y exportar (CSV o PDF) qué aceptó, qué retiró y cuándo; reporte por documento y
+   versión; los registros no se pueden modificar ni borrar (salvo anonimizar a pedido del titular).
+6. **Derechos del titular:** desde "Tu perfil", ver lo aceptado, descargar el documento y retirar los consentimientos
+   opcionales; solicitud de acceso, rectificación y borrado con su registro.
+
+**Lo que configura el negocio:** su texto de consentimiento y su política (como versiones), y si pide consentimiento de
+comunicaciones; ve cuántos de sus clientes aceptaron recibir novedades (no el detalle de otros negocios).
+
+**Backend (resumen):** `legalDocuments`, `legalDocumentVersions` (inmutables, con hash), `consentRecords` (aceptación y
+retiro, solo inserción), endpoint de "pendientes por correo", exportación de auditoría; reemplaza `consentVersion` y
+`consentAt` del perfil por estos registros.
+
+**Riesgos:** definir con un abogado los textos y qué cambios son sustanciales; retención de los registros; no bloquear
+la operación del restaurante si un documento falla al cargar.
+
+---
+
+## Etapa 10.2 · Mensajería y panel de clientes (después de 10.1)
+
+**Objetivo:** usar la relación con el cliente para que vuelva, con su permiso.
+
+**Funciones:** panel de clientes en el backoffice (frecuentes, nuevos, en riesgo, ticket promedio, última visita);
+encuesta de atención por correo después de la visita; avisos de fidelización (puntos sumados, recompensa disponible,
+puntos por vencer); campañas por correo solo a quien aceptó el consentimiento de comunicaciones (10.1), con "darse de
+baja"; y más adelante WhatsApp (guía de Meta pendiente) para avisos urgentes del pedido y recordatorios de reservas.
+
+**Lo que configura el negocio:** qué mensajes envía (cada uno con su interruptor y su texto), a qué segmentos y con
+qué frecuencia; cupos por plan.
 
 ---
 
@@ -270,7 +324,7 @@ Los números son un punto de partida: se ajustan desde Plataforma → Planes (l�
 
 ## Proveedores (recomendación)
 
-- **Códigos de verificación (etapa 10):** empezar con **Twilio Verify** (un solo servicio para WhatsApp y SMS, con límites y protección contra fraude ya incluidos). WhatsApp como canal principal (en Chile casi todos lo usan) y SMS como respaldo. Si el volumen crece, pasar WhatsApp directo a la **API de WhatsApp Business de Meta** para bajar el costo. Revisar la tarifa vigente por código antes de decidir el límite por plan.
+- **Códigos de verificación (etapa 10), decidido 2026-10-24:** **por correo** (ya implementado en el backend con Resend). WhatsApp (API de WhatsApp Cloud de Meta) queda para una etapa de mensajería posterior, junto con avisos del pedido, recordatorios, encuestas, fidelización y campañas. Recomendación anterior: empezar con **Twilio Verify** (un solo servicio para WhatsApp y SMS, con límites y protección contra fraude ya incluidos). WhatsApp como canal principal (en Chile casi todos lo usan) y SMS como respaldo. Si el volumen crece, pasar WhatsApp directo a la **API de WhatsApp Business de Meta** para bajar el costo. Revisar la tarifa vigente por código antes de decidir el límite por plan.
 - **Pago online desde la carta (etapa 12):** **Mercado Pago con conexión OAuth** por negocio. El restaurante conecta su propia cuenta con un clic (Redom no guarda sus claves), el dinero llega directo al restaurante y permite cobrar una comisión de plataforma. Flow sigue para las suscripciones de Redom; Transbank (Webpay) queda como segunda opción porque exige un código de comercio por restaurante.
 
 ## Decisiones tomadas (2026-10-22)

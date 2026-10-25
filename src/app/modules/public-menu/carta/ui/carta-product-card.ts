@@ -23,6 +23,12 @@ import { CartaPrice } from './carta-price';
       </div>
     </ng-template>
     <ng-template #flags>
+      @if (warn()) {
+        <span class="inline-flex text-rose-600 dark:text-rose-400" [title]="t('customer.cardWarn')">
+          <app-carta-icon name="alert" [size]="16" />
+          <span class="sr-only">{{ t('customer.cardWarn') }}</span>
+        </span>
+      }
       @if (p.chefNote) {
         <span class="inline-flex text-primary" [title]="t('design.hasChefNote')">
           <app-carta-icon name="chef-hat" [size]="16" />
@@ -131,7 +137,7 @@ import { CartaPrice } from './carta-price';
                 </p>
               }
             </div>
-            @if (p.chefNote || p.soldOut || packUnavailable()) {
+            @if (p.chefNote || p.soldOut || packUnavailable() || warn()) {
               <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <ng-container [ngTemplateOutlet]="flags" />
               </div>
@@ -185,6 +191,8 @@ export class CartaProductCard {
   readonly variant = input<MenuCardStyle>('list');
   /** Foto en una grilla de 2 o 3 columnas: foto cuadrada (o un marcador sin foto) y textos más cortos. */
   readonly compact = input(false);
+  /** Etapa 10: contiene un alérgeno que el cliente marcó para evitar. */
+  readonly warn = input(false);
   readonly view = output<PublicProductDto>();
 
   protected readonly t = inject(CartaI18n).t;
