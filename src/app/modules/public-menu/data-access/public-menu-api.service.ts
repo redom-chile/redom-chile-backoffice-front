@@ -1,7 +1,9 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
+import type { LegalVersionDto } from 'src/app/core/services/legal/dtos';
 import { ApiPathEnum } from 'src/environments';
+import { PrivacyAcknowledgementDto } from './dtos/customer-profiles.dto';
 import { PublicSuggestionDto } from './dtos/menu-dynamic.dto';
 import {
   CreateOnlineOrderDto,
@@ -93,7 +95,7 @@ export class PublicMenuApiService {
   }
 
   /** 403 BOOKINGS_DISABLED, 400 BOOKING_INVALID_DATES / BOOKING_OUTSIDE_HOURS, 409 BOOKING_CONTACT_OVERLAP. */
-  createBooking(dto: CreatePublicBookingDto): Observable<PublicBookingDto> {
+  createBooking(dto: CreatePublicBookingDto & PrivacyAcknowledgementDto): Observable<PublicBookingDto> {
     return this.#http.post<PublicBookingDto>(`${this.#base}/bookings`, dto);
   }
 
@@ -106,7 +108,7 @@ export class PublicMenuApiService {
 
   /** Sin qrCode. Errores: ORDERING_DISABLED, PAYMENT_METHOD_NOT_ACCEPTED, ORDER_SCHEDULE_INVALID, LOCATION_CLOSED,
    *  OUTSIDE_DELIVERY_AREA, BELOW_MINIMUM_ORDER, más los de la etapa 3. */
-  createOnlineOrder(dto: CreateOnlineOrderDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
+  createOnlineOrder(dto: CreateOnlineOrderDto & PrivacyAcknowledgementDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
     return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto, { headers });
   }
 
@@ -126,6 +128,21 @@ export class PublicMenuApiService {
       `${this.#base}/menus/${encodeURIComponent(businessSlug)}/${encodeURIComponent(locationSlug)}/suggestions`,
       { items },
     );
+  }
+
+  // --- Documentos legales (módulo legal global) ---
+
+  /** Versión vigente de un documento en el idioma pedido (es por defecto). businessSlug: documento de un negocio. 404 si no hay. */
+  getLegalDocument(code: string, lang?: string | null, businessSlug?: string | null): Observable<LegalVersionDto> {
+    const params: Record<string, string> = {};
+    if (lang) params['lang'] = lang;
+    if (businessSlug) params['businessSlug'] = businessSlug;
+    return this.#http.get<LegalVersionDto>(`${this.#base}/legal/documents/${encodeURIComponent(code)}`, { params });
+  }
+
+  /** Una versión exacta (publicada o retirada): "lo que aceptaste". */
+  getLegalVersion(id: number): Observable<LegalVersionDto> {
+    return this.#http.get<LegalVersionDto>(`${this.#base}/legal/versions/${encodeURIComponent(String(id))}`);
   }
 }
 

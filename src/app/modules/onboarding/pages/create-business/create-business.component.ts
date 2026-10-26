@@ -39,6 +39,8 @@ import {
 } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ApiErrorCode, readApiError } from 'src/app/core/utils/api-error';
+import { LegalApiService, legalDocumentsOf, LegalErrorCode, legalErrorMessage, PendingDocumentDto, requiredAccepted } from 'src/app/core/services/legal';
+import { LegalDocumentChecklistComponent } from 'src/app/modules/legal/ui';
 import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
 import {
   CreatedLocation,
@@ -82,6 +84,7 @@ function detectTimeZone(): string {
     StepServiceComponent,
     StepProductsComponent,
     StepDoneComponent,
+    LegalDocumentChecklistComponent,
   ],
 })
 export class CreateBusinessComponent implements OnDestroy {
@@ -96,6 +99,7 @@ export class CreateBusinessComponent implements OnDestroy {
   private readonly upload = inject(FileUploadService);
   private readonly logoService = inject(UpdateBusinessLogoService);
   private readonly photoService = inject(ProfilePhotoService);
+  private readonly legalApi = inject(LegalApiService);
 
   readonly timeZones = TIME_ZONES;
   readonly $currencies = computed(() => this.currenciesService.$currencies() ?? []);
@@ -153,6 +157,10 @@ export class CreateBusinessComponent implements OnDestroy {
   // Vista previa del logo elegido, para que siga visible al volver a "Tu negocio".
   readonly $logoPreview = signal<string | null>(null);
   submitted = false;
+  // Condiciones del servicio y acuerdo de tratamiento de datos vigentes: se aceptan al crear el negocio.
+  readonly $legalDocuments = signal<readonly PendingDocumentDto[]>([]);
+  readonly $legalAccepted = signal<readonly number[]>([]);
+  readonly $legalSubmitted = signal(false);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
@@ -175,6 +183,16 @@ export class CreateBusinessComponent implements OnDestroy {
     });
 
     this.resumeIfBusinessExists();
+    this.loadLegalDocuments();
+  }
+
+  loadLegalDocuments() {
+    this.legalApi.currentDocuments(['subscriptionTerms', 'dataProcessingAgreement']).subscribe((documents) => this.#showLegal(documents));
+  }
+
+  #showLegal(documents: readonly PendingDocumentDto[]) {
+    this.$legalDocuments.set(documents);
+    this.$legalAccepted.set([]);
   }
 
   // --- Navegación ---
@@ -215,6 +233,11 @@ export class CreateBusinessComponent implements OnDestroy {
       );
       return;
     }
+    this.$legalSubmitted.set(true);
+    if (!requiredAccepted(this.$legalDocuments(), this.$legalAccepted())) {
+      this.toast.show('Acepta los documentos para crear tu negocio', 'warning');
+      return;
+    }
     this.#draftName.set(this.form.getRawValue().name.trim());
     this.next();
   }
@@ -239,7 +262,8 @@ export class CreateBusinessComponent implements OnDestroy {
     this.$isCreating.set(true);
     let created: { id: number; locationId?: number };
     try {
-      created = await firstValueFrom(this.api.createBusiness({ name: businessName, currencyId, timeZone, location }));
+      const acceptedVersionIds = this.$legalDocuments().length ? [...this.$legalAccepted()] : undefined;
+      created = await firstValueFrom(this.api.createBusiness({ name: businessName, currencyId, timeZone, location, acceptedVersionIds }));
     } catch (error) {
       this.$isCreating.set(false);
       this.handleCreateError(error);
@@ -394,6 +418,17 @@ export class CreateBusinessComponent implements OnDestroy {
    */
   private handleCreateError(error: unknown) {
     const { status, code } = readApiError(error);
+    // Faltan documentos o cambió una versión: se vuelve a "Tu negocio" para aceptarlos de nuevo.
+    const legalMessage = legalErrorMessage(error);
+    if (legalMessage && status === 400) {
+      this.toast.show(legalMessage, 'warning');
+      const documents = legalDocumentsOf(error);
+      if (documents) this.#showLegal(documents);
+      else if (code === LegalErrorCode.VERSION_NOT_PUBLISHED) this.loadLegalDocuments();
+      this.$legalSubmitted.set(false);
+      this.$step.set('business');
+      return;
+    }
     if (status === 409) {
       const memberElsewhere = code === ApiErrorCode.USER_ALREADY_IN_BUSINESS;
       this.whoami.load().subscribe((whoami) => {

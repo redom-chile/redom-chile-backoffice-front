@@ -22,6 +22,44 @@ Objetivo: un **módulo legal único** para todo el proyecto, que cumpla la **Ley
 4. Cuando se publica una versión nueva, el sistema **detecta por correo** a quién le falta aceptarla, se lo pide al
    entrar y le avisa por correo.
 
+# Dónde vive (rutas base)
+- **Módulo y tablas:** en la app **`auth`** (es identidad y usuarios), con una librería compartida
+  (`libs/legal` o similar) que `restaurant` y `billing` usan para registrar aceptaciones y consultar pendientes.
+- **Backoffice (con Bearer):** `AUTH = /auth/api`
+  - superadmin: `{AUTH}/platform/legal/...`
+  - usuarios: `{AUTH}/legal/accept`, `{AUTH}/legal/me` (aceptados y pendientes), `{AUTH}/whoami` (con `legal`).
+- **Público (sin login):** `{PUBLIC} = /restaurant/api/public/v1`
+  - lectura de documentos: `{PUBLIC}/legal/documents/{code}` y `{PUBLIC}/legal/versions/{id}`;
+  - comensales: `{PUBLIC}/customers/...` (etapa 10).
+- El bloqueo 428 `LEGAL_ACCEPTANCE_REQUIRED` aplica en las tres apps (`auth`, `restaurant`, `billing`) para los usuarios
+  del backoffice, salvo las rutas exentas de la Parte D.
+
+# Regla obligatoria: aceptar ANTES de tratar datos
+Ningún dato del usuario o del negocio se procesa hasta que la persona acepta los documentos obligatorios vigentes:
+1. **Registro con correo** (`register-owner`): sin `acceptedVersionIds` válidos (versiones vigentes de `platformTerms` y
+   `privacyPolicy`) **no se crea la cuenta** (400 `LEGAL_ACCEPTANCE_REQUIRED` con `details.documents`). La cuenta y los
+   `consentRecords` se crean en la **misma transacción**.
+2. **Registro con Google** (usuario nuevo): no crear la cuenta en el primer llamado. Responder 428
+   `LEGAL_ACCEPTANCE_REQUIRED` con `details.documents` y un `registrationToken` temporal (10 minutos, solo sirve para
+   terminar el registro). El front muestra los documentos y vuelve a llamar con `registrationToken` y
+   `acceptedVersionIds`; recién ahí se crea la cuenta y se registra la aceptación.
+3. **Inicio de sesión** (correo o Google) con pendientes obligatorios: entregar un token **restringido** (`scope: 'legal'`)
+   que solo sirve para `{AUTH}/legal/*`, la lectura pública de documentos, `logout` y un `whoami` **mínimo**
+   (`{ user: { code, email }, legal: { pending } }`, sin negocio, permisos, plan ni otros datos). La respuesta del login
+   incluye `legal.pending`. Al aceptar, `POST {AUTH}/legal/accept` devuelve tokens normales (o el front refresca la
+   sesión) y recién entonces se cargan sus datos. Cualquier otra ruta con el token restringido: 428
+   `LEGAL_ACCEPTANCE_REQUIRED`.
+4. **Usuarios creados por el negocio:** su primer inicio de sesión sigue la regla 3; el negocio solo guarda lo mínimo
+   para invitarlo (correo y rol).
+5. **Comensales (carta):** el texto y los enlaces se muestran **antes de pedir el código**. `POST {PUBLIC}/customers/otp`
+   recibe `acceptedVersionIds` (sin ellos: 400 `LEGAL_ACCEPTANCE_REQUIRED`) y, hasta verificar, solo se guarda el correo
+   **hasheado** para los límites y el código; el perfil y los `consentRecords` se crean al verificar (en la misma
+   transacción), con la versión que vio al pedir el código.
+6. **Pedidos y reservas sin perfil:** el aviso de privacidad se muestra antes de enviar y se registra su versión
+   (`acknowledge`) junto con el pedido o la reserva.
+7. Los registros técnicos mínimos (IP en límites de uso, logs de seguridad) se mantienen por interés legítimo y no
+   cuentan como tratamiento de datos de negocio.
+
 # Quién acepta qué (audiencias)
 | Audiencia | Cuándo | Documentos (código) | Obligatorio |
 |---|---|---|---|
@@ -67,16 +105,16 @@ Permiso nuevo del módulo `LEGAL` (solo SUPERADMIN): `legal:see-module`, `legal:
 
 | Método | Ruta | Para |
 |---|---|---|
-| GET/POST | `/platform/legal/documents` | Listar y crear documentos |
-| PATCH | `/platform/legal/documents/{id}` | Título, audiencia, obligatorio |
-| GET/POST | `/platform/legal/documents/{id}/versions` | Listar versiones y crear un borrador |
-| PATCH | `/platform/legal/versions/{id}` | Editar un **borrador** (contenido, idioma, PDF, resumen, sustancial, vigencia) |
-| POST | `/platform/legal/versions/{id}/publish` | Publicar (ahora o en `effectiveAt`); calcula `contentHash` |
-| POST | `/platform/legal/versions/{id}/retire` | Retirar una versión (no borra registros) |
-| GET | `/platform/legal/stats?documentId=` | % de aceptación de la versión vigente, pendientes por audiencia |
-| GET | `/platform/legal/audit?email=&documentCode=&from=&to=` | Historial por persona o documento |
-| GET | `/platform/legal/audit/export?…&format=csv\|pdf` | Exportación con la huella de cada versión |
-| POST | `/platform/legal/versions/{id}/notify` | Enviar el correo a quienes les falta aceptar (si es sustancial) |
+| GET/POST | `{AUTH}/platform/legal/documents` | Listar y crear documentos |
+| PATCH | `{AUTH}/platform/legal/documents/{id}` | Título, audiencia, obligatorio |
+| GET/POST | `{AUTH}/platform/legal/documents/{id}/versions` | Listar versiones y crear un borrador |
+| PATCH | `{AUTH}/platform/legal/versions/{id}` | Editar un **borrador** (contenido, idioma, PDF, resumen, sustancial, vigencia) |
+| POST | `{AUTH}/platform/legal/versions/{id}/publish` | Publicar (ahora o en `effectiveAt`); calcula `contentHash` |
+| POST | `{AUTH}/platform/legal/versions/{id}/retire` | Retirar una versión (no borra registros) |
+| GET | `{AUTH}/platform/legal/stats?documentId=` | % de aceptación de la versión vigente, pendientes por audiencia |
+| GET | `{AUTH}/platform/legal/audit?email=&documentCode=&from=&to=` | Historial por persona o documento |
+| GET | `{AUTH}/platform/legal/audit/export?…&format=csv\|pdf` | Exportación con la huella de cada versión |
+| POST | `{AUTH}/platform/legal/versions/{id}/notify` | Enviar el correo a quienes les falta aceptar (si es sustancial) |
 
 - Al publicar una versión **sustancial** de un documento obligatorio, quien la tenga pendiente debe aceptarla en su
   próximo ingreso; con `notify` se le avisa por correo con el enlace. Las no sustanciales solo se informan.
@@ -90,9 +128,11 @@ Permiso nuevo del módulo `LEGAL` (solo SUPERADMIN): `legal:see-module`, `legal:
 
 # Parte D: Pendientes y aceptación
 ## Usuarios del backoffice (dueños y equipo)
-- `GET /auth/whoami` agrega `legal: { pending: PendingDocument[] }` (documentos obligatorios de su audiencia, y del
+- `GET {AUTH}/whoami` agrega `legal: { pending: PendingDocument[] }` (documentos obligatorios de su audiencia, y del
   negocio actual si es dueño, cuya versión vigente no aceptó, o aceptó una anterior con un cambio sustancial después).
-- `POST /legal/accept` `{ versionIds: number[] }` → registra `accept` (canal `backoffice`) y devuelve el `legal` actualizado.
+- `POST {AUTH}/legal/accept` `{ versionIds: number[] }` → registra `accept` (canal `backoffice`) y devuelve el `legal`
+  actualizado.
+- `GET {AUTH}/legal/me` → `{ pending: PendingDocument[], accepted: AcceptedDocument[] }` (para "Mis documentos").
 - **Bloqueo:** con pendientes obligatorios, las rutas protegidas responden **428 `LEGAL_ACCEPTANCE_REQUIRED`** con
   `details.documents`, excepto `whoami`, `logout`, `refresh-token`, `/legal/*` y la lectura pública. El front muestra
   la aceptación y no deja seguir hasta aceptar.
@@ -115,6 +155,7 @@ Permiso nuevo del módulo `LEGAL` (solo SUPERADMIN): `legal:see-module`, `legal:
 
 ```ts
 PendingDocument = { documentCode, title, versionId, version, isRequired, isMaterialChange, effectiveAt, url }
+AcceptedDocument = { documentCode, title, versionId, version, action: 'accept' | 'withdraw' | 'acknowledge', createdAt, url }
 ```
 
 # Parte E: Detección por correo y avisos
