@@ -14,9 +14,9 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario · #71 asignar mesero y encargado a una reserva |
 | ⚪ Por decidir | #25 entrar solo con PIN |
-| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) · #77 módulo legal global |
-| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76, #78 |
+| 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
+| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas · #79 ajustes del módulo legal |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76, #78, #77 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -641,7 +641,7 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 ---
 
-### 77. 🔵 Módulo legal global: términos, privacidad y consentimientos auditables
+### 77. 🟢 Módulo legal global: términos, privacidad y consentimientos auditables (resuelta 2026-10-25)
 
 **Problema:** nadie acepta términos ni consentimientos (registro, usuarios, planes, API pública, carta). La Ley 21.719 exige poder probar qué aceptó cada persona y cuándo.
 
@@ -660,6 +660,21 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Front mientras tanto:** se adelanta contra este contrato.
 
 **Resuelta:** backend implementado (`libs/restaurant/public-menu`: `menu-dynamic.ts`, `menu-dynamic.service.ts`, `menu-suggestions.service.ts`, `public-menu-dynamic.service.ts`). Las respuestas traen `businessId`, `createdAt` y `updatedAt`; temporadas y platos del día, `status` (`scheduled`/`active`/`ended`); el plato del día, `productName` y `portionsLeft`; los ajustes, `locationId`, `hasLocation`, `currentWeather` y `suggestionPairsAt`. Reordenar devuelve la lista ordenada. Plato del día: `from`/`to` en `YYYY-MM-DD` (zona del negocio), `MENU_DAILY_SPECIAL_OVERLAP` con `details.dailySpecialId`, `portions` bajo lo vendido → `details.portionsSold`, y con porciones vendidas no cambia el producto. En la carta el precio especial llega en el producto (`promotion.kind: 'dailySpecial'`) y el agotado como `soldOut`; 409 `PRODUCT_UNAVAILABLE` `dailySpecialSoldOut` con `details.portionsLeft` (carta y POS). El front quedó alineado.
+
+---
+
+### 79. 🟢 Módulo legal: ajustes después de implementarlo
+
+**Problema y se pide:**
+- **Borradores:** no hay endpoint para borrar un borrador (`DELETE {AUTH}/platform/legal/versions/{id}` solo si es borrador).
+- **Detalle:** un `GET {AUTH}/platform/legal/documents/{id}` (hoy el front lee el listado completo para el detalle).
+- **Avisos:** `notify` devuelve `remaining` como "queda alguien"; conviene el total pendiente para mostrar el avance.
+- **Exportación:** exponer `Content-Disposition` en CORS para usar el nombre de archivo del servidor.
+- **Comensal:** el historial de aceptaciones (`accepted`) trae `businessId` pero no el `businessSlug`; para saber si acepta novedades del local que está viendo, agregar `businessSlug` o un `marketingConsent: boolean` en `GET {PUBLIC}/customers/me?businessSlug=`.
+- **Consentimiento del local:** indicar si `customerProfiles.consentText` es del local o el de Redom (por ejemplo `consentTextIsCustom`), para no compararlo por texto.
+- **Documentos del negocio:** confirmar que un empleado nunca recibe 428 por `subscriptionTerms`, `dataProcessingAgreement` o `apiTerms` (solo el dueño puede aceptarlos).
+
+**Front mientras tanto:** el detalle se arma desde el listado; el estado de novedades por local se deduce; la exportación usa un nombre propio si no llega el encabezado.
 
 ---
 

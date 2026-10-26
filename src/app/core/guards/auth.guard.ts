@@ -13,5 +13,7 @@ export const authGuard: CanActivateFn = () => {
     return false;
   }
 
+  if (authService.isRestricted()) return router.parseUrl('/legal/accept');
+
   return true;
 };

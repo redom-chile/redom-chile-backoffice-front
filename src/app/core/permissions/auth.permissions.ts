@@ -1,5 +1,12 @@
 /** Permisos del servicio auth. Copia de `Permission.AUTH` (backend: libs/auth/enums/permission.enum.ts): mantener igual. */
 export const AUTH_PERMISSIONS = {
+  LEGAL: {
+    SEE_MODULE: 'legal:see-module',
+    MANAGE_DOCUMENTS: 'legal:manage-documents',
+    PUBLISH_DOCUMENTS: 'legal:publish-documents',
+    SEE_AUDIT: 'legal:see-audit',
+    EXPORT_AUDIT: 'legal:export-audit',
+  },
   MODULES: {
     SEE_MODULE: 'modules:see-module',
     GET_ALL_MODULES: 'modules:get-all-modules',

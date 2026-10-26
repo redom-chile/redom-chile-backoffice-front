@@ -28,6 +28,7 @@ import { CartaAnalytics } from '../carta-analytics';
 import { BLOCK_LABELS, blockedProducts, CartAddition, CartaCart, MAX_LINE_QUANTITY } from '../carta-cart';
 import { allergenShortName, CartaCustomer, productConflicts } from '../carta-customer';
 import { CartaProfileSheet } from './carta-profile-sheet';
+import { CartaLegalPending } from './carta-legal';
 import { CartaUsual, UsualOrder } from './carta-usual';
 import {
   brandingStyle,
@@ -165,6 +166,7 @@ function writeSession(key: string): void {
     CartaBillSheet,
     CartaBookingSheet,
     CartaProfileSheet,
+    CartaLegalPending,
     CartaUsual,
     CartaDailySpecial,
   ],
@@ -724,6 +726,19 @@ function writeSession(key: string): void {
           <app-carta-profile-sheet [menu]="m" (language)="preferLanguage($event)" />
         </app-carta-dialog>
       }
+    }
+
+    <!-- Documentos legales pendientes que bloquearon un pedido identificado (428): al aceptarlos se reintenta -->
+    @if (customer.legalPrompt(); as prompt) {
+      <app-carta-dialog [label]="t('legal.pendingTitle')" (closed)="customer.answerLegalPrompt(false)">
+        <div class="px-5 pb-6 pt-14">
+          <app-carta-legal-pending
+            [documents]="customer.legalPending().length ? customer.legalPending() : prompt"
+            [dismissible]="true"
+            (done)="customer.answerLegalPrompt($event)"
+          />
+        </div>
+      </app-carta-dialog>
     }
 
     @if (m.business.showRedomBadge) {

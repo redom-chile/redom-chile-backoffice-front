@@ -250,6 +250,7 @@ export function readOnlineOrderError(error: unknown, channel: OnlineChannel, sch
     case 'MODIFIER_REPEATED':
       return { ...readOrderError(error), cart: true };
   }
+  if (api.code === 'LEGAL_VERSION_NOT_PUBLISHED' || api.code === 'LEGAL_ACCEPTANCE_REQUIRED') return readOrderError(error);
   if (api.status === 400) return { message: ct('online.error.invalid') };
   return readOrderError(error);
 }

@@ -207,6 +207,7 @@ export class Menu {
             { label: 'Cobros', route: '/platform/invoices' },
             { label: 'Descuentos', route: '/platform/discounts' },
             { label: 'Accesos de soporte', route: '/platform/support-access' },
+            { label: 'Legal', route: '/platform/legal' },
             { label: 'Ajustes', route: '/platform/settings' },
           ],
         },

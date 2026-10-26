@@ -14,6 +14,7 @@ import {
   PersonalInfoSectionComponent,
   ProfileBusiness,
   ProfileHeroCardComponent,
+  LegalDocumentsSectionComponent,
   SecuritySectionComponent,
   UpdateContactModalComponent,
 } from './features';
@@ -29,6 +30,7 @@ import { ProfileSkeletonComponent } from './ui';
     PersonalInfoSectionComponent,
     ContactSectionComponent,
     SecuritySectionComponent,
+    LegalDocumentsSectionComponent,
     ProfileSkeletonComponent,
   ],
   templateUrl: './profile.component.html',

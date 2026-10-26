@@ -104,8 +104,10 @@ export function getPublicMenuErrorMessage(error: unknown, fallback = 'No se pudo
       return 'Este local no puede enviar más códigos este mes. Tus preferencias se guardarán en este dispositivo.';
     case 'OTP_UNAVAILABLE':
       return 'No pudimos enviar el código. Inténtalo de nuevo.';
-    case 'CONSENT_REQUIRED':
-      return 'Debes aceptar el uso de tus datos para continuar.';
+    case 'LEGAL_ACCEPTANCE_REQUIRED':
+      return 'Debes aceptar los documentos vigentes para continuar.';
+    case 'LEGAL_VERSION_NOT_PUBLISHED':
+      return 'La versión del documento cambió. Revísalo de nuevo.';
     case 'CUSTOMER_TOKEN_INVALID':
       return 'Tu sesión venció. Vuelve a identificarte.';
     case 'CUSTOMER_PROFILES_DISABLED':

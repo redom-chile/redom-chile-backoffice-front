@@ -21,9 +21,11 @@ import {
 } from '../carta-online';
 import { CartaI18n, cartaErrorMessage, ct } from '../carta-i18n';
 import { CartaCustomer } from '../carta-customer';
+import { CartaLegal } from '../carta-legal';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CartaIcon, CartaIconName } from './carta-icon';
 import { CartaSuggestionsList } from './carta-suggestions-list';
+import { CartaPrivacyNotice } from './carta-legal';
 
 type Field = 'name' | 'phone' | 'email' | 'street' | 'commune' | 'when' | 'payment';
 
@@ -51,7 +53,7 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
  */
 @Component({
   selector: 'app-carta-checkout-sheet',
-  imports: [CartaIcon, CartaSuggestionsList],
+  imports: [CartaIcon, CartaSuggestionsList, CartaPrivacyNotice],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -425,6 +427,11 @@ type LocateState = 'idle' | 'locating' | 'done' | 'denied' | 'error';
           <p class="mt-1 text-xs text-muted-foreground">{{ t('cart.totalConfirm') }}</p>
         </section>
 
+        <!-- Sin perfil: se informa la política de privacidad (privacyVersionId) -->
+        @if (!identified()) {
+          <app-carta-privacy-notice />
+        }
+
         <div class="sticky bottom-0 z-10 -mx-5 -mb-6 border-t border-border bg-background/95 px-5 pb-4 pt-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           @if (error(); as e) {
             <div class="mb-2 flex items-start gap-2 text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">
@@ -497,6 +504,9 @@ export class CartaCheckoutSheet {
   });
 
   readonly #customer = inject(CartaCustomer);
+  readonly #legal = inject(CartaLegal);
+  /** Identificado: el pedido va con X-Redom-Customer (sin aviso de privacidad). */
+  protected readonly identified = this.#customer.verified;
   /** Etapa 10: perfil del cliente (si está identificado) o lo recordado en redom-customer. */
   readonly #saved = this.#customer.checkoutDefaults();
   /** Identificado: el pedido va con el correo del perfil (no se edita). */
@@ -675,8 +685,10 @@ export class CartaCheckoutSheet {
     this.#sub?.unsubscribe();
     this.profileEmail.set(null);
     this.#sub = this.#customer
-      .withCustomer((headers) =>
-        this.#api.createOnlineOrder(
+      .withCustomer((headers) => {
+        // Sin perfil va la versión de privacyPolicy mostrada (si dejó de estar publicada, se recarga y se reintenta una vez)
+        const send = (privacy: Readonly<{ privacyVersionId?: number }>) =>
+          this.#api.createOnlineOrder(
           {
             businessSlug: m.business.slug,
             locationSlug: m.location.slug,
@@ -697,10 +709,12 @@ export class CartaCheckoutSheet {
             scheduledFor,
             paymentMethod: payment,
             ...(note ? { note } : {}),
+            ...(headers ? {} : privacy),
           },
           headers,
-        ),
-      )
+        );
+        return headers ? send({}) : this.#legal.withPrivacy(send);
+      })
       .subscribe({
         next: (order) => {
           this.sending.set(false);
