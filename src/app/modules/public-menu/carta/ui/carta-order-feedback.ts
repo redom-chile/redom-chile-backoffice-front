@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, input, output, signal } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { OrderFeedbackResultDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
@@ -12,7 +12,8 @@ const RATING_KEYS: readonly CartaKey[] = ['feedback.rating1', 'feedback.rating2'
 
 /**
  * Encuesta del pedido (etapa 4): 5 estrellas (grupo de radios nativo: flechas para cambiar) y un comentario opcional.
- * Con googleReviewUrl invita a dejar una reseña en Google.
+ * Con googleReviewUrl invita a dejar una reseña en Google. También la usa la encuesta de la visita que enlazan los
+ * correos (etapa 10.2, /carta/encuesta): con `surveyToken` en vez de `orderId`.
  */
 @Component({
   selector: 'app-carta-order-feedback',
@@ -39,14 +40,14 @@ const RATING_KEYS: readonly CartaKey[] = ['feedback.rating1', 'feedback.rating2'
           } @else {
             <p id="carta-feedback-title" class="flex items-center justify-center gap-2 text-base font-bold">
               <app-carta-icon name="check" [size]="18" class="text-emerald-600 dark:text-emerald-400" />
-              {{ r === 'already' ? t('feedback.already') : t('feedback.thanks') }}
+              {{ r === 'already' ? (alreadyText() ?? t('feedback.already')) : t('feedback.thanks') }}
             </p>
           }
         </div>
       } @else {
         <form novalidate (submit)="send($event)">
           <fieldset>
-            <legend id="carta-feedback-title" class="text-base font-bold">{{ t('feedback.question') }}</legend>
+            <legend id="carta-feedback-title" class="text-base font-bold">{{ question() ?? t('feedback.question') }}</legend>
             <div class="mt-2 flex items-center gap-1" role="radiogroup" aria-labelledby="carta-feedback-title">
               @for (n of stars; track n) {
                 <label
@@ -98,9 +99,17 @@ const RATING_KEYS: readonly CartaKey[] = ['feedback.rating1', 'feedback.rating2'
   `,
 })
 export class CartaOrderFeedback {
-  readonly orderId = input.required<string>();
+  /** Encuesta de un pedido de la carta (POST orders/{id}/feedback). */
+  readonly orderId = input<string | null>(null);
+  /** Encuesta de la visita desde un correo (POST messaging/survey). */
+  readonly surveyToken = input<string | null>(null);
+  /** Pregunta y texto de "ya respondida" (ya traducidos); null: los del pedido. */
+  readonly question = input<string | null>(null);
+  readonly alreadyText = input<string | null>(null);
   /** Enviada (o ya enviada antes): el padre deja de mostrar la encuesta cuando el pedido trae feedback. */
   readonly sent = output<void>();
+  /** 400 MESSAGING_TOKEN_INVALID (encuesta de un correo). */
+  readonly invalid = output<void>();
 
   readonly #api = inject(PublicMenuApiService);
   #sub: Subscription | null = null;
@@ -117,7 +126,7 @@ export class CartaOrderFeedback {
   protected readonly comment = signal('');
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly result = signal<OrderFeedbackResultDto | 'already' | null>(null);
+  protected readonly result = signal<Pick<OrderFeedbackResultDto, 'googleReviewUrl'> | 'already' | null>(null);
   protected readonly reviewUrl = computed(() => {
     const r = this.result();
     return r && r !== 'already' && r.googleReviewUrl ? safeUrl(r.googleReviewUrl) : null;
@@ -132,9 +141,19 @@ export class CartaOrderFeedback {
     const rating = this.rating();
     if (!rating || this.sending()) return;
     const comment = this.comment().trim().slice(0, MAX_COMMENT);
+    const body = comment ? { rating, comment } : { rating };
+    const token = this.surveyToken();
+    const orderId = this.orderId();
+    const request: Observable<Pick<OrderFeedbackResultDto, 'googleReviewUrl'>> | null = token
+      ? this.#api.sendMessagingSurvey({ token, ...body })
+      : orderId
+        ? this.#api.sendOrderFeedback(orderId, body)
+        : null;
+    if (!request) return;
     this.sending.set(true);
     this.error.set(null);
-    this.#sub = this.#api.sendOrderFeedback(this.orderId(), comment ? { rating, comment } : { rating }).subscribe({
+    this.#sub?.unsubscribe();
+    this.#sub = request.subscribe({
       next: (result) => {
         this.sending.set(false);
         this.result.set(result);
@@ -146,6 +165,9 @@ export class CartaOrderFeedback {
         if (api.code === 'FEEDBACK_ALREADY_SENT') {
           this.result.set('already');
           this.sent.emit();
+        } else if (api.code === 'MESSAGING_TOKEN_INVALID') {
+          this.error.set(ct('error.MESSAGING_TOKEN_INVALID'));
+          this.invalid.emit();
         } else if (api.code === 'FEEDBACK_NOT_ALLOWED') this.error.set(ct('feedback.notAllowed'));
         else if (api.status === 404) this.error.set(ct('feedback.notFound'));
         else if (api.code === 'RATE_LIMITED' || api.status === 429) this.error.set(ct('feedback.tooMany'));

@@ -1,0 +1,231 @@
+@if ($blocked()) {
+<app-marketing-upsell-card
+  feature="customerInsights"
+  [requiredPlans]="$requiredPlans()"
+  description="Descubre quiénes son tus clientes nuevos, frecuentes, VIP y los que dejaron de venir, con sus visitas y su gasto." />
+} @else {
+<div class="space-y-4">
+  <!-- Estado del cálculo y acciones -->
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-muted-foreground flex items-center gap-1.5 text-sm" role="status">
+      @if ($summaryLoading()) {
+      <app-skeleton size="xs" style="width: 180px" />
+      } @else if ($summary(); as summary) {
+      @if (summary.computedAt) {
+      <app-icon class="h-4 w-4" aria-hidden="true">update</app-icon>Actualizado {{ relativeDate(summary.computedAt) }}
+      } @else {
+      <app-icon class="h-4 w-4" aria-hidden="true">hourglass_top</app-icon>Calculando tus clientes, vuelve en unos minutos
+      }
+      }
+    </p>
+    <div class="flex flex-wrap gap-2">
+      <app-button *appCheckPermission="PERMISSIONS.CUSTOMERS.UPDATE_CUSTOMER" impact="light" tone="primary" shape="rounded" size="medium" icon="tune" (buttonClick)="openSettings()">Ajustar segmentos</app-button>
+      <app-button impact="light" tone="primary" shape="rounded" size="medium" icon="download" [isLoading]="$exporting()" [disabled]="$exporting()" (buttonClick)="handleExport()">Exportar CSV</app-button>
+    </div>
+  </div>
+
+  @if ($summaryError() && !$summary()) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-10 text-center">
+    <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+    <p class="text-foreground font-semibold">No se pudo cargar el panel de clientes</p>
+    <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="reload()">Reintentar</app-button>
+  </div>
+  } @else {
+  <!-- Segmentos -->
+  <section aria-label="Segmentos">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      @for (segment of segments; track segment) {
+      @let label = segmentLabels[segment];
+      @let active = $segment() === segment;
+      <button
+        type="button"
+        class="glass flex flex-col gap-1 rounded-xl p-3 text-left transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2"
+        [class.ring-2]="active"
+        [class.ring-primary]="active"
+        [attr.aria-pressed]="active"
+        [matTooltip]="segmentHint(segment)"
+        matTooltipPosition="above"
+        (click)="selectSegment(segment)">
+        <span class="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full" [class]="label.chip">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">{{ label.icon }}</app-icon>
+          </span>
+          {{ label.plural }}
+        </span>
+        @if ($summaryLoading()) {
+        <app-skeleton size="sm" style="width: 48px" />
+        } @else {
+        <span class="text-foreground text-2xl font-bold tabular-nums">{{ ($summary()?.bySegment?.[segment] ?? 0).toLocaleString('es-CL') }}</span>
+        }
+      </button>
+      }
+    </div>
+    <p class="text-muted-foreground mt-2 text-xs">
+      @if ($segment(); as segment) {
+      <strong class="text-foreground">{{ segmentLabels[segment].plural }}:</strong> {{ segmentHint(segment) }}
+      } @else {
+      Toca un segmento para filtrar. {{ priorityText }}
+      }
+    </p>
+  </section>
+
+  <!-- Totales -->
+  @if ($summary(); as summary) {
+  <dl class="text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-sm">
+    <div class="flex gap-1"><dt>Clientes:</dt><dd class="text-foreground font-semibold tabular-nums">{{ summary.total.toLocaleString('es-CL') }}</dd></div>
+    <div class="flex gap-1"><dt>Con correo:</dt><dd class="text-foreground font-semibold tabular-nums">{{ summary.withEmail.toLocaleString('es-CL') }}</dd></div>
+    <div class="flex gap-1"><dt>Aceptan novedades:</dt><dd class="text-foreground font-semibold tabular-nums">{{ summary.withMarketingConsent.toLocaleString('es-CL') }}</dd></div>
+    <div class="flex gap-1">
+      <dt [matTooltip]="'Rebotaron o marcaron un correo como spam: no se les envían más correos.'" tabindex="0" class="underline decoration-dotted underline-offset-2">Correos con problemas:</dt>
+      <dd class="text-foreground font-semibold tabular-nums">{{ summary.suppressed.toLocaleString('es-CL') }}</dd>
+    </div>
+  </dl>
+  }
+
+  <!-- Filtros -->
+  <div class="flex flex-col gap-2 md:flex-row md:items-center">
+    <div class="relative md:max-w-sm md:flex-1">
+      <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2" aria-hidden="true">search</app-icon>
+      <input type="search" [formControl]="search" placeholder="Buscar por nombre, correo o teléfono…" aria-label="Buscar en el panel" class="glass-input w-full rounded-md py-2.5 pl-10 pr-3" />
+    </div>
+    @if ($locations().length > 1) {
+    <select class="glass-input rounded-md px-3 py-2.5 text-sm" aria-label="Local" [value]="$locationId() ?? ''" (change)="onLocationChange($event)">
+      <option value="">Todos los locales</option>
+      @for (location of $locations(); track location.id) {
+      <option [value]="location.id" [selected]="location.id === $locationId()">{{ location.name }}</option>
+      }
+    </select>
+    }
+    <select class="glass-input rounded-md px-3 py-2.5 text-sm" aria-label="Novedades" [value]="$consent()" (change)="onConsentChange($event)">
+      <option value="all">Todos</option>
+      <option value="yes">Aceptan novedades</option>
+      <option value="no">No aceptan novedades</option>
+    </select>
+    @if ($hasFilters()) {
+    <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="clearFilters()">Limpiar filtros</button>
+    }
+  </div>
+
+  <!-- Tabla -->
+  <div class="glass overflow-hidden rounded-[1rem]">
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead>
+          <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+            <th scope="col" class="px-4 py-3">Cliente</th>
+            <th scope="col" class="px-4 py-3">Segmento</th>
+            @for (column of sortColumns; track column.key) {
+            <th scope="col" class="whitespace-nowrap px-4 py-3" [class.text-right]="column.key !== 'lastVisitAt'" [attr.aria-sort]="$sort() === column.key ? 'descending' : 'none'">
+              <button type="button" class="hover:text-foreground inline-flex items-center gap-1 uppercase" [class.text-foreground]="$sort() === column.key" (click)="selectSort(column.key)">
+                {{ column.label }}
+                <app-icon class="h-4 w-4" [class.opacity-30]="$sort() !== column.key" aria-hidden="true">arrow_downward</app-icon>
+              </button>
+            </th>
+            @if (column.key === 'totalSpent') {
+            <th scope="col" class="whitespace-nowrap px-4 py-3 text-right">Ticket promedio</th>
+            }
+            }
+            <th scope="col" class="hidden px-4 py-3 lg:table-cell">Canales</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if ($listLoading() && !$list()) {
+          @for (row of skeletonRows; track row) {
+          <tr class="border-b border-[var(--border)] last:border-0">
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 180px" /></td>
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 70px" /></td>
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 40px" /></td>
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 70px" /></td>
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 70px" /></td>
+            <td class="px-4 py-3"><app-skeleton size="xs" style="width: 80px" /></td>
+            <td class="hidden px-4 py-3 lg:table-cell"><app-skeleton size="xs" style="width: 60px" /></td>
+          </tr>
+          }
+          } @else if ($listError()) {
+          <tr>
+            <td colspan="7" class="px-4 py-12 text-center">
+              <p class="text-foreground font-medium">No se pudieron cargar los clientes</p>
+              <button type="button" class="text-primary mt-2 text-sm font-medium hover:underline" (click)="listResource.reload()">Reintentar</button>
+            </td>
+          </tr>
+          } @else {
+          @for (customer of $list()?.items ?? []; track customer.contactId) {
+          @let segment = segmentLabels[customer.segment];
+          <tr class="glass-row border-b border-[var(--border)] last:border-0" [class.opacity-60]="$listLoading()">
+            <td class="px-4 py-3">
+              <a [routerLink]="['/customers', customer.contactId]" [queryParams]="{ tab: 'activity' }" class="group block min-w-[12rem]">
+                <span class="text-foreground group-hover:text-primary font-medium">{{ displayName(customer.name) }}</span>
+                <span class="text-muted-foreground block text-xs">{{ customer.email ?? customer.mobile ?? 'Sin datos de contacto' }}</span>
+                @if (customer.email && customer.mobile) {
+                <span class="text-muted-foreground block text-xs tabular-nums">{{ customer.mobile }}</span>
+                }
+              </a>
+              <div class="mt-1 flex flex-wrap gap-1">
+                @if (customer.marketingConsent) {
+                <span class="bg-primary/10 text-primary inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                  <app-icon class="h-3 w-3" aria-hidden="true">mark_email_read</app-icon>Acepta novedades
+                </span>
+                }
+                @if (customer.isVerified) {
+                <span class="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                  <app-icon class="h-3 w-3" aria-hidden="true">verified</app-icon>Verificado
+                </span>
+                }
+                @if (customer.suppressed) {
+                <span class="inline-flex items-center gap-0.5 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:text-rose-300" matTooltip="Rebotó o marcó un correo como spam: no se le envían más correos." tabindex="0">
+                  <app-icon class="h-3 w-3" aria-hidden="true">unsubscribe</app-icon>Correo con problemas
+                </span>
+                }
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold" [class]="segment.chip" [matTooltip]="segmentHint(customer.segment)" tabindex="0">
+                <app-icon class="h-3.5 w-3.5" aria-hidden="true">{{ segment.icon }}</app-icon>{{ segment.singular }}
+              </span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+              <span class="text-foreground font-semibold">{{ customer.visits }}</span>
+              <span class="text-muted-foreground block text-xs">{{ customer.visits90d }} en 90 días</span>
+            </td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums">{{ formatCurrency(customer.totalSpent) }}</td>
+            <td class="text-muted-foreground whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums">{{ formatCurrency(customer.avgTicket) }}</td>
+            <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
+              <span [matTooltip]="formatDate(customer.lastVisitAt)">{{ relativeDate(customer.lastVisitAt) }}</span>
+            </td>
+            <td class="text-muted-foreground hidden px-4 py-3 text-sm lg:table-cell">
+              {{ channelsText(customer.channels) }}
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="7" class="px-4 py-12 text-center">
+              @if ($hasFilters()) {
+              <p class="text-foreground font-medium">Sin coincidencias</p>
+              <p class="text-muted-foreground mt-1 text-sm">Ningún cliente cumple con estos filtros.</p>
+              <button type="button" class="text-primary mt-2 text-sm font-medium hover:underline" (click)="clearFilters()">Limpiar filtros</button>
+              } @else if ($summary()?.computedAt === null) {
+              <p class="text-foreground font-medium">Calculando tus clientes</p>
+              <p class="text-muted-foreground mt-1 text-sm">Vuelve en unos minutos.</p>
+              } @else {
+              <p class="text-foreground font-medium">Aún no hay clientes con compras</p>
+              <p class="text-muted-foreground mt-1 text-sm">Aparecen aquí cuando asocias un cliente a una venta en el POS o pide desde la carta.</p>
+              }
+            </td>
+          </tr>
+          }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if ($pagination(); as meta) {
+    @if (meta.totalItems > meta.perPage) {
+    <div class="border-t border-[var(--border)] px-4 pb-3">
+      <app-pagination-table [pagination]="meta" (pageChange)="$page.set($event)" />
+    </div>
+    }
+    }
+  </div>
+  }
+</div>
+}

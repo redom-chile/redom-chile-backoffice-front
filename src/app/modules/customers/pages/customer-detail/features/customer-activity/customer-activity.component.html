@@ -1,0 +1,127 @@
+@if ($blocked()) {
+<app-marketing-upsell-card
+  feature="customerInsights"
+  [requiredPlans]="$requiredPlans()"
+  description="Mira el segmento del cliente, sus visitas, su gasto y los correos que le enviaste." />
+} @else if ($loading()) {
+<div class="space-y-4">
+  <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    @for (i of [1, 2, 3, 4]; track i) {
+    <app-skeleton size="lg" />
+    }
+  </div>
+  <app-skeleton size="2xl" />
+</div>
+} @else if ($insight(); as insight) {
+@let segment = segmentLabels[insight.segment];
+<div class="space-y-4">
+  <!-- Segmento e insignias -->
+  <div class="flex flex-wrap items-center gap-2 text-sm">
+    <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" [class]="segment.chip" [matTooltip]="$segmentHint()" tabindex="0">
+      <app-icon class="h-4 w-4" aria-hidden="true">{{ segment.icon }}</app-icon>{{ segment.singular }}
+    </span>
+    <span class="text-muted-foreground">desde {{ formatDate(insight.segmentSince) }}</span>
+    @if (insight.marketingConsent) {
+    <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+      <app-icon class="h-3.5 w-3.5" aria-hidden="true">mark_email_read</app-icon>Acepta novedades
+    </span>
+    }
+    @if (insight.suppressed) {
+    <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:text-rose-300" matTooltip="Rebotó o marcó un correo como spam: no se le envían más correos." tabindex="0">
+      <app-icon class="h-3.5 w-3.5" aria-hidden="true">unsubscribe</app-icon>Correo con problemas
+    </span>
+    }
+  </div>
+  <p class="text-muted-foreground -mt-2 text-xs">{{ $segmentHint() }}</p>
+
+  <!-- Métricas (último año) -->
+  <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div class="glass rounded-xl p-4">
+      <p class="text-muted-foreground text-xs">Visitas (último año)</p>
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ insight.visits }}</p>
+      <p class="text-muted-foreground text-xs">{{ insight.visits90d }} en 90 días · {{ insight.orders }} compras</p>
+    </div>
+    <div class="glass rounded-xl p-4">
+      <p class="text-muted-foreground text-xs">Total gastado (último año)</p>
+      <p class="text-foreground text-2xl font-bold tabular-nums">{{ formatCurrency(insight.totalSpent) }}</p>
+      <p class="text-muted-foreground text-xs">Ticket promedio {{ formatCurrency(insight.avgTicket) }}</p>
+    </div>
+    <div class="glass rounded-xl p-4">
+      <p class="text-muted-foreground text-xs">Primera visita</p>
+      <p class="text-foreground text-lg font-semibold">{{ formatDate(insight.firstVisitAt) }}</p>
+    </div>
+    <div class="glass rounded-xl p-4">
+      <p class="text-muted-foreground text-xs">Última visita</p>
+      <p class="text-foreground text-lg font-semibold">{{ relativeDate(insight.lastVisitAt) }}</p>
+      <p class="text-muted-foreground text-xs">Canales: {{ channelsText(insight.channels) }}</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <!-- Últimas ventas -->
+    <section class="glass overflow-hidden rounded-[1rem]">
+      <h2 class="text-foreground border-b border-[var(--border)] px-4 py-3 font-semibold">Últimas ventas</h2>
+      @if (!insight.lastSales.length) {
+      <p class="text-muted-foreground px-4 py-10 text-center text-sm">Todavía no tiene ventas.</p>
+      } @else {
+      <ul class="divide-y divide-[var(--border)]">
+        @for (sale of insight.lastSales; track sale.transactionId) {
+        <li>
+          <a [routerLink]="['/orders', sale.transactionId]" class="glass-row flex items-center gap-3 px-4 py-3">
+            <div class="min-w-0 flex-1">
+              <p class="text-foreground font-mono text-sm font-semibold">{{ sale.invoiceNo ?? 'Venta #' + sale.transactionId }}</p>
+              <p class="text-muted-foreground text-xs">
+                {{ formatDateTime(sale.date) }} · {{ channelLabel(sale.channel) }}
+                @if ($showLocation() && locationName(sale.locationId)) { · {{ locationName(sale.locationId) }} }
+              </p>
+            </div>
+            <span class="text-foreground text-right font-semibold tabular-nums">{{ formatCurrency(sale.total) }}</span>
+            <app-icon class="text-muted-foreground h-5 w-5" aria-hidden="true">chevron_right</app-icon>
+          </a>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    <!-- Correos -->
+    <section class="glass overflow-hidden rounded-[1rem]">
+      <h2 class="text-foreground border-b border-[var(--border)] px-4 py-3 font-semibold">Correos</h2>
+      @if (!insight.messages.length) {
+      <p class="text-muted-foreground px-4 py-10 text-center text-sm">Todavía no le has enviado correos.</p>
+      } @else {
+      <ul class="divide-y divide-[var(--border)]">
+        @for (message of insight.messages; track message.id) {
+        @let status = messageStatusOf(message.status);
+        <li class="flex items-start gap-3 px-4 py-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-foreground text-sm font-medium">{{ messageTypeLabel(message.type) }}</p>
+            <p class="text-muted-foreground text-xs">
+              {{ kindLabels[message.kind] ?? message.kind }} ·
+              @if (message.sentAt) { Enviado {{ formatDateTime(message.sentAt) }} } @else { Creado {{ formatDateTime(message.createdAt) }} }
+            </p>
+            @if (message.reason) {
+            <p class="text-muted-foreground mt-0.5 text-xs">{{ messageReasonLabel(message.reason) }}</p>
+            }
+          </div>
+          <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold" [class]="status.chip">{{ status.label }}</span>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+  </div>
+</div>
+} @else if ($noPurchases()) {
+<div class="glass flex flex-col items-center gap-2 rounded-[1rem] px-4 py-12 text-center">
+  <app-icon class="text-muted-foreground h-12 w-12" aria-hidden="true">insights</app-icon>
+  <p class="text-foreground font-semibold">Aún no hay actividad</p>
+  <p class="text-muted-foreground max-w-md text-sm">Cuando este cliente tenga compras pagadas verás aquí su segmento, sus visitas y los correos que le envíes.</p>
+</div>
+} @else {
+<div class="flex flex-col items-center gap-4 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-foreground font-semibold">No se pudo cargar la actividad</p>
+  <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="insightResource.reload()">Reintentar</app-button>
+</div>
+}

@@ -27,10 +27,12 @@ export const PLAN_FEATURES = [
   'customerProfiles',
   'menuDynamic',
   'menuDynamicPlus',
+  'customerInsights',
+  'customerMessaging',
 ] as const;
 export type PlanFeatureCode = (typeof PLAN_FEATURES)[number];
 
-export type PlanLimitCode = 'max_locations' | 'max_users' | 'max_registers' | 'ai_questions_month' | 'aiMenuContentMonth' | 'customerOtpMonth';
+export type PlanLimitCode = 'max_locations' | 'max_users' | 'max_registers' | 'ai_questions_month' | 'aiMenuContentMonth' | 'customerOtpMonth' | 'customerEmailsMonth';
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'expired' | 'cancelled';
 

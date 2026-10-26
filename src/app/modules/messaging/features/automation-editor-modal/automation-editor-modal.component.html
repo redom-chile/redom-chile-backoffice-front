@@ -1,0 +1,171 @@
+@let v = $value();
+@let readOnly = !data.canManage;
+<app-modal-card>
+  <ng-template app-slot="header">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-xl font-semibold">{{ info.title }}</h2>
+      <button type="button" class="text-muted-foreground hover:text-foreground rounded-full p-1" aria-label="Cerrar" (click)="handleClose()">
+        <app-icon class="h-5 w-5" aria-hidden="true">close</app-icon>
+      </button>
+    </div>
+  </ng-template>
+
+  <div class="grid grid-cols-1 gap-6 p-2 lg:grid-cols-2">
+    <form [formGroup]="form" class="space-y-4" (ngSubmit)="handleSave()">
+      <p class="text-muted-foreground text-sm">{{ info.when }}</p>
+      @if ($automation().requiresMarketingConsent) {
+      <p class="flex items-start gap-1.5 rounded-lg bg-sky-500/10 p-2 text-xs text-sky-800 dark:text-sky-200">
+        <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">verified_user</app-icon>
+        Es un correo comercial: solo llega a quien aceptó recibir novedades de tu negocio.
+      </p>
+      }
+
+      @if (!readOnly) {
+      <app-template-variables [invalid]="$invalidVariable()" (insert)="insertVariable($event)" />
+      }
+
+      <div>
+        <label for="automation-subject" class="mb-1 block text-sm font-medium">Asunto *</label>
+        <input
+          #subjectInput
+          id="automation-subject"
+          type="text"
+          formControlName="subject"
+          [attr.maxlength]="subjectMax"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('subject')"
+          [attr.aria-invalid]="!!show('subject')"
+          (focus)="focusText('subject')"
+          (input)="onInput('subject')" />
+        <p class="mt-1 flex justify-between gap-2 text-xs">
+          <span class="text-destructive">{{ show('subject') }}</span>
+          <span class="text-muted-foreground">{{ v.subject.length }}/{{ subjectMax }}</span>
+        </p>
+      </div>
+
+      <div>
+        <label for="automation-body" class="mb-1 block text-sm font-medium">Mensaje *</label>
+        <textarea
+          #bodyInput
+          id="automation-body"
+          rows="8"
+          formControlName="body"
+          [attr.maxlength]="bodyMax"
+          class="glass-input w-full resize-y rounded-md px-3 py-2 font-mono text-sm"
+          [class.border-red-500]="show('body')"
+          [attr.aria-invalid]="!!show('body')"
+          aria-describedby="automation-body-hint"
+          (focus)="focusText('body')"
+          (input)="onInput('body')"></textarea>
+        <p class="mt-1 flex justify-between gap-2 text-xs">
+          <span class="text-destructive">{{ show('body') }}</span>
+          <span class="text-muted-foreground">{{ v.body.length }}/{{ bodyMax }}</span>
+        </p>
+        <p id="automation-body-hint" class="text-muted-foreground text-xs">
+          Formato: **negrita**, *cursiva*, listas con «- » y enlaces [texto](https://…).
+        </p>
+      </div>
+
+      <div>
+        <label for="automation-cta" class="mb-1 block text-sm font-medium">Texto del botón</label>
+        <input
+          #ctaInput
+          id="automation-cta"
+          type="text"
+          formControlName="ctaLabel"
+          [attr.maxlength]="ctaMax"
+          placeholder="Sin botón"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('ctaLabel')"
+          (focus)="focusText('ctaLabel')"
+          (input)="onInput('ctaLabel')" />
+        <p class="mt-1 flex justify-between gap-2 text-xs">
+          <span class="text-destructive">{{ show('ctaLabel') }}</span>
+          <span class="text-muted-foreground">{{ v.ctaLabel.length }}/{{ ctaMax }}</span>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        @if (info.field === 'delayHours') {
+        <div>
+          <label for="automation-delay" class="mb-1 block text-sm font-medium">Horas después de la visita</label>
+          <input
+            id="automation-delay"
+            type="number"
+            inputmode="numeric"
+            formControlName="delayHours"
+            [min]="ranges.delayHours[0]"
+            [max]="ranges.delayHours[1]"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('delayHours')"
+            (input)="onInput('delayHours')" />
+          <p class="mt-1 text-xs" [class]="show('delayHours') ? 'text-destructive' : 'text-muted-foreground'">
+            {{ show('delayHours') ?? 'Entre ' + ranges.delayHours[0] + ' y ' + ranges.delayHours[1] + ' horas.' }}
+          </p>
+        </div>
+        }
+        @if (info.field === 'daysBefore') {
+        <div>
+          <label for="automation-days-before" class="mb-1 block text-sm font-medium">Días antes del vencimiento</label>
+          <input
+            id="automation-days-before"
+            type="number"
+            inputmode="numeric"
+            formControlName="daysBefore"
+            [min]="ranges.daysBefore[0]"
+            [max]="ranges.daysBefore[1]"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('daysBefore')"
+            (input)="onInput('daysBefore')" />
+          <p class="mt-1 text-xs" [class]="show('daysBefore') ? 'text-destructive' : 'text-muted-foreground'">
+            {{ show('daysBefore') ?? 'Entre ' + ranges.daysBefore[0] + ' y ' + ranges.daysBefore[1] + ' días.' }}
+          </p>
+        </div>
+        }
+        <div>
+          <label for="automation-cooldown" class="mb-1 block text-sm font-medium">No repetir antes de (días)</label>
+          <input
+            id="automation-cooldown"
+            type="number"
+            inputmode="numeric"
+            formControlName="cooldownDays"
+            [min]="ranges.cooldownDays[0]"
+            [max]="ranges.cooldownDays[1]"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('cooldownDays')"
+            (input)="onInput('cooldownDays')" />
+          <p class="mt-1 text-xs" [class]="show('cooldownDays') ? 'text-destructive' : 'text-muted-foreground'">
+            {{ show('cooldownDays') ?? 'El mismo cliente no lo recibe de nuevo en esos días.' }}
+          </p>
+        </div>
+      </div>
+
+      @if (!readOnly) {
+      <div class="flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+        <app-button type="button" impact="light" size="small" [disabled]="$saving()" (buttonClick)="handleTest()">
+          <app-icon class="h-4 w-4" aria-hidden="true">send</app-icon>Enviar prueba
+        </app-button>
+        <app-button type="button" impact="light" size="small" [disabled]="$saving()" (buttonClick)="handleRestore()">
+          <app-icon class="h-4 w-4" aria-hidden="true">restart_alt</app-icon>Restaurar texto de Redom
+        </app-button>
+      </div>
+      }
+    </form>
+
+    <app-email-preview
+      [preview]="$preview()"
+      [loading]="$previewLoading()"
+      [error]="$previewError()"
+      [note]="$dirty() && !readOnly ? 'Muestra lo guardado, con datos de ejemplo. Guarda para ver tus cambios.' : 'Con datos de ejemplo.'"
+      (refresh)="loadPreview()" />
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" [disabled]="$saving()" (buttonClick)="handleClose()">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</app-button>
+      @if (!readOnly) {
+      <app-button type="button" impact="bold" [isLoading]="$saving()" [disabled]="!$dirty()" (buttonClick)="handleSave()">Guardar</app-button>
+      }
+    </div>
+  </ng-template>
+</app-modal-card>

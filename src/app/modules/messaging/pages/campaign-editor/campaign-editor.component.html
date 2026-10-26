@@ -1,0 +1,408 @@
+@let campaign = $campaign();
+@let v = $value();
+@let editable = $editable();
+<app-header-dashboard [title]="campaign ? campaign.name : 'Nueva campaña'" subtitle="Campaña por correo a tus clientes.">
+  <a routerLink="/messaging" [queryParams]="{ tab: 'campaigns' }" class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium">
+    <app-icon class="h-4 w-4" aria-hidden="true">arrow_back</app-icon>Campañas
+  </a>
+</app-header-dashboard>
+
+@if ($loadError(); as message) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ message }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="campaignResource.reload()">Reintentar</app-button>
+</div>
+} @else if ($notFound() || (!$isNew() && $id() === null)) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+  <app-icon class="text-muted-foreground h-12 w-12" aria-hidden="true">search_off</app-icon>
+  <p class="text-foreground font-medium">No encontramos esta campaña</p>
+  <a routerLink="/messaging" [queryParams]="{ tab: 'campaigns' }" class="text-primary text-sm font-medium hover:underline">Volver a las campañas</a>
+</div>
+} @else if (!campaign && !$isNew()) {
+<div class="flex flex-col gap-4">
+  <div class="glass h-20 animate-pulse rounded-[1rem]"></div>
+  <div class="glass h-96 animate-pulse rounded-[1rem]"></div>
+</div>
+} @else if ($isNew() && !$canSend()) {
+<div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+  <app-icon class="text-muted-foreground h-12 w-12" aria-hidden="true">lock</app-icon>
+  <p class="text-muted-foreground text-sm">No tienes permiso para crear campañas.</p>
+</div>
+} @else {
+<div class="flex flex-col gap-4">
+  <app-messaging-quota />
+
+  @if (campaign) {
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium" [class]="statusClasses[campaign.status]">{{ statusLabels[campaign.status] }}</span>
+    <span class="text-muted-foreground text-xs">{{ dateLine() }}</span>
+  </div>
+  }
+  @if (!editable && campaign) {
+  <p class="text-muted-foreground flex items-center gap-1 text-xs">
+    <app-icon class="h-4 w-4" aria-hidden="true">lock</app-icon>
+    @if (!$canSend()) {
+    Solo quien envía campañas puede cambiarla. Puedes mirar el contenido.
+    } @else {
+    Esta campaña ya se envió o se canceló; no se puede cambiar.
+    }
+  </p>
+  }
+
+  <!-- Estadísticas -->
+  @if (campaign && $hasStats()) {
+  <section class="glass rounded-[1rem] p-4" aria-labelledby="campaign-stats-title">
+    <h2 id="campaign-stats-title" class="text-foreground mb-3 font-semibold">Resultados</h2>
+    <dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      @for (item of statItems; track item.key) {
+      <div class="glass-row rounded-lg p-3">
+        <dt class="text-muted-foreground flex items-center gap-1 text-xs">
+          <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
+        </dt>
+        <dd class="text-foreground mt-1 text-lg font-semibold">
+          {{ stat(item.key) }}
+          @if (rate(item.key); as percent) {
+          <span class="text-muted-foreground text-xs font-normal">({{ percent }})</span>
+          }
+        </dd>
+      </div>
+      }
+    </dl>
+    <p class="text-muted-foreground mt-2 text-xs">Las aperturas, clics, rebotes y bajas se suman a medida que llegan. Los porcentajes son sobre los enviados.</p>
+  </section>
+  }
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+    <!-- Contenido y audiencia -->
+    <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="handleSave()">
+      <section class="glass space-y-4 rounded-[1rem] p-4" aria-labelledby="campaign-content-title">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="campaign-content-title" class="text-foreground font-semibold">Contenido</h2>
+          <app-help-links [links]="helpLinks" />
+        </div>
+
+        <div>
+          <label for="campaign-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+          <input
+            id="campaign-name"
+            type="text"
+            formControlName="name"
+            [attr.maxlength]="max.name"
+            placeholder="Ej: Promo de invierno"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('name')"
+            (input)="onInput('name')" />
+          <p class="mt-1 text-xs" [class]="show('name') ? 'text-destructive' : 'text-muted-foreground'">
+            {{ show('name') ?? 'Solo para ti: tus clientes no lo ven.' }}
+          </p>
+        </div>
+
+        @if (editable) {
+        <app-template-variables [invalid]="$invalidVariable()" (insert)="insertVariable($event)" />
+        }
+
+        <div>
+          <label for="campaign-subject" class="mb-1 block text-sm font-medium">Asunto *</label>
+          <input
+            #subjectInput
+            id="campaign-subject"
+            type="text"
+            formControlName="subject"
+            [attr.maxlength]="max.subject"
+            placeholder="Ej: Esta semana el postre va por la casa"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('subject')"
+            (focus)="focusText('subject')"
+            (input)="onInput('subject')" />
+          <p class="mt-1 flex justify-between gap-2 text-xs">
+            <span class="text-destructive">{{ show('subject') }}</span>
+            <span class="text-muted-foreground">{{ v.subject.length }}/{{ max.subject }}</span>
+          </p>
+        </div>
+
+        <div>
+          <label for="campaign-preheader" class="mb-1 block text-sm font-medium">Texto de vista previa</label>
+          <input
+            #preheaderInput
+            id="campaign-preheader"
+            type="text"
+            formControlName="preheader"
+            [attr.maxlength]="max.preheader"
+            placeholder="Lo que se lee junto al asunto en la bandeja de entrada"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('preheader')"
+            (focus)="focusText('preheader')"
+            (input)="onInput('preheader')" />
+          <p class="mt-1 flex justify-between gap-2 text-xs">
+            <span class="text-destructive">{{ show('preheader') }}</span>
+            <span class="text-muted-foreground">{{ v.preheader.length }}/{{ max.preheader }}</span>
+          </p>
+        </div>
+
+        <div>
+          <label for="campaign-body" class="mb-1 block text-sm font-medium">Mensaje *</label>
+          <textarea
+            #bodyInput
+            id="campaign-body"
+            rows="10"
+            formControlName="body"
+            [attr.maxlength]="max.body"
+            class="glass-input w-full resize-y rounded-md px-3 py-2 font-mono text-sm"
+            [class.border-red-500]="show('body')"
+            aria-describedby="campaign-body-hint"
+            (focus)="focusText('body')"
+            (input)="onInput('body')"></textarea>
+          <p class="mt-1 flex justify-between gap-2 text-xs">
+            <span class="text-destructive">{{ show('body') }}</span>
+            <span class="text-muted-foreground">{{ v.body.length }}/{{ max.body }}</span>
+          </p>
+          <p id="campaign-body-hint" class="text-muted-foreground text-xs">Formato: **negrita**, *cursiva*, listas con «- » y enlaces [texto](https://…).</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label for="campaign-cta" class="mb-1 block text-sm font-medium">Texto del botón</label>
+            <input
+              #ctaInput
+              id="campaign-cta"
+              type="text"
+              formControlName="ctaLabel"
+              [attr.maxlength]="max.cta"
+              placeholder="Ej: Ver la carta"
+              class="glass-input w-full rounded-md px-3 py-2"
+              [class.border-red-500]="show('ctaLabel')"
+              (focus)="focusText('ctaLabel')"
+              (input)="onInput('ctaLabel')" />
+            <p class="mt-1 flex justify-between gap-2 text-xs">
+              <span class="text-destructive">{{ show('ctaLabel') ?? 'Vacío: sin botón.' }}</span>
+              <span class="text-muted-foreground">{{ v.ctaLabel.length }}/{{ max.cta }}</span>
+            </p>
+          </div>
+          <div>
+            <label for="campaign-cta-url" class="mb-1 block text-sm font-medium">Enlace del botón</label>
+            <input
+              id="campaign-cta-url"
+              type="url"
+              inputmode="url"
+              formControlName="ctaUrl"
+              [attr.maxlength]="max.url"
+              placeholder="https://"
+              class="glass-input w-full rounded-md px-3 py-2"
+              [class.border-red-500]="show('ctaUrl')"
+              (input)="onInput('ctaUrl')" />
+            <p class="mt-1 text-xs" [class]="show('ctaUrl') ? 'text-destructive' : 'text-muted-foreground'">
+              {{ show('ctaUrl') ?? 'Vacío: abre la carta del local.' }}
+            </p>
+          </div>
+        </div>
+
+        @if (editable) {
+        @for (key of [$imageKey()]; track key) {
+        <app-image-picker
+          folder="menu_banners"
+          label="Imagen (opcional)"
+          [currentUrl]="campaign?.imageUrl"
+          [disabled]="!!$busy()"
+          [uploading]="$uploading()"
+          [progress]="$progress()"
+          (selectionChange)="onImage($event)" />
+        }
+        @if (show('imageFileId'); as error) {
+        <p class="text-destructive text-xs">{{ error }}</p>
+        }
+        } @else if (campaign?.imageUrl) {
+        <div>
+          <p class="mb-1 text-sm font-medium">Imagen</p>
+          <img [src]="campaign?.imageUrl" alt="Imagen de la campaña" class="max-h-40 rounded-lg object-cover" />
+        </div>
+        }
+      </section>
+
+      <section class="glass space-y-4 rounded-[1rem] p-4" aria-labelledby="campaign-audience-title">
+        <div>
+          <h2 id="campaign-audience-title" class="text-foreground font-semibold">Audiencia</h2>
+          <p class="text-muted-foreground text-xs">Solo llega a quien aceptó recibir novedades de tu negocio y tiene un correo sin problemas.</p>
+        </div>
+
+        <div>
+          <p class="mb-1 text-sm font-medium" id="campaign-segments-label">Segmentos</p>
+          <div class="flex flex-wrap gap-1.5" role="group" aria-labelledby="campaign-segments-label">
+            <button
+              type="button"
+              class="rounded-full px-3 py-1 text-xs font-medium disabled:opacity-60"
+              [class]="!$segments().size ? 'bg-primary text-primary-foreground' : 'glass-row text-foreground'"
+              [attr.aria-pressed]="!$segments().size"
+              [disabled]="!editable"
+              (click)="clearSegments()">
+              Todos
+            </button>
+            @for (segment of segments; track segment) {
+            <button
+              type="button"
+              class="rounded-full px-3 py-1 text-xs font-medium disabled:opacity-60"
+              [class]="$segments().has(segment) ? 'bg-primary text-primary-foreground' : 'glass-row text-foreground'"
+              [attr.aria-pressed]="$segments().has(segment)"
+              [disabled]="!editable"
+              (click)="toggleSegment(segment)">
+              {{ segmentLabels[segment] }}
+            </button>
+            }
+          </div>
+          @if (show('segments'); as error) {
+          <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label for="campaign-location" class="mb-1 block text-sm font-medium">Local</label>
+            <select id="campaign-location" formControlName="locationId" class="glass-input w-full rounded-md px-3 py-2" (change)="onInput('locationId')">
+              <option value="">Todos los locales</option>
+              @for (location of $locations(); track location.id) {
+              <option [value]="location.id">{{ location.name }}</option>
+              }
+            </select>
+            @if (show('locationId'); as error) {
+            <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+            }
+          </div>
+          <div class="flex items-center justify-between gap-3 sm:pt-6">
+            <div>
+              <p class="text-sm font-medium">Solo clientes reconocidos</p>
+              <p class="text-muted-foreground text-xs">Los que confirmaron su correo en la carta.</p>
+            </div>
+            <app-toggle
+              [checked]="v.onlyVerified"
+              [disabled]="!editable"
+              ariaLabel="Solo clientes reconocidos"
+              (changed)="form.controls.onlyVerified.setValue($event); onInput('segments')" />
+          </div>
+        </div>
+
+        <div class="glass-row rounded-lg p-3 text-sm" aria-live="polite">
+          @if (!campaign) {
+          <p class="text-muted-foreground">Guarda el borrador para ver a cuántos clientes llega.</p>
+          } @else if ($audienceLoading()) {
+          <p class="text-muted-foreground">Calculando la audiencia…</p>
+          } @else if ($audienceError(); as error) {
+          <p class="text-destructive">{{ error }}</p>
+          } @else if ($audience(); as audience) {
+          <p class="text-foreground font-semibold">{{ audienceText(audience) }}</p>
+          @if (excludedText(audience); as excluded) {
+          <p class="text-muted-foreground mt-0.5 text-xs">{{ excluded }}</p>
+          }
+          @if ($dirty()) {
+          <p class="text-muted-foreground mt-1 text-xs">Es de lo guardado: guarda para recalcular con tus cambios.</p>
+          }
+          } @else {
+          <p class="text-muted-foreground">{{ audienceSummary() }}</p>
+          }
+          @if (campaign && editable) {
+          <button type="button" class="text-primary mt-1 text-xs font-medium hover:underline" (click)="loadAudience()">Recalcular</button>
+          }
+        </div>
+      </section>
+    </form>
+
+    <!-- Vista previa y envío -->
+    <div class="flex flex-col gap-4">
+      @if (editable) {
+      <section class="glass space-y-3 rounded-[1rem] p-4" aria-labelledby="campaign-send-title">
+        <h2 id="campaign-send-title" class="text-foreground font-semibold">Envío</h2>
+        <div class="glass-input flex gap-1 rounded-full p-1" role="radiogroup" aria-label="Cuándo enviar">
+          <button
+            type="button"
+            role="radio"
+            class="h-8 flex-1 rounded-full text-sm font-medium"
+            [class]="$sendMode() === 'now' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+            [attr.aria-checked]="$sendMode() === 'now'"
+            (click)="setSendMode('now')">
+            Ahora
+          </button>
+          <button
+            type="button"
+            role="radio"
+            class="h-8 flex-1 rounded-full text-sm font-medium"
+            [class]="$sendMode() === 'later' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+            [attr.aria-checked]="$sendMode() === 'later'"
+            (click)="setSendMode('later')">
+            Programar
+          </button>
+        </div>
+        @if ($sendMode() === 'later') {
+        <div>
+          <label for="campaign-schedule" class="mb-1 block text-sm font-medium">Fecha y hora</label>
+          <input
+            id="campaign-schedule"
+            type="datetime-local"
+            class="glass-input w-full rounded-md px-3 py-2"
+            [class.border-red-500]="show('scheduledAt')"
+            [value]="$scheduleInput()"
+            [min]="$scheduleBounds().min"
+            [max]="$scheduleBounds().max"
+            (input)="onScheduleInput($event)" />
+          <p class="mt-1 text-xs" [class]="show('scheduledAt') ? 'text-destructive' : 'text-muted-foreground'">
+            {{ show('scheduledAt') ?? 'Hora de tu negocio. Hasta ' + scheduleMaxDays + ' días desde hoy.' }}
+          </p>
+        </div>
+        }
+        @if ($sendError(); as error) {
+        <p class="text-destructive flex items-start gap-1 text-sm" role="alert">
+          <app-icon class="h-4 w-4 shrink-0" aria-hidden="true">error</app-icon>{{ error }}
+        </p>
+        }
+        <div class="flex flex-col gap-2">
+          <app-button type="button" impact="bold" [full]="true" [isLoading]="$busy() === 'send' || $busy() === 'schedule'" [disabled]="!!$busy()" (buttonClick)="handleSend()">
+            <app-icon class="h-4 w-4" aria-hidden="true">{{ $sendMode() === 'later' ? 'schedule_send' : 'send' }}</app-icon>
+            {{ $sendMode() === 'later' ? (campaign?.status === 'scheduled' ? 'Reprogramar' : 'Programar') : 'Enviar ahora' }}
+          </app-button>
+          <app-button type="button" impact="light" [full]="true" [isLoading]="$busy() === 'test'" [disabled]="!!$busy()" (buttonClick)="handleTest()">
+            <app-icon class="h-4 w-4" aria-hidden="true">outgoing_mail</app-icon>Enviar prueba
+          </app-button>
+        </div>
+        <p class="text-muted-foreground text-xs">Antes de probar o enviar se guardan tus cambios.</p>
+      </section>
+      }
+
+      <section class="glass rounded-[1rem] p-4">
+        <app-email-preview
+          [preview]="$preview()"
+          [loading]="$previewLoading()"
+          [error]="$previewError()"
+          [note]="$dirty() && editable ? 'Muestra lo guardado, con datos de ejemplo. Guarda para ver tus cambios.' : 'Con datos de ejemplo.'"
+          emptyText="Guarda el borrador para ver la vista previa."
+          (refresh)="loadPreview()" />
+      </section>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  @if ($canSend()) {
+  <div class="glass sticky bottom-2 z-10 flex flex-wrap items-center justify-between gap-2 rounded-[1rem] p-3">
+    <div class="flex flex-wrap gap-2">
+      @if (campaign?.status === 'draft') {
+      <app-button type="button" impact="light" tone="danger" size="small" [isLoading]="$busy() === 'delete'" [disabled]="!!$busy()" (buttonClick)="handleDelete()">
+        <app-icon class="h-4 w-4" aria-hidden="true">delete</app-icon>Eliminar
+      </app-button>
+      }
+      @if (campaign?.status === 'scheduled' || campaign?.status === 'sending') {
+      <app-button type="button" impact="light" tone="danger" size="small" [isLoading]="$busy() === 'cancel'" [disabled]="!!$busy()" (buttonClick)="handleCancel()">
+        <app-icon class="h-4 w-4" aria-hidden="true">cancel_schedule_send</app-icon>{{ campaign?.status === 'sending' ? 'Detener envío' : 'Cancelar campaña' }}
+      </app-button>
+      }
+    </div>
+    @if (editable) {
+    <div class="flex items-center gap-2">
+      @if ($dirty()) {
+      <span class="text-muted-foreground hidden text-xs sm:inline">Cambios sin guardar</span>
+      }
+      <app-button type="button" impact="bold" [isLoading]="$busy() === 'save'" [disabled]="!!$busy() || (!!campaign && !$dirty())" (buttonClick)="handleSave()">
+        {{ campaign ? 'Guardar' : 'Guardar borrador' }}
+      </app-button>
+    </div>
+    }
+  </div>
+  }
+</div>
+}

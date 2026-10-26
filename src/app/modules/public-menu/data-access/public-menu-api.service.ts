@@ -144,7 +144,58 @@ export class PublicMenuApiService {
   getLegalVersion(id: number): Observable<LegalVersionDto> {
     return this.#http.get<LegalVersionDto>(`${this.#base}/legal/versions/${encodeURIComponent(String(id))}`);
   }
+
+  // --- Mensajería (etapa 10.2): páginas que enlazan los correos, con token firmado. 400 MESSAGING_TOKEN_INVALID ---
+
+  /** Encuesta de la visita: negocio, local, fecha y si ya se respondió. */
+  getMessagingSurvey(token: string): Observable<MessagingSurveyInfoDto> {
+    return this.#http.get<MessagingSurveyInfoDto>(`${this.#base}/messaging/survey`, { params: { token } });
+  }
+
+  /** Una respuesta por visita: 409 FEEDBACK_ALREADY_SENT. Con 4 o 5 estrellas trae googleReviewUrl (si el local tiene). */
+  sendMessagingSurvey(dto: Readonly<{ token: string; rating: number; comment?: string }>): Observable<MessagingSurveyResultDto> {
+    return this.#http.post<MessagingSurveyResultDto>(`${this.#base}/messaging/survey`, dto);
+  }
+
+  /** Darse de baja: negocio, correo enmascarado y tipo de correo. */
+  getMessagingUnsubscribe(token: string): Observable<MessagingUnsubscribeInfoDto> {
+    return this.#http.get<MessagingUnsubscribeInfoDto>(`${this.#base}/messaging/unsubscribe`, { params: { token } });
+  }
+
+  unsubscribeMessaging(dto: Readonly<{ token: string; scope: MessagingUnsubscribeScope }>): Observable<MessagingUnsubscribeResultDto> {
+    return this.#http.post<MessagingUnsubscribeResultDto>(`${this.#base}/messaging/unsubscribe`, dto);
+  }
 }
+
+export type MessagingSurveyInfoDto = Readonly<{
+  businessName: string;
+  logoUrl: string | null;
+  locationName: string | null;
+  /** ISO: fecha de la venta (null si no hay). */
+  date: string | null;
+  answered: boolean;
+}>;
+
+export type MessagingSurveyResultDto = Readonly<{ rating: number; comment: string | null; googleReviewUrl: string | null }>;
+
+export type MessagingUnsubscribeScope = 'thisType' | 'allFromBusiness';
+
+export type MessagingUnsubscribeInfoDto = Readonly<{
+  businessName: string;
+  /** Enmascarado (c*****@g*****.cl). */
+  email: string;
+  /** 'campaign' o la automatización (postVisitSurvey, loyaltyRewardAvailable, loyaltyPointsExpiring, winBack). */
+  type: string;
+  options: readonly MessagingUnsubscribeScope[];
+}>;
+
+export type MessagingUnsubscribeResultDto = Readonly<{
+  businessName: string;
+  scope: MessagingUnsubscribeScope;
+  type: string;
+  /** Se retiró el consentimiento de novedades del negocio (campañas o "todo"). */
+  marketingConsentWithdrawn: boolean;
+}>;
 
 /** El QR de una mesa: 32 caracteres hexadecimales (ningún slug tiene esa forma). */
 export const TABLE_QR_PATTERN = /^[0-9a-f]{32}$/;

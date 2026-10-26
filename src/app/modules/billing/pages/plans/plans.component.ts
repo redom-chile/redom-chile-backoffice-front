@@ -34,6 +34,7 @@ const LIMITS: ReadonlyArray<Readonly<{ code: PlanLimitCode; label: string }>> = 
   { code: 'ai_questions_month', label: 'Preguntas IA al mes' },
   { code: 'aiMenuContentMonth', label: 'Sugerencias de la carta con IA al mes' },
   { code: 'customerOtpMonth', label: 'Códigos para clientes al mes' },
+  { code: 'customerEmailsMonth', label: 'Correos a clientes al mes' },
 ];
 
 const ACTION_BUTTONS: Record<CheckoutPreview, string> = {

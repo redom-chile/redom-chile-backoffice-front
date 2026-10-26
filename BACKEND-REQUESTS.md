@@ -11,12 +11,12 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 
 | Prioridad | Solicitudes |
 |---|---|
-| 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
+| 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) · #81 enlaces de los correos al backoffice |
 | 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario · #71 asignar mesero y encargado a una reserva |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
 | 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas · #79 ajustes del módulo legal |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76, #78, #77 |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76, #78, #77, #80 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -675,6 +675,26 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 - **Documentos del negocio:** confirmar que un empleado nunca recibe 428 por `subscriptionTerms`, `dataProcessingAgreement` o `apiTerms` (solo el dueño puede aceptarlos).
 
 **Front mientras tanto:** el detalle se arma desde el listado; el estado de novedades por local se deduce; la exportación usa un nombre propio si no llega el encabezado.
+
+---
+
+### 80. 🟢 Etapa 10.2: mensajería y panel de clientes (correo) (resuelta 2026-10-25)
+
+**Problema:** el negocio no ve qué clientes vuelven ni puede comunicarse con ellos con su permiso.
+
+**Se pide:** el prompt `docs/backend-prompts/carta-etapa-10-2-mensajeria-clientes.md` (funciones `customerInsights` y `customerMessaging`, límite `customerEmailsMonth`, panel y segmentos, mensajes automáticos, campañas solo con `marketingConsent`, webhook de Resend, bajas y supresión).
+
+**Front mientras tanto:** se adelanta contra este contrato.
+
+---
+
+### 81. 🔴 Mensajería: los enlaces de los correos van al backoffice (y otros ajustes)
+
+**Problema:** los correos arman los enlaces de la encuesta y de la baja con `URL_CORS` (el backoffice), pero esas páginas están en la landing (`redom.cl/carta`). Además: faltan slugs reservados (`encuesta`, `baja`, `pedido`), la baja de "Te extrañamos" no retira `marketingConsent`, no hay `GET` de una campaña ni vista previa sin guardar, `isDefault` se pierde al guardar cualquier cosa y los errores de rango usan otro código.
+
+**Se pide:** el prompt `docs/backend-prompts/ajustes-etapa-10-2.md` (variable `PUBLIC_MENU_URL` para todos los enlaces públicos; resuelve también #54).
+
+**Front mientras tanto:** las páginas `/carta/encuesta` y `/carta/baja` existen en la landing; el editor de campañas guarda antes de previsualizar; los textos por defecto se guardan en el navegador.
 
 ---
 

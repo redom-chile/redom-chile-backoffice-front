@@ -1,0 +1,85 @@
+<div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="space-y-1">
+      <p class="text-muted-foreground text-sm">Correos a tus clientes cuando tú quieras. Solo llegan a quien aceptó recibir novedades de tu negocio.</p>
+      <app-help-links [links]="helpLinks" />
+    </div>
+    <a
+      *appCheckPermission="PERMISSIONS.MESSAGING.SEND_CAMPAIGNS"
+      routerLink="/messaging/campaigns/new"
+      class="bg-primary text-primary-foreground inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold hover:opacity-90">
+      <app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva campaña
+    </a>
+  </div>
+
+  @if ($hasSending()) {
+  <p class="text-muted-foreground flex items-center gap-1.5 text-xs" role="status">
+    <app-icon class="h-4 w-4 animate-spin" aria-hidden="true">progress_activity</app-icon>
+    Hay una campaña enviándose: la lista se actualiza sola cada 30 segundos.
+  </p>
+  }
+
+  @if ($planBlocked()) {
+  <app-marketing-upsell-card feature="customerMessaging" description="Correos automáticos y campañas para que tus clientes vuelvan." />
+  } @else if ($error(); as message) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+    <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+    <p class="text-muted-foreground text-sm">{{ message }}</p>
+    <app-button impact="light" size="small" type="button" (buttonClick)="campaigns.reload()">Reintentar</app-button>
+  </div>
+  } @else if (campaigns.isLoading() && !$items().length) {
+  <div class="flex flex-col gap-3">
+    @for (item of [1, 2, 3]; track item) {
+    <div class="glass h-24 animate-pulse rounded-[1rem]"></div>
+    }
+  </div>
+  } @else if (!$items().length) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-12 text-center">
+    <app-icon class="text-muted-foreground h-12 w-12" aria-hidden="true">campaign</app-icon>
+    <p class="text-foreground font-medium">Aún no tienes campañas</p>
+    <p class="text-muted-foreground max-w-md text-sm">Avisa una promoción, un plato nuevo o un evento a los clientes que quieren saber de ti.</p>
+  </div>
+  } @else {
+  <ul class="flex flex-col gap-3" aria-label="Campañas">
+    @for (campaign of $items(); track campaign.id) {
+    <li class="glass flex flex-col gap-3 rounded-[1rem] p-4 sm:flex-row sm:items-center">
+      <a [routerLink]="['/messaging/campaigns', campaign.id]" class="group min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-foreground truncate font-semibold group-hover:underline">{{ campaign.name }}</span>
+          <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="statusClasses[campaign.status]">
+            @if (campaign.status === 'sending') {
+            <app-icon class="mr-0.5 inline-block h-3 w-3 animate-spin align-[-2px]" aria-hidden="true">progress_activity</app-icon>
+            }
+            {{ statusLabels[campaign.status] }}
+          </span>
+        </div>
+        <p class="text-muted-foreground mt-0.5 truncate text-xs">{{ campaign.subject }}</p>
+        <p class="text-muted-foreground mt-1 text-xs">{{ dateLine(campaign) }}</p>
+        @if (summary(campaign); as stats) {
+        <p class="text-foreground mt-1 text-xs font-medium">{{ stats }}</p>
+        }
+      </a>
+      <div class="flex shrink-0 flex-wrap justify-end gap-2">
+        @if ($canSend() && campaign.status === 'draft') {
+        <app-button type="button" impact="light" tone="danger" size="small" [isLoading]="$busy() === campaign.id" (buttonClick)="handleDelete(campaign)">
+          <app-icon class="h-4 w-4" aria-hidden="true">delete</app-icon>Eliminar
+        </app-button>
+        }
+        @if ($canSend() && (campaign.status === 'scheduled' || campaign.status === 'sending')) {
+        <app-button type="button" impact="light" tone="danger" size="small" [isLoading]="$busy() === campaign.id" (buttonClick)="handleCancel(campaign)">
+          <app-icon class="h-4 w-4" aria-hidden="true">cancel_schedule_send</app-icon>{{ campaign.status === 'sending' ? 'Detener' : 'Cancelar' }}
+        </app-button>
+        }
+        <a
+          [routerLink]="['/messaging/campaigns', campaign.id]"
+          class="glass-row text-foreground inline-flex h-8 items-center gap-1 rounded-full px-3 text-sm font-medium"
+          [attr.aria-label]="'Abrir ' + campaign.name">
+          {{ $canSend() && (campaign.status === 'draft' || campaign.status === 'scheduled') ? 'Editar' : 'Ver detalle' }}
+          <app-icon class="h-4 w-4" aria-hidden="true">chevron_right</app-icon>
+        </a>
+      </div>
+    </li>
+    }
+  </ul>
+  }
+</div>

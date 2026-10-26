@@ -28,6 +28,8 @@ export const PLAN_FEATURE_LABELS: Record<PlanFeatureCode, string> = {
   customerProfiles: 'Cliente reconocido en la carta',
   menuDynamic: 'Carta dinámica (momentos y temporadas)',
   menuDynamicPlus: 'Carta dinámica avanzada (clima, plato del día, sugerencias automáticas)',
+  customerInsights: 'Panel de clientes',
+  customerMessaging: 'Mensajería a clientes (correos automáticos y campañas)',
 };
 
 export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: string }> = {
@@ -37,6 +39,7 @@ export const PLAN_LIMIT_LABELS: Record<PlanLimitCode, { one: string; many: strin
   ai_questions_month: { one: 'pregunta al asistente', many: 'preguntas al asistente' },
   aiMenuContentMonth: { one: 'sugerencia con IA', many: 'sugerencias con IA' },
   customerOtpMonth: { one: 'código enviado', many: 'códigos enviados' },
+  customerEmailsMonth: { one: 'correo a clientes', many: 'correos a clientes' },
 };
 
 /** "1 de 3 locales" / "2 locales (ilimitado)". */

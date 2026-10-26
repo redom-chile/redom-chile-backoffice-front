@@ -95,6 +95,12 @@ const routes: Routes = [
     loadChildren: () => import('../loyalty/loyalty.routes'),
   },
   {
+    // Etapa 10.2: mensajes automáticos y campañas por correo. Query param opcional: tab (automations|campaigns).
+    path: 'messaging',
+    component: LayoutComponent,
+    loadChildren: () => import('../messaging/messaging.routes'),
+  },
+  {
     path: 'customers',
     component: LayoutComponent,
     loadChildren: () => import('../customers/customers.routes'),

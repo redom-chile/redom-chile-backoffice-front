@@ -80,6 +80,7 @@ export class Menu {
           children: [
             { label: 'Clientes', route: '/customers' },
             { label: 'Fidelización', route: '/loyalty' },
+            { label: 'Mensajería', route: '/messaging' },
           ],
         },
       ],

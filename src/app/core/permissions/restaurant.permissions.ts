@@ -43,6 +43,11 @@ export const RESTAURANT_PERMISSIONS = {
     SEE_MODULE: 'customer-orders:see-module',
     MANAGE: 'customer-orders:manage',
   },
+  MESSAGING: {
+    SEE_MODULE: 'messaging:see-module',
+    MANAGE_AUTOMATIONS: 'messaging:manage-automations',
+    SEND_CAMPAIGNS: 'messaging:send-campaigns',
+  },
   LOYALTY: {
     SEE_MODULE: 'loyalty:see-module',
     MANAGE: 'loyalty:manage',

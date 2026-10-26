@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
+import { TabDirective, TabListDirective } from 'src/app/modules/public-menu/features/a11y-tabs';
 import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -6,14 +9,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ButtonComponent, ConfirmModalComponent, ConfirmModalData, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { formatCurrency, formatDateTime, ORDER_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { CustomerDetailDto, CustomerService } from './data-access';
-import { UpdateCustomerModalComponent } from './features';
+import { CustomerActivityComponent, UpdateCustomerModalComponent } from './features';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [RouterLink, MatTooltipModule, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent, CheckPermissionDirective],
+  imports: [RouterLink, MatTooltipModule, TabDirective, TabListDirective, CustomerActivityComponent, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent, CheckPermissionDirective],
   templateUrl: './customer-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -29,6 +32,14 @@ export class CustomerDetailComponent implements OnInit {
   readonly orderStatus = ORDER_STATUS;
   readonly formatCurrency = formatCurrency;
   readonly formatDateTime = formatDateTime;
+
+  readonly tabs = [
+    { id: 'summary', label: 'Resumen', icon: 'person' },
+    { id: 'activity', label: 'Actividad', icon: 'insights' },
+  ] as const;
+  readonly $tab = toSignal(this.route.queryParamMap.pipe(map((params) => (params.get('tab') === 'activity' ? 'activity' : 'summary'))), {
+    initialValue: this.route.snapshot.queryParamMap.get('tab') === 'activity' ? 'activity' : 'summary',
+  });
 
   readonly $customer = signal<CustomerDetailDto | null>(null);
   readonly $isLoading = signal(true);
@@ -60,6 +71,11 @@ export class CustomerDetailComponent implements OnInit {
         this.$isLoading.set(false);
       },
     });
+  }
+
+  selectTab(tab: 'summary' | 'activity') {
+    if (tab === this.$tab()) return;
+    this.router.navigate([], { relativeTo: this.route, queryParams: { tab: tab === 'summary' ? null : tab }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   handleEdit(customer: CustomerDetailDto) {

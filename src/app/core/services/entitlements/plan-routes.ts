@@ -25,6 +25,7 @@ const PLAN_ROUTE_FEATURES: ReadonlyArray<readonly [string, PlanRouteRule]> = [
   ['/settings/public-menu/marketing', { anyOf: ['menu_marketing', 'menu_branding'] }],
   ['/settings/public-menu', ['qr_menu']],
   ['/loyalty', ['loyalty']],
+  ['/messaging', ['customerMessaging']],
   ['/settings/printers', ['printing']],
   ['/settings/print-station', ['printing']],
   ['/bookings', ['bookings']],
