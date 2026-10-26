@@ -184,6 +184,10 @@ export function readOrderError(error: unknown): OrderSendError {
     case 'MODIFIER_NOT_AVAILABLE':
     case 'MODIFIER_REPEATED':
       return { message: cartaErrorMessage(error), reload: api.code === 'MODIFIER_NOT_AVAILABLE' };
+    // Documentos pendientes del cliente identificado (428) o versión de privacidad que dejó de estar publicada
+    case 'LEGAL_ACCEPTANCE_REQUIRED':
+    case 'LEGAL_VERSION_NOT_PUBLISHED':
+      return { message: cartaErrorMessage(error) };
   }
   if (api.status === 429) return { message: ct('order.error.rateLimited') };
   // El mensaje del servidor viene en español

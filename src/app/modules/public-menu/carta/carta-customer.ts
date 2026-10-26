@@ -1,6 +1,7 @@
 import { HttpHeaders } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { catchError, Observable, of, Subscription, throwError } from 'rxjs';
+import { catchError, Observable, of, Subject, Subscription, switchMap, take, tap, throwError } from 'rxjs';
+import type { LegalMeDto, PendingDocumentDto } from 'src/app/core/services/legal/dtos';
 import { readApiError } from 'src/app/core/utils/api-error';
 import {
   CustomerLoyaltyDto,
@@ -8,11 +9,13 @@ import {
   CustomerProfilesSetting,
   CustomerUsualDto,
   PublicCustomerDto,
+  PublicCustomerMeDto,
   PublicCustomerProfilesDto,
 } from '../data-access/dtos/customer-profiles.dto';
 import { PublicLocationMenuDto, PublicProductDto, PublicTagDto } from '../data-access/dtos/public-menu.dto';
 import { customerHeaders, PublicCustomerApiService } from '../data-access/public-customer-api.service';
 import { isCartaLang } from './carta-i18n';
+import { pendingDocumentsOf, sanitizePending } from './carta-legal';
 import { readSavedCustomer, saveCustomer } from './carta-online';
 
 /** Respaldo de customerProfiles.redomPrivacyUrl (política de privacidad de Redom para clientes). */
@@ -106,6 +109,11 @@ export class CartaCustomer {
   readonly quotaExceeded = signal(false);
   /** 409 CUSTOMER_PROFILES_DISABLED (details.setting): se oculta lo que el local apagó, durante la visita. */
   readonly #disabled = signal<ReadonlySet<string>>(new Set());
+  /** Documentos legales del cliente (GET /customers/me): pendientes e historial. null: sin cargar. */
+  readonly legal = signal<LegalMeDto | null>(null);
+  /** Pendientes que bloquearon un pedido (428): la vista de la carta muestra el aviso y, al aceptar, se reintenta. */
+  readonly legalPrompt = signal<readonly PendingDocumentDto[] | null>(null);
+  readonly #legalAnswer = new Subject<boolean>();
   /** El perfil se cargó por primera vez en esta visita (para aplicar su idioma). */
   readonly loadedAt = signal(0);
 
@@ -128,6 +136,8 @@ export class CartaCustomer {
   readonly preferences = computed(() => (this.verified() ? this.profile()!.preferences : this.#localPrefs()));
   readonly showUsual = computed(() => this.verified() && !!this.settings()?.showUsual && !this.#disabled().has('showUsual'));
   readonly showLoyalty = computed(() => this.verified() && !!this.settings()?.showLoyalty && !this.#disabled().has('showLoyalty'));
+  /** Con pendientes: usual, loyalty y los pedidos identificados responden 428; la carta sigue funcionando. */
+  readonly legalPending = computed(() => (this.verified() ? (this.legal()?.pending ?? []) : []));
   readonly redomPrivacyUrl = computed(() => this.settings()?.redomPrivacyUrl || REDOM_PRIVACY_URL);
 
   /** La vista de la carta lo llama con la carta (null en la vista previa). */
@@ -163,17 +173,89 @@ export class CartaCustomer {
     return this.verified() ? customerHeaders(this.#token()) : undefined;
   }
 
-  /** Envía con el header y, si el token venció (401 CUSTOMER_TOKEN_INVALID), cierra la sesión y reintenta sin él. */
+  /**
+   * Envía con el header y, si el token venció (401 CUSTOMER_TOKEN_INVALID), cierra la sesión y reintenta sin él. Con
+   * documentos pendientes (428 LEGAL_ACCEPTANCE_REQUIRED) pide aceptarlos y reintenta; si el cliente no acepta, falla.
+   */
   withCustomer<T>(request: (headers?: HttpHeaders) => Observable<T>): Observable<T> {
     const headers = this.headers();
     if (!headers) return request();
     return request(headers).pipe(
       catchError((e) => {
-        if (!this.#isTokenError(e)) return throwError(() => e);
-        this.#clearSession();
-        return request();
+        if (this.#isTokenError(e)) {
+          this.#clearSession();
+          return request();
+        }
+        const pending = readApiError(e).status === 428 ? pendingDocumentsOf(e) : null;
+        if (!pending) return throwError(() => e);
+        return this.#askLegal(pending).pipe(
+          switchMap((accepted) => {
+            const retry = this.headers();
+            return accepted && retry ? request(retry) : throwError(() => e);
+          }),
+        );
       }),
     );
+  }
+
+  /** Cierra el aviso de pendientes (true: los aceptó). */
+  answerLegalPrompt(accepted: boolean): void {
+    if (!this.legalPrompt()) return;
+    this.legalPrompt.set(null);
+    this.#legalAnswer.next(accepted);
+  }
+
+  /** Acepta versiones vigentes (pendientes o marketingConsent del negocio); con todo al día recarga lo que falló. */
+  acceptLegal(versionIds: readonly number[], businessSlug?: string): Observable<LegalMeDto> {
+    const token = this.#token();
+    if (!token) return throwError(() => new Error('CUSTOMER_TOKEN_INVALID'));
+    return this.#api.acceptLegal(token, { versionIds: [...versionIds], ...(businessSlug ? { businessSlug } : {}) }).pipe(
+      tap((legal) => this.#applyLegal(legal)),
+      catchError((e) => this.#legalError(e)),
+    );
+  }
+
+  /** Retira un consentimiento opcional (marketingConsent del negocio). */
+  withdrawLegal(documentCode: string, businessSlug?: string): Observable<LegalMeDto> {
+    const token = this.#token();
+    if (!token) return throwError(() => new Error('CUSTOMER_TOKEN_INVALID'));
+    return this.#api.withdrawLegal(token, { documentCode, ...(businessSlug ? { businessSlug } : {}) }).pipe(
+      tap((legal) => this.#applyLegal(legal)),
+      catchError((e) => this.#legalError(e)),
+    );
+  }
+
+  /** Vuelve a leer los documentos del cliente (p. ej. una versión dejó de estar vigente). */
+  reloadLegal(): void {
+    const token = this.#token();
+    if (!token || !this.verified()) return;
+    this.#api.me(token).subscribe({
+      next: (customer) => this.#applyLegal(customer.legal),
+      error: (e) => {
+        if (this.#isTokenError(e)) this.#clearSession();
+      },
+    });
+  }
+
+  #askLegal(pending: readonly PendingDocumentDto[]): Observable<boolean> {
+    if (pending.length) this.legal.update((legal) => ({ accepted: legal?.accepted ?? [], pending: [...pending] }));
+    this.legalPrompt.set(pending.length ? pending : (this.legal()?.pending ?? []));
+    return this.#legalAnswer.pipe(take(1));
+  }
+
+  #applyLegal(raw: LegalMeDto | null | undefined): void {
+    if (!raw || typeof raw !== 'object') return;
+    const before = this.legal()?.pending.length ?? 0;
+    const legal: LegalMeDto = { pending: sanitizePending(raw.pending), accepted: Array.isArray(raw.accepted) ? raw.accepted : [] };
+    this.legal.set(legal);
+    // Al quedar al día se vuelven a pedir lo de siempre y el saldo (respondían 428)
+    if (before && !legal.pending.length) this.#loadExtras();
+  }
+
+  #legalError(error: unknown): Observable<never> {
+    if (this.#isTokenError(error)) this.#clearSession();
+    else if (readApiError(error).code === 'LEGAL_VERSION_NOT_PUBLISHED') this.reloadLegal();
+    return throwError(() => error);
   }
 
   /** 409 CUSTOMER_PROFILES_DISABLED: oculta lo que el local apagó (true si era ese error). */
@@ -188,12 +270,14 @@ export class CartaCustomer {
     return true;
   }
 
-  /** Tras verificar el código. */
+  /** Tras verificar el código (aceptó los documentos vigentes; el historial llega con /customers/me). */
   signedIn(token: string, customer: PublicCustomerDto): void {
     this.#token.set(token);
     writeStorage(TOKEN_KEY, token);
+    this.legal.set({ pending: [], accepted: [] });
     this.#setProfile(customer, true);
     this.#loadExtras();
+    this.reloadLegal();
   }
 
   /** Dieta, alérgenos o idioma: en el navegador siempre; en el perfil (PATCH con pausa) si está identificado. */
@@ -271,7 +355,9 @@ export class CartaCustomer {
       return;
     }
     this.#loads = this.#api.me(token).subscribe({
-      next: (customer) => {
+      next: (customer: PublicCustomerMeDto) => {
+        this.legal.set(null);
+        this.#applyLegal(customer.legal ?? { pending: [], accepted: [] });
         this.#setProfile(customer, true);
         this.#loadExtras();
       },
@@ -285,7 +371,8 @@ export class CartaCustomer {
   #loadExtras(): void {
     const token = this.#token();
     const place = this.#place;
-    if (!token || !place) return;
+    // Con documentos pendientes responden 428: se piden al aceptarlos
+    if (!token || !place || this.legal()?.pending.length) return;
     if (this.showUsual()) {
       this.#api.usual(token, place).subscribe({
         next: (usual) => this.usual.set(usual),
@@ -302,7 +389,11 @@ export class CartaCustomer {
 
   #extraError(error: unknown, clear: () => void): void {
     if (this.#isTokenError(error)) this.#clearSession();
-    else if (!this.handleDisabled(error)) clear();
+    else if (!this.handleDisabled(error)) {
+      clear();
+      const pending = pendingDocumentsOf(error);
+      if (pending?.length) this.legal.update((legal) => ({ accepted: legal?.accepted ?? [], pending }));
+    }
   }
 
   #setProfile(customer: PublicCustomerDto, fresh: boolean): void {
@@ -351,6 +442,8 @@ export class CartaCustomer {
     this.profile.set(null);
     this.usual.set(null);
     this.loyalty.set(null);
+    this.legal.set(null);
+    this.answerLegalPrompt(false);
   }
 
   #isTokenError(error: unknown): boolean {

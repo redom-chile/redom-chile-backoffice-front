@@ -74,6 +74,13 @@
     </div>
   </div>
 
+  @if ($legalDocuments(); as documents) {
+  @if (documents.length) {
+  <div class="text-left">
+    <app-legal-document-checklist [documents]="documents" [(accepted)]="$acceptedVersions" [disabled]="$isSaving()" [showErrors]="submitted" />
+  </div>
+  } @else {
+  <!-- Sin versiones publicadas todavía: se mantiene el texto de referencia. -->
   <div class="flex items-center justify-between space-x-3">
     <div class="flex items-center gap-1">
       <input id="accept-term" name="accept-term" type="checkbox" formControlName="acceptTerms" />
@@ -81,6 +88,10 @@
       <app-sign-up-terms-and-conditions></app-sign-up-terms-and-conditions>
     </div>
   </div>
+  }
+  } @else {
+  <div class="bg-muted/40 h-14 animate-pulse rounded-xl" aria-busy="true" aria-label="Cargando términos"></div>
+  }
 
   @if (submitted && $validationMessage(); as message) {
   <app-alert type="danger"><div class="ms-3 text-sm font-medium">{{ message }}</div></app-alert>

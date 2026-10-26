@@ -1,5 +1,7 @@
 /** Etapa 10: cliente reconocido (plan customerProfiles). */
 
+import type { LegalMeDto } from 'src/app/core/services/legal/dtos';
+
 export type CustomerProfilesMode = 'verified' | 'browserOnly';
 /** Por ahora solo correo (otro canal: 400 OTP_CHANNEL_NOT_SUPPORTED). */
 export type OtpChannel = 'email';
@@ -59,6 +61,22 @@ export type PublicCustomerDto = Readonly<{
 
 /** devCode: solo fuera de producción (proveedor de desarrollo). */
 export type OtpRequestResultDto = Readonly<{ channel: OtpChannel; expiresIn: number; resendIn: number; devCode?: string }>;
+
+/** GET /customers/me: con pending, usual, loyalty y los pedidos con X-Redom-Customer responden 428 LEGAL_ACCEPTANCE_REQUIRED. */
+export type PublicCustomerMeDto = PublicCustomerDto & Readonly<{ legal?: LegalMeDto }>;
+
+/** Módulo legal: documentos de los clientes de la carta (sin perfil solo se informa privacyPolicy). */
+export const DINER_REQUIRED_DOCUMENTS = ['dinerTerms', 'privacyPolicy', 'dinerDataConsent'] as const;
+/** Opcional y de cada negocio (?businessSlug). */
+export const MARKETING_CONSENT_CODE = 'marketingConsent';
+
+/** POST /customers/legal/accept: versiones vigentes (pendientes, o marketingConsent con businessSlug). */
+export type AcceptCustomerLegalDto = Readonly<{ versionIds: number[]; businessSlug?: string }>;
+/** POST /customers/legal/withdraw: solo documentos opcionales (uno obligatorio: 400 LEGAL_DOCUMENT_INVALID). */
+export type WithdrawCustomerLegalDto = Readonly<{ documentCode: string; businessSlug?: string }>;
+
+/** Pedido de retiro/delivery sin perfil y reserva: versión de privacyPolicy mostrada (400 LEGAL_VERSION_NOT_PUBLISHED). */
+export type PrivacyAcknowledgementDto = Readonly<{ privacyVersionId?: number }>;
 
 export type CustomerVerifyResultDto = Readonly<{ token: string; customer: PublicCustomerDto }>;
 

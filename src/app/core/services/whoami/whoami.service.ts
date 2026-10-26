@@ -19,6 +19,7 @@ import {
   timer,
 } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
+import { LegalSessionStore } from '../legal/legal-session.store';
 import { WhoamiDto } from './dtos';
 
 const MINUTE = 60_000;
@@ -35,13 +36,19 @@ export const SUPERADMIN_HOME = '/platform/summary';
 
 /** Lo único que usa el SUPERADMIN: plataforma (suscripciones y planes), centro de ayuda y su perfil. */
 export const isSuperAdminUrl = (url: string | null | undefined) =>
-  !!url && ['/platform', '/help', '/profile'].some((prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`));
+  !!url &&
+  ['/platform', '/help', '/profile'].some(
+    (prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`),
+  );
 
 export function needsLocationStep(whoami: WhoamiDto): boolean | undefined {
   if (!isOwner(whoami)) return false;
   const count = whoami.user.locationsCount;
   return typeof count === 'number' ? count === 0 : undefined;
 }
+
+/** El whoami mínimo de una sesión restringida no trae roles ni permisos. */
+const isFullWhoami = (whoami: WhoamiDto | null | undefined): boolean => !!whoami && Array.isArray(whoami.roles);
 
 export type SessionUser = Readonly<{
   code: string;
@@ -55,6 +62,7 @@ export type SessionUser = Readonly<{
 @Injectable({ providedIn: 'root' })
 export class WhoamiService implements OnDestroy {
   readonly #httpClient = inject(HttpClient);
+  readonly #legal = inject(LegalSessionStore);
   readonly #destroy$ = new Subject<void>();
   readonly #fetchUser$ = new BehaviorSubject<void>(void 0);
 
@@ -66,12 +74,17 @@ export class WhoamiService implements OnDestroy {
       debounceTime(30_000),
     ),
   ).pipe(
+    // Con la sesión restringida (documentos legales por aceptar) whoami es mínimo: no se carga nada del negocio.
     switchMap(() =>
-      this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
-        tap((whoami) => this.#latest.set(whoami)),
-        catchError(() => EMPTY),
-        tap(() => localStorage.setItem('lastActivity', String(Date.now()))),
-      ),
+      this.#legal.$restricted()
+        ? EMPTY
+        : this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
+            map((whoami) => (isFullWhoami(whoami) ? whoami : null)),
+            filter((whoami): whoami is WhoamiDto => !!whoami),
+            tap((whoami) => this.#latest.set(whoami)),
+            catchError(() => EMPTY),
+            tap(() => localStorage.setItem('lastActivity', String(Date.now()))),
+          ),
     ),
     shareReplay({ bufferSize: 1, refCount: true }),
     takeUntil(this.#destroy$),
@@ -100,8 +113,10 @@ export class WhoamiService implements OnDestroy {
    * no se usa el del JWT porque cambia al crear el negocio.
    */
   load(): Observable<WhoamiDto | null> {
+    if (this.#legal.$restricted()) return of(null);
     return this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
-      tap((whoami) => this.#latest.set(whoami)),
+      map((whoami) => (isFullWhoami(whoami) ? whoami : null)),
+      tap((whoami) => whoami && this.#latest.set(whoami)),
       catchError(() => of(null)),
     );
   }

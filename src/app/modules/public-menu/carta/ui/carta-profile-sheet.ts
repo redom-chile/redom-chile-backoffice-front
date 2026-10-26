@@ -1,14 +1,18 @@
-import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, Injector, input, output, signal } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, Injector, input, output, signal, viewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { OtpRequestResultDto } from '../../data-access/dtos/customer-profiles.dto';
 import { PublicLocationMenuDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicCustomerApiService } from '../../data-access/public-customer-api.service';
-import { allergenShortName, CartaCustomer, REDOM_PRIVACY_URL } from '../carta-customer';
+import { allergenShortName, CartaCustomer } from '../carta-customer';
+import { CartaLegal } from '../carta-legal';
 import { CARTA_LANG_META, CARTA_LANGS, CartaI18n, CartaLang, cartaErrorMessage, cartaLocale, isCartaLang } from '../carta-i18n';
 import { isEmail, ONLINE_LIMITS } from '../carta-online';
-import { safeUrl } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
+import { CartaLegalConsent, CartaLegalPending, CartaMyDocuments } from './carta-legal';
+
+/** Inicio del texto de Redom (customerProfiles.consentText llega con él si el local no tiene uno propio). */
+const REDOM_CONSENT_START = 'Acepto que Redom guarde mi correo';
 
 const INPUT =
   'mt-1.5 block w-full rounded-2xl border border-border bg-card px-4 py-3 text-[0.9375rem] text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/30 motion-reduce:transition-none';
@@ -99,13 +103,13 @@ export class CartaPreferences {
 type Step = 'email' | 'code';
 
 /**
- * Hoja "Tu perfil" (etapa 10). Con customerProfiles en modo verified: correo → código de 6 dígitos con consentimiento →
- * perfil (datos, saldo, preferencias, cerrar sesión, borrar). Sin eso (o sin cuota de códigos): solo las preferencias
+ * Hoja "Tu perfil" (etapa 10). Con customerProfiles en modo verified: documentos legales y correo → código de 6 dígitos →
+ * perfil (datos, documentos pendientes, saldo, preferencias, "Mis documentos", cerrar sesión, borrar). Sin eso (o sin cuota de códigos): solo las preferencias
  * en el navegador.
  */
 @Component({
   selector: 'app-carta-profile-sheet',
-  imports: [CartaIcon, CartaPreferences],
+  imports: [CartaIcon, CartaPreferences, CartaLegalConsent, CartaLegalPending, CartaMyDocuments],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -123,6 +127,11 @@ type Step = 'email' | 'code';
       <p class="sr-only" aria-live="polite">{{ status() }}</p>
 
       @if (customer.verified() && profile) {
+        @if (customer.legalPending(); as pending) {
+          @if (pending.length) {
+            <app-carta-legal-pending class="mt-4" [documents]="pending" (done)="legalDone($event)" />
+          }
+        }
         <section class="mt-4 rounded-2xl border border-border px-4 py-3" aria-labelledby="carta-cu-data-title">
           <h3 id="carta-cu-data-title" class="text-base font-semibold">{{ t('customer.data') }}</h3>
           <p class="mt-2 flex items-center gap-2 text-sm">
@@ -197,6 +206,7 @@ type Step = 'email' | 'code';
           </p>
         }
         <app-carta-preferences class="mt-6" [tags]="m.tags" (language)="language.emit($event)" />
+        <app-carta-my-documents class="mt-6 border-t border-border pt-5" [businessSlug]="m.business.slug" [businessName]="m.business.name" />
 
         <div class="mt-6 grid gap-2 border-t border-border pt-4">
           @if (confirmLogout()) {
@@ -274,6 +284,7 @@ type Step = 'email' | 'code';
                 />
                 <p id="carta-cu-email-hint" class="mt-1 text-xs text-muted-foreground">{{ t('customer.emailHint') }}</p>
               </div>
+              <app-carta-legal-consent [businessSlug]="m.business.slug" [businessName]="m.business.name" [localText]="localConsentText()" [privacyUrl]="cp?.privacyUrl ?? null" />
               @if (fieldError() || error(); as e) {
                 <p id="carta-cu-error" class="text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">{{ e }}</p>
               }
@@ -340,24 +351,9 @@ type Step = 'email' | 'code';
                   }
                 </div>
               }
-              <div>
-                <label class="flex cursor-pointer items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    class="mt-0.5 size-4 shrink-0 accent-primary"
-                    [checked]="consent()"
-                    [attr.aria-invalid]="consentError() || null"
-                    (change)="consent.set($any($event.target).checked)"
-                  />
-                  <span class="[overflow-wrap:anywhere]">{{ cp?.consentText || t('customer.consentDefault') }}</span>
-                </label>
-                <p class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-7 text-xs">
-                  @if (businessPrivacy(); as href) {
-                    <a [href]="href" target="_blank" rel="noopener noreferrer" [class]="link">{{ t('customer.privacyBusiness') }}<span class="sr-only"> {{ t('common.newTab') }}</span></a>
-                  }
-                  <a [href]="redomPrivacy()" target="_blank" rel="noopener noreferrer" [class]="link">{{ t('customer.privacyRedom') }}<span class="sr-only"> {{ t('common.newTab') }}</span></a>
-                </p>
-              </div>
+              @if (reaccept()) {
+                <app-carta-legal-consent [businessSlug]="m.business.slug" [businessName]="m.business.name" [localText]="localConsentText()" [privacyUrl]="cp?.privacyUrl ?? null" />
+              }
               @if (fieldError() || error(); as e) {
                 <p id="carta-cu-error" class="text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">{{ e }}</p>
               }
@@ -393,13 +389,19 @@ export class CartaProfileSheet {
   protected readonly primary = PRIMARY;
   protected readonly link = LINK;
   protected readonly limits = ONLINE_LIMITS;
-  protected readonly redomPrivacy = computed(() => safeUrl(this.customer.redomPrivacyUrl()) ?? REDOM_PRIVACY_URL);
+  readonly #legal = inject(CartaLegal);
+  private readonly consent = viewChild(CartaLegalConsent);
 
   protected readonly canVerify = computed(() => this.customer.verifiedMode());
-  protected readonly businessPrivacy = computed(() => {
-    const url = this.menu().customerProfiles?.privacyUrl;
-    return url ? safeUrl(url) : null;
+  /** customerProfiles.consentText solo si es del local (el de Redom lo reemplazan los documentos legales). */
+  protected readonly localConsentText = computed(() => {
+    const text = this.menu().customerProfiles?.consentText?.trim();
+    return text && !text.startsWith(REDOM_CONSENT_START) ? text : null;
   });
+  /** Las versiones cambiaron entre pedir y verificar el código: se vuelven a aceptar en el paso del código. */
+  protected readonly reaccept = signal(false);
+  /** Versiones aceptadas al pedir el código (para reenviarlo). */
+  #acceptedIds: number[] = [];
   /** El teléfono del perfil se muestra si el local lo pide o si el cliente ya lo dio. */
   protected readonly showPhone = computed(() => !!this.menu().customerProfiles?.askPhone || !!this.customer.profile()?.phone);
 
@@ -410,13 +412,11 @@ export class CartaProfileSheet {
   protected readonly code = signal('');
   protected readonly name = signal(this.customer.checkoutDefaults().name);
   protected readonly phone = signal(this.customer.checkoutDefaults().phone);
-  protected readonly consent = signal(false);
   protected readonly devCode = signal<string | null>(null);
   protected readonly resendLeft = signal(0);
   protected readonly busy = signal(false);
   protected readonly fieldError = signal<string | null>(null);
   protected readonly phoneError = signal<string | null>(null);
-  protected readonly consentError = signal(false);
   protected readonly error = signal<string | null>(null);
   /** Para lectores de pantalla: código enviado, sesión iniciada o cerrada. */
   protected readonly status = signal('');
@@ -450,10 +450,18 @@ export class CartaProfileSheet {
       this.#focus('#carta-cu-email');
       return;
     }
+    const accepted = this.consent()?.selection() ?? null;
+    if (!accepted) return;
+    this.#acceptedIds = accepted;
     this.#requestOtp(email);
   }
 
   protected resend(): void {
+    if (this.reaccept()) {
+      const accepted = this.consent()?.selection() ?? null;
+      if (!accepted) return;
+      this.#acceptedIds = accepted;
+    }
     this.code.set('');
     this.#requestOtp(this.sentTo());
   }
@@ -461,6 +469,7 @@ export class CartaProfileSheet {
   protected changeEmail(): void {
     this.#stopTimer();
     this.step.set('email');
+    this.reaccept.set(false);
     this.code.set('');
     this.devCode.set(null);
     this.#clearErrors();
@@ -480,9 +489,10 @@ export class CartaProfileSheet {
     const m = this.menu();
     const phone = m.customerProfiles?.askPhone ? this.phone().trim() : '';
     if (!/^\d{6}$/.test(this.code())) this.fieldError.set(this.t('customer.err.code'));
-    else if (!this.consent()) {
-      this.consentError.set(true);
-      this.error.set(this.t('customer.err.consent'));
+    let accepted: number[] | null = null;
+    if (this.reaccept()) {
+      accepted = this.consent()?.selection() ?? null;
+      if (!accepted) return;
     }
     if (phone && !validPhone(phone)) this.phoneError.set(this.t('customer.err.phone'));
     if (this.fieldError() || this.error() || this.phoneError()) {
@@ -498,7 +508,7 @@ export class CartaProfileSheet {
         code: this.code(),
         businessSlug: m.business.slug,
         locationSlug: m.location.slug,
-        consent: true,
+        ...(accepted ? { acceptedVersionIds: accepted } : {}),
         ...(name ? { name } : {}),
         ...(phone ? { phone } : {}),
       })
@@ -506,6 +516,7 @@ export class CartaProfileSheet {
         next: ({ token, customer }) => {
           this.busy.set(false);
           this.#stopTimer();
+          this.reaccept.set(false);
           this.customer.signedIn(token, customer);
           this.status.set(this.t('customer.welcome'));
           this.#focus('h2');
@@ -515,6 +526,14 @@ export class CartaProfileSheet {
           this.#otpError(e);
         },
       });
+  }
+
+  /** Aceptó los pendientes desde el aviso del perfil. */
+  protected legalDone(accepted: boolean): void {
+    if (accepted) {
+      this.status.set(this.t('legal.accepted'));
+      this.#focus('h2');
+    }
   }
 
   protected startEdit(): void {
@@ -619,7 +638,13 @@ export class CartaProfileSheet {
     this.busy.set(true);
     this.#request?.unsubscribe();
     this.#request = this.#api
-      .requestOtp({ email, language: this.#i18n.language(), businessSlug: m.business.slug, locationSlug: m.location.slug })
+      .requestOtp({
+        email,
+        language: this.#i18n.language(),
+        businessSlug: m.business.slug,
+        locationSlug: m.location.slug,
+        acceptedVersionIds: this.#acceptedIds,
+      })
       .subscribe({
         next: (result) => {
           this.busy.set(false);
@@ -653,6 +678,17 @@ export class CartaProfileSheet {
       return;
     }
     const message = cartaErrorMessage(error);
+    if (api.code === 'LEGAL_ACCEPTANCE_REQUIRED') {
+      // Cambió una versión vigente: se vuelven a mostrar los documentos y se pide la casilla otra vez
+      this.error.set(this.t('legal.changed'));
+      this.#acceptedIds = [];
+      if (this.step() === 'email' || this.reaccept()) this.consent()?.reload(true);
+      else {
+        this.#legal.forget();
+        this.reaccept.set(true);
+      }
+      return;
+    }
     if (api.code === 'EMAIL_INVALID') {
       // El correo se corrige en el primer paso
       this.changeEmail();
@@ -680,7 +716,6 @@ export class CartaProfileSheet {
     // Código vencido, usado o con demasiados intentos: se pide uno nuevo; sin servicio se puede reintentar al tiro
     if (api.code === 'OTP_EXPIRED' || api.code === 'OTP_TOO_MANY_ATTEMPTS') this.code.set('');
     if (api.code === 'OTP_EXPIRED' || api.code === 'OTP_TOO_MANY_ATTEMPTS' || api.code === 'OTP_UNAVAILABLE') this.#startTimer(0);
-    if (api.code === 'CONSENT_REQUIRED') this.consentError.set(true);
   }
 
   #startTimer(seconds: number): void {
@@ -703,7 +738,8 @@ export class CartaProfileSheet {
     this.confirmLogout.set(false);
     this.step.set('email');
     this.code.set('');
-    this.consent.set(false);
+    this.reaccept.set(false);
+    this.#acceptedIds = [];
     this.devCode.set(null);
     this.resendLeft.set(0);
     this.editing.set(false);
@@ -713,7 +749,6 @@ export class CartaProfileSheet {
   #clearErrors(): void {
     this.fieldError.set(null);
     this.phoneError.set(null);
-    this.consentError.set(false);
     this.error.set(null);
   }
 
