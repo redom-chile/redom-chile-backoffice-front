@@ -28,18 +28,14 @@ import {
 } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { ApiErrorCode, readApiError } from 'src/app/core/utils/api-error';
-import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
 import {
-  FindAllCurrenciesService,
-  UpdateBusinessLogoService,
-} from 'src/app/modules/restaurante/pages/business/data-access';
-import {
-  CreateBusinessLocationDto,
-  GetAllBusinessLocationsService,
-} from 'src/app/modules/restaurante/pages/business-location/data-access';
-import { BusinessSettingsService } from 'src/app/core/services/business-settings';
-import { ApiErrorCode, readApiError } from 'src/app/core/utils/api-error';
-import { LegalApiService, legalDocumentsOf, LegalErrorCode, legalErrorMessage, PendingDocumentDto, requiredAccepted } from 'src/app/core/services/legal';
+  LegalApiService,
+  legalDocumentsOf,
+  LegalErrorCode,
+  legalErrorMessage,
+  PendingDocumentDto,
+  requiredAccepted,
+} from 'src/app/core/services/legal';
 import { LegalDocumentChecklistComponent } from 'src/app/modules/legal/ui';
 import { InventoryLocationStore } from 'src/app/modules/inventory/data-access';
 import {
@@ -187,7 +183,9 @@ export class CreateBusinessComponent implements OnDestroy {
   }
 
   loadLegalDocuments() {
-    this.legalApi.currentDocuments(['subscriptionTerms', 'dataProcessingAgreement']).subscribe((documents) => this.#showLegal(documents));
+    this.legalApi
+      .currentDocuments(['subscriptionTerms', 'dataProcessingAgreement'])
+      .subscribe((documents) => this.#showLegal(documents));
   }
 
   #showLegal(documents: readonly PendingDocumentDto[]) {
@@ -263,7 +261,9 @@ export class CreateBusinessComponent implements OnDestroy {
     let created: { id: number; locationId?: number };
     try {
       const acceptedVersionIds = this.$legalDocuments().length ? [...this.$legalAccepted()] : undefined;
-      created = await firstValueFrom(this.api.createBusiness({ name: businessName, currencyId, timeZone, location, acceptedVersionIds }));
+      created = await firstValueFrom(
+        this.api.createBusiness({ name: businessName, currencyId, timeZone, location, acceptedVersionIds }),
+      );
     } catch (error) {
       this.$isCreating.set(false);
       this.handleCreateError(error);

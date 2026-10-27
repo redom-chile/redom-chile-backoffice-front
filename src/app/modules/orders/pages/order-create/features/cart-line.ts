@@ -170,38 +170,6 @@ export function cartTotal(lines: readonly CartLine[], pricing: CartPricing): num
   return lines.reduce((sum, line) => sum + cartLineTotal(line, pricing), 0);
 }
 
-/** Cómo pasar del precio del catálogo al que paga el cliente (Datos fiscales del negocio). */
-export type CartPricing = Readonly<{ excludesVat: boolean; vatRate: number; decimals: number }>;
-
-export function cartPricing(settings: BusinessSettingsService): Signal<CartPricing> {
-  return computed(() => ({
-    excludesVat: settings.$pricesExcludeVat(),
-    vatRate: settings.$vatRate(),
-    decimals: settings.$currencyPrecision(),
-  }));
-}
-
-/** Precio con IVA, como lo calcula el backend (cada precio del catálogo por separado). */
-export function grossPrice(price: number, pricing: CartPricing): number {
-  return grossSellPrice(price, pricing.vatRate, pricing.excludesVat ? 'excludes' : 'includes', pricing.decimals);
-}
-
-/** Precio unitario estimado que paga el cliente: producto + opciones, con IVA. */
-export function cartUnitPrice(basePrice: number, modifiers: readonly CartModifier[], pricing: CartPricing): number {
-  return modifiers.reduce(
-    (sum, mod) => sum + grossPrice(mod.price, pricing) * mod.quantity,
-    grossPrice(basePrice, pricing),
-  );
-}
-
-export function cartLineTotal(line: CartLine, pricing: CartPricing): number {
-  return cartUnitPrice(line.basePrice, line.modifiers, pricing) * line.quantity;
-}
-
-export function cartTotal(lines: readonly CartLine[], pricing: CartPricing): number {
-  return lines.reduce((sum, line) => sum + cartLineTotal(line, pricing), 0);
-}
-
 export function unitPriceWithModifiers(basePrice: number, modifiers: readonly CartModifier[]): number {
   return modifiers.reduce((sum, mod) => sum + mod.price * mod.quantity, basePrice);
 }
