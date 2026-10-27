@@ -36,8 +36,12 @@ export function productsById(menu: PublicLocationMenuDto): Map<number, PublicPro
   return map;
 }
 
-/** "Happy hour · hasta el 31/10" (la fecha en la zona horaria del local). */
+/** Ícono de la etiqueta de la promoción (el plato del día llega como una promoción de kind 'dailySpecial'). */
+export const promotionIcon = (promotion: PublicPromotionDto | null | undefined): CartaIconName => (promotion?.kind === 'dailySpecial' ? 'star' : 'tag');
+
+/** "Happy hour · hasta el 31/10" (la fecha en la zona horaria del local); el plato del día, "Plato del día". */
 export function promotionLabel(promotion: PublicPromotionDto, timeZone: string): string {
+  if (promotion.kind === 'dailySpecial') return ct('dynamic.dailySpecial');
   if (!promotion.endsAt) return promotion.name;
   const date = new Date(promotion.endsAt);
   if (Number.isNaN(date.getTime())) return promotion.name;

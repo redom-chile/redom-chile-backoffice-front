@@ -14,10 +14,14 @@
     [units]="$units()"
     [missingRecipeIds]="$missingRecipeIds()"
     (configureRecipe)="handleConfigureRecipe()"
-    (imageChange)="onImageChange($event)" [autoSuggestSku]="false" />
+    (imageChange)="onImageChange($event)" [autoSuggestSku]="false" [productId]="product.id" />
 
   @if ($tags().length) {
-  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" [note]="tagsNote" />
+  @if ($tagsReady()) {
+  <app-product-tags-field class="mt-4 block" [tags]="$tags()" [(selected)]="$tagIds" [note]="$tagsNote()" [aiAssist]="true" [productId]="product.id" />
+  } @else {
+  <div class="bg-muted mt-4 h-20 animate-pulse rounded-lg" aria-busy="true" aria-label="Cargando etiquetas"></div>
+  }
   }
 
   @if ($isPack()) {

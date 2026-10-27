@@ -18,7 +18,13 @@ export type ApiKeyDto = Readonly<{
 export type CreatedApiKeyDto = ApiKeyDto & Readonly<{ key: string }>;
 
 /** Publicable: exige allowedOrigins (https, o http solo localhost; hasta 10). Secreta: sin orígenes. */
-export type CreateApiKeyDto = Readonly<{ name: string; kind: ApiKeyKind; allowedOrigins?: string[] }>;
+export type CreateApiKeyDto = Readonly<{
+  name: string;
+  kind: ApiKeyKind;
+  allowedOrigins?: string[];
+  // apiTerms vigente, mientras el negocio no lo haya aceptado (#77).
+  acceptedVersionIds?: number[];
+}>;
 
 export const WEBHOOK_EVENTS = [
   'order.created',

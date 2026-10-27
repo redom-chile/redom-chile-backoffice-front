@@ -1,13 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { PublicPackGroupDto } from '../../data-access/dtos/menu-marketing.dto';
 import { PublicProductDto, PublicTagDto } from '../../data-access/dtos/public-menu.dto';
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartAddition, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_MODIFIER_QUANTITY } from '../carta-cart';
 import { CartaI18n, ct } from '../carta-i18n';
-import { isPackUnavailable, packChoiceLabel, promotionLabel } from '../carta-marketing';
+import { isPackUnavailable, packChoiceLabel, promotionIcon, promotionLabel } from '../carta-marketing';
 import { CartaIcon, CartaTagIcon } from './carta-icon';
 import { CartaPrice } from './carta-price';
 import { CartaStepper } from './carta-stepper';
+import { CartaListenButton } from './carta-design-blocks';
+import { CartaSpeech, productSpeech } from '../carta-speech';
+import { allergenShortName, ProductConflicts } from '../carta-customer';
 
 /**
  * Detalle de un producto (dentro de app-carta-dialog): precios, promoción y, si es pack, su contenido.
@@ -16,7 +19,7 @@ import { CartaStepper } from './carta-stepper';
  */
 @Component({
   selector: 'app-carta-product-detail',
-  imports: [CartaIcon, CartaTagIcon, CartaPrice, CartaStepper],
+  imports: [CartaIcon, CartaTagIcon, CartaPrice, CartaStepper, CartaListenButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -36,7 +39,7 @@ import { CartaStepper } from './carta-stepper';
           }
           @if (promotion(); as promo) {
             <span class="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
-              <app-carta-icon name="tag" [size]="13" />
+              <app-carta-icon [name]="promotionIcon()" [size]="13" />
               {{ promo }}
             </span>
           }
@@ -49,8 +52,24 @@ import { CartaStepper } from './carta-stepper';
         </div>
       }
 
+      @if (canListen()) {
+        <div class="mt-3">
+          <app-carta-listen-button [active]="listening()" [label]="t('design.listenProduct', { name: p.name })" (press)="listen()" />
+        </div>
+      }
+
       @if (p.description) {
         <p class="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{{ p.description }}</p>
+      }
+
+      @if (p.chefNote) {
+        <div class="mt-4 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3" role="note" [attr.aria-label]="t('design.chefNote')">
+          <app-carta-icon name="chef-hat" [size]="20" class="mt-0.5 text-primary" />
+          <div class="min-w-0 flex-1">
+            <p class="text-xs font-semibold uppercase tracking-wide">{{ t('design.chefNote') }}</p>
+            <p class="mt-1 whitespace-pre-line text-sm leading-relaxed [overflow-wrap:anywhere]">{{ p.chefNote }}</p>
+          </div>
+        </div>
       }
 
       @if (productTags().length) {
@@ -62,6 +81,26 @@ import { CartaStepper } from './carta-stepper';
             </li>
           }
         </ul>
+      }
+
+      <!-- Etapa 10: lo que choca con las preferencias del cliente -->
+      @if (conflicts(); as c) {
+        @if (c.allergens.length) {
+          <div class="mt-4 flex gap-3 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm" role="note">
+            <app-carta-icon name="alert" [size]="20" class="mt-px text-rose-600 dark:text-rose-400" />
+            <ul class="grid min-w-0 flex-1 gap-0.5 font-semibold">
+              @for (tag of c.allergens; track tag.code) {
+                <li>{{ t('customer.allergenWarn', { name: short(tag) }) }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @for (tag of c.diets; track tag.code) {
+          <p class="mt-2 flex items-start gap-2 text-sm text-muted-foreground" role="note">
+            <app-carta-icon name="info" [size]="16" class="mt-0.5" />
+            {{ t('customer.dietHint', { name: tag.name }) }}
+          </p>
+        }
       }
 
       <!-- Precios -->
@@ -270,6 +309,10 @@ import { CartaStepper } from './carta-stepper';
             <p class="mb-2 text-center text-xs font-medium text-muted-foreground" role="note">{{ t('product.cartFull') }}</p>
           } @else if (triedAdd() && firstError(); as err) {
             <p class="mb-2 text-center text-xs font-medium text-rose-600 dark:text-rose-400" role="alert">{{ err }}</p>
+          } @else if (confirming() && conflicts()?.allergens?.length) {
+            <p class="mb-2 text-center text-sm font-semibold text-rose-600 dark:text-rose-400" role="alert">
+              {{ t('customer.allergenWarn', { name: short(conflicts()!.allergens[0]) }) }} {{ t('customer.confirmQuestion') }}
+            </p>
           }
           <div class="flex items-center gap-3">
             <app-carta-stepper [value]="quantity()" [min]="1" [max]="maxQuantity" [label]="p.name" (change)="quantity.set($event)" />
@@ -279,7 +322,7 @@ import { CartaStepper } from './carta-stepper';
               [disabled]="cartFull()"
               (click)="submit()"
             >
-              <span>{{ t('common.add') }}</span>
+              <span>{{ confirming() ? t('customer.confirmAdd') : t('common.add') }}</span>
               <span class="tabular-nums">{{ format(lineTotal()) }}</span>
             </button>
           </div>
@@ -298,7 +341,32 @@ export class CartaProductDetail {
   /** Motivo por el que este producto no se puede agregar ("Agotado", "Fuera de horario"...). */
   readonly blocked = input<string | null>(null);
   readonly cartFull = input(false);
+  /** Etapa 8: botón "Escuchar" (design.accessibility.readAloud). */
+  readonly readAloud = input(false);
+  /** Etapa 10: alérgenos que el cliente evita (piden confirmar antes de agregar) y dietas que no cumple (solo aviso). */
+  readonly conflicts = input<ProductConflicts | null>(null);
   readonly add = output<CartAddition>();
+
+  protected readonly short = allergenShortName;
+  /** Primer "Agregar" con alérgenos que evita: pide confirmar. */
+  protected readonly confirming = linkedSignal({ source: this.product, computation: () => false });
+
+  readonly #speech = inject(CartaSpeech);
+  protected readonly canListen = computed(() => this.readAloud() && this.#speech.supported);
+  readonly #speechId = computed(() => `product-${this.product().id}`);
+  protected readonly listening = computed(() => this.#speech.speaking() === this.#speechId());
+
+  constructor() {
+    // Otro producto o detalle cerrado: se deja de leer
+    effect((onCleanup) => {
+      const id = this.#speechId();
+      onCleanup(() => this.#speech.stopIf(id));
+    });
+  }
+
+  protected listen(): void {
+    this.#speech.toggle(this.#speechId(), productSpeech(this.product(), true));
+  }
 
   protected readonly maxQuantity = MAX_LINE_QUANTITY;
   protected readonly maxModifier = MAX_MODIFIER_QUANTITY;
@@ -395,6 +463,10 @@ export class CartaProductDetail {
     const p = this.product();
     const variation = p.variations.find((v) => v.id === this.variationId());
     if (this.blocked() || this.cartFull() || !variation || this.firstError()) return;
+    if (this.conflicts()?.allergens.length && !this.confirming()) {
+      this.confirming.set(true);
+      return;
+    }
 
     const details: string[] = [];
     if (p.variations.length > 1) details.push(variation.name);
@@ -440,6 +512,7 @@ export class CartaProductDetail {
   protected readonly requiredWithoutOptions = (g: { minChoices: number; items: readonly { soldOut: boolean }[] }) =>
     g.minChoices > 0 && g.items.every((i) => i.soldOut);
 
+  protected readonly promotionIcon = computed(() => promotionIcon(this.product().promotion));
   protected readonly promotion = computed(() => {
     const promo = this.product().promotion;
     return promo ? promotionLabel(promo, this.timeZone()) : null;

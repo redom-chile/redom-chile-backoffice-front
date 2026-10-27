@@ -4,7 +4,13 @@ import { map, of, switchMap } from 'rxjs';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
 import { isSupportUrl, SUPPORT_HOME, SupportModeService } from '../services/support-mode';
 import { WhoamiDto } from '../services/whoami/dtos';
-import { isSuperAdmin, isSuperAdminUrl, needsLocationStep, SUPERADMIN_HOME, WhoamiService } from '../services/whoami/whoami.service';
+import {
+  isSuperAdmin,
+  isSuperAdminUrl,
+  needsLocationStep,
+  SUPERADMIN_HOME,
+  WhoamiService,
+} from '../services/whoami/whoami.service';
 
 // Con sesión pero sin negocio, o dueño sin ningún local activo → onboarding (sin negocio el backend responde 403 en casi todo).
 // Si whoami no trae locationsCount (respuesta antigua), solo se exige el negocio.
@@ -32,7 +38,9 @@ export const businessGuard: CanActivateFn = (_route, state) => {
 // ahí la página retoma en el paso "Tu local".
 export const onboardingGuard: CanActivateFn = () => {
   const router = inject(Router);
-  if (!inject(AuthService).isLogin()) return router.parseUrl('/auth/sign-in');
+  const auth = inject(AuthService);
+  if (!auth.isLogin()) return router.parseUrl('/auth/sign-in');
+  if (auth.isRestricted()) return router.parseUrl('/legal/accept');
   const dashboard = router.parseUrl('/dashboard/admin');
   const whoamiService = inject(WhoamiService);
   return whoamiService.load().pipe(

@@ -34,6 +34,18 @@ const routes: Routes = [
         canDeactivate: [unsavedChangesGuard],
         loadComponent: () => import('src/app/modules/public-menu/pages/menu-translations').then((m) => m.MenuTranslationsComponent),
       },
+      // Etapa 8: diseño de la carta y recomendaciones del chef. Query params opcionales: locationId, tab (design|chef|history).
+      {
+        path: 'public-menu/design',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () => import('src/app/modules/public-menu/pages/menu-design').then((m) => m.MenuDesignComponent),
+      },
+      // Etapa 11: carta dinámica. Query params opcionales: locationId, tab (moments|seasons|daily|suggestions|weather).
+      {
+        path: 'public-menu/dynamic',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () => import('src/app/modules/public-menu/pages/menu-dynamic').then((m) => m.MenuDynamicComponent),
+      },
       // Llaves, webhooks y widget de la API pública. Query param opcional: tab (keys|webhooks|widget).
       {
         path: 'public-api',

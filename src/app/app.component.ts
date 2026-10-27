@@ -6,6 +6,7 @@ import { ResponsiveHelperComponent } from './shared/components/responsive-helper
 import { ToastComponent } from 'src/ui';
 import { WhoamiService } from './core/services/whoami/whoami.service';
 import { BrandColorService } from './core/services/brand-color';
+import { LegalPromptService } from './core/services/legal/legal-prompt.service';
 
 @Component({
   selector: 'app-root',
@@ -17,5 +18,6 @@ export class AppComponent {
   title = 'Redom';
 
   // BrandColorService aplica el color del restaurante en cuanto whoami trae el restaurantId.
-  constructor(public themeService: ThemeService, whoamiService: WhoamiService, brandColor: BrandColorService) {}
+  // LegalPromptService pide aceptar los documentos legales cuando whoami trae pendientes.
+  constructor(public themeService: ThemeService, whoamiService: WhoamiService, brandColor: BrandColorService, legalPrompt: LegalPromptService) {}
 }

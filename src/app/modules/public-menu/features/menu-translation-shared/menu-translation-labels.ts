@@ -41,6 +41,10 @@ export const FIELD_LABELS: Record<TranslationField, string> = {
   description: 'descripción',
   title: 'título',
   subtitle: 'subtítulo',
+  chef_note: 'nota del chef',
+  announcement: 'anuncio',
+  story: 'historia',
+  chef_picks_title: 'título de las recomendaciones',
 };
 
 export type SummaryKey = Exclude<TranslationFilter, 'all'>;

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, signal } from '@angular/core';
 import { CartaDisplay, CartaThemeMode } from '../carta-display';
 import { CartaI18n, CartaKey } from '../carta-i18n';
 import { CartaIcon, CartaIconName } from './carta-icon';
@@ -10,7 +10,7 @@ const MODES: ReadonlyArray<{ value: CartaThemeMode; label: CartaKey; icon: Carta
   { value: 'dark', label: 'display.dark', icon: 'moon' },
 ];
 
-/** Botón "Aa": modo claro/oscuro y tamaño del texto de la carta. */
+/** Botón "Aa": modo claro/oscuro, alto contraste (si el local lo ofrece) y tamaño del texto de la carta. */
 @Component({
   selector: 'app-carta-display-menu',
   imports: [CartaIcon],
@@ -39,8 +39,10 @@ const MODES: ReadonlyArray<{ value: CartaThemeMode; label: CartaKey; icon: Carta
         role="group"
         [attr.aria-label]="t('display.label')"
         class="border-border bg-card text-foreground absolute right-0 top-12 z-40 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border p-4 shadow-xl">
+        @if (!display.modeLocked || contrast()) {
+        <div class="flex gap-2">
         @if (!display.modeLocked) {
-        <div class="bg-muted grid grid-cols-3 gap-1 rounded-xl p-1">
+        <div class="bg-muted grid flex-1 grid-cols-3 gap-1 rounded-xl p-1">
           @for (m of modes; track m.value) {
           <button
             type="button"
@@ -59,9 +61,24 @@ const MODES: ReadonlyArray<{ value: CartaThemeMode; label: CartaKey; icon: Carta
           }
         </div>
         }
+        @if (contrast()) {
+        <button
+          type="button"
+          class="focus-visible:outline-primary flex h-11 shrink-0 items-center justify-center rounded-xl px-3 transition focus-visible:outline-2"
+          [class]="display.highContrast() ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground hover:text-foreground'"
+          [class.flex-1]="display.modeLocked"
+          [attr.aria-label]="t('display.contrast')"
+          [attr.title]="t('display.contrast')"
+          [attr.aria-pressed]="display.highContrast()"
+          (click)="display.toggleContrast()">
+          <app-carta-icon name="contrast" [size]="18" />
+        </button>
+        }
+        </div>
+        }
         <p
           class="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
-          [class.mt-4]="!display.modeLocked">
+          [class.mt-4]="!display.modeLocked || contrast()">
           {{ t('display.textSize') }}
         </p>
         <div class="mt-2 flex items-center gap-2">
@@ -102,6 +119,8 @@ export class CartaDisplayMenu {
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly modes = MODES;
   protected readonly open = signal(false);
+  /** Etapa 8: el local ofrece alto contraste (design.accessibility.highContrast). */
+  readonly contrast = input(false);
 
   protected percent(): number {
     return Math.round(this.display.scale() * 100);

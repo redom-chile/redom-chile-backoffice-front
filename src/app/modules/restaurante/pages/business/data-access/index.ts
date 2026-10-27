@@ -5,3 +5,4 @@ export * from './find-all-currencies.service';
 export * from './update-business-logo.service';
 export * from './business-error-message';
 export * from './support-access.service';
+export * from './business-owner';

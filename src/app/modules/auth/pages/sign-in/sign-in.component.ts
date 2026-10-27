@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { AlertComponent, ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import { emailFormatValidator } from '../custom-validators';
-import { AuthError, AuthService, getAuthError, PostLoginService } from '../data-access';
+import { AuthError, AuthService, getAuthError, GoogleSignInService, PostLoginService } from '../data-access';
 import { GoogleButtonComponent } from '../ui';
 
 @Component({
@@ -55,6 +55,7 @@ export class SignInComponent {
   }
 
   readonly #postLogin = inject(PostLoginService);
+  readonly #googleSignIn = inject(GoogleSignInService);
   readonly $error = signal<AuthError | null>(null);
   readonly $googleLoading = signal(false);
 
@@ -87,11 +88,13 @@ export class SignInComponent {
   loginWithGoogle(idToken: string) {
     this.$error.set(null);
     this.$googleLoading.set(true);
-    this.#httpService.loginWithGoogle(idToken).subscribe({
+    this.#googleSignIn.signIn(idToken).subscribe({
       next: (session) => {
         this.$googleLoading.set(false);
         this.#postLogin.continue(session.userData.name, session.isNewUser);
       },
+      // Canceló la aceptación de los documentos de una cuenta nueva.
+      complete: () => this.$googleLoading.set(false),
       error: (error) => {
         this.$googleLoading.set(false);
         this.$error.set(getAuthError(error));

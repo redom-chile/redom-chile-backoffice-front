@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  input,
+  OnDestroy,
+  OnInit,
+  output,
+  signal,
+} from '@angular/core';
 import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -8,19 +20,27 @@ import { PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { ApiError } from 'src/app/core/utils';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
-import { ConfirmModalComponent, ConfirmModalData, EmptyStateComponent, IconComponent, ToastService, RedomLogoComponent } from 'src/ui';
+import {
+  ConfirmModalComponent,
+  ConfirmModalData,
+  EmptyStateComponent,
+  IconComponent,
+  ToastService,
+  RedomLogoComponent,
+} from 'src/ui';
 import { GetAllBusinessLocationsService } from 'src/app/modules/restaurante/pages/business-location/data-access';
 import { BusinessLocationSelector } from 'src/app/modules/sectors/pages/sector-list/ui';
 import { GetAllSectorsService } from 'src/app/modules/sectors/pages/sector-list/data-access';
 import { GetAllTablesService, TableDto } from 'src/app/modules/tables/pages/table-list/data-access';
 import { GetAllCategoriesService } from 'src/app/modules/products/pages/categories/data-access';
 import { ProductDto } from 'src/app/modules/products/pages/product-list/data-access';
-import { GetOrderByIdService, OrderDetailDto, UpdateOrderService } from 'src/app/modules/orders/pages/order-detail/data-access';
-import { getOrderErrorMessage } from 'src/app/modules/orders/pages/order-list/data-access';
 import {
-  CollectPaymentModalComponent,
-  CollectPaymentResult,
-} from 'src/app/modules/orders/pages/order-detail/features';
+  GetOrderByIdService,
+  OrderDetailDto,
+  UpdateOrderService,
+} from 'src/app/modules/orders/pages/order-detail/data-access';
+import { getOrderErrorMessage } from 'src/app/modules/orders/pages/order-list/data-access';
+import { CollectPaymentModalComponent, CollectPaymentResult } from 'src/app/modules/orders/pages/order-detail/features';
 import {
   AddOrderLinesService,
   CreateOrderService,
@@ -49,7 +69,8 @@ import { PosOrderPanelComponent, PosTablesPanelComponent, WaiterLoginComponent }
 @Component({
   selector: 'app-pos-terminal',
   standalone: true,
-  imports: [RedomLogoComponent, 
+  imports: [
+    RedomLogoComponent,
     IconComponent,
     EmptyStateComponent,
     RouterLink,
@@ -209,7 +230,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         if (!this.$waiter()) return;
-        if (this.$cart().length) this.toast.show('Terminal bloqueada por inactividad: se descartaron los productos sin enviar', 'warning');
+        if (this.$cart().length)
+          this.toast.show('Terminal bloqueada por inactividad: se descartaron los productos sin enviar', 'warning');
         this.lock();
       });
   }

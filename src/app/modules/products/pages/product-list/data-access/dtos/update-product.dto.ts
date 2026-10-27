@@ -27,4 +27,6 @@ export type UpdateProductDto = Readonly<{
   isInactive?: boolean;
   preparationTimeInMinutes?: number;
   variations?: UpdateProductVariationDto[];
+  // Solo si cambió; null = quitar (requiere menu_design).
+  chefNote?: string | null;
 }>;

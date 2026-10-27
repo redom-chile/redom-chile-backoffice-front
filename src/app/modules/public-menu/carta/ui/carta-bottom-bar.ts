@@ -10,7 +10,7 @@ import { CartaIcon, CartaIconName } from './carta-icon';
  */
 export const CARTA_BOTTOM_BAR = true;
 
-export type CartaBarAction = 'waiter' | 'bill' | 'cart' | 'orders' | 'booking';
+export type CartaBarAction = 'waiter' | 'bill' | 'cart' | 'orders' | 'booking' | 'profile';
 
 type Item = Readonly<{
   action: CartaBarAction;
@@ -164,6 +164,8 @@ export class CartaBottomBar {
   readonly cartLabel = input<'cart' | 'order'>('cart');
   readonly ordersCount = input(0);
   readonly booking = input(false);
+  /** Etapa 10: "Perfil" (el local activó el cliente reconocido). */
+  readonly profile = input(false);
   /** "Agregado" del carrito. */
   readonly notice = input<string | null>(null);
   /** "Ya avisamos al mesero" / "El mesero va en camino". */
@@ -208,6 +210,7 @@ export class CartaBottomBar {
     // Mesa: los pedidos se abren en la hoja; retiro / delivery: enlazan a /carta/pedido/{id}
     if (this.ordersCount() > 0) list.push({ action: 'orders', label: ct('bar.orders'), ariaLabel: ct('bar.myOrders'), icon: 'receipt' });
     if (this.booking()) list.push({ action: 'booking', label: ct('bar.book'), ariaLabel: ct('bar.bookTable'), icon: 'calendar' });
+    if (this.profile()) list.push({ action: 'profile', label: ct('customer.bar'), ariaLabel: ct('customer.title'), icon: 'user' });
     return list;
   });
 

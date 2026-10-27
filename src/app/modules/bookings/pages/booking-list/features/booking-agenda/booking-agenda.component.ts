@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { IconComponent } from 'src/ui';
 import { StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { BookingDto, BookingStatus } from '../../data-access';
-import { BOOKING_STATUS, isPendingMenuBooking, MENU_BOOKING_LABEL, timeOf } from '../../ui';
+import { BOOKING_STATUS, createdByLabel, isMenuBooking, isPendingMenuBooking, MENU_BOOKING_LABEL, timeOf } from '../../ui';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 
@@ -23,10 +23,13 @@ export class BookingAgendaComponent {
 
   readonly edit = output<BookingDto>();
   readonly changeStatus = output<BookingStatusChange>();
+  readonly assignTable = output<BookingDto>();
 
   readonly statusMap = BOOKING_STATUS;
   readonly timeOf = timeOf;
+  readonly isMenuBooking = isMenuBooking;
   readonly isPendingMenuBooking = isPendingMenuBooking;
+  readonly createdByLabel = createdByLabel;
   readonly menuBookingLabel = MENU_BOOKING_LABEL;
 
   // El filtro por estado lo aplica el backend; aquí solo se muestran las que llegan.

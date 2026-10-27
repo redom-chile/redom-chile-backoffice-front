@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { firstValueFrom, Observable } from 'rxjs';
+import { catchError, firstValueFrom, forkJoin, Observable, of } from 'rxjs';
 import { ApiKeyDto, ApiKeyKind, CreatedApiKeyDto, PublicApiService } from 'src/app/modules/public-menu/data-access';
 import { MAX_ORIGINS, normalizeOrigin, publicApiError } from 'src/app/modules/public-menu/features/public-api-shared';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { LegalApiService, legalDocumentsOf, legalErrorMessage, LegalMeDto, PendingDocumentDto, requiredAccepted } from 'src/app/core/services/legal';
+import { LegalDocumentChecklistComponent } from 'src/app/modules/legal/ui';
 
 export type ApiKeyFormModalData = Readonly<{ apiKey?: ApiKeyDto }>;
 /** Al crear llega con `key` (mostrarla una vez); al editar, la llave guardada. */
@@ -14,7 +16,7 @@ const NAME_MAX = 80;
 /** Crear o editar una llave de API. */
 @Component({
   selector: 'app-api-key-form-modal',
-  imports: [ModalCardComponent, SlotDirective, ButtonComponent, IconComponent],
+  imports: [ModalCardComponent, SlotDirective, ButtonComponent, IconComponent, LegalDocumentChecklistComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-modal-card>
@@ -118,6 +120,11 @@ const NAME_MAX = 80;
           <p><span class="font-semibold">Úsala solo en el servidor de tu web; nunca en la página.</span> Quien la tenga puede leer los pedidos de tu negocio.</p>
         </div>
         }
+
+        @if ($legalDocuments().length) {
+        <app-legal-document-checklist legend="Términos de la API" [documents]="$legalDocuments()" [(accepted)]="$legalAccepted"
+          [disabled]="$isSaving()" [showErrors]="$submitted()" />
+        }
       </form>
 
       <ng-template app-slot="footer">
@@ -136,6 +143,7 @@ export class ApiKeyFormModalComponent {
   readonly #data = inject<ApiKeyFormModalData>(MAT_DIALOG_DATA);
   readonly #service = inject(PublicApiService);
   readonly #toast = inject(ToastService);
+  readonly #legal = inject(LegalApiService);
 
   readonly apiKey = this.#data.apiKey ?? null;
   readonly nameMax = NAME_MAX;
@@ -149,6 +157,27 @@ export class ApiKeyFormModalComponent {
   readonly $nameTouched = signal(false);
   readonly $submitted = signal(false);
   readonly $isSaving = signal(false);
+  // Términos de la API: se aceptan con la primera llave (si el negocio aún no acepta la versión vigente).
+  readonly $legalDocuments = signal<readonly PendingDocumentDto[]>([]);
+  readonly $legalAccepted = signal<readonly number[]>([]);
+
+  constructor() {
+    if (!this.apiKey) this.#loadApiTerms();
+  }
+
+  #loadApiTerms() {
+    forkJoin([this.#legal.currentDocuments(['apiTerms']), this.#legal.me().pipe(catchError(() => of<LegalMeDto | null>(null)))]).subscribe(
+      ([current, me]) => {
+        const accepted = (me?.accepted ?? []).filter((record) => record.documentCode === 'apiTerms' && record.action === 'accept');
+        this.#showLegal(current.filter((document) => !accepted.some((record) => record.version >= document.version)));
+      },
+    );
+  }
+
+  #showLegal(documents: readonly PendingDocumentDto[]) {
+    this.$legalDocuments.set(documents);
+    this.$legalAccepted.set([]);
+  }
 
   readonly $showNameError = computed(() => (this.$nameTouched() || this.$submitted()) && !this.$name().trim());
   readonly $showOriginsRequired = computed(() => this.$submitted() && this.$kind() === 'publishable' && !this.$origins().length);
@@ -200,7 +229,7 @@ export class ApiKeyFormModalComponent {
     // Lo que quedó escrito sin presionar Agregar también cuenta.
     if (this.$kind() === 'publishable' && this.$draft().trim() && !this.addOrigin()) return;
     const name = this.$name().trim();
-    if (!name || (this.$kind() === 'publishable' && !this.$origins().length)) {
+    if (!name || (this.$kind() === 'publishable' && !this.$origins().length) || !requiredAccepted(this.$legalDocuments(), this.$legalAccepted())) {
       this.#toast.show('Revisa los campos marcados', 'warning');
       return;
     }
@@ -219,12 +248,24 @@ export class ApiKeyFormModalComponent {
         this.#toast.show('Llave actualizada', 'success');
       } else {
         const kind = this.$kind();
-        saved = await firstValueFrom(this.#service.createKey({ name, kind, ...(kind === 'publishable' ? { allowedOrigins: this.$origins() } : {}) }));
+        const acceptedVersionIds = this.$legalAccepted().length ? { acceptedVersionIds: [...this.$legalAccepted()] } : {};
+        saved = await firstValueFrom(
+          this.#service.createKey({ name, kind, ...(kind === 'publishable' ? { allowedOrigins: this.$origins() } : {}), ...acceptedVersionIds }),
+        );
         this.#toast.show('Llave creada', 'success');
       }
       this.dialogRef.close(saved);
     } catch (error) {
       this.$isSaving.set(false);
+      // Falta aceptar los términos de la API (o cambió la versión): se muestran para marcarlos.
+      const legal = legalErrorMessage(error);
+      if (legal) {
+        this.#toast.show(legal, 'warning');
+        const documents = legalDocumentsOf(error);
+        if (documents?.length) this.#showLegal(documents);
+        else this.#loadApiTerms();
+        return;
+      }
       const message = publicApiError(error, 'No se pudo guardar la llave.');
       if (message) this.#toast.show(message, 'error');
     }

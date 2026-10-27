@@ -14,6 +14,9 @@ export type CategoryDto = Readonly<{
   subcategories?: CategoryDto[];
   // Horario en la carta pública ([] = todo el día). El backend aún no lo devuelve: si no viene, se desconoce.
   schedule?: readonly CategoryScheduleRangeDto[];
+  // Orden dentro de su padre (#68) e ícono de la carta (todos los planes).
+  position?: number;
+  icon?: string | null;
 }>;
 
 export type CreateCategoryDto = Readonly<{
@@ -22,6 +25,8 @@ export type CreateCategoryDto = Readonly<{
   parentId?: number;
   description?: string;
   imageFileId?: string;
+  // Clave ^[a-z0-9-]{1,40}$; null = sin ícono.
+  icon?: string | null;
 }>;
 
 export type UpdateCategoryDto = Readonly<{
@@ -31,4 +36,9 @@ export type UpdateCategoryDto = Readonly<{
   description?: string;
   // undefined = no tocar, null = quitar.
   imageFileId?: string | null;
+  // undefined = no tocar, null = quitar.
+  icon?: string | null;
 }>;
+
+/** PATCH /categories/reorder: todas las categorías del padre, en el nuevo orden (null = principales). */
+export type ReorderCategoriesDto = Readonly<{ parentId: number | null; ids: number[] }>;

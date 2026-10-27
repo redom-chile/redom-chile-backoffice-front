@@ -5,7 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
 import { GetAllTablesService } from 'src/app/modules/tables/pages/table-list/data-access';
 import { BookingService, getBookingErrorMessage } from '../../data-access';
-import { BookingFormFieldsComponent, createBookingForm, isPendingMenuBooking, MENU_BOOKING_LABEL, toUpdateBookingDto } from '../../ui';
+import { BookingFormFieldsComponent, createBookingForm, createdByLabel, isMenuBooking, isPendingMenuBooking, toUpdateBookingDto } from '../../ui';
 import { BookingModalResult, UpdateBookingModalData } from '../booking-modal-result';
 
 @Component({
@@ -21,12 +21,15 @@ export class UpdateBookingModalComponent {
   private readonly bookingService = inject(BookingService);
   private readonly tablesService = inject(GetAllTablesService);
 
-  readonly booking = inject<UpdateBookingModalData>(MAT_DIALOG_DATA).booking;
+  private readonly data = inject<UpdateBookingModalData>(MAT_DIALOG_DATA);
+  readonly booking = this.data.booking;
+  readonly focusTable = this.data.focus === 'table';
   readonly form = createBookingForm(inject(FormBuilder), { date: '', booking: this.booking });
   readonly $tables = this.tablesService.$tables;
   readonly $isSaving = signal(false);
-  readonly fromMenu = isPendingMenuBooking(this.booking);
-  readonly menuBookingLabel = MENU_BOOKING_LABEL;
+  readonly fromMenu = isMenuBooking(this.booking);
+  readonly pendingFromMenu = isPendingMenuBooking(this.booking);
+  readonly author = createdByLabel(this.booking);
 
   constructor() {
     this.tablesService.setParams(this.booking.locationId);

@@ -3,6 +3,10 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { readApiError } from 'src/app/core/utils/api-error';
 import { CartaLang } from './i18n/carta-dict';
 import { COMMON_DICT } from './i18n/common';
+import { CUSTOMER_DICT } from './i18n/customer';
+import { DESIGN_DICT } from './i18n/design';
+import { DYNAMIC_DICT } from './i18n/dynamic';
+import { LEGAL_DICT } from './i18n/legal';
 import { ORDER_DICT } from './i18n/order';
 import { SERVICE_DICT } from './i18n/service';
 import { TRACKING_DICT } from './i18n/tracking';
@@ -26,7 +30,7 @@ export const CARTA_LANG_META: Readonly<Record<CartaLang, Readonly<{ flag: string
 /** Elección del cliente (selector de idioma). */
 const STORAGE_KEY = 'redom-menu-lang';
 
-const DICTS = [COMMON_DICT, ORDER_DICT, TRACKING_DICT, SERVICE_DICT] as const;
+const DICTS = [COMMON_DICT, ORDER_DICT, TRACKING_DICT, SERVICE_DICT, DESIGN_DICT, CUSTOMER_DICT, DYNAMIC_DICT, LEGAL_DICT] as const;
 
 type EsKeys<D> = D extends { es: infer E } ? keyof E : never;
 export type CartaKey = EsKeys<(typeof DICTS)[number]> & string;
@@ -136,6 +140,8 @@ export class CartaI18n {
   readonly t = ct;
   readonly tn = ctn;
 
+  /** ?lang= de la URL con la que se entró (etapa 10: entonces no manda el idioma del perfil). */
+  readonly entryLang = readUrlLang();
   /** Idioma pedido (?lang= o el elegido); se mantiene en la URL al navegar dentro de la carta. */
   readonly requested = signal<CartaLang | null>(readUrlLang());
   readonly queryParams = computed((): Readonly<Record<string, string>> => {

@@ -200,13 +200,49 @@
     </select>
   </div>
 
-  <div class="sm:col-span-2">
-    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+  <app-product-description-ai class="block sm:col-span-2" [productId]="productId()" (pick)="setDescription($event)">
+    <label for="product-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
     <textarea
+      id="product-description"
       formControlName="productDescription"
       rows="2"
       placeholder="Opcional. Se mostrará en la carta"
       [class]="inputClass"></textarea>
+  </app-product-description-ai>
+
+  <div class="sm:col-span-2">
+    <div class="mb-1 flex items-center gap-2">
+      <label for="product-chef-note" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nota del chef</label>
+      @if (!$chefNoteEnabled()) {
+      <app-plan-lock-badge feature="menu_design" />
+      }
+    </div>
+    @if ($chefNoteEnabled()) {
+    <textarea
+      id="product-chef-note"
+      formControlName="chefNote"
+      rows="2"
+      [maxLength]="chefNoteMax"
+      aria-describedby="product-chef-note-hint"
+      placeholder="Opcional. Ej: Nuestra receta de la abuela, con tomates del día"
+      [class]="inputClass"
+      [ngClass]="{ 'border-red-500': isInvalid('chefNote') }"></textarea>
+    <div id="product-chef-note-hint" class="mt-1 flex justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+      <span>Se muestra destacada en la carta.</span>
+      <span class="tabular-nums" aria-live="polite">{{ $chefNoteLength() }}/{{ chefNoteMax }}</span>
+    </div>
+    } @else {
+    <div class="flex flex-col gap-2 rounded-md bg-gray-50 p-3 dark:bg-gray-800 sm:flex-row sm:items-center">
+      <app-icon class="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true">lock</app-icon>
+      <p class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+        Destaca un plato con unas palabras del chef. Es parte del diseño de la carta.
+        @if (f.controls.chefNote.value) {
+        <span class="mt-1 block italic">“{{ f.controls.chefNote.value }}”</span>
+        }
+      </p>
+      <button type="button" class="text-primary shrink-0 text-sm font-medium hover:underline" (click)="showChefNotePlans()">Ver planes</button>
+    </div>
+    }
   </div>
 
   <div class="sm:col-span-2">

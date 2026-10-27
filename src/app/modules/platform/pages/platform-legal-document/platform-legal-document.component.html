@@ -1,0 +1,235 @@
+<a routerLink="/platform/legal" class="text-muted-foreground hover:text-foreground mb-3 inline-flex items-center gap-1 text-sm font-medium">
+  <app-icon class="h-5 w-5">arrow_back</app-icon>
+  Legal
+</a>
+
+@if (documents.isLoading() && !$document()) {
+  <div class="space-y-3">
+    <app-skeleton size="xs" style="width: 220px" />
+    <app-skeleton size="xs" style="width: 140px" />
+    <div class="glass mt-4 h-64 rounded-[1rem]"></div>
+  </div>
+} @else if ($error()) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+    <p class="text-foreground font-medium">No se pudo cargar el documento</p>
+    <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+    <app-button type="button" impact="bold" (buttonClick)="documents.reload()">Reintentar</app-button>
+  </div>
+} @else if (!$document()) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-4 py-12 text-center">
+    <app-icon class="text-muted-foreground h-10 w-10">search_off</app-icon>
+    <p class="text-foreground font-medium">El documento no existe</p>
+    <a routerLink="/platform/legal" class="text-primary text-sm font-medium hover:underline">Volver a Legal</a>
+  </div>
+} @else {
+  @let document = $document()!;
+  <!-- Encabezado -->
+  <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 class="text-foreground truncate text-xl font-semibold">{{ document.title }}</h1>
+        @if (document.isRequired) {
+          <span class="rounded-full bg-[var(--primary)]/15 px-2 py-0.5 text-xs font-semibold text-[var(--primary)]">Obligatorio</span>
+        } @else {
+          <span class="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs font-medium">Opcional</span>
+        }
+      </div>
+      <p class="text-muted-foreground font-mono text-xs">
+        {{ document.code }} · {{ document.scope === 'business' ? 'negocio #' + document.businessId : 'plataforma' }}
+      </p>
+      <div class="mt-2 flex flex-wrap gap-1">
+        @for (audience of document.audiences; track audience) {
+          <span class="text-foreground rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs">{{ audienceLabels[audience] ?? audience }}</span>
+        }
+      </div>
+    </div>
+    @if ($canManage()) {
+      <div class="flex shrink-0 flex-wrap gap-2">
+        <app-button type="button" impact="light" size="small" (buttonClick)="handleEditDocument()">Editar documento</app-button>
+        <app-button type="button" impact="bold" size="small" (buttonClick)="handleNewVersion()">Nueva versión</app-button>
+      </div>
+    }
+  </header>
+
+  <!-- Aceptación -->
+  <section class="glass mb-4 rounded-[1rem] p-4" aria-labelledby="legal-stats-title">
+    <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="legal-stats-title" class="text-foreground text-base font-semibold">Aceptación por audiencia</h2>
+      @if (document.current; as current) {
+        <p class="text-muted-foreground text-xs">Vigente: v{{ current.version }} desde {{ formatDate(current.effectiveAt, true) }}</p>
+      }
+    </div>
+    @if (stats.isLoading() && !$stats()) {
+      <app-skeleton size="xs" style="width: 100%" />
+    } @else {
+      <app-legal-stats [stats]="$stats()" />
+    }
+  </section>
+
+  <!-- Editor del borrador -->
+  @if ($editor(); as editor) {
+    @for (item of [editor]; track item.key) {
+      <div class="mb-4">
+        <app-legal-version-editor
+          [document]="document"
+          [draft]="item.draft"
+          [seed]="item.seed"
+          [versions]="$versions()"
+          [canPublish]="$canPublish()"
+          (saved)="handleSaved()"
+          (published)="handlePublished()"
+          (closed)="handleCloseEditor()" />
+      </div>
+    }
+  }
+
+  <!-- Versiones -->
+  <section class="glass overflow-hidden rounded-[1rem]" aria-labelledby="legal-versions-title">
+    <h2 id="legal-versions-title" class="text-foreground px-4 pt-4 text-base font-semibold">Versiones</h2>
+    @if ($versionsError()) {
+      <div class="flex flex-col items-center gap-3 px-4 py-10 text-center">
+        <p class="text-muted-foreground text-sm">No se pudieron cargar las versiones.</p>
+        <app-button type="button" impact="bold" size="small" (buttonClick)="versions.reload()">Reintentar</app-button>
+      </div>
+    } @else if (versions.isLoading() && !$versions().length) {
+      <div class="space-y-3 p-4">
+        <app-skeleton size="xs" style="width: 60%" />
+        <app-skeleton size="xs" style="width: 40%" />
+      </div>
+    } @else if (!$versions().length) {
+      <div class="px-4 py-10 text-center">
+        <p class="text-foreground font-medium">Sin versiones</p>
+        <p class="text-muted-foreground mt-1 text-sm">Escribe la primera versión del documento.</p>
+        @if ($canManage()) {
+          <button type="button" class="text-primary mt-3 text-sm font-medium hover:underline" (click)="handleNewVersion()">Nueva versión</button>
+        }
+      </div>
+    } @else {
+      <!-- Escritorio -->
+      <div class="hidden overflow-x-auto lg:block">
+        <table class="mt-2 min-w-full">
+          <thead>
+            <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+              <th class="px-4 py-3">Versión</th>
+              <th class="px-4 py-3">Idioma</th>
+              <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Vigente desde</th>
+              <th class="px-4 py-3">Material</th>
+              <th class="px-4 py-3">Hash</th>
+              <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (version of $versions(); track version.id) {
+              @let state = stateOf(version);
+              <tr class="glass-row border-b border-[var(--border)] ring-inset ring-[var(--primary)] last:border-0" [class.ring-2]="$editor()?.draft?.id === version.id">
+                <td class="text-foreground px-4 py-3 text-sm font-semibold">v{{ version.version }}</td>
+                <td class="text-foreground px-4 py-3 text-sm">{{ languageLabels[version.language] ?? version.language }}</td>
+                <td class="px-4 py-3">
+                  <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium" [class]="stateTones[state]">{{ stateLabels[state] }}</span>
+                  @if (version.notifiedAt) {
+                    <span class="text-muted-foreground block text-xs">Avisada</span>
+                  }
+                </td>
+                <td class="text-foreground whitespace-nowrap px-4 py-3 text-sm">
+                  {{ version.effectiveAt ? formatDate(version.effectiveAt, true) : (state === 'draft' ? 'Al publicar' : '—') }}
+                </td>
+                <td class="text-foreground px-4 py-3 text-sm">{{ version.isMaterialChange ? 'Sí' : 'No' }}</td>
+                <td class="px-4 py-3">
+                  @if (version.contentHash) {
+                    <button type="button" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 font-mono text-xs" [title]="'Copiar ' + version.contentHash" (click)="copy(version.contentHash)">
+                      {{ shortHash(version.contentHash) }}
+                      <app-icon class="h-4 w-4">content_copy</app-icon>
+                    </button>
+                  } @else {
+                    <span class="text-muted-foreground text-xs">—</span>
+                  }
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-right">
+                  <ng-container [ngTemplateOutlet]="actions" [ngTemplateOutletContext]="{ $implicit: version, state }" />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Móvil -->
+      <ul class="mt-2 divide-y divide-[var(--border)] lg:hidden">
+        @for (version of $versions(); track version.id) {
+          @let state = stateOf(version);
+          <li class="px-4 py-3">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-foreground text-sm font-semibold">
+                v{{ version.version }} · {{ languageLabels[version.language] ?? version.language }}
+              </p>
+              <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium" [class]="stateTones[state]">{{ stateLabels[state] }}</span>
+            </div>
+            <p class="text-muted-foreground mt-0.5 text-xs">
+              {{ version.effectiveAt ? 'Desde ' + formatDate(version.effectiveAt, true) : 'Rige al publicar' }} · {{ version.isMaterialChange ? 'Cambio material' : 'No material' }}
+              @if (version.contentHash) {
+                · <span class="font-mono">{{ shortHash(version.contentHash) }}</span>
+              }
+            </p>
+            <div class="mt-2 flex flex-wrap justify-end gap-1">
+              <ng-container [ngTemplateOutlet]="actions" [ngTemplateOutletContext]="{ $implicit: version, state }" />
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <ng-template #actions let-version let-state="state">
+    <div class="inline-flex flex-wrap justify-end gap-1">
+      @if (state === 'draft') {
+        @if ($canManage()) {
+          <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Editar" [attr.aria-label]="'Editar versión ' + version.version" (click)="handleEdit(version)">
+            <app-icon class="h-5 w-5">edit</app-icon>
+          </button>
+        }
+        @if ($canPublish()) {
+          <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground rounded-md p-1.5 disabled:opacity-50"
+            title="Publicar"
+            [attr.aria-label]="'Publicar versión ' + version.version"
+            [disabled]="$busyId() !== null"
+            (click)="handlePublish(version)">
+            <app-icon class="h-5 w-5">publish</app-icon>
+          </button>
+        }
+      } @else {
+        <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Ver" [attr.aria-label]="'Ver versión ' + version.version" (click)="handleView(version)">
+          <app-icon class="h-5 w-5">visibility</app-icon>
+        </button>
+        @if (version.pdfUrl) {
+          <a [href]="version.pdfUrl" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Abrir PDF" aria-label="Abrir PDF">
+            <app-icon class="h-5 w-5">picture_as_pdf</app-icon>
+          </a>
+        }
+        @if ($canManage() && state !== 'retired') {
+          <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Agregar otro idioma" [attr.aria-label]="'Agregar idioma a la versión ' + version.version" (click)="handleAddLanguage(version)">
+            <app-icon class="h-5 w-5">translate</app-icon>
+          </button>
+        }
+        @if (canNotify(version)) {
+          <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Avisar a quienes faltan" [attr.aria-label]="'Avisar versión ' + version.version" (click)="handleNotify(version)">
+            <app-icon class="h-5 w-5">forward_to_inbox</app-icon>
+          </button>
+        }
+        @if ($canPublish() && (state === 'current' || state === 'scheduled')) {
+          <button
+            type="button"
+            class="rounded-md p-1.5 text-red-600 hover:text-red-700 disabled:opacity-50 dark:text-red-400"
+            title="Retirar"
+            [attr.aria-label]="'Retirar versión ' + version.version"
+            [disabled]="$busyId() !== null"
+            (click)="handleRetire(version)">
+            <app-icon class="h-5 w-5">unpublished</app-icon>
+          </button>
+        }
+      }
+    </div>
+  </ng-template>
+}

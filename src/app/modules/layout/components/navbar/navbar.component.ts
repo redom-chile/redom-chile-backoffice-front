@@ -15,7 +15,15 @@ import { HelpPanelService } from 'src/app/modules/help/features/help-panel/help-
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css'],
   changeDetection: ChangeDetectionStrategy.Eager,
-  imports: [RedomLogoComponent, RouterLink, AngularSvgIconModule, NavbarMenuComponent, ProfileMenuComponent, NavbarMobileComponent, IconComponent],
+  imports: [
+    RedomLogoComponent,
+    RouterLink,
+    AngularSvgIconModule,
+    NavbarMenuComponent,
+    ProfileMenuComponent,
+    NavbarMobileComponent,
+    IconComponent,
+  ],
 })
 export class NavbarComponent implements OnInit {
   readonly #settings = inject(BusinessSettingsService);

@@ -1,0 +1,150 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ season ? 'Editar temporada' : 'Nueva temporada' }}</h2>
+  </ng-template>
+
+  <form class="space-y-5 p-2" (submit)="$event.preventDefault(); handleSubmit()">
+    @if (!season) {
+    <div>
+      <p class="text-muted-foreground mb-2 text-xs">Fechas típicas en Chile:</p>
+      <div class="flex flex-wrap gap-2">
+        @for (preset of presets; track preset.name) {
+        <button type="button" class="glass-row text-foreground hover:border-primary rounded-full px-3 py-1.5 text-xs font-medium" (click)="applyPreset(preset)">
+          {{ preset.label }}
+        </button>
+        }
+      </div>
+    </div>
+    }
+
+    <div>
+      <label for="season-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="season-name"
+        type="text"
+        [attr.maxlength]="nameMax"
+        placeholder="Ej: Fiestas Patrias"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="show('name')"
+        [value]="$name()"
+        (input)="setName($any($event.target).value)" />
+      @if (show('name'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Solo lo ves tú, para reconocerla en la lista.</p>
+      }
+    </div>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Fechas</legend>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="season-start" class="mb-1 block text-sm font-medium">Desde *</label>
+          <input id="season-start" type="date" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('dates')" [value]="$startDate()" (change)="setDate('start', $any($event.target).value)" />
+        </div>
+        <div>
+          <label for="season-end" class="mb-1 block text-sm font-medium">Hasta *</label>
+          <input id="season-end" type="date" class="glass-input w-full rounded-md px-3 py-2" [class.border-red-500]="show('dates')" [attr.min]="$startDate() || null" [value]="$endDate()" (change)="setDate('end', $any($event.target).value)" />
+        </div>
+      </div>
+      @if (show('dates'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      } @else if ($rangeLabel(); as label) {
+      <p class="text-muted-foreground text-xs">{{ label }} El último día cuenta completo.</p>
+      }
+      <div>
+        <p class="mb-1 text-sm font-medium" id="season-scope-label">Dónde</p>
+        <div class="glass-input flex rounded-md p-1" role="radiogroup" aria-labelledby="season-scope-label">
+          <label class="flex-1">
+            <input type="radio" name="season-scope" class="peer sr-only" [checked]="!$allLocations()" (change)="$allLocations.set(false)" />
+            <span class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer truncate rounded px-2 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2">
+              {{ data.locationName || 'Este local' }}
+            </span>
+          </label>
+          <label class="flex-1">
+            <input type="radio" name="season-scope" class="peer sr-only" [checked]="$allLocations()" (change)="$allLocations.set(true)" />
+            <span class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer rounded px-2 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2">
+              Todos los locales
+            </span>
+          </label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">En la carta</legend>
+      <div>
+        <label for="season-title" class="mb-1 block text-sm font-medium">Título de la sección</label>
+        <input
+          id="season-title"
+          type="text"
+          [attr.maxlength]="titleMax"
+          placeholder="Ej: Para celebrar el 18"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('title')"
+          [value]="$title()"
+          (input)="setTitle($any($event.target).value)" />
+        @if (show('title'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Opcional. Los productos aparecen destacados bajo este título.</p>
+        }
+      </div>
+      <div>
+        <label for="season-products" class="mb-1 block text-sm font-medium">Productos destacados</label>
+        <app-menu-dynamic-items-select
+          kind="product"
+          inputId="season-products"
+          [catalog]="data.catalog()"
+          [loading]="data.catalogLoading()"
+          [invalid]="!!show('products')"
+          [value]="$productIds()"
+          (valueChange)="setProducts($event)" />
+        @if (show('products'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        }
+      </div>
+      <div>
+        <label for="season-banner" class="mb-1 block text-sm font-medium">Banner que se activa</label>
+        @if ($banners(); as banners) {
+        <select
+          id="season-banner"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('banner')"
+          (change)="setBanner($any($event.target).value)">
+          <option value="" [selected]="$bannerId() === null">Ninguno</option>
+          @for (banner of banners; track banner.id) {
+          <option [value]="banner.id" [selected]="banner.id === $bannerId()">{{ banner.title }}</option>
+          }
+        </select>
+        @if (show('banner'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">
+          Opcional. Se muestra en la carta solo durante la temporada. Puedes usar un banner inactivo: se mostrará solo durante la temporada.
+        </p>
+        }
+        } @else {
+        <p class="text-muted-foreground text-xs">Para enlazar un banner necesitas Marketing de la carta en tu plan.</p>
+        }
+      </div>
+    </fieldset>
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activa</p>
+        <p class="text-muted-foreground text-xs">Inactiva no se aplica aunque esté en fecha.</p>
+      </div>
+      <app-toggle ariaLabel="Temporada activa" [checked]="$isActive()" (changed)="$isActive.set($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ season ? 'Guardar' : 'Crear temporada' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

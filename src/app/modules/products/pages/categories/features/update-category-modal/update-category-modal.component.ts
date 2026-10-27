@@ -7,13 +7,13 @@ import { UpdateCategoryService, CategoryDto, getCategoryErrorMessage } from '../
 import { CategoryModalResult } from '../category-modal-result';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
-import { CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
+import { CategoryIconPickerComponent, CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
 import { NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-update-category-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent, CategoryIconPickerComponent],
   templateUrl: './update-category-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -44,6 +44,10 @@ export class UpdateCategoryModalComponent implements OnDestroy {
   readonly #initialSchedule: CategorySchedule | null = this.category.schedule ? toCategorySchedule(this.category.schedule) : null;
   readonly $schedule = signal<CategorySchedule>(this.#initialSchedule ?? toCategorySchedule([]));
   readonly $scheduleSubmitted = signal(false);
+  // Ícono en la carta (todos los planes): solo se envía si cambia.
+  readonly #initialIcon = this.category.icon ?? null;
+  readonly $icon = signal<string | null>(this.#initialIcon);
+  readonly #iconChanged = () => this.$icon() !== this.#initialIcon;
   readonly scheduleNote = this.category.schedule
     ? null
     : 'El horario actual de la categoría aún no se muestra aquí: si lo cambias, reemplaza al anterior.';
@@ -93,6 +97,7 @@ export class UpdateCategoryModalComponent implements OnDestroy {
         shortCode: value.shortCode?.trim() || undefined,
         description: value.description || undefined,
         ...(imageFileId !== undefined ? { imageFileId } : {}),
+        ...(this.#iconChanged() ? { icon: this.$icon() } : {}),
       });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');

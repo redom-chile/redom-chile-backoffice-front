@@ -7,7 +7,13 @@
 
   @for (booking of bookings(); track booking.id) {
   @let cancelled = booking.status === 'cancelled';
-  <article class="glass flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center" [class.opacity-60]="cancelled || busyIds().has(booking.id)">
+  @let pendingMenu = isPendingMenuBooking(booking);
+  @let author = createdByLabel(booking);
+  <article
+    class="glass flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center"
+    [class.opacity-60]="cancelled || busyIds().has(booking.id)"
+    [class]="pendingMenu ? 'border-l-4 border-amber-500 bg-amber-500/5' : ''"
+    [attr.aria-label]="pendingMenu ? 'Reserva desde la carta por confirmar' : null">
     <div class="flex items-center gap-4 sm:w-40 sm:shrink-0">
       <div class="text-center">
         <p class="text-foreground text-2xl font-bold tabular-nums" [class.line-through]="cancelled">{{ timeOf(booking.start) }}</p>
@@ -18,12 +24,11 @@
     <div class="min-w-0 flex-1">
       <div class="flex flex-wrap items-center gap-2">
         <h3 class="text-foreground truncate font-semibold" [class.line-through]="cancelled">{{ booking.customerName }}</h3>
-        @if (isPendingMenuBooking(booking)) {
+        <app-status-badge [map]="statusMap" [status]="booking.status" />
+        @if (isMenuBooking(booking)) {
         <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
           <app-icon class="h-3.5 w-3.5" aria-hidden="true">menu_book</app-icon>{{ menuBookingLabel }}
         </span>
-        } @else {
-        <app-status-badge [map]="statusMap" [status]="booking.status" />
         }
       </div>
       <p class="text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -37,7 +42,13 @@
         @if (booking.waiterName) {
         <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">badge</app-icon>{{ booking.waiterName }}</span>
         }
+        @if (author) {
+        <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">edit_note</app-icon>{{ author }}</span>
+        }
       </p>
+      @if (pendingMenu) {
+      <p class="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">Un cliente la pidió desde la carta: confírmala o asígnale una mesa.</p>
+      }
     </div>
 
     <div *appCheckPermission="PERMISSIONS.BOOKINGS.UPDATE_BOOKING" class="flex flex-wrap gap-2">
@@ -45,7 +56,12 @@
       <button type="button" class="glass-row h-10 rounded-md px-3 text-sm font-medium" [disabled]="busyIds().has(booking.id)" (click)="changeStatus.emit({ booking, status: 'booked' })">Reactivar</button>
       } @else {
       @if (booking.status === 'waiting') {
-      <button type="button" class="glass-row h-10 rounded-md px-3 text-sm font-medium" [disabled]="busyIds().has(booking.id)" (click)="changeStatus.emit({ booking, status: 'booked' })">Confirmar</button>
+      <button type="button" class="h-10 rounded-md px-3 text-sm font-medium" [class]="pendingMenu ? 'bg-primary text-white' : 'glass-row'" [disabled]="busyIds().has(booking.id)" (click)="changeStatus.emit({ booking, status: 'booked' })">Confirmar</button>
+      }
+      @if (pendingMenu && !booking.tableId) {
+      <button type="button" class="glass-row inline-flex h-10 items-center gap-1 rounded-md px-3 text-sm font-medium" [disabled]="busyIds().has(booking.id)" (click)="assignTable.emit(booking)">
+        <app-icon class="h-4 w-4">table_bar</app-icon>Asignar mesa
+      </button>
       }
       @if (booking.status === 'booked' || booking.status === 'waiting') {
       <button type="button" class="inline-flex h-10 items-center gap-1 rounded-md bg-green-600 px-3 text-sm font-medium text-white" [disabled]="busyIds().has(booking.id)" (click)="changeStatus.emit({ booking, status: 'completed' })">

@@ -6,6 +6,8 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
+import { LegalApiService, legalDocumentsOf, legalErrorMessage, PendingDocumentDto, requiredAccepted } from 'src/app/core/services/legal';
+import { LegalDocumentChecklistComponent } from 'src/app/modules/legal/ui';
 import {
   BillingService,
   CHECKOUT_ACTION_TITLES,
@@ -21,6 +23,8 @@ import {
 import { cardLabel, formatBillingDate, goToFlow, previewCheckout } from '../billing-format';
 
 type CheckoutMethod = 'flow' | 'manual';
+
+const BUSINESS_DOCUMENTS: readonly string[] = ['subscriptionTerms', 'dataProcessingAgreement'];
 
 const METHODS: ReadonlyArray<Readonly<{ value: CheckoutMethod; label: string; icon: string }>> = [
   { value: 'flow', label: 'Tarjeta (Flow)', icon: 'credit_card' },
@@ -41,7 +45,7 @@ export type CheckoutModalData = Readonly<{
  */
 @Component({
   selector: 'app-checkout-modal',
-  imports: [ReactiveFormsModule, ButtonComponent, IconComponent, ModalCardComponent, SlotDirective],
+  imports: [ReactiveFormsModule, ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, LegalDocumentChecklistComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-modal-card>
@@ -113,6 +117,10 @@ export type CheckoutModalData = Readonly<{
             }
           </div>
         </fieldset>
+        @if ($legalDocuments().length) {
+        <app-legal-document-checklist legend="Condiciones del plan" [documents]="$legalDocuments()" [(accepted)]="$legalAccepted"
+          [disabled]="$isSaving()" [showErrors]="$legalSubmitted()" />
+        }
         <button type="submit" class="hidden" aria-hidden="true" tabindex="-1"></button>
       </form>
 
@@ -135,6 +143,27 @@ export class CheckoutModalComponent {
   readonly #router = inject(Router);
   readonly #toast = inject(ToastService);
   readonly #destroyRef = inject(DestroyRef);
+  readonly #legal = inject(LegalApiService);
+
+  // Condiciones del servicio y tratamiento de datos que el negocio aún no acepta (si los hay, van con la compra).
+  readonly $legalDocuments = signal<readonly PendingDocumentDto[]>([]);
+  readonly $legalAccepted = signal<readonly number[]>([]);
+  readonly $legalSubmitted = signal(false);
+
+  constructor() {
+    this.#loadLegal();
+  }
+
+  #loadLegal() {
+    this.#legal
+      .me()
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (me) => this.#showLegal(me.pending.filter((document) => BUSINESS_DOCUMENTS.includes(document.documentCode))),
+        // Sin la lista, el backend responde 400 con los que falten y se muestran ahí.
+        error: () => undefined,
+      });
+  }
 
   readonly action = previewCheckout(this.data.subscription, this.data.price);
   readonly actionTitle = CHECKOUT_ACTION_TITLES[this.action];
@@ -161,19 +190,36 @@ export class CheckoutModalComponent {
 
   handleConfirm() {
     if (this.$isSaving()) return;
+    this.$legalSubmitted.set(true);
+    if (!requiredAccepted(this.$legalDocuments(), this.$legalAccepted())) return;
     const method = this.$method();
     const couponCode = this.charges ? this.coupon.value.trim().toUpperCase() : '';
+    const acceptedVersionIds = this.$legalAccepted().length ? [...this.$legalAccepted()] : undefined;
     this.$isSaving.set(true);
     this.#billing
-      .checkout({ priceId: this.data.price.id, method, ...(couponCode ? { couponCode } : {}) })
+      .checkout({ priceId: this.data.price.id, method, ...(couponCode ? { couponCode } : {}), ...(acceptedVersionIds ? { acceptedVersionIds } : {}) })
       .pipe(takeUntilDestroyed(this.#destroyRef))
       .subscribe({
         next: (result) => this.#handleResult(result),
         error: (error: unknown) => {
           this.$isSaving.set(false);
+          const legal = legalErrorMessage(error);
+          if (legal) {
+            this.#toast.show(legal, 'warning');
+            const documents = legalDocumentsOf(error);
+            if (documents) this.#showLegal(documents);
+            else this.#loadLegal();
+            return;
+          }
           this.#toast.show(getBillingErrorMessage(error, 'No se pudo cambiar el plan'), 'error');
         },
       });
+  }
+
+  #showLegal(documents: readonly PendingDocumentDto[]) {
+    this.$legalDocuments.set(documents);
+    this.$legalAccepted.set([]);
+    this.$legalSubmitted.set(false);
   }
 
   /** Con tarjeta el modal resuelve todo; quien lo abrió solo maneja transferencia y cambios programados. */

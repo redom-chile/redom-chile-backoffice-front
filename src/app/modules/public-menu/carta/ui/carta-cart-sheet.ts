@@ -6,8 +6,10 @@ import { PublicMenuApiService } from '../../data-access/public-menu-api.service'
 import { formatMenuPrice } from '../../data-access/public-menu-format';
 import { CartaCart, cartIssueText, MAX_CART_LINES, MAX_CUSTOMER_NAME, MAX_LINE_NOTE, MAX_LINE_QUANTITY, MAX_ORDER_NOTE, readOrderError, toOrderLine } from '../carta-cart';
 import { CartaI18n } from '../carta-i18n';
+import { CartaCustomer } from '../carta-customer';
 import { CartaIcon } from './carta-icon';
 import { CartaStepper } from './carta-stepper';
+import { CartaSuggestionsList } from './carta-suggestions-list';
 
 const fieldClass =
   'mt-1.5 block w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30';
@@ -18,7 +20,7 @@ const fieldClass =
  */
 @Component({
   selector: 'app-carta-cart-sheet',
-  imports: [CartaIcon, CartaStepper],
+  imports: [CartaIcon, CartaStepper, CartaSuggestionsList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -111,6 +113,9 @@ const fieldClass =
         </ul>
         @if (items.length >= maxLines) {
           <p class="mt-2 text-xs text-muted-foreground">{{ t('cart.maxLines', { max: maxLines }) }}</p>
+        }
+        @if (!cart.full()) {
+          <app-carta-suggestions-list class="mt-5" />
         }
 
         @if (!online()) {
@@ -226,8 +231,13 @@ export class CartaCartSheet {
 
   #request: Subscription | null = null;
 
+  readonly #customer = inject(CartaCustomer);
+
   constructor() {
     inject(DestroyRef).onDestroy(() => this.#request?.unsubscribe());
+    // Etapa 10: el nombre del perfil, si no escribió otro
+    const name = this.#customer.verified() ? this.#customer.profile()?.name : null;
+    if (name && !this.cart.customerName()) this.cart.setCustomerName(name);
   }
 
   protected send(): void {
@@ -239,17 +249,23 @@ export class CartaCartSheet {
     this.editingNote.set(null);
     const name = this.cart.customerName().trim().slice(0, MAX_CUSTOMER_NAME);
     const note = this.cart.note().trim().slice(0, MAX_ORDER_NOTE);
-    this.#request = this.#api
-      .createOrder({
-        qrCode: qr,
-        items: items.map(toOrderLine),
-        ...(name ? { customerName: name } : {}),
-        ...(note ? { note } : {}),
-      })
+    this.#request = this.#customer
+      .withCustomer((headers) =>
+        this.#api.createOrder(
+          {
+            qrCode: qr,
+            items: items.map(toOrderLine),
+            ...(name ? { customerName: name } : {}),
+            ...(note ? { note } : {}),
+          },
+          headers,
+        ),
+      )
       .subscribe({
         next: (order) => {
           this.sending.set(false);
           this.cart.ordered(order);
+          this.#customer.reloadUsual();
           this.ordered.emit(order);
         },
         error: (e) => {

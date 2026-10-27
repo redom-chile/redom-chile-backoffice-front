@@ -1,6 +1,11 @@
 @if ($noLocations()) {
-<app-empty-state icon="storefront" title="Primero crea tu local" description="Para tomar pedidos en el POS necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
-  <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+<app-empty-state
+  icon="storefront"
+  title="Primero crea tu local"
+  description="Para tomar pedidos en el POS necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
+  <a
+    routerLink="/business/location"
+    class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
     <app-icon class="h-4 w-4">add_business</app-icon>Crear local
   </a>
 </app-empty-state>
@@ -24,35 +29,36 @@
       class="glass-row text-foreground inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium">
       <app-icon class="h-4 w-4" aria-hidden="true">block</app-icon>Agotados
     </a>
-    }
-    @if ($isReady() && $useWaiters()) {
+    } @if ($isReady() && $useWaiters()) {
     <div class="ml-auto flex items-center gap-2">
       <span class="glass-row inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
         <app-icon class="h-4 w-4">badge</app-icon>{{ $waiter()?.name ?? 'Sin mesero' }}
       </span>
       @if (terminalMode()) {
-      <button type="button" class="glass-row inline-flex h-10 items-center gap-1 rounded-full px-4 text-sm font-medium" (click)="handleChangeWaiter()">
+      <button
+        type="button"
+        class="glass-row inline-flex h-10 items-center gap-1 rounded-full px-4 text-sm font-medium"
+        (click)="handleChangeWaiter()">
         <app-icon class="h-4 w-4">logout</app-icon>Salir
       </button>
       } @else {
-      <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleChangeWaiter()">Cambiar</button>
+      <button type="button" class="text-primary text-sm font-medium hover:underline" (click)="handleChangeWaiter()">
+        Cambiar
+      </button>
       }
     </div>
     }
   </div>
-  }
-
-  @if ($isReady()) {
+  } @if ($isReady()) {
   <app-cash-indicator />
-  }
-
-  @if (!$isReady()) {
+  } @if (!$isReady()) {
   <app-waiter-login
     [allowAnonymous]="!terminalMode() && !$waiterRequired()"
     [variant]="terminalMode() ? 'screen' : 'card'"
     [locationName]="locationName()"
     [locationId]="$locationId()"
-    (loggedIn)="handleLogin($event)" (continueWithoutWaiter)="handleAnonymous()" />
+    (loggedIn)="handleLogin($event)"
+    (continueWithoutWaiter)="handleAnonymous()" />
   } @else {
   <div class="grid grid-cols-1 gap-3 lg:grid-cols-12">
     @if ($showTables()) {

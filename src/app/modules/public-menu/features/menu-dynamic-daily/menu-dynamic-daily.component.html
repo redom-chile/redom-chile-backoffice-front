@@ -1,0 +1,114 @@
+@let locked = $locked();
+@if ($missing()) {
+<app-menu-dynamic-stage-banner class="mb-4 block" />
+}
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">Un plato destacado con porciones y cuenta regresiva ("Quedan 5", "Hasta las 15:00").</p>
+  <app-button *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" type="button" impact="bold" tone="primary" shape="rounded" [disabled]="locked" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nuevo plato del día</span>
+  </app-button>
+</div>
+
+@if ($error() && !$missing()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="specials.reload()">Reintentar</app-button>
+</div>
+} @else if (specials.isLoading() && !$loaded()) {
+<div class="space-y-3">
+  @for (row of [1, 2]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 160px" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if (!$groups().length) {
+<app-empty-state icon="restaurant" title="No hay platos del día programados" description="Ej.: Cazuela de vacuno hoy de 12:00 a 16:00, 20 porciones a $6.990." />
+} @else {
+<div class="space-y-6" [class.opacity-60]="specials.isLoading()">
+  @for (group of $groups(); track group.date) {
+  <section [attr.aria-labelledby]="'daily-day-' + group.date">
+    <h3 [id]="'daily-day-' + group.date" class="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wide">{{ group.label }}</h3>
+    <ul class="space-y-3">
+      @for (special of group.items; track special.id) {
+      @let busy = $busyId() === special.id;
+      @let state = status(special);
+      <li
+        class="glass flex flex-col gap-3 rounded-[1rem] p-4 sm:flex-row sm:items-start sm:justify-between"
+        [class.opacity-70]="state === 'ended'"
+        [class.ring-2]="$conflictId() === special.id"
+        [class.ring-red-500]="$conflictId() === special.id">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h4 class="text-foreground min-w-0 truncate font-semibold">{{ product(special) }}</h4>
+            <span class="rounded-full px-2 py-0.5 text-xs font-medium" [class]="statusClasses[state]">{{ statusLabels[state] }}</span>
+            @if ($conflictId() === special.id) {
+            <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">Se cruza con el que estás guardando</span>
+            }
+          </div>
+          <p class="text-muted-foreground mt-0.5 text-sm">
+            {{ special.title }}@if (special.note) {<span> · {{ special.note }}</span>}
+          </p>
+          <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
+            <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+              <app-icon class="h-3.5 w-3.5" aria-hidden="true">schedule</app-icon>{{ hours(special) }}
+            </span>
+            <span class="bg-primary/10 text-primary rounded-full px-2 py-0.5 font-medium">{{ price(special) }}</span>
+            @if (special.portions === null) {
+            <span class="bg-muted/50 text-foreground rounded-full px-2 py-0.5">Sin límite de porciones · {{ special.portionsSold }} vendidas</span>
+            }
+          </div>
+          @if (special.portions !== null) {
+          <div class="mt-3 max-w-sm">
+            <div class="mb-1 flex items-center justify-between text-xs">
+              <span class="text-foreground font-medium">{{ special.portionsSold }} de {{ special.portions }} vendidas</span>
+              <span class="text-muted-foreground">Quedan {{ left(special) }}</span>
+            </div>
+            <div
+              class="bg-muted h-2 overflow-hidden rounded-full"
+              role="progressbar"
+              [attr.aria-valuenow]="special.portionsSold"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="special.portions"
+              [attr.aria-label]="'Porciones vendidas de ' + product(special)">
+              <div class="h-full rounded-full" [class]="state === 'soldOut' ? 'bg-red-500' : 'bg-primary'" [style.width.%]="progress(special)"></div>
+            </div>
+          </div>
+          }
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 sm:flex-col sm:items-end">
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 text-sm">
+              <span class="text-muted-foreground">{{ special.isActive ? 'Activo' : 'Inactivo' }}</span>
+              <app-toggle [ariaLabel]="'Activar ' + special.title" [checked]="special.isActive" [disabled]="busy || locked" (changed)="toggle(special, $event)" />
+            </label>
+            <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" class="flex items-center">
+              <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Editar ' + special.title" (click)="edit(special)">
+                <app-icon class="h-5 w-5" aria-hidden="true">edit</app-icon>
+              </button>
+              <button type="button" class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Eliminar ' + special.title" (click)="remove(special)">
+                <app-icon class="h-5 w-5" aria-hidden="true">delete</app-icon>
+              </button>
+            </div>
+          </div>
+          @if (special.portions !== null && state !== 'ended') {
+          <button
+            *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING"
+            type="button"
+            class="glass-row text-foreground inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium disabled:opacity-40"
+            [disabled]="busy || locked"
+            (click)="restock(special)">
+            <app-icon class="h-4 w-4" aria-hidden="true">add_circle</app-icon>Reponer porciones
+          </button>
+          }
+        </div>
+      </li>
+      }
+    </ul>
+  </section>
+  }
+</div>
+}

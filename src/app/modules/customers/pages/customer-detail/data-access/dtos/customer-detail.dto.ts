@@ -24,6 +24,9 @@ export type CustomerDetailDto = Readonly<{
   addressLine1: string | null;
   city: string | null;
   createdAt: string;
+  // Etapa 10: se identificó con código en la carta.
+  isVerified: boolean;
+  verifiedAt: string | null;
   summary: CustomerSummaryDto;
   // Últimos 20 pedidos.
   recentOrders: CustomerRecentOrderDto[];

@@ -1,0 +1,256 @@
+@let d = draft();
+@let off = disabled();
+<div class="space-y-4">
+  @if (!hasDesign()) {
+  <app-marketing-upsell-card
+    feature="menu_design"
+    description="Elige plantilla, tipografía y forma de las tarjetas, y publica un anuncio destacado en la carta de cada local. La accesibilidad sigue disponible en tu plan." />
+  } @else {
+  <!-- Plantilla -->
+  <section class="glass rounded-[1rem] p-4 sm:p-5">
+    <fieldset [disabled]="off">
+      <legend class="text-foreground font-semibold">Plantilla</legend>
+      <p class="text-muted-foreground mb-3 text-sm">Cambia la forma de toda la carta. Tus productos y precios no cambian.</p>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        @for (option of templates; track option.id) {
+        @let on = d.template === option.id;
+        <label
+          class="relative flex cursor-pointer flex-col gap-2 rounded-xl border p-2 transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
+          [class]="on ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'">
+          <input type="radio" class="sr-only" [name]="id + '-template'" [value]="option.id" [checked]="on" (change)="selectTemplate(option.id)" />
+          <app-menu-design-template-thumb [template]="option.id" />
+          <span class="px-0.5">
+            <span class="text-foreground flex items-center gap-1 text-sm font-semibold">
+              {{ option.name }}
+              @if (on) {
+              <app-icon class="text-primary h-4 w-4" aria-hidden="true">check_circle</app-icon>
+              }
+            </span>
+            <span class="text-muted-foreground block text-xs leading-snug">{{ option.description }}</span>
+          </span>
+        </label>
+        }
+      </div>
+      @if (errorFor('template'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
+    </fieldset>
+  </section>
+
+  <!-- Tipografía -->
+  <section class="glass rounded-[1rem] p-4 sm:p-5">
+    <fieldset [disabled]="off">
+      <legend class="text-foreground font-semibold">Tipografía</legend>
+      <p class="text-muted-foreground mb-3 text-sm">Un par de letras para títulos y textos. La carta solo descarga la que elijas.</p>
+      <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        @for (font of fonts; track font.id) {
+        @let on = d.font === font.id;
+        <label
+          class="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
+          [class]="on ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'">
+          <input type="radio" class="sr-only" [name]="id + '-font'" [value]="font.id" [checked]="on" (change)="patch({ font: font.id })" />
+          <span class="text-foreground w-10 shrink-0 text-center text-2xl leading-none" [style.font-family]="fontFamily(font.id, 'heading')" aria-hidden="true">Aa</span>
+          <span class="min-w-0 flex-1">
+            <span class="text-foreground block truncate text-base font-semibold" [style.font-family]="fontFamily(font.id, 'heading')">{{ font.name }}</span>
+            <span class="text-muted-foreground block truncate text-xs" [style.font-family]="fontFamily(font.id, 'body')">{{ font.heading }}{{ font.body !== font.heading ? ' y ' + font.body : '' }}</span>
+          </span>
+          @if (on) {
+          <app-icon class="text-primary h-5 w-5 shrink-0" aria-hidden="true">check_circle</app-icon>
+          }
+        </label>
+        }
+      </div>
+      @if (errorFor('font'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
+    </fieldset>
+  </section>
+
+  <!-- Tarjetas -->
+  <section class="glass space-y-4 rounded-[1rem] p-4 sm:p-5">
+    <fieldset [disabled]="off">
+      <legend class="text-foreground font-semibold">Forma de las tarjetas</legend>
+      <p class="text-muted-foreground mb-3 text-sm">Cómo se ve cada producto en la carta.</p>
+      <div class="grid grid-cols-3 gap-2">
+        @for (style of cardStyles; track style.id) {
+        @let on = d.cardStyle === style.id;
+        <label
+          class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
+          [class]="on ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'">
+          <input type="radio" class="sr-only" [name]="id + '-card'" [value]="style.id" [checked]="on" (change)="selectCardStyle(style.id)" />
+          <app-icon class="h-6 w-6" [class]="on ? 'text-primary' : 'text-muted-foreground'" aria-hidden="true">{{ style.icon }}</app-icon>
+          <span class="text-foreground text-sm font-semibold">{{ style.name }}</span>
+          <span class="text-muted-foreground text-xs leading-snug">{{ style.description }}</span>
+        </label>
+        }
+      </div>
+      @if (errorFor('cardStyle'); as message) {
+      <p class="text-destructive mt-2 text-xs" role="alert">{{ message }}</p>
+      }
+      @if ($suggestedCard()) {
+      <p class="text-muted-foreground mt-2 flex items-center gap-1 text-xs">
+        <app-icon class="h-4 w-4" aria-hidden="true">auto_awesome</app-icon>Sugerido para esta plantilla
+      </p>
+      }
+    </fieldset>
+
+    <div class="border-t border-[var(--border)] pt-4">
+      <div class="mb-2 flex items-center justify-between gap-2">
+        <h3 class="text-foreground text-sm font-semibold">Por categoría</h3>
+        @if ($customCategories() && !off) {
+        <button type="button" class="text-primary text-xs font-medium hover:underline" (click)="clearCategoryStyles()">Usar la general en todas</button>
+        }
+      </div>
+      @if (categories().length) {
+      <ul class="divide-y divide-[var(--border)]">
+        @for (category of categories(); track category.id) {
+        <li class="flex items-center justify-between gap-3 py-2" [class.pl-5]="category.depth === 1">
+          <label [for]="id + '-cat-' + category.id" class="text-foreground min-w-0 flex-1 truncate text-sm">
+            @if (category.depth === 1) {
+            <span class="text-muted-foreground" aria-hidden="true">↳ </span>
+            }
+            {{ category.name }}
+          </label>
+          <select
+            [id]="id + '-cat-' + category.id"
+            class="glass-input w-40 shrink-0 rounded-md px-2 py-1.5 text-sm focus:outline-none"
+            [class.border-red-500]="!!errorFor('categoryStyles.' + category.id)"
+            [attr.aria-invalid]="!!errorFor('categoryStyles.' + category.id) || null"
+            [disabled]="off"
+            (change)="setCategoryStyle(category.id, $any($event.target).value)">
+            <option value="" [selected]="!d.categoryStyles[category.id]">Igual que la general</option>
+            @for (style of cardStyles; track style.id) {
+            <option [value]="style.id" [selected]="d.categoryStyles[category.id] === style.id">{{ style.name }}</option>
+            }
+          </select>
+        </li>
+        }
+      </ul>
+      @if (errorFor('categoryStyles'); as message) {
+      <p class="text-destructive mt-1 text-xs" role="alert">{{ message }}</p>
+      }
+      } @else {
+      <p class="text-muted-foreground text-xs">{{ categoriesNote() || 'Este local aún no tiene categorías en su carta.' }}</p>
+      }
+    </div>
+  </section>
+
+  <!-- Anuncio -->
+  <section class="glass space-y-3 rounded-[1rem] p-4 sm:p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 class="text-foreground font-semibold">Anuncio destacado</h2>
+        <p class="text-muted-foreground text-sm">Un aviso arriba de la carta, por ejemplo "Hoy: música en vivo".</p>
+      </div>
+      <app-toggle [checked]="d.announcement.isActive" [disabled]="off" ariaLabel="Mostrar el anuncio" (changed)="patchAnnouncement({ isActive: $event })" />
+    </div>
+    <div>
+      <label [for]="id + '-announcement'" class="text-foreground mb-1 block text-sm font-medium">Texto</label>
+      <textarea
+        [id]="id + '-announcement'"
+        rows="2"
+        class="glass-input w-full resize-none rounded-md px-3 py-2 text-sm"
+        [class.border-red-500]="!!errorFor('announcement.text')"
+        [attr.aria-invalid]="!!errorFor('announcement.text') || null"
+        [attr.maxlength]="announcementMax"
+        [attr.aria-describedby]="id + '-announcement-count'"
+        placeholder="Hoy: música en vivo desde las 21:00"
+        [value]="d.announcement.text"
+        [disabled]="off"
+        (input)="patchAnnouncement({ text: $any($event.target).value })"></textarea>
+      <p [id]="id + '-announcement-count'" class="mt-1 text-right text-xs" [class]="$announcementLength() > announcementMax ? 'text-destructive' : 'text-muted-foreground'">
+        {{ $announcementLength() }}/{{ announcementMax }}
+      </p>
+      @if (errorFor('announcement.text'); as message) {
+      <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+      } @else if (d.announcement.isActive && !d.announcement.text.trim()) {
+      <p class="text-destructive text-xs">Escribe el texto del anuncio.</p>
+      }
+    </div>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <label [for]="id + '-from'" class="text-foreground mb-1 block text-xs font-medium">Desde (opcional)</label>
+        <input
+          [id]="id + '-from'"
+          type="datetime-local"
+          class="glass-input w-full rounded-md px-3 py-2 text-sm"
+          [class.border-red-500]="!!errorFor('announcement.startsAt')"
+          [attr.aria-invalid]="!!errorFor('announcement.startsAt') || null"
+          [value]="d.announcement.startsAt" [disabled]="off" (change)="patchAnnouncement({ startsAt: $any($event.target).value })" />
+      </div>
+      <div>
+        <label [for]="id + '-to'" class="text-foreground mb-1 block text-xs font-medium">Hasta (opcional)</label>
+        <input
+          [id]="id + '-to'"
+          type="datetime-local"
+          class="glass-input w-full rounded-md px-3 py-2 text-sm"
+          [class.border-red-500]="$datesInvalid() || !!errorFor('announcement.endsAt')"
+          [attr.aria-invalid]="$datesInvalid() || !!errorFor('announcement.endsAt') || null"
+          [attr.min]="d.announcement.startsAt || null"
+          [value]="d.announcement.endsAt"
+          [disabled]="off"
+          (change)="patchAnnouncement({ endsAt: $any($event.target).value })" />
+      </div>
+    </div>
+    @if ($datesInvalid()) {
+    <p class="text-destructive text-xs">El término debe ser posterior al inicio.</p>
+    } @else if (errorFor('announcement.startsAt') || errorFor('announcement.endsAt'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+    }
+    <p class="text-muted-foreground text-xs">Sin fechas, se muestra mientras esté activo. Hora del negocio ({{ $zone() }}). La vista previa lo muestra aunque esté fuera de sus fechas.</p>
+  </section>
+  }
+
+  <!-- Accesibilidad (en todos los planes) -->
+  <section class="glass space-y-3 rounded-[1rem] p-4 sm:p-5">
+    <div>
+      <h2 class="text-foreground font-semibold">Accesibilidad</h2>
+      <p class="text-muted-foreground text-sm">Ayuda a tus clientes a leer la carta. Incluido en todos los planes.</p>
+    </div>
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="text-foreground text-sm font-medium">Alto contraste</p>
+        <p class="text-muted-foreground text-xs">El cliente puede activar colores más marcados desde la carta.</p>
+      </div>
+      <app-toggle [checked]="d.accessibility.highContrast" [disabled]="off" ariaLabel="Ofrecer alto contraste" (changed)="patchAccessibility({ highContrast: $event })" />
+    </div>
+    <div class="flex items-start justify-between gap-3 border-t border-[var(--border)] pt-3">
+      <div>
+        <p class="text-foreground text-sm font-medium">Lectura en voz alta</p>
+        <p class="text-muted-foreground text-xs">Un botón lee en voz alta un producto o una categoría, con la voz del celular.</p>
+      </div>
+      <app-toggle [checked]="d.accessibility.readAloud" [disabled]="off" ariaLabel="Ofrecer lectura en voz alta" (changed)="patchAccessibility({ readAloud: $event })" />
+    </div>
+    @if (errorFor('accessibility'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+    }
+  </section>
+
+  <!-- Nuestra historia (menu_branding) -->
+  @if (hasBranding()) {
+  <section class="glass space-y-2 rounded-[1rem] p-4 sm:p-5">
+    <div>
+      <label [for]="id + '-story'" class="text-foreground font-semibold">Nuestra historia</label>
+      <p class="text-muted-foreground text-sm">Se muestra al pie de la carta. Cuenta quiénes son y qué los hace distintos.</p>
+    </div>
+    <textarea
+      [id]="id + '-story'"
+      rows="5"
+      class="glass-input w-full rounded-md px-3 py-2 text-sm"
+      [class.border-red-500]="!!errorFor('story')"
+      [attr.aria-invalid]="!!errorFor('story') || null"
+      [attr.maxlength]="storyMax"
+      [attr.aria-describedby]="id + '-story-count'"
+      placeholder="Abrimos en 2015 con las recetas de la abuela…"
+      [value]="story()"
+      [disabled]="off"
+      (input)="story.set($any($event.target).value)"></textarea>
+    <p [id]="id + '-story-count'" class="text-right text-xs" [class]="$storyLength() > storyMax ? 'text-destructive' : 'text-muted-foreground'">{{ $storyLength() }}/{{ storyMax }}</p>
+    @if (errorFor('story'); as message) {
+    <p class="text-destructive text-xs" role="alert">{{ message }}</p>
+    }
+  </section>
+  } @else {
+  <app-marketing-upsell-card feature="menu_branding" description="Cuenta la historia de tu local al pie de la carta, junto a tus colores y tu portada." />
+  }
+</div>

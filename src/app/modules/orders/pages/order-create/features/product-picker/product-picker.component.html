@@ -1,6 +1,8 @@
 <div class="glass flex h-full flex-col rounded-[1rem] p-4">
   <div class="relative mb-3">
-    <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2">search</app-icon>
+    <app-icon class="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
+      >search</app-icon
+    >
     <input
       type="search"
       [formControl]="search"
@@ -10,7 +12,11 @@
   </div>
 
   @let parent = $selectedParent();
-  <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" [class.mb-3]="!parent?.subcategories?.length" role="tablist" aria-label="Categorías">
+  <div
+    class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+    [class.mb-3]="!parent?.subcategories?.length"
+    role="tablist"
+    aria-label="Categorías">
     <button
       type="button"
       role="tab"
@@ -20,8 +26,7 @@
       (click)="categoryChange.emit(null)">
       Todos
     </button>
-    @for (category of categories(); track category.id) {
-    @let active = parent?.id === category.id;
+    @for (category of categories(); track category.id) { @let active = parent?.id === category.id;
     <button
       type="button"
       role="tab"
@@ -40,12 +45,19 @@
 
   <!-- Subcategorías de la categoría elegida: llevan directo al grupo de productos. -->
   @if (parent?.subcategories?.length) {
-  <div class="-mx-1 mb-3 mt-2 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" [attr.aria-label]="'Subcategorías de ' + parent!.name">
+  <div
+    class="-mx-1 mb-3 mt-2 flex gap-2 overflow-x-auto px-1 pb-1"
+    role="tablist"
+    [attr.aria-label]="'Subcategorías de ' + parent!.name">
     <button
       type="button"
       role="tab"
       class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-      [class]="selectedCategoryId() === parent!.id ? 'border-primary bg-primary/10 text-primary' : 'border-[var(--border)] text-muted-foreground hover:text-foreground'"
+      [class]="
+        selectedCategoryId() === parent!.id
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-[var(--border)] text-muted-foreground hover:text-foreground'
+      "
       [attr.aria-selected]="selectedCategoryId() === parent!.id"
       (click)="categoryChange.emit(parent!.id)">
       Todo {{ parent!.name }}
@@ -55,27 +67,28 @@
       type="button"
       role="tab"
       class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-      [class]="selectedCategoryId() === sub.id ? 'border-primary bg-primary/10 text-primary' : 'border-[var(--border)] text-muted-foreground hover:text-foreground'"
+      [class]="
+        selectedCategoryId() === sub.id
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-[var(--border)] text-muted-foreground hover:text-foreground'
+      "
       [attr.aria-selected]="selectedCategoryId() === sub.id"
       (click)="categoryChange.emit(sub.id)">
       {{ sub.name }}
     </button>
     }
   </div>
-  }
-
-  @if (loading()) {
+  } @if (loading()) {
   <app-progress-bar />
   }
 
   <!-- Columnas automáticas: cada card mantiene un ancho mínimo (~120 px) y no se aprieta en el panel del POS. -->
   <div class="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-2">
-    @for (product of products(); track product.id) {
-    @let quantity = quantities()[product.id] ?? 0;
-    @let options = hasOptions(product);
+    @for (product of products(); track product.id) { @let quantity = quantities()[product.id] ?? 0; @let options =
+    hasOptions(product);
     <button
       type="button"
-      class="group bg-background/60 relative flex flex-col overflow-hidden rounded-xl border text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] active:scale-[0.98]"
+      class="bg-background/60 focus-visible:ring-[var(--primary)] group relative flex flex-col overflow-hidden rounded-xl border text-left shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98]"
       [class]="quantity > 0 ? 'border-primary ring-primary/30 ring-2' : 'border-[var(--border)]'"
       [attr.aria-label]="'Agregar ' + product.name + (options ? ' (con opciones)' : '')"
       (click)="add.emit(product)">
@@ -92,16 +105,15 @@
         <span class="text-primary/70 flex h-full w-full items-center justify-center text-2xl font-semibold uppercase">
           {{ initial(product.name) }}
         </span>
-        }
-        @if (quantity > 0) {
+        } @if (quantity > 0) {
         <span
-          class="bg-primary absolute right-1.5 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white shadow"
+          class="bg-primary min-w-5 absolute right-1.5 top-1.5 flex h-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white shadow"
           [attr.aria-label]="quantity + ' en el pedido'">
           {{ quantity }}
         </span>
-        }
-        @if (options) {
-        <span class="text-foreground absolute bottom-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full bg-[var(--background)]/90 px-1.5 py-0.5 text-[10px] font-medium shadow-sm backdrop-blur">
+        } @if (options) {
+        <span
+          class="text-foreground bg-[var(--background)]/90 absolute bottom-1.5 left-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium shadow-sm backdrop-blur">
           <app-icon class="text-primary h-3 w-3">tune</app-icon>
           Opciones
         </span>
@@ -113,7 +125,9 @@
         <span class="text-foreground line-clamp-2 min-h-[2rem] text-xs font-medium leading-4">{{ product.name }}</span>
         <span class="mt-auto flex items-center justify-between gap-2">
           <span class="text-foreground text-sm font-semibold tabular-nums">
-            @if (priceFrom(product)) {<span class="text-muted-foreground mr-0.5 text-[10px] font-medium">Desde</span>}{{ formatCurrency(price(product)) }}@if ($pricesExcludeVat()) {<span class="text-muted-foreground ml-0.5 text-[10px] font-medium">+IVA</span>}
+            @if (priceFrom(product)) {<span class="text-muted-foreground mr-0.5 text-[10px] font-medium">Desde</span>}{{
+              formatCurrency(price(product))
+            }}@if ($pricesExcludeVat()) {<span class="text-muted-foreground ml-0.5 text-[10px] font-medium">+IVA</span>}
           </span>
           <span
             class="bg-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-transform group-hover:scale-110"
@@ -123,13 +137,11 @@
         </span>
       </span>
     </button>
-    } @empty {
-    @if (!loading()) {
+    } @empty { @if (!loading()) {
     <div class="text-muted-foreground col-span-full flex flex-col items-center gap-2 py-12 text-center text-sm">
       <app-icon class="h-10 w-10 opacity-60">search_off</app-icon>
       No hay productos disponibles para esta búsqueda.
     </div>
-    }
-    }
+    } }
   </div>
 </div>

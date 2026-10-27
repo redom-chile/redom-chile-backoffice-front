@@ -7,7 +7,14 @@ import { BusinessSettingsService } from 'src/app/core/services/business-settings
 import { getUploadErrorMessage, FileUploadService, ImageSelection } from 'src/app/core/services/file-upload';
 import { ThemeService } from 'src/app/core/services/theme.service';
 import { ButtonComponent, CardComponent, IconComponent, ImagePickerComponent, ToastService } from 'src/ui';
-import { BusinessDto, FindMyBusinessesService, getBusinessErrorMessage, UpdateBusinessLogoService } from '../../data-access';
+import {
+  BusinessDto,
+  FindMyBusinessesService,
+  getBusinessErrorMessage,
+  injectIsBusinessOwner,
+  OWNER_ONLY_SETTING_NOTE,
+  UpdateBusinessLogoService,
+} from '../../data-access';
 
 const NAME_MAX_LENGTH = 191;
 
@@ -25,6 +32,10 @@ export class BusinessIdentitySectionComponent {
   readonly #access = inject(AccessService);
   // Sin permiso de edición la sección queda de solo lectura.
   protected readonly $canEdit = computed(() => this.#access.can(PERMISSIONS.BUSINESS.UPDATE_SETTINGS));
+  // El nombre solo lo cambia el dueño.
+  protected readonly $isOwner = injectIsBusinessOwner();
+  protected readonly $canEditName = computed(() => this.$canEdit() && this.$isOwner());
+  protected readonly ownerOnlyNote = OWNER_ONLY_SETTING_NOTE;
 
   readonly $business = input.required<BusinessDto>({ alias: 'business' });
 
@@ -45,7 +56,7 @@ export class BusinessIdentitySectionComponent {
   }
 
   saveName() {
-    if (!this.$canEdit() || !this.$nameChanged() || this.$nameError() || this.$isSavingName()) return;
+    if (!this.$canEditName() || !this.$nameChanged() || this.$nameError() || this.$isSavingName()) return;
     const name = this.$name().trim();
     this.$isSavingName.set(true);
     this.#settings.update({ name }).subscribe({

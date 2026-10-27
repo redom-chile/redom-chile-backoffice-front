@@ -1,20 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { throttledRefresh } from 'src/app/core/services/file-upload';
 import { MatDialog } from '@angular/material/dialog';
 import { ButtonComponent, EmptyStateComponent, HeaderDashboardComponent, IconComponent, ToastService } from 'src/ui';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { getReorderErrorMessage, MenuSortModeControlComponent, sortCategoryTree } from 'src/app/modules/products/shared';
+import { hasApiErrorCode } from 'src/app/core/utils/api-error';
 import {
   GetAllCategoriesService,
   CategoryDto,
   getCategoryErrorMessage,
+  ReorderCategoriesDto,
+  ReorderCategoriesService,
 } from './data-access';
 import {
   CategoriesTableComponent,
+  CategoriesOrderListComponent,
   CreateCategoryModalComponent,
   UpdateCategoryModalComponent,
   DeleteCategoryModalComponent,
   CategoryModalResult,
 } from './features';
-import { PERMISSIONS } from 'src/app/core/permissions';
+import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 
 @Component({
@@ -26,6 +32,8 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
     IconComponent,
     EmptyStateComponent,
     CategoriesTableComponent,
+    CategoriesOrderListComponent,
+    MenuSortModeControlComponent,
     CheckPermissionDirective,
   ],
   templateUrl: './category-list.component.html',
@@ -45,6 +53,13 @@ export class CategoryListComponent implements OnInit {
     return status ? getCategoryErrorMessage(status) : null;
   });
   readonly $categories = this.getAllService.$categories;
+  // Orden de la carta: manual (arrastrable) o alfabético (las posiciones guardadas no se tocan).
+  readonly $sortMode = inject(BusinessSettingsService).$menuSortMode;
+  readonly $sortedCategories = computed(() => sortCategoryTree(this.$categories() ?? [], this.$sortMode()));
+  readonly #access = inject(AccessService);
+  readonly $canReorder = computed(() => this.#access.can(PERMISSIONS.CATEGORIES.UPDATE_CATEGORY));
+  readonly $isReordering = signal(false);
+  readonly #reorderService = inject(ReorderCategoriesService);
   readonly $isEmpty = computed(
     () => !this.getAllService.$isLoading() && !this.$errorMessage() && (this.$categories()?.length ?? 0) === 0,
   );
@@ -97,7 +112,36 @@ export class CategoryListComponent implements OnInit {
     this.getAllService.getAll();
   }
 
+  /** Optimista: se muestra el nuevo orden al tiro y se revierte si el servidor no lo guarda. */
+  handleReorder(dto: ReorderCategoriesDto) {
+    if (this.$isReordering()) return;
+    const previous = this.$categories() ?? [];
+    this.getAllService.setLocal(applyOrder(previous, dto));
+    this.$isReordering.set(true);
+    this.#reorderService.reorder(dto).subscribe({
+      next: () => this.$isReordering.set(false),
+      error: (error) => {
+        this.$isReordering.set(false);
+        this.getAllService.setLocal(previous);
+        this.toast.show(getReorderErrorMessage(error), 'error');
+        // Alguien creó o borró categorías mientras tanto: se trae la lista real.
+        if (hasApiErrorCode(error, 'REORDER_IDS_MISMATCH') || error?.status === 404) this.getAllService.getAll();
+      },
+    });
+  }
+
   handleRetry() {
     this.getAllService.retry();
   }
+}
+
+/** Asigna position = índice al grupo reordenado (principales si parentId es null). */
+function applyOrder(categories: readonly CategoryDto[], { parentId, ids }: ReorderCategoriesDto): CategoryDto[] {
+  const positionOf = new Map(ids.map((id, index) => [id, index]));
+  const withPositions = (list: readonly CategoryDto[]) =>
+    list.map((category) => (positionOf.has(category.id) ? { ...category, position: positionOf.get(category.id) } : category));
+  if (parentId === null) return withPositions(categories);
+  return categories.map((category) =>
+    category.id === parentId ? { ...category, subcategories: withPositions(category.subcategories ?? []) } : category,
+  );
 }

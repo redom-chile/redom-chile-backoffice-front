@@ -1,0 +1,98 @@
+@let locked = $locked();
+@let reorderable = !locked && !$reordering() && $busyId() === null;
+@if ($missing()) {
+<app-menu-dynamic-stage-banner class="mb-4 block" />
+}
+
+<app-suggestion-settings-card
+  class="mb-6 block"
+  [locationId]="locationId()"
+  [hasPlus]="hasPlus()"
+  [catalog]="catalog()"
+  [catalogLoading]="catalogLoading()"
+  [stageMissing]="$missing()" />
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h3 class="text-foreground font-semibold">Tus reglas</h3>
+    <p class="text-muted-foreground text-sm">Se revisan en este orden: la primera que coincide va primero.</p>
+  </div>
+  <app-button *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" type="button" impact="bold" tone="primary" shape="rounded" [disabled]="locked" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nueva regla</span>
+  </app-button>
+</div>
+
+@if ($error() && !$missing()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="rules.reload()">Reintentar</app-button>
+</div>
+} @else if (rules.isLoading() && !$loaded()) {
+<div class="space-y-3">
+  @for (row of [1, 2]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 160px" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if (!$list().length) {
+<app-empty-state icon="add_shopping_cart" title="Aún no tienes reglas" description='Ej.: con una hamburguesa, sugerir papas fritas y bebida con el mensaje "¿Lo acompañas con papas?".' />
+} @else {
+<ol
+  cdkDropList
+  cdkDropListLockAxis="y"
+  class="space-y-3"
+  aria-label="Reglas de sugerencias, en orden"
+  [class.opacity-60]="rules.isLoading()"
+  [cdkDropListDisabled]="!reorderable"
+  (cdkDropListDropped)="drop($event)">
+  @for (rule of $list(); track rule.id; let index = $index, first = $first, last = $last) {
+  @let busy = $busyId() === rule.id;
+  <li cdkDrag class="glass flex flex-col gap-3 rounded-[1rem] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+    <div class="flex min-w-0 flex-1 items-start gap-2">
+      @if (!locked) {
+      <div class="flex shrink-0 items-center">
+        <button type="button" cdkDragHandle [class]="handleClass" [attr.aria-label]="'Arrastra para mover ' + rule.name" title="Arrastra para ordenar">
+          <app-icon class="h-5 w-5" aria-hidden="true">drag_indicator</app-icon>
+        </button>
+        <app-menu-dynamic-move-buttons [label]="rule.name" [first]="first" [last]="last" [disabled]="!reorderable" (moveUp)="move(index, -1)" (moveDown)="move(index, 1)" />
+      </div>
+      }
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <h4 class="text-foreground min-w-0 truncate font-semibold">{{ rule.name }}</h4>
+          <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">storefront</app-icon>{{ rule.locationId === null ? 'Todos los locales' : locationName() || 'Este local' }}
+          </span>
+        </div>
+        <p class="text-muted-foreground mt-1 text-sm">
+          Con <span class="text-foreground">{{ triggers(rule) }}</span>
+          <app-icon class="mx-0.5 inline h-4 w-4 align-text-bottom" aria-hidden="true">arrow_forward</app-icon>
+          <span class="sr-only">sugiere</span>
+          <span class="text-foreground">{{ suggested(rule) }}</span>
+        </p>
+        @if (rule.message) {
+        <p class="text-muted-foreground mt-0.5 text-xs italic">"{{ rule.message }}"</p>
+        }
+      </div>
+    </div>
+    <div class="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground">{{ rule.isActive ? 'Activa' : 'Inactiva' }}</span>
+        <app-toggle [ariaLabel]="'Activar ' + rule.name" [checked]="rule.isActive" [disabled]="busy || locked" (changed)="toggle(rule, $event)" />
+      </label>
+      <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" class="flex items-center">
+        <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Editar ' + rule.name" (click)="edit(rule)">
+          <app-icon class="h-5 w-5" aria-hidden="true">edit</app-icon>
+        </button>
+        <button type="button" class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Eliminar ' + rule.name" (click)="remove(rule)">
+          <app-icon class="h-5 w-5" aria-hidden="true">delete</app-icon>
+        </button>
+      </div>
+    </div>
+  </li>
+  }
+</ol>
+}

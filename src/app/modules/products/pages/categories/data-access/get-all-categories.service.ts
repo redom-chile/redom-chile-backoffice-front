@@ -37,6 +37,11 @@ export class GetAllCategoriesService {
       });
   }
 
+  /** Reemplaza la lista local (orden optimista y su reversión). */
+  setLocal(categories: CategoryDto[]) {
+    this.#categories$.next(categories);
+  }
+
   retry() {
     this.getAll();
   }

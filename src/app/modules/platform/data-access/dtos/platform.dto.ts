@@ -191,7 +191,14 @@ export type SubscriptionDetailDto = Readonly<{
   graceEndsAt: string | null;
   cancelAtPeriodEnd: boolean;
   scheduledPlan: PlanRefDto | null;
-  discount: Readonly<{ id: number; code: string | null; name: string; type: DiscountType; value: number; duration: DiscountDuration }> | null;
+  discount: Readonly<{
+    id: number;
+    code: string | null;
+    name: string;
+    type: DiscountType;
+    value: number;
+    duration: DiscountDuration;
+  }> | null;
   discountPeriodsLeft: number | null;
   card: Readonly<{ brand: string | null; last4: string | null; registeredAt: string | null }> | null;
   billingEmail: string | null;
@@ -299,7 +306,14 @@ export type CreateOverrideDto = Readonly<{
 // --- Resumen ---
 
 export type PlatformSummaryDto = Readonly<{
-  businesses: Readonly<{ total: number; trialing: number; active: number; pastDue: number; expired: number; free: number }>;
+  businesses: Readonly<{
+    total: number;
+    trialing: number;
+    active: number;
+    pastDue: number;
+    expired: number;
+    free: number;
+  }>;
   trialsEndingThisWeek: number;
   mrr: number;
   arr: number;
@@ -310,7 +324,8 @@ export type PlatformSummaryDto = Readonly<{
 
 // --- Cobros y pagos (fase 4) ---
 
-export type PlatformInvoiceDto = InvoiceWithPaymentsDto & Readonly<{ business: Readonly<{ id: number; name: string; taxNumber: string | null }> }>;
+export type PlatformInvoiceDto = InvoiceWithPaymentsDto &
+  Readonly<{ business: Readonly<{ id: number; name: string; taxNumber: string | null }> }>;
 
 /** from/to: YYYY-MM-DD (fecha de creación, America/Santiago). pendingReview: transferencias por revisar. */
 export type PlatformInvoiceFiltersDto = Readonly<{

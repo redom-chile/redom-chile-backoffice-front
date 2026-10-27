@@ -1,51 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Redom · Software para restaurantes: POS, mesas, cocina, caja e inventario</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Redom reúne en un solo lugar el POS, las mesas, la cocina, las reservas, la caja, los gastos, el inventario, las recetas con food cost y los reportes de tu restaurante, con un asistente con IA para resolver tus dudas. Funciona en el navegador, sin instalar nada.">
-  <meta name="theme-color" content="#1C1815">
-  <link rel="canonical" href="https://redom.cl/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Redom">
-  <meta property="og:url" content="https://redom.cl/">
-  <meta property="og:title" content="Redom · Tu restaurante, en un solo lugar">
-  <meta property="og:description" content="POS, mesas, cocina, reservas, caja, inventario, food cost y reportes para tu restaurante, con asistente con IA.">
-  <meta property="og:locale" content="es_CL">
-  <meta name="twitter:card" content="summary">
-  <meta name="color-scheme" content="light dark">
-  <link rel="icon" type="image/svg+xml" href="redom-app-icon.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="redom-icon-32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="redom-icon-180.png">
-  <!-- Aplica el modo (y en /carta el tamaño del texto) antes de pintar (la página es HTML estático): por defecto, el del dispositivo.
+  <head>
+    <meta charset="utf-8" />
+    <title>Redom · Software para restaurantes: POS, mesas, cocina, caja e inventario</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Redom reúne en un solo lugar el POS, las mesas, la cocina, las reservas, la caja, los gastos, el inventario, las recetas con food cost y los reportes de tu restaurante, con un asistente con IA para resolver tus dudas. Funciona en el navegador, sin instalar nada." />
+    <meta name="theme-color" content="#1C1815" />
+    <link rel="canonical" href="https://redom.cl/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Redom" />
+    <meta property="og:url" content="https://redom.cl/" />
+    <meta property="og:title" content="Redom · Tu restaurante, en un solo lugar" />
+    <meta
+      property="og:description"
+      content="POS, mesas, cocina, reservas, caja, inventario, food cost y reportes para tu restaurante, con asistente con IA." />
+    <meta property="og:locale" content="es_CL" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="redom-app-icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="redom-icon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="redom-icon-180.png" />
+    <!-- Aplica el modo (y en /carta el tamaño del texto) antes de pintar (la página es HTML estático): por defecto, el del dispositivo.
        La carta incrustada (?embed=1, widget.js) acepta &theme=light|dark de la web que la incrusta. -->
-  <script>
-    (function () {
-      try {
-        var q = location.search;
-        var forced = /[?&]embed=1(&|$)/.test(q) ? (q.match(/[?&]theme=(light|dark)(&|$)/) || [])[1] : null;
-        var mode = forced;
-        if (!mode) {
-          try { mode = localStorage.getItem('redom-landing.mode'); } catch (e) {}
-        }
-        mode = mode || 'system';
-        var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        if (dark) document.documentElement.classList.add('dark');
-        if (/^\/carta(\/|$)/.test(location.pathname)) {
-          var size = null;
-          try { size = Number(localStorage.getItem('redom-carta.text-size')); } catch (e) {}
-          if (size >= 0.875 && size <= 1.375 && size !== 1) document.documentElement.style.fontSize = size * 100 + '%';
-        }
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-  <lnd-root></lnd-root>
-</body>
+    <script>
+      (function () {
+        try {
+          var q = location.search;
+          var forced = /[?&]embed=1(&|$)/.test(q) ? (q.match(/[?&]theme=(light|dark)(&|$)/) || [])[1] : null;
+          var mode = forced;
+          if (!mode) {
+            try {
+              mode = localStorage.getItem('redom-landing.mode');
+            } catch (e) {}
+          }
+          mode = mode || 'system';
+          var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          if (/^\/carta(\/|$)/.test(location.pathname)) {
+            var size = null;
+            try {
+              size = Number(localStorage.getItem('redom-carta.text-size'));
+            } catch (e) {}
+            if (size >= 0.875 && size <= 1.375 && size !== 1)
+              document.documentElement.style.fontSize = size * 100 + '%';
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet" />
+  </head>
+  <body>
+    <lnd-root></lnd-root>
+  </body>
 </html>

@@ -13,6 +13,7 @@ import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/h
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiPathEnum } from 'src/environments';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
+import { LegalSessionStore } from 'src/app/core/services/legal/legal-session.store';
 
 @Injectable({
   providedIn: 'root',
@@ -48,6 +49,7 @@ export class AuthService {
   });
 
   readonly #injector = inject(Injector);
+  readonly #legal = inject(LegalSessionStore);
   #whoamiService: WhoamiService | null = null;
 
   get #whoami(): WhoamiService {
@@ -69,6 +71,7 @@ export class AuthService {
       const oneDay = 24 * 60 * 60 * 1000;
 
       if (elapsed > oneDay) {
+        this.#legal.setRestricted(false);
         localStorage.removeItem(this.tokenKey);
         localStorage.removeItem(this.refreshTokenKey);
         localStorage.removeItem(this.userDataKey);
@@ -106,8 +109,10 @@ export class AuthService {
     this.token = token;
   }
 
-  private saveRefreshToken(refreshToken: string) {
-    localStorage.setItem(this.refreshTokenKey, refreshToken);
+  // La sesión restringida no trae refresh token: no se guarda "null" como texto.
+  private saveRefreshToken(refreshToken: string | null) {
+    if (refreshToken) localStorage.setItem(this.refreshTokenKey, refreshToken);
+    else localStorage.removeItem(this.refreshTokenKey);
     this.refreshToken = refreshToken;
   }
 
@@ -217,9 +222,17 @@ export class AuthService {
     return this.http.post(`${ApiPathEnum.AUTH}/login/resend-verification-email`, { email });
   }
 
+  /** Usuario nuevo con documentos publicados: 428 LEGAL_ACCEPTANCE_REQUIRED (ver GoogleSignInService). */
   loginWithGoogle(idToken: string): Observable<GoogleSessionDto> {
     return this.http
       .post<GoogleSessionDto>(`${ApiPathEnum.AUTH}/login/google`, { idToken })
+      .pipe(tap((session) => this.startSession(session)));
+  }
+
+  /** Segunda llamada del registro con Google: crea la cuenta con los documentos aceptados (401 si venció el token). */
+  completeGoogleRegistration(registrationToken: string, acceptedVersionIds: number[]): Observable<GoogleSessionDto> {
+    return this.http
+      .post<GoogleSessionDto>(`${ApiPathEnum.AUTH}/login/google`, { registrationToken, acceptedVersionIds })
       .pipe(tap((session) => this.startSession(session)));
   }
 
@@ -240,17 +253,26 @@ export class AuthService {
   }
 
   // Guarda la sesión de cualquier login y actualiza el usuario actual (whoami es la fuente de verdad).
+  // Con la sesión restringida no se pide nada más: la app lleva a /legal/accept.
   startSession(session: SessionDto) {
+    const restricted = !!session.legal?.restricted;
+    this.#legal.setRestricted(restricted);
     this.saveToken(session.token);
     this.saveRefreshToken(session.refreshToken);
+    localStorage.setItem(this.lastActivityKey, String(Date.now()));
+    if (restricted) {
+      localStorage.removeItem(this.userDataKey);
+      this.#whoami.forget();
+      this.currentUserLoginOn.next(true);
+      return;
+    }
     const { profileImageUrl: _signedUrl, ...storableUser } = session.userData;
     localStorage.setItem(this.userDataKey, JSON.stringify(storableUser));
     this.#whoami.seedFromSession(session.userData);
-    localStorage.setItem(this.lastActivityKey, String(Date.now()));
     this.currentUserLoginOn.next(true);
     this.currentUserData.next({
       token: { token: session.token },
-      refreshToken: session.refreshToken,
+      refreshToken: session.refreshToken ?? '',
       userData: session.userData as unknown as UserDataDto,
     });
     this.#whoami.refetch();
@@ -259,6 +281,7 @@ export class AuthService {
   // Borra la sesión local (sin llamar al backend).
   clearSession() {
     this.#whoami.forget();
+    this.#legal.setRestricted(false);
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem(this.userDataKey);
@@ -285,6 +308,11 @@ export class AuthService {
 
   isLogin() {
     return this.token !== null;
+  }
+
+  /** Sesión que solo sirve para aceptar documentos legales. */
+  isRestricted() {
+    return this.isLogin() && this.#legal.$restricted();
   }
 
   get userData(): Observable<LoginOutputDto> {

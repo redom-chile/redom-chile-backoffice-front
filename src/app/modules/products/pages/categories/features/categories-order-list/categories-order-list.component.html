@@ -1,0 +1,79 @@
+@let reorderable = canReorder() && !busy();
+@let main = categories();
+
+<div class="glass rounded-[1rem] p-2 sm:p-3">
+  @if (isLoading()) {
+  <div class="px-2 py-4"><app-progress-bar /></div>
+  }
+  <ol
+    cdkDropList
+    cdkDropListLockAxis="y"
+    class="space-y-2"
+    aria-label="Categorías principales"
+    [cdkDropListDisabled]="!reorderable"
+    (cdkDropListDropped)="drop(null, main, $event)">
+    @for (category of main; track category.id; let index = $index, first = $first, last = $last) {
+    <li cdkDrag class="bg-card rounded-xl border border-[var(--border)]">
+      <div class="flex items-center gap-2 px-2 py-2">
+        @if (canReorder()) {
+        <button
+          type="button"
+          cdkDragHandle
+          [class]="handleClass"
+          [attr.aria-label]="'Arrastra para mover ' + category.name"
+          title="Arrastra para ordenar">
+          <app-icon class="h-5 w-5">drag_indicator</app-icon>
+        </button>
+        }
+        <app-category-order-row
+          [category]="category"
+          [showMove]="canReorder()"
+          [moveDisabled]="!reorderable"
+          [isFirst]="first"
+          [isLast]="last"
+          (up)="move(null, main, index, -1)"
+          (down)="move(null, main, index, 1)"
+          (edit)="onUpdate.emit(category)"
+          (remove)="onDelete.emit(category)"
+          (imageExpired)="imageExpired.emit()" />
+      </div>
+      @if (category.subcategories?.length) {
+      @let subcategories = category.subcategories ?? [];
+      <ol
+        cdkDropList
+        cdkDropListLockAxis="y"
+        class="ml-6 space-y-1 border-l border-[var(--border)] pb-2 pl-2 sm:ml-10"
+        [attr.aria-label]="'Subcategorías de ' + category.name"
+        [cdkDropListDisabled]="!reorderable"
+        (cdkDropListDropped)="drop(category.id, subcategories, $event)">
+        @for (subcategory of subcategories; track subcategory.id; let subIndex = $index, subFirst = $first, subLast = $last) {
+        <li cdkDrag class="bg-card flex items-center gap-2 rounded-lg px-2 py-1">
+          @if (canReorder()) {
+          <button
+            type="button"
+            cdkDragHandle
+            [class]="handleClass"
+            [attr.aria-label]="'Arrastra para mover ' + subcategory.name"
+            title="Arrastra para ordenar">
+            <app-icon class="h-5 w-5">drag_indicator</app-icon>
+          </button>
+          }
+          <app-category-order-row
+            [category]="subcategory"
+            [showMove]="canReorder()"
+            [moveDisabled]="!reorderable"
+            [isFirst]="subFirst"
+            [isLast]="subLast"
+            (up)="move(category.id, subcategories, subIndex, -1)"
+            (down)="move(category.id, subcategories, subIndex, 1)"
+            (edit)="onUpdate.emit(subcategory)"
+            (remove)="onDelete.emit(subcategory)"
+            (imageExpired)="imageExpired.emit()" />
+        </li>
+        }
+      </ol>
+      }
+    </li>
+    }
+  </ol>
+</div>

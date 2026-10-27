@@ -23,8 +23,11 @@ export class OnboardingApiService {
   readonly #http = inject(HttpClient);
   readonly #base = ApiPathEnum.RESTAURANT;
 
-  /** Crea el negocio ya activo y, si se envía `location`, su primer local en la misma transacción. */
-  createBusiness(dto: CreateBusinessDto): Observable<CreateBusinessResponseDto> {
+  /**
+   * Crea el negocio ya activo y, si se envía `location`, su primer local en la misma transacción.
+   * acceptedVersionIds: subscriptionTerms y dataProcessingAgreement vigentes (400 LEGAL_ACCEPTANCE_REQUIRED si faltan).
+   */
+  createBusiness(dto: CreateBusinessDto & Readonly<{ acceptedVersionIds?: number[] }>): Observable<CreateBusinessResponseDto> {
     return this.#http.post<CreateBusinessResponseDto>(`${this.#base}/business`, dto);
   }
 

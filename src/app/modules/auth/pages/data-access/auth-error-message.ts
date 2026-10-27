@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { legalErrorMessage } from 'src/app/core/services/legal';
+import { GoogleRegistrationExpiredError } from './google-registration-expired.error';
 
 export type AuthErrorKind =
   | 'invalid-credentials'
@@ -13,6 +15,8 @@ export type AuthErrorKind =
   | 'google-other-account'
   | 'google-unverified'
   | 'google-not-configured'
+  | 'google-registration-expired'
+  | 'legal'
   | 'network'
   | 'unknown';
 
@@ -31,12 +35,17 @@ const MESSAGES: Record<AuthErrorKind, string> = {
   'google-other-account': 'Este email está vinculado a otra cuenta de Google.',
   'google-unverified': 'Tu email de Google no está verificado.',
   'google-not-configured': 'El acceso con Google aún no está configurado.',
+  'google-registration-expired': 'Pasó mucho tiempo desde que elegiste tu cuenta de Google. Vuelve a pulsar el botón de Google.',
+  legal: 'Para seguir, acepta los documentos legales vigentes.',
   network: 'No hay conexión con el servidor. Revisa tu internet.',
   unknown: 'Ocurrió un error inesperado. Intenta nuevamente.',
 };
 
 // Los mensajes del backend vienen en inglés: se identifica el caso por status + texto y se muestra en español.
 export function getAuthError(error: unknown): AuthError {
+  if (error instanceof GoogleRegistrationExpiredError) return { kind: 'google-registration-expired', message: MESSAGES['google-registration-expired'] };
+  const legal = legalErrorMessage(error);
+  if (legal) return { kind: 'legal', message: legal };
   if (!(error instanceof HttpErrorResponse)) return { kind: 'unknown', message: MESSAGES.unknown };
   const raw = error.error?.message;
   const text = (Array.isArray(raw) ? raw.join(' ') : String(raw ?? '')).toLowerCase();

@@ -1,9 +1,10 @@
 import { HttpClient, HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, catchError, EMPTY, map, Subject, switchMap, tap } from 'rxjs';
 import { BusinessDto } from './dtos';
 import { ApiPathEnum } from 'src/environments';
+import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 
 @Injectable({ providedIn: 'root' })
 export class FindMyBusinessesService {
@@ -33,6 +34,15 @@ export class FindMyBusinessesService {
       ),
     ),
   );
+
+  readonly #whoami = inject(WhoamiService);
+  /** El negocio activo del usuario (puede tener rol en varios); si no se sabe, el primero. */
+  readonly $current = computed(() => {
+    const businesses = this.$businesses();
+    if (!businesses?.length) return undefined;
+    const id = this.#whoami.$whoami()?.user.restaurantId;
+    return businesses.find((business) => business.id === id) ?? businesses[0];
+  });
 
   retry() {
     this.#fetch$.next(undefined);

@@ -12,11 +12,11 @@ Estados: 🔴 bloquea una funcionalidad o produce datos erróneos · 🟡 el fro
 | Prioridad | Solicitudes |
 |---|---|
 | 🔴 Bloquea una función | #39 el token renovado por `refresh-token` no sirve (la sesión se cierra a las 2 h) |
-| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #53 reservas de la carta en el listado · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario |
+| 🟡 Hay workaround en el front | #15 token de dispositivo para impresión · #16 permiso para ver todas las reservas (fase de permisos) · #28 códigos de error faltantes · #29 `QR_BASE_URL` por ambiente · #30 color de marca del restaurante · #31 códigos de error de inventario · #32 detalle de documento y total de stock · #33 eliminar una unidad en uso · #34 editar y eliminar opciones de modificadores · #35 `GET /products` devuelve los sets de modificadores · #36 falta de stock por venta, anulación de pagos y filtros · #37 detalle de conteos y transferencias, filtros y códigos · #38 preparaciones, órdenes de compra y lotes · #43 ajustes de caja y turnos · #44 ajustes de gastos y cuentas por pagar · #45 ajustes de propinas y comisiones · #48 CORS con varios orígenes (landing) · #49 permiso propio para proveedores · #51 etiquetas y horario en productos y categorías · #52 pack sin opción en grupo opcional · #54 URLs públicas de la carta y de Flow · #55 zona y filtros en pedidos online · #56 comunas públicas y contexto del pedido · #57 códigos de error en la API pública · #59 ocultar variaciones inactivas en la carta · #60 pedidos con solo `online_ordering` · #61 descuento canjeado editable · #62 reservas: horario del local · #65 IP del cliente y develop de la carta · #66 `isActive` de variaciones en inventario · #71 asignar mesero y encargado a una reserva |
 | ⚪ Por decidir | #25 entrar solo con PIN |
 | 🔵 Nueva función | #41 ajustes de pagos por producto y propina sugerida · #47 planes, suscripciones y cobros (manual y Flow) |
-| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas |
-| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50 |
+| 🟢 Menores | #58 `contactId: null` · #63 datos nulos y documentación · #64 teléfono del cliente en la venta · #67 canal en las encuestas · #79 ajustes del módulo legal |
+| 🟢 Resueltas | #1–#14, #17–#24, #26, #27, #40, #42, #46, #50, #70, #53, #68, #69, #72, #73, #74, #75, #76, #78, #77 |
 
 Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode`, que consume `GET /restaurant/api/menu/:qrCode` (ver #7).
 
@@ -364,7 +364,7 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 ---
 
-### 51. 🟡 Carta pública: devolver etiquetas del producto y horario de la categoría
+### 51. (en parte: `GET /products/{id}` ya trae `tags`, 2026-10-24) 🟡 Carta pública: devolver etiquetas del producto y horario de la categoría
 
 **Problema:** `GET /products`, `GET /products/:id`, `GET /categories` y `GET /categories/:id` no devuelven las etiquetas del producto (`product_tag_links`) ni el horario de la categoría (`category_schedules`). Al editar, el front no puede mostrar lo que ya está guardado.
 
@@ -384,11 +384,13 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 
 ---
 
-### 53. 🟡 Reservas desde la carta: origen en el listado y visibilidad
+### 53. 🟢 Reservas desde la carta: no aparecen en el listado (origen y visibilidad) (resuelta 2026-10-23)
 
 **Problema:**
 - `GET /bookings` no devuelve `createdBy` (ni un campo de origen), así que el listado no distingue con certeza las reservas que llegaron desde la carta. El front las detecta como "en espera y sin encargado ni mesero", lo que también marca reservas pasadas a mano a "en espera".
 - El listado filtra por `createdBy`, encargado o mesero cuando el usuario no tiene `crud_all_bookings`. Como las reservas de la carta tienen `createdBy` null, solo las ven quienes tienen ese permiso (cajeros y meseros, no).
+
+**Actualización 2026-10-23:** el listado usa el permiso antiguo `crud_all_bookings`, que no existe en el sistema actual: **nadie** (ni el dueño) ve las reservas de la carta. Prompt con la corrección: `docs/backend-prompts/reservas-visibilidad.md`.
 
 **Se pide:** agregar `createdBy` o `source: 'menu' | 'staff'` al listado de reservas, e incluir las reservas de la carta (`createdBy` null) en lo que ven los roles del local que gestionan reservas.
 
@@ -544,6 +546,135 @@ Pendiente del front: la página pública de la carta `app.redom.cl/carta/:qrCode
 **Se pide:** agregar `channel: 'table' | 'pickup' | 'delivery'` a cada ítem (desde `CustomerOrderEntity`).
 
 **Front mientras tanto:** ya lee `channel` si llega (muestra "Retiro" o "Delivery"); sin él, "Sin mesa".
+
+---
+
+### 68. 🟢 Orden manual de categorías y productos (arrastrar y soltar) (resuelta 2026-10-24)
+
+**Problema:** categorías y productos no tienen posición: `GET /categories` ordena por creación y la carta pública por nombre. El negocio no puede definir el orden de su carta.
+
+**Se pide:** columna `position` en categorías (por padre) y productos (por categoría), `PATCH /categories/reorder` y `PATCH /products/reorder` con la lista completa en el nuevo orden, ajuste `menuSortMode` (`manual` | `alphabetical`, por defecto alfabético) y respetar el orden en la carta pública y el POS. Detalle y prompt: `docs/backend-prompts/orden-categorias-y-productos.md`.
+
+**Front mientras tanto:** nada; el arrastrar y soltar en Carta → Categorías y productos se implementa cuando exista el endpoint.
+
+---
+
+### 69. 🟢 Etapa 8 de la carta: diseño (plantillas, tipografías, anuncio, historia, recomendaciones del chef) (resuelta 2026-10-24)
+
+**Problema:** la personalización guarda solo tres colores y la portada; no hay plantillas, tipografías, forma de tarjetas, íconos de categoría, anuncio, historia, recomendaciones ni nota del chef, ni historial para volver atrás.
+
+**Se pide:** el prompt completo `docs/backend-prompts/carta-etapa-8-diseno.md` (función de plan `menu_design`, `GET/PATCH /menu-settings/{id}/design` con historial, `chef-picks`, `chefNote`, `story`, `icon` de categoría, campos nuevos en la carta pública y en las traducciones). Incluye el #68.
+
+**Front mientras tanto:** nada; se implementa contra este contrato.
+
+---
+
+### 70. 🟢 Opción para ocultar el IVA en la precuenta (resuelta 2026-10-23)
+
+**Problema:** la precuenta impresa muestra "IVA incluido $X" y a algunos clientes les confunde. Las opciones del POS (`pos_settings`) solo aceptan `waiterEnabled`, `tablesEnabled` e `isServiceStaffRequired`: una opción nueva se descarta.
+
+**Se pide:** `posSettings.showTaxOnPreBill` (por defecto `true`) en el DTO, en `parsePosSettings`/`mergePosSettings` y en el GET. Prompt: `docs/backend-prompts/precuenta-sin-iva.md`.
+
+**Resuelta:** `posSettings.show_tax_on_pre_bill` en GET/PATCH `/business/{id}/settings` y `showTaxOnPreBill` en `POST /pos/details`. El front usa la configuración del negocio y, si el usuario no puede leerla (cajero, mesero), `POST /pos/details` del local del pedido.
+
+---
+
+### 71. 🟡 Reservas: asignar mesero y encargado
+
+**Problema:** `bookings` tiene `waiter_id` y `correspondent_id` (y de ellos depende quién ve cada reserva, #53), pero `PUT /bookings/{id}` y `POST /bookings` no los aceptan. Una reserva de la carta confirmada queda sin responsable y la ve todo el que gestiona reservas.
+
+**Se pide:** `waiterId` y `correspondentId` (o `null`) en el PUT parcial y en el POST, validados, y devueltos con sus nombres en listado, hoy y detalle. Prompt: `docs/backend-prompts/reservas-asignar-responsable.md`.
+
+**Front mientras tanto:** en las reservas de la carta ofrece "Confirmar" y "Asignar mesa"; asignar mesero queda pendiente.
+
+---
+
+### 72. 🟢 `chefNote` al crear un producto (resuelta 2026-10-24)
+
+**Problema:** `POST /products` descarta `chefNote` (no está en el DTO y el ValidationPipe usa `whitelist`). El front crea el producto y hace un PUT aparte con la nota.
+
+**Se pide:** aceptar `chefNote` en el POST con la misma validación y regla de plan que el PUT. Prompt: `docs/backend-prompts/ajustes-etapa-8.md`.
+
+**Resuelta:** `POST /products` acepta `chefNote` (≤200; con texto exige `menu_design`, 403 `PLAN_FEATURE_NOT_INCLUDED`) y responde `{ id, chefNote }`. El front la envía en el POST solo si tiene texto y el plan incluye `menu_design`; se quitó el PUT aparte.
+
+---
+
+### 73. 🟢 Configuración del negocio: un administrador no puede guardarla (resuelta 2026-10-24)
+
+**Problema:** `PATCH /business/{id}/settings` exige ser el dueño (`ownerId === principal.code`) y responde 404 a cualquier otro, aunque tenga `business:update-settings`. Un administrador no puede cambiar el orden de la carta, la propina sugerida ni el IVA de la precuenta.
+
+**Se pide:** autorizar por el permiso y, si hay campos solo del dueño, responder 403 `OWNER_ONLY_SETTING`. Prompt: `docs/backend-prompts/ajustes-etapa-8.md`.
+
+**Resuelta:** `GET /business/{id}/settings` lo leen el dueño y quien tiene `business:get-settings`; el `PATCH`, el dueño y quien tiene `business:update-settings` (sin permiso: 403 `PERMISSION_DENIED`). Nombre, `taxNumber1/2`, `taxLabel1/2` y `currencyId` son solo del dueño: otro usuario recibe 403 `OWNER_ONLY_SETTING` con `details.fields` y no se guarda nada. El front deshabilita esos campos en Mi negocio para quien no es el dueño (con aviso), no los envía y traduce `OWNER_ONLY_SETTING`; la precuenta sigue usando `POST /pos/details` para quien no puede leer la configuración.
+
+---
+
+### 74. 🟢 Etapa 9 de la carta: contenido con IA (descripciones, etiquetas y sugerencias) (resuelta 2026-10-24)
+
+**Problema:** el dueño escribe a mano descripciones y etiquetas, y no tiene sugerencias de precio ni promociones con sus datos.
+
+**Se pide:** el prompt completo `docs/backend-prompts/carta-etapa-9-contenido-ia.md` (función `menuAiContent` con límite `aiMenuContentMonth`, configuración por negocio, `POST /menu-ai/descriptions` y `/apply`, `POST /menu-ai/tags`, `GET /menu-ai/overview` e insights). Sin fotos con IA (etapa 9b).
+
+**Front mientras tanto:** se adelanta contra este contrato, con guardado desactivado hasta que exista.
+
+---
+
+### 75. 🟢 "Mis negocios" solo devuelve los negocios del dueño (resuelta 2026-10-24)
+
+**Problema:** `GET /business/my-businesses` filtra por `ownerId`. Un administrador (u otro usuario del negocio) recibe `[]` y la pantalla Mi negocio queda vacía, aunque el #73 ya le permite leer y guardar la configuración.
+
+**Se pide:** devolver los negocios donde el usuario es dueño o tiene un rol, con `isOwner`; revisar el mismo filtro en onboarding y primeros pasos. Prompt: `docs/backend-prompts/mis-negocios-miembros.md`.
+
+**Resuelta:** `GET /business/my-businesses` devuelve los negocios con rol y `isOwner`; onboarding y primeros pasos responden a los usuarios del negocio. El front usa el negocio activo (`restaurantId` de whoami) e `isOwner` para los campos de solo dueño.
+
+---
+
+### 76. 🟢 Etapa 10 de la carta: cliente reconocido (resuelta 2026-10-24)
+
+**Problema:** la carta no reconoce al cliente: no recuerda sus preferencias entre locales, no ofrece "Lo de siempre" ni muestra su saldo antes de pedir.
+
+**Se pide:** el prompt completo `docs/backend-prompts/carta-etapa-10-cliente-reconocido.md` (función `customerProfiles`, límite `customerOtpMonth`, configuración por local, perfil global con código **por correo** (versión 2; WhatsApp después, en una etapa de mensajería), `/customers/me`, "Lo de siempre", saldo, borrado, `isVerified` en clientes).
+
+**Front mientras tanto:** se adelanta contra este contrato; los avisos de alérgenos con preferencias del navegador funcionan sin backend.
+
+**Resuelta:** backend implementado (`libs/restaurant/public-menu`: `customer-profiles.ts`, `public-customers.service.ts`). menu-settings trae `defaultConsentText` y `consentVersion`; la carta pública, `consentVersion` y `redomPrivacyUrl`; OTP con `attemptsLeft`, `retryAt` y `OTP_QUOTA_EXCEEDED` (`used`, `limit`); `PHONE_INVALID` para el teléfono opcional; 409 `CUSTOMER_PROFILES_DISABLED` con `details.setting`; saldo con `locationSlug` (cuerpo vacío sin programa); `isVerified` y `verifiedAt` en clientes. El front quedó alineado.
+
+---
+
+### 77. 🟢 Módulo legal global: términos, privacidad y consentimientos auditables (resuelta 2026-10-25)
+
+**Problema:** nadie acepta términos ni consentimientos (registro, usuarios, planes, API pública, carta). La Ley 21.719 exige poder probar qué aceptó cada persona y cuándo.
+
+**Se pide:** el prompt `docs/backend-prompts/legal-consentimientos-global.md`: documentos y versiones inmutables con huella (superadmin), registros de aceptación solo inserción, pendientes por correo en `whoami` y en la carta, bloqueo 428 `LEGAL_ACCEPTANCE_REQUIRED`, aceptación en el registro, al contratar plan, en la API y en la carta, avisos por correo y auditoría exportable.
+
+**Front mientras tanto:** se adelanta contra este contrato.
+
+---
+
+### 78. 🟢 Etapa 11 de la carta: carta dinámica (resuelta 2026-10-25)
+
+**Problema:** la carta es igual a toda hora y en toda fecha; no hay momentos del día, temporadas, plato del día ni sugerencias en el carrito.
+
+**Se pide:** el prompt `docs/backend-prompts/carta-etapa-11-carta-dinamica.md` (funciones `menuDynamic` y `menuDynamicPlus`, momentos, temporadas, clima con Open-Meteo, plato del día con porciones, reglas y sugerencias automáticas, `dynamic` en la carta pública).
+
+**Front mientras tanto:** se adelanta contra este contrato.
+
+**Resuelta:** backend implementado (`libs/restaurant/public-menu`: `menu-dynamic.ts`, `menu-dynamic.service.ts`, `menu-suggestions.service.ts`, `public-menu-dynamic.service.ts`). Las respuestas traen `businessId`, `createdAt` y `updatedAt`; temporadas y platos del día, `status` (`scheduled`/`active`/`ended`); el plato del día, `productName` y `portionsLeft`; los ajustes, `locationId`, `hasLocation`, `currentWeather` y `suggestionPairsAt`. Reordenar devuelve la lista ordenada. Plato del día: `from`/`to` en `YYYY-MM-DD` (zona del negocio), `MENU_DAILY_SPECIAL_OVERLAP` con `details.dailySpecialId`, `portions` bajo lo vendido → `details.portionsSold`, y con porciones vendidas no cambia el producto. En la carta el precio especial llega en el producto (`promotion.kind: 'dailySpecial'`) y el agotado como `soldOut`; 409 `PRODUCT_UNAVAILABLE` `dailySpecialSoldOut` con `details.portionsLeft` (carta y POS). El front quedó alineado.
+
+---
+
+### 79. 🟢 Módulo legal: ajustes después de implementarlo
+
+**Problema y se pide:**
+- **Borradores:** no hay endpoint para borrar un borrador (`DELETE {AUTH}/platform/legal/versions/{id}` solo si es borrador).
+- **Detalle:** un `GET {AUTH}/platform/legal/documents/{id}` (hoy el front lee el listado completo para el detalle).
+- **Avisos:** `notify` devuelve `remaining` como "queda alguien"; conviene el total pendiente para mostrar el avance.
+- **Exportación:** exponer `Content-Disposition` en CORS para usar el nombre de archivo del servidor.
+- **Comensal:** el historial de aceptaciones (`accepted`) trae `businessId` pero no el `businessSlug`; para saber si acepta novedades del local que está viendo, agregar `businessSlug` o un `marketingConsent: boolean` en `GET {PUBLIC}/customers/me?businessSlug=`.
+- **Consentimiento del local:** indicar si `customerProfiles.consentText` es del local o el de Redom (por ejemplo `consentTextIsCustom`), para no compararlo por texto.
+- **Documentos del negocio:** confirmar que un empleado nunca recibe 428 por `subscriptionTerms`, `dataProcessingAgreement` o `apiTerms` (solo el dueño puede aceptarlos).
+
+**Front mientras tanto:** el detalle se arma desde el listado; el estado de novedades por local se deduce; la exportación usa un nombre propio si no llega el encabezado.
 
 ---
 

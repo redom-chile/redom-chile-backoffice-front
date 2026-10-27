@@ -1,0 +1,126 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold">{{ rule ? 'Editar regla' : 'Nueva regla' }}</h2>
+  </ng-template>
+
+  <form class="space-y-5 p-2" (submit)="$event.preventDefault(); handleSubmit()">
+    <div>
+      <label for="rule-name" class="mb-1 block text-sm font-medium">Nombre *</label>
+      <input
+        id="rule-name"
+        type="text"
+        [attr.maxlength]="nameMax"
+        placeholder="Ej: Hamburguesa con papas"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="show('name')"
+        [value]="$name()"
+        (input)="setName($any($event.target).value)" />
+      @if (show('name'); as error) {
+      <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Solo lo ves tú.</p>
+      }
+    </div>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">Cuando el carrito tiene… *</legend>
+      <div>
+        <label for="rule-trigger-products" class="mb-1 block text-sm font-medium">Productos</label>
+        <app-menu-dynamic-items-select
+          kind="product"
+          inputId="rule-trigger-products"
+          [catalog]="data.catalog()"
+          [loading]="data.catalogLoading()"
+          [invalid]="!!show('triggers')"
+          [value]="$triggerProductIds()"
+          (valueChange)="setTriggers('product', $event)" />
+      </div>
+      <div>
+        <label for="rule-trigger-categories" class="mb-1 block text-sm font-medium">O algo de estas categorías</label>
+        <app-menu-dynamic-items-select
+          kind="category"
+          inputId="rule-trigger-categories"
+          [catalog]="data.catalog()"
+          [loading]="data.catalogLoading()"
+          [invalid]="!!show('triggers')"
+          [value]="$triggerCategoryIds()"
+          (valueChange)="setTriggers('category', $event)" />
+      </div>
+      @if (show('triggers'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      }
+    </fieldset>
+
+    <fieldset class="space-y-3 border-t border-[var(--border)] pt-4">
+      <legend class="text-foreground pr-2 text-sm font-semibold">…sugerir *</legend>
+      <app-menu-dynamic-items-select
+        kind="product"
+        inputId="rule-suggest"
+        [numbered]="true"
+        [max]="maxSuggested"
+        [exclude]="$triggerProductIds()"
+        [catalog]="data.catalog()"
+        [loading]="data.catalogLoading()"
+        [invalid]="!!show('suggest')"
+        [value]="$suggestProductIds()"
+        (valueChange)="setSuggested($event)" />
+      @if (show('suggest'); as error) {
+      <p class="text-destructive text-xs">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground text-xs">Hasta {{ maxSuggested }}, en este orden. No se sugiere lo que ya está en el carrito ni lo agotado.</p>
+      }
+      <div>
+        <label for="rule-message" class="mb-1 block text-sm font-medium">Mensaje</label>
+        <input
+          id="rule-message"
+          type="text"
+          [attr.maxlength]="messageMax"
+          placeholder="Ej: ¿Lo acompañas con papas?"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="show('message')"
+          [value]="$message()"
+          (input)="setMessage($any($event.target).value)" />
+        @if (show('message'); as error) {
+        <p class="text-destructive mt-1 text-xs">{{ error }}</p>
+        } @else {
+        <p class="text-muted-foreground mt-1 text-xs">Opcional. Se muestra sobre las sugerencias en el carrito.</p>
+        }
+      </div>
+    </fieldset>
+
+    <div class="border-t border-[var(--border)] pt-4">
+      <p class="mb-1 text-sm font-medium" id="rule-scope-label">Dónde</p>
+      <div class="glass-input flex rounded-md p-1" role="radiogroup" aria-labelledby="rule-scope-label">
+        <label class="flex-1">
+          <input type="radio" name="rule-scope" class="peer sr-only" [checked]="!$allLocations()" (change)="$allLocations.set(false)" />
+          <span class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer truncate rounded px-2 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2">
+            {{ data.locationName || 'Este local' }}
+          </span>
+        </label>
+        <label class="flex-1">
+          <input type="radio" name="rule-scope" class="peer sr-only" [checked]="$allLocations()" (change)="$allLocations.set(true)" />
+          <span class="text-muted-foreground peer-checked:bg-primary peer-checked:text-primary-foreground block cursor-pointer rounded px-2 py-1.5 text-center text-sm font-medium peer-focus-visible:ring-2">
+            Todos los locales
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+      <div>
+        <p class="text-sm font-medium">Activa</p>
+        <p class="text-muted-foreground text-xs">Inactiva no sugiere nada.</p>
+      </div>
+      <app-toggle ariaLabel="Regla activa" [checked]="$isActive()" (changed)="$isActive.set($event)" />
+    </div>
+  </form>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-2">
+      <app-button type="button" impact="light" tone="primary" [disabled]="$isSaving()" (buttonClick)="handleClose()">Cancelar</app-button>
+      <app-button type="button" impact="bold" tone="primary" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
+        {{ rule ? 'Guardar' : 'Crear regla' }}
+      </app-button>
+    </div>
+  </ng-template>
+</app-modal-card>

@@ -6,7 +6,10 @@ import { AlertComponent, ButtonComponent, IconComponent } from 'src/ui';
 import { SignUpTermsAndConditionsComponent } from 'src/ui/organisms/terms-and-conditions/sign-up';
 import { formatRut, rutValidator } from 'src/app/shared/validators';
 import { emailFormatValidator, getPasswordStrength, passwordMatchValidator } from '../custom-validators';
-import { AuthError, AuthService, getAuthError, PostLoginService } from '../data-access';
+import { LegalApiService, legalDocumentsOf, LegalErrorCode, PendingDocumentDto, requiredAccepted } from 'src/app/core/services/legal';
+import { readApiError } from 'src/app/core/utils/api-error';
+import { LegalDocumentChecklistComponent } from 'src/app/modules/legal/ui';
+import { AuthError, AuthService, getAuthError, GoogleSignInService, PostLoginService } from '../data-access';
 import { GoogleButtonComponent } from '../ui';
 
 @Component({
@@ -23,12 +26,19 @@ import { GoogleButtonComponent } from '../ui';
     AlertComponent,
     SignUpTermsAndConditionsComponent,
     GoogleButtonComponent,
+    LegalDocumentChecklistComponent,
   ],
 })
 export class SignUpComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly postLogin = inject(PostLoginService);
+  private readonly googleSignIn = inject(GoogleSignInService);
+  private readonly legalApi = inject(LegalApiService);
+
+  // Términos de uso y privacidad vigentes (null mientras cargan; vacío si aún no hay versiones publicadas).
+  readonly $legalDocuments = signal<readonly PendingDocumentDto[] | null>(null);
+  readonly $acceptedVersions = signal<readonly number[]>([]);
 
   hide = true;
   hideConfirm = true;
@@ -49,7 +59,8 @@ export class SignUpComponent {
       email: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
       confirmPassword: ['', [Validators.required]],
-      acceptTerms: [false, [Validators.requiredTrue]],
+      // Solo cuenta si no hay documentos publicados (texto de referencia anterior).
+      acceptTerms: [false],
     },
     {
       validators: [passwordMatchValidator('password', 'confirmPassword'), emailFormatValidator('email')],
@@ -64,8 +75,26 @@ export class SignUpComponent {
     if (controls.email.invalid || this.form.hasError('emailNotValid')) return 'El email debe ser válido.';
     if (controls.password.invalid) return 'La contraseña debe tener entre 8 y 72 caracteres.';
     if (this.form.hasError('controlNotMatch')) return 'Las contraseñas deben ser iguales.';
-    if (controls.acceptTerms.invalid) return 'Debes aceptar los términos y condiciones.';
+    if (!this.#legalAccepted()) return 'Debes aceptar los términos y condiciones.';
     return null;
+  }
+
+  constructor() {
+    this.loadLegalDocuments();
+  }
+
+  loadLegalDocuments() {
+    this.legalApi.currentDocuments(['platformTerms', 'privacyPolicy']).subscribe((documents) => this.#showLegal(documents));
+  }
+
+  #legalAccepted(): boolean {
+    const documents = this.$legalDocuments() ?? [];
+    return documents.length ? requiredAccepted(documents, this.$acceptedVersions()) : this.form.controls.acceptTerms.value;
+  }
+
+  #showLegal(documents: readonly PendingDocumentDto[]) {
+    this.$legalDocuments.set(documents);
+    this.$acceptedVersions.set([]);
   }
 
   formatRut() {
@@ -76,7 +105,7 @@ export class SignUpComponent {
   submitForm() {
     this.submitted = true;
     this.$error.set(null);
-    if (this.form.invalid) {
+    if (this.form.invalid || !this.#legalAccepted()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -91,6 +120,7 @@ export class SignUpComponent {
         email,
         password: value.password,
         rut: value.rut.trim() || undefined,
+        ...(this.$legalDocuments()?.length ? { acceptedVersionIds: [...this.$acceptedVersions()] } : {}),
       })
       .subscribe({
         // Si ya estaba registrado sin verificar, el backend responde 201 y reenvía el código.
@@ -101,6 +131,10 @@ export class SignUpComponent {
         error: (error) => {
           this.$isSaving.set(false);
           this.$error.set(getAuthError(error));
+          // Faltan documentos o cambió una versión: se vuelven a mostrar para aceptarlos de nuevo.
+          const documents = legalDocumentsOf(error);
+          if (documents) this.#showLegal(documents);
+          else if (readApiError(error).code === LegalErrorCode.VERSION_NOT_PUBLISHED) this.loadLegalDocuments();
         },
       });
   }
@@ -109,11 +143,12 @@ export class SignUpComponent {
   signUpWithGoogle(idToken: string) {
     this.$error.set(null);
     this.$googleLoading.set(true);
-    this.authService.loginWithGoogle(idToken).subscribe({
+    this.googleSignIn.signIn(idToken).subscribe({
       next: (session) => {
         this.$googleLoading.set(false);
         this.postLogin.continue(session.userData.name, session.isNewUser);
       },
+      complete: () => this.$googleLoading.set(false),
       error: (error) => {
         this.$googleLoading.set(false);
         this.$error.set(getAuthError(error));

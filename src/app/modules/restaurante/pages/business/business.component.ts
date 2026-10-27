@@ -53,14 +53,16 @@ export class BusinessComponent {
   readonly #queryTab = toSignal(this.route.queryParamMap.pipe(map((params) => toTab(params.get('tab')))), {
     initialValue: toTab(this.route.snapshot.queryParamMap.get('tab')),
   });
-  readonly $tab = computed<BusinessTab>(() => (this.#queryTab() === 'soporte' && !this.$canSeeSupport() ? 'general' : this.#queryTab()));
+  readonly $tab = computed<BusinessTab>(() =>
+    this.#queryTab() === 'soporte' && !this.$canSeeSupport() ? 'general' : this.#queryTab(),
+  );
 
   constructor() {
     this.$findMyBusinessesService.retry();
   }
 
   get business() {
-    return this.$findMyBusinessesService.$businesses()?.[0];
+    return this.$findMyBusinessesService.$current();
   }
 
   get isLoading() {
