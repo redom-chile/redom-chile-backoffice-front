@@ -1,5 +1,7 @@
-# Sitio Netlify de la landing (redom.cl). En el sitio: Base directory = (raíz del repo),
-# Package directory = projects/landing, para que Netlify lea este archivo y no el de la raíz (app.redom.cl).
+# Sitio Netlify de la landing (redom.cl)
+# Base directory = raíz del repositorio
+# Package directory = projects/landing
+
 [build]
 command = "npm run build:landing"
 publish = "dist/landing/browser"
@@ -7,22 +9,53 @@ publish = "dist/landing/browser"
 [build.environment]
 NODE_VERSION = "22"
 
-# Planes públicos: Netlify pide la API por la landing (mismo origen, sin CORS).
-# API de producción (redom-chile-common-api); mismo host que src/environments/environment.prod.ts.
-[[redirects]]
+# ============================================================
+# DESARROLLO
+# ============================================================
+
+[context.develop]
+command = "npm run build:landing"
+
+# Facturación: API de desarrollo
+[[context.develop.redirects]]
+from = "/billing/api/*"
+to = "https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
+status = 200
+force = true
+
+# Carta pública: API de desarrollo
+[[context.develop.redirects]]
+from = "/restaurant/api/public/*"
+to = "https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat"
+status = 200
+force = true
+
+# ============================================================
+# PRODUCCIÓN
+# ============================================================
+
+[context.production]
+command = "npm run build:landing"
+
+# Planes públicos: API de producción
+[[context.production.redirects]]
 from = "/billing/api/*"
 to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
 status = 200
 force = true
 
-# Carta pública: la API sin sesión del restaurante, también por el mismo origen.
-[[redirects]]
+# Carta pública: API de producción
+[[context.production.redirects]]
 from = "/restaurant/api/public/*"
 to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat"
 status = 200
 force = true
 
-# La carta se arma en el navegador (RenderMode.Client): sin hidratar la portada prerenderizada.
+# ============================================================
+# CARTA PÚBLICA
+# La carta se arma en el navegador (RenderMode.Client).
+# ============================================================
+
 [[redirects]]
 from = "/carta/*"
 to = "/index.csr.html"
@@ -33,17 +66,22 @@ from = "/carta"
 to = "/index.csr.html"
 status = 200
 
-# Es una sola página: cualquier ruta desconocida muestra la portada.
+# ============================================================
+# RUTAS DE ANGULAR: debe permanecer al final
+# ============================================================
+
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
 
-# Widget de la carta (public/widget.js): se sirve como archivo estático (los archivos existentes tienen prioridad
-# sobre las reglas sin force). Caché corto para que los cambios lleguen pronto a las webs que lo incrustan.
-# La landing no envía X-Frame-Options ni frame-ancestors: /carta/*?embed=1 se puede incrustar en un iframe.
+# ============================================================
+# WIDGET DE LA CARTA
+# ============================================================
+
 [[headers]]
 for = "/widget.js"
+
 [headers.values]
 Cache-Control = "public, max-age=300"
 Content-Type = "text/javascript; charset=utf-8"
