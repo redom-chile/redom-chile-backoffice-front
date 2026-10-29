@@ -1,0 +1,5 @@
+/billing/api/* https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/billing/api/:splat 200!
+/restaurant/api/public/* https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat 200!
+/carta/* /index.csr.html 200
+/carta /index.csr.html 200
+/* /index.html 200
