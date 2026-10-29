@@ -1,6 +1,6 @@
-# Sitio Netlify de la landing (redom.cl)
-# Base directory = raíz del repositorio
-# Package directory = projects/landing
+# REDOM Landing
+# Base directory de Netlify: raíz del repositorio
+# Publicación: dist/landing/browser
 
 [build]
 command = "npm run build:landing"
@@ -9,76 +9,15 @@ publish = "dist/landing/browser"
 [build.environment]
 NODE_VERSION = "22"
 
-# ============================================================
-# DESARROLLO
-# ============================================================
-
+# Desarrollo: rama develop
 [context.develop]
-command = "npm run build:landing"
+command = "npm run build:landing && cp projects/landing/_redirects.develop dist/landing/browser/_redirects"
 
-# Facturación: API de desarrollo
-[[context.develop.redirects]]
-from = "/billing/api/*"
-to = "https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
-status = 200
-force = true
-
-# Carta pública: API de desarrollo
-[[context.develop.redirects]]
-from = "/restaurant/api/public/*"
-to = "https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat"
-status = 200
-force = true
-
-# ============================================================
-# PRODUCCIÓN
-# ============================================================
-
+# Producción
 [context.production]
-command = "npm run build:landing"
+command = "npm run build:landing && cp projects/landing/_redirects.production dist/landing/browser/_redirects"
 
-# Planes públicos: API de producción
-[[context.production.redirects]]
-from = "/billing/api/*"
-to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/billing/api/:splat"
-status = 200
-force = true
-
-# Carta pública: API de producción
-[[context.production.redirects]]
-from = "/restaurant/api/public/*"
-to = "https://7t7c2w8zzf.execute-api.us-east-1.amazonaws.com/restaurant/api/public/:splat"
-status = 200
-force = true
-
-# ============================================================
-# CARTA PÚBLICA
-# La carta se arma en el navegador (RenderMode.Client).
-# ============================================================
-
-[[redirects]]
-from = "/carta/*"
-to = "/index.csr.html"
-status = 200
-
-[[redirects]]
-from = "/carta"
-to = "/index.csr.html"
-status = 200
-
-# ============================================================
-# RUTAS DE ANGULAR: debe permanecer al final
-# ============================================================
-
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
-
-# ============================================================
-# WIDGET DE LA CARTA
-# ============================================================
-
+# Widget de la carta
 [[headers]]
 for = "/widget.js"
 
