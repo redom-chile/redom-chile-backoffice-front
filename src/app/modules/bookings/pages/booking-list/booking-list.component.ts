@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { map } from 'rxjs';
@@ -27,12 +27,14 @@ import {
 } from './features';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
-import { addDays, BOOKING_STATUS, BOOKING_STATUS_OPTIONS, longDate, startOfWeek, toDateKey, toIsoRange } from './ui';
+import { addDays, BOOKING_STATUS, BOOKING_STATUS_OPTIONS, isPendingMenuBooking, longDate, startOfWeek, toDateKey, toIsoRange } from './ui';
 
 type BookingView = 'day' | 'week';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-function toQuery(params: ParamMap): { date: string; view: BookingView; status: BookingStatus | null } {
+const UNAVAILABLE_MESSAGE = 'Esta reserva ya no está disponible para ti';
+
+function toQuery(params: ParamMap): { date: string; view: BookingView; status: BookingStatus | null; onlyMenu: boolean } {
   const date = params.get('date');
   const status = params.get('status') as BookingStatus | null;
   return {
@@ -40,6 +42,8 @@ function toQuery(params: ParamMap): { date: string; view: BookingView; status: B
     view: params.get('view') === 'week' ? 'week' : 'day',
     // El estado se filtra en el backend (?status=); sin él vienen todas, canceladas incluidas.
     status: status && status in BOOKING_STATUS ? status : null,
+    // Filtro local: solo las de la carta por confirmar.
+    onlyMenu: params.get('origin') === 'menu',
   };
 }
 
@@ -74,7 +78,11 @@ export class BookingListComponent implements OnInit {
     initialValue: toQuery(this.route.snapshot.queryParamMap),
   });
   readonly $locationId = signal<number | null>(null);
-  readonly $bookings = computed(() => this.bookingsService.$bookings() ?? []);
+  readonly $bookings = computed(() => {
+    const bookings = this.bookingsService.$bookings() ?? [];
+    return this.$query().onlyMenu ? bookings.filter(isPendingMenuBooking) : bookings;
+  });
+  readonly $pendingMenuCount = computed(() => (this.bookingsService.$bookings() ?? []).filter(isPendingMenuBooking).length);
   readonly $isLoading = computed(() => this.bookingsService.$isLoading() ?? false);
   readonly $hasError = computed(() => this.bookingsService.$error() !== undefined);
   readonly $busyIds = signal<ReadonlySet<number>>(new Set());
@@ -121,6 +129,10 @@ export class BookingListComponent implements OnInit {
     this.navigate({ status: value || null });
   }
 
+  toggleOnlyMenu() {
+    this.navigate({ origin: this.$query().onlyMenu ? null : 'menu' });
+  }
+
   openDay(date: string) {
     this.navigate({ date, view: null });
   }
@@ -140,7 +152,7 @@ export class BookingListComponent implements OnInit {
   }
 
   // El listado ya trae contactId y tableId, pero no la nota: el detalle sigue siendo necesario para editar.
-  handleEdit(booking: BookingDto) {
+  handleEdit(booking: BookingDto, focus?: UpdateBookingModalData['focus']) {
     this.setBusy(booking.id, true);
     this.bookingService.findById(booking.id).subscribe({
       next: (detail) => {
@@ -150,16 +162,18 @@ export class BookingListComponent implements OnInit {
             width: '600px',
             maxWidth: '95vw',
             disableClose: true,
-            data: { booking: detail },
+            autoFocus: focus ? false : 'first-tabbable',
+            data: { booking: detail, focus },
           })
           .afterClosed()
           .subscribe((result) => this.handleResult(result));
       },
-      error: (error: HttpErrorResponse) => {
-        this.setBusy(booking.id, false);
-        this.toast.show(getBookingErrorMessage(error), 'error');
-      },
+      error: (error: HttpErrorResponse) => this.handleActionError(booking.id, error),
     });
+  }
+
+  handleAssignTable(booking: BookingDto) {
+    this.handleEdit(booking, 'table');
   }
 
   handleStatus({ booking, status }: BookingStatusChange) {
@@ -171,10 +185,7 @@ export class BookingListComponent implements OnInit {
           this.toast.show(`${booking.customerName}: ${BOOKING_STATUS[status].label.toLowerCase()}`, 'success');
           this.bookingsService.retry();
         },
-        error: (error: HttpErrorResponse) => {
-          this.setBusy(booking.id, false);
-          this.toast.show(getBookingErrorMessage(error), 'error');
-        },
+        error: (error: HttpErrorResponse) => this.handleActionError(booking.id, error),
       });
     };
     if (status !== 'cancelled') {
@@ -201,6 +212,17 @@ export class BookingListComponent implements OnInit {
 
   handleRetry() {
     this.bookingsService.retry();
+  }
+
+  // 404: la reserva se borró o ya no es visible para este usuario (#53); se refresca la agenda.
+  private handleActionError(id: number, error: HttpErrorResponse) {
+    this.setBusy(id, false);
+    if (error.status === HttpStatusCode.NotFound) {
+      this.toast.show(UNAVAILABLE_MESSAGE, 'warning');
+      this.bookingsService.retry();
+      return;
+    }
+    this.toast.show(getBookingErrorMessage(error), 'error');
   }
 
   private handleResult(result: BookingModalResult | undefined) {

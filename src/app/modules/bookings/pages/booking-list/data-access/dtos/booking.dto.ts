@@ -1,4 +1,13 @@
 export type BookingStatus = 'waiting' | 'booked' | 'completed' | 'cancelled';
+// staff: creada en el backoffice; public_menu: pedida por un cliente desde la carta.
+export type BookingSource = 'staff' | 'public_menu';
+
+// Origen y autor; createdByName es null en las de la carta.
+type BookingOrigin = Readonly<{
+  source: BookingSource;
+  createdBy: string | null;
+  createdByName: string | null;
+}>;
 
 // Ítem del listado (GET /bookings).
 export type BookingDto = Readonly<{
@@ -17,9 +26,8 @@ export type BookingDto = Readonly<{
   // Teléfono del cliente para llamarlo desde la agenda.
   customerMobile: string | null;
   tableId: number | null;
-  // El listado todavía no lo trae; si llega, null = creada desde la carta pública.
-  createdBy?: string | null;
-}>;
+}> &
+  BookingOrigin;
 
 // Detalle (GET /bookings/:id), necesario para editar: el listado no trae la nota.
 export type BookingDetailDto = Readonly<{
@@ -35,9 +43,10 @@ export type BookingDetailDto = Readonly<{
   bookingNote: string | null;
   locationName: string;
   partySize: number;
-  // null: la pidió un cliente desde la carta pública (llega en espera).
-  createdBy?: string | null;
-}>;
+  correspondentName: string | null;
+  waiterName: string | null;
+}> &
+  BookingOrigin;
 
 export type BookingFiltersDto = Readonly<{
   startDate: string;

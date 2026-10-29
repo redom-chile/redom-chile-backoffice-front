@@ -5,9 +5,11 @@ import { PublicLocationMenuDto } from '../../data-access/dtos/public-menu.dto';
 import { PublicBookingDto } from '../../data-access/dtos/table-service.dto';
 import { PublicMenuApiService } from '../../data-access/public-menu-api.service';
 import { BOOKING_LIMITS, bookingScheduleFit, dateInZone, formatBookingDate, weekdayOf, zonedToUtc } from '../carta-booking';
-import { CartaI18n, cartaLanguage, ct } from '../carta-i18n';
+import { CartaI18n, cartaErrorMessage, cartaLanguage, ct } from '../carta-i18n';
 import { buildWeekSchedule, todayIn } from '../carta-utils';
 import { CartaIcon } from './carta-icon';
+import { CartaLegal } from '../carta-legal';
+import { CartaPrivacyNotice } from './carta-legal';
 
 type Field = 'name' | 'phone' | 'date' | 'time';
 
@@ -30,6 +32,8 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
       return { message: ct('booking.error.rateLimited'), disabled: false };
     case 'MENU_NOT_FOUND':
       return { message: ct('booking.error.notFound'), disabled: true };
+    case 'LEGAL_VERSION_NOT_PUBLISHED':
+      return { message: cartaErrorMessage(error), disabled: false };
   }
   if (api.status === 429) return { message: ct('booking.error.rateLimited'), disabled: false };
   if (api.status === 403) return { message: ct('booking.error.disabled'), disabled: true };
@@ -46,7 +50,7 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
  */
 @Component({
   selector: 'app-carta-booking-sheet',
-  imports: [CartaIcon],
+  imports: [CartaIcon, CartaPrivacyNotice],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
@@ -239,6 +243,8 @@ function bookingErrorMessage(error: unknown): Readonly<{ message: string; disabl
             <p id="carta-booking-note-count" class="mt-1 text-right text-xs text-muted-foreground tabular-nums">{{ note().length }}/{{ limits.note }}</p>
           </div>
 
+          <app-carta-privacy-notice />
+
           @if (error(); as e) {
             <p class="flex items-start gap-2 text-sm font-medium text-rose-600 dark:text-rose-400" role="alert">
               <app-carta-icon name="alert" [size]="16" class="mt-0.5" />
@@ -266,6 +272,7 @@ export class CartaBookingSheet {
   readonly unavailable = output<void>();
 
   readonly #api = inject(PublicMenuApiService);
+  readonly #legal = inject(CartaLegal);
   #sub: Subscription | null = null;
   protected readonly t = inject(CartaI18n).t;
 
@@ -354,16 +361,21 @@ export class CartaBookingSheet {
     const m = this.menu();
     this.sending.set(true);
     this.#sub?.unsubscribe();
-    this.#sub = this.#api
-      .createBooking({
-        businessSlug: m.business.slug,
-        locationSlug: m.location.slug,
-        name,
-        phone: this.phone().trim(),
-        partySize: this.party(),
-        start: new Date(start).toISOString(),
-        ...(note ? { note } : {}),
-      })
+    const startIso = new Date(start).toISOString();
+    // Va la versión de privacyPolicy mostrada (si dejó de estar publicada, se recarga y se reintenta una vez)
+    this.#sub = this.#legal
+      .withPrivacy((privacy) =>
+        this.#api.createBooking({
+          businessSlug: m.business.slug,
+          locationSlug: m.location.slug,
+          name,
+          phone: this.phone().trim(),
+          partySize: this.party(),
+          start: startIso,
+          ...(note ? { note } : {}),
+          ...privacy,
+        }),
+      )
       .subscribe({
         next: (booking) => {
           this.sending.set(false);

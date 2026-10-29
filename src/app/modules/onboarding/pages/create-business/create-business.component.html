@@ -98,6 +98,11 @@
               label="Logo (opcional)"
               [currentUrl]="$logoPreview()"
               (selectionChange)="onLogoChange($event)" />
+
+            @if ($legalDocuments().length) {
+            <app-legal-document-checklist legend="Para crear tu negocio" [documents]="$legalDocuments()" [(accepted)]="$legalAccepted"
+              [showErrors]="$legalSubmitted()" />
+            }
           </div>
 
           <app-button full impact="bold" tone="primary" shape="rounded" size="medium" type="button" (buttonClick)="submit()">

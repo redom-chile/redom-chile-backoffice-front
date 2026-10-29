@@ -24,6 +24,7 @@
           [name]="row.category.name"
           [alt]="row.category.name"
           (expired)="imageExpired.emit()" />
+        <app-category-icon-badge [icon]="row.category.icon" />
         <span>{{ row.category.name }}</span>
       </div>
     </td>

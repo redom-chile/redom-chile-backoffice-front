@@ -1,4 +1,5 @@
 import { EntitlementsDto } from '../../entitlements/dtos';
+import { SessionLegalDto } from '../../legal/dtos';
 
 export type WhoamiDto = Readonly<{
   user: {
@@ -23,4 +24,6 @@ export type WhoamiDto = Readonly<{
   };
   roles: ReadonlyArray<{ id: number; code: string; name: string }>;
   permissions: string[];
+  /** #77: documentos obligatorios pendientes (con sesión restringida, whoami es mínimo). */
+  legal?: SessionLegalDto;
 }>;

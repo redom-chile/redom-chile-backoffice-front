@@ -32,7 +32,9 @@ export const businessGuard: CanActivateFn = (_route, state) => {
 // ahí la página retoma en el paso "Tu local".
 export const onboardingGuard: CanActivateFn = () => {
   const router = inject(Router);
-  if (!inject(AuthService).isLogin()) return router.parseUrl('/auth/sign-in');
+  const auth = inject(AuthService);
+  if (!auth.isLogin()) return router.parseUrl('/auth/sign-in');
+  if (auth.isRestricted()) return router.parseUrl('/legal/accept');
   const dashboard = router.parseUrl('/dashboard/admin');
   const whoamiService = inject(WhoamiService);
   return whoamiService.load().pipe(

@@ -7,13 +7,15 @@ import { CreateCategoryService, GetAllCategoriesService, getCategoryErrorMessage
 import { CategoryModalResult } from '../category-modal-result';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
-import { CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
+import { CategoryIconPickerComponent, CategorySchedule, CategoryScheduleFieldComponent, isScheduleValid, saveCategoryScheduleIfChanged, toCategorySchedule } from '../../ui';
 import { NgClass } from '@angular/common';
+import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { sortForMenu } from 'src/app/modules/products/shared';
 
 @Component({
   selector: 'app-create-category-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, ModalCardComponent, SlotDirective, NgClass, ImagePickerComponent, CategoryScheduleFieldComponent, CategoryIconPickerComponent],
   templateUrl: './create-category-modal.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -31,8 +33,11 @@ export class CreateCategoryModalComponent implements OnDestroy {
     parentId: [0],
   });
 
-  // Solo las categorías principales pueden ser padre; la lista ya viene en árbol desde el API.
-  readonly $parentOptions = computed(() => this.getAllService.$categories() ?? []);
+  // Solo las categorías principales pueden ser padre, en el orden de la carta.
+  readonly #sortMode = inject(BusinessSettingsService).$menuSortMode;
+  readonly $parentOptions = computed(() =>
+    sortForMenu((this.getAllService.$categories() ?? []).filter((category) => !category.parentId), this.#sortMode()),
+  );
 
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
@@ -46,6 +51,8 @@ export class CreateCategoryModalComponent implements OnDestroy {
   readonly $canEditSchedule = computed(() => this.#access.can(PERMISSIONS.CATEGORIES.UPDATE_CATEGORY));
   readonly $schedule = signal<CategorySchedule>(toCategorySchedule([]));
   readonly $scheduleSubmitted = signal(false);
+  // Ícono en la carta (todos los planes): null = sin ícono.
+  readonly $icon = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -92,6 +99,7 @@ export class CreateCategoryModalComponent implements OnDestroy {
         description: value.description || undefined,
         parentId: value.parentId || 0,
         ...(imageFileId ? { imageFileId } : {}),
+        ...(this.$icon() ? { icon: this.$icon() } : {}),
       });
     } catch (error) {
       this.toast.show(getUploadErrorMessage(error), 'error');

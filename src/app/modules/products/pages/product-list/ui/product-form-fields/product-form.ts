@@ -1,5 +1,6 @@
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import {
+  CHEF_NOTE_MAX,
   CreateProductDto,
   ProductDto,
   ProductStockMode,
@@ -49,6 +50,8 @@ export function createProductForm(fb: FormBuilder, product?: ProductDto) {
     subCategoryId: [product?.subCategoryId ?? (null as number | null)],
     price: [variation?.sellPriceIncTax ?? (null as number | null), [Validators.required, Validators.min(0)]],
     productDescription: [product?.productDescription ?? ''],
+    // Nota del chef (plan con menu_design): se destaca en la carta.
+    chefNote: [product?.chefNote ?? '', [Validators.maxLength(CHEF_NOTE_MAX)]],
     preparationTimeInMinutes: [
       product?.preparationTimeInMinutes ?? (null as number | null),
       [Validators.min(0), Validators.max(600)],
@@ -126,8 +129,13 @@ export function varietiesError(form: ProductForm): string | null {
   return null;
 }
 
-/** Contexto del inventario al guardar: sin inventario activo no se envía ni cambia el control de stock. */
-export type ProductStockContext = Readonly<{ inventoryEnabled: boolean }>;
+/**
+ * Contexto al guardar: sin inventario activo no se envía ni cambia el control de stock;
+ * sin la función menu_design no se envía la nota del chef.
+ */
+export type ProductStockContext = Readonly<{ inventoryEnabled: boolean; chefNoteEnabled?: boolean }>;
+
+const chefNoteOf = (form: ProductForm): string | null => form.getRawValue().chefNote?.trim() || null;
 
 export type ProductForm = ReturnType<typeof createProductForm>;
 
@@ -143,6 +151,19 @@ export function suggestSku(name: string): string {
     .map((word) => word.slice(0, 4));
   const suffix = Math.floor(1000 + Math.random() * 9000);
   return [...(words.length ? words : ['PROD']), suffix].join('-');
+}
+
+/** Solo si cambió (null = quitarla). */
+function toUpdateChefNote(form: ProductForm, original: ProductDto, { chefNoteEnabled }: ProductStockContext) {
+  if (!chefNoteEnabled) return {};
+  const note = chefNoteOf(form);
+  return note !== (original.chefNote?.trim() || null) ? { chefNote: note } : {};
+}
+
+/** Al crear va en el POST solo si tiene texto (con texto el backend exige menu_design). */
+function toCreateChefNote(form: ProductForm, { chefNoteEnabled }: ProductStockContext) {
+  const note = chefNoteEnabled ? chefNoteOf(form) : null;
+  return note ? { chefNote: note } : {};
 }
 
 function toBasePayload(form: ProductForm) {
@@ -174,6 +195,7 @@ export function toCreateProductDto(form: ProductForm, context: ProductStockConte
     ...product,
     ...(form.getRawValue().isPack ? { type: PACK_PRODUCT_TYPE } : {}),
     ...toCreateStockFields(form, context),
+    ...toCreateChefNote(form, context),
     variations: form.getRawValue().hasVarieties
       ? varietyRows(form).map(({ name, sellPriceIncTax }) => ({ name, sellPriceIncTax }))
       : [{ name: DEFAULT_VARIATION_NAME, sellPriceIncTax: price }],
@@ -220,6 +242,7 @@ export function toUpdateProductDto(form: ProductForm, original: ProductDto, cont
     ...product,
     ...toUpdateTypeField(form, original),
     ...toUpdateStockFields(form, original, context),
+    ...toUpdateChefNote(form, original, context),
     variations: toUpdateVariations(form, original, price),
   };
 }

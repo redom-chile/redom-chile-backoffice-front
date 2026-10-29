@@ -8,6 +8,8 @@ export type CartaThemeMode = 'system' | 'light' | 'dark';
 const MODE_KEY = 'redom-landing.mode';
 /** index.html de la landing también lo aplica antes de pintar en /carta. */
 const SIZE_KEY = 'redom-carta.text-size';
+/** Etapa 8: alto contraste (solo si el local lo ofrece). */
+const CONTRAST_KEY = 'redom-carta.contrast';
 
 /** Escala del texto (tamaño de letra raíz): toda la carta usa rem. */
 export const CARTA_TEXT_SIZES = [0.875, 1, 1.125, 1.25, 1.375] as const;
@@ -42,6 +44,7 @@ export class CartaDisplay {
   readonly modeLocked = !!this.#forced;
   readonly mode = signal<CartaThemeMode>('system');
   readonly sizeIndex = signal(DEFAULT_SIZE_INDEX);
+  readonly highContrast = signal(false);
   readonly #systemDark = signal(false);
   readonly #active = signal(false);
 
@@ -72,6 +75,7 @@ export class CartaDisplay {
     const size = Number(read(SIZE_KEY));
     const index = CARTA_TEXT_SIZES.indexOf(size as (typeof CARTA_TEXT_SIZES)[number]);
     if (index >= 0) this.sizeIndex.set(index);
+    this.highContrast.set(read(CONTRAST_KEY) === '1');
     try {
       const media = window.matchMedia('(prefers-color-scheme: dark)');
       this.#systemDark.set(media.matches);
@@ -86,6 +90,12 @@ export class CartaDisplay {
     if (this.modeLocked) return;
     this.mode.set(mode);
     write(MODE_KEY, mode);
+  }
+
+  toggleContrast(): void {
+    const next = !this.highContrast();
+    this.highContrast.set(next);
+    write(CONTRAST_KEY, next ? '1' : '0');
   }
 
   grow(): void {

@@ -5,6 +5,7 @@ import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { IconComponent, ToastService } from 'src/ui';
 import { MenuSettingsService, ProductTagDto } from 'src/app/modules/public-menu/data-access';
+import { ProductTagsAiComponent, TagIdsChange } from '../menu-ai-assist';
 
 const KIND_GROUPS = [
   { kind: 'diet', label: 'Dieta' },
@@ -15,12 +16,15 @@ const KIND_GROUPS = [
 /** Etiquetas de la carta pública (dieta, alérgenos, destacados): chips que se marcan y desmarcan. */
 @Component({
   selector: 'app-product-tags-field',
-  imports: [NgClass, IconComponent],
+  imports: [NgClass, IconComponent, ProductTagsAiComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <fieldset>
       <legend class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Etiquetas</legend>
       <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">Se muestran en la carta QR y sirven para filtrar.</p>
+      @if (aiAssist()) {
+      <app-product-tags-ai [productId]="productId()" [tags]="tags()" [selected]="selected()" (tagsChange)="applySuggestion($event)" />
+      }
       @for (group of $groups(); track group.kind) {
       <div class="mb-2">
         <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ group.label }}</p>
@@ -56,6 +60,9 @@ export class ProductTagsFieldComponent {
   readonly tags = input<readonly ProductTagDto[]>([]);
   readonly selected = model<readonly number[]>([]);
   readonly note = input<string | null>(null);
+  // Sugerencias con IA (etapa 9): requieren el producto guardado.
+  readonly aiAssist = input(false);
+  readonly productId = input<number | null>(null);
 
   readonly $groups = computed(() => {
     const tags = [...this.tags()].sort((a, b) => a.position - b.position);
@@ -75,6 +82,10 @@ export class ProductTagsFieldComponent {
 
   toggle(id: number) {
     this.selected.update((ids) => (ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]));
+  }
+
+  applySuggestion({ add, remove }: TagIdsChange) {
+    this.selected.update((ids) => [...new Set([...ids.filter((id) => !remove.includes(id)), ...add])]);
   }
 }
 

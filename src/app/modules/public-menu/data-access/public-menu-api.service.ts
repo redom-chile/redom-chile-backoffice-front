@@ -1,7 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
+import type { LegalVersionDto } from 'src/app/core/services/legal/dtos';
 import { ApiPathEnum } from 'src/environments';
+import { PrivacyAcknowledgementDto } from './dtos/customer-profiles.dto';
+import { PublicSuggestionDto } from './dtos/menu-dynamic.dto';
 import {
   CreateOnlineOrderDto,
   ReceiptUploadUrlDto,
@@ -61,8 +64,9 @@ export class PublicMenuApiService {
   // --- Pedidos desde la mesa (etapa 3) ---
 
   /** 403 ORDERING_DISABLED, 409 LOCATION_CLOSED / TABLE_BLOCKED / PRODUCT_UNAVAILABLE, 400 PACK_CHOICES_INVALID / ORDER_TOO_LARGE, 429. */
-  createOrder(dto: CreatePublicOrderDto): Observable<PublicOrderDto> {
-    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  /** headers: etapa 10, X-Redom-Customer (customerHeaders). */
+  createOrder(dto: CreatePublicOrderDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto, { headers });
   }
 
   getOrder(id: string): Observable<PublicOrderDto> {
@@ -91,7 +95,7 @@ export class PublicMenuApiService {
   }
 
   /** 403 BOOKINGS_DISABLED, 400 BOOKING_INVALID_DATES / BOOKING_OUTSIDE_HOURS, 409 BOOKING_CONTACT_OVERLAP. */
-  createBooking(dto: CreatePublicBookingDto): Observable<PublicBookingDto> {
+  createBooking(dto: CreatePublicBookingDto & PrivacyAcknowledgementDto): Observable<PublicBookingDto> {
     return this.#http.post<PublicBookingDto>(`${this.#base}/bookings`, dto);
   }
 
@@ -104,8 +108,8 @@ export class PublicMenuApiService {
 
   /** Sin qrCode. Errores: ORDERING_DISABLED, PAYMENT_METHOD_NOT_ACCEPTED, ORDER_SCHEDULE_INVALID, LOCATION_CLOSED,
    *  OUTSIDE_DELIVERY_AREA, BELOW_MINIMUM_ORDER, más los de la etapa 3. */
-  createOnlineOrder(dto: CreateOnlineOrderDto): Observable<PublicOrderDto> {
-    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto);
+  createOnlineOrder(dto: CreateOnlineOrderDto & PrivacyAcknowledgementDto, headers?: HttpHeaders): Observable<PublicOrderDto> {
+    return this.#http.post<PublicOrderDto>(`${this.#base}/orders`, dto, { headers });
   }
 
   /** contentType imagen o PDF, ≤ 5 MB. Luego PUT uploadUrl con exactamente los headers recibidos. */
@@ -116,6 +120,29 @@ export class PublicMenuApiService {
   /** → paymentStatus to_verify. 409 RECEIPT_NOT_ALLOWED. */
   confirmReceipt(id: string, fileId: string): Observable<PublicOrderDto> {
     return this.#http.post<PublicOrderDto>(`${this.#base}/orders/${encodeURIComponent(id)}/receipt/confirm`, { fileId });
+  }
+
+  /** Etapa 11: "Completa tu pedido". Sin reglas o sin plan: { suggestions: [] }. */
+  getSuggestions(businessSlug: string, locationSlug: string, items: ReadonlyArray<{ productId: number; variationId: number }>): Observable<{ suggestions: PublicSuggestionDto[] }> {
+    return this.#http.post<{ suggestions: PublicSuggestionDto[] }>(
+      `${this.#base}/menus/${encodeURIComponent(businessSlug)}/${encodeURIComponent(locationSlug)}/suggestions`,
+      { items },
+    );
+  }
+
+  // --- Documentos legales (módulo legal global) ---
+
+  /** Versión vigente de un documento en el idioma pedido (es por defecto). businessSlug: documento de un negocio. 404 si no hay. */
+  getLegalDocument(code: string, lang?: string | null, businessSlug?: string | null): Observable<LegalVersionDto> {
+    const params: Record<string, string> = {};
+    if (lang) params['lang'] = lang;
+    if (businessSlug) params['businessSlug'] = businessSlug;
+    return this.#http.get<LegalVersionDto>(`${this.#base}/legal/documents/${encodeURIComponent(code)}`, { params });
+  }
+
+  /** Una versión exacta (publicada o retirada): "lo que aceptaste". */
+  getLegalVersion(id: number): Observable<LegalVersionDto> {
+    return this.#http.get<LegalVersionDto>(`${this.#base}/legal/versions/${encodeURIComponent(String(id))}`);
   }
 }
 

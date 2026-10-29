@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
 import { FileUploadService, getUploadErrorMessage, ImageSelection } from 'src/app/core/services/file-upload';
 import { FormBuilder } from '@angular/forms';
+import { EntitlementsService } from 'src/app/core/services/entitlements';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ButtonComponent, IconComponent, ModalCardComponent, SlotDirective, ToastService } from 'src/ui';
@@ -9,7 +11,9 @@ import { BusinessSettingsService } from 'src/app/core/services/business-settings
 import { RecipesService, UnitsService } from 'src/app/modules/inventory/data-access';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { MenuSettingsService } from 'src/app/modules/public-menu/data-access';
+import { MenuAiService } from 'src/app/modules/products/pages/menu-ai/data-access';
 import { GetAllCategoriesService } from '../../../categories/data-access';
+import { sortCategoryTree } from 'src/app/modules/products/shared';
 import { ProductDto, UpdateProductService, getProductSaveErrorMessage } from '../../data-access';
 import {
   createProductForm,
@@ -45,14 +49,19 @@ export class UpdateProductModalComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly updateService = inject(UpdateProductService);
 
-  readonly $categories = inject(GetAllCategoriesService).$categories;
   readonly #settings = inject(BusinessSettingsService);
+  readonly #allCategories = inject(GetAllCategoriesService).$categories;
+  // En el orden de la carta.
+  readonly $categories = computed(() => sortCategoryTree(this.#allCategories() ?? [], this.#settings.$menuSortMode()));
   readonly #units = inject(UnitsService);
   readonly $inventoryEnabled = this.#settings.$inventoryEnabled;
   readonly $ingredientsEnabled = this.#settings.$ingredientsEnabled;
   readonly $units = computed(() => this.#units.$units() ?? []);
   readonly product = inject<ProductDto>(MAT_DIALOG_DATA);
   readonly form = createProductForm(inject(FormBuilder), this.product);
+  // Nota del chef: solo con menu_design en el plan.
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #chefNoteEnabled = () => this.#entitlements.hasFeature('menu_design');
   readonly #upload = inject(FileUploadService);
   readonly $isUploading = this.#upload.$isUploading;
   readonly $uploadProgress = this.#upload.$progress;
@@ -61,14 +70,28 @@ export class UpdateProductModalComponent implements OnDestroy {
   readonly $isLoading = computed(() => this.#isSaving() || !!this.updateService.$isLoading());
   #image: ImageSelection = { kind: 'keep' };
   // Etiquetas de la carta: van por otro endpoint, después de guardar el producto y solo si cambiaron.
-  // GET /products aún no las devuelve: si no vienen, se parte vacío y se avisa que se reemplazan.
+  // El listado no las trae: se leen de GET /products/{id} (por código) y se cruzan con el catálogo (ids).
   readonly #menuSettings = inject(MenuSettingsService);
   readonly $tags = injectEditableProductTags();
-  readonly #initialTagIds: readonly number[] = this.product.tags?.map((tag) => tag.id) ?? [];
-  readonly $tagIds = signal<readonly number[]>(this.#initialTagIds);
-  readonly tagsNote = this.product.tags
-    ? null
-    : 'Las etiquetas que ya tiene el producto aún no se muestran aquí: si eliges otras, reemplazan a las anteriores.';
+  // undefined: cargando; null: no se pudieron leer.
+  readonly #currentTags = toSignal(
+    inject(MenuAiService)
+      .getProduct(this.product.id)
+      .pipe(
+        map((product) => product.tags ?? null),
+        catchError(() => of(null)),
+      ),
+    { initialValue: undefined },
+  );
+  #initialTagIds: readonly number[] = [];
+  readonly $tagIds = signal<readonly number[]>([]);
+  readonly #tagsResolved = signal(false);
+  readonly $tagsReady = computed(() => this.#currentTags() === null || this.#tagsResolved());
+  readonly $tagsNote = computed(() =>
+    this.#currentTags() === null
+      ? 'No pudimos leer las etiquetas que ya tiene el producto: si eliges otras, reemplazan a las anteriores.'
+      : null,
+  );
   // Contenido del pack (type combo): se carga si ya es pack y se guarda después del producto, solo si cambió.
   readonly pack = injectPackContent();
   readonly $isPack = toSignal(this.form.controls.isPack.valueChanges, { initialValue: this.form.controls.isPack.value });
@@ -82,6 +105,15 @@ export class UpdateProductModalComponent implements OnDestroy {
   readonly #destroyRef = inject(DestroyRef);
 
   constructor() {
+    effect(() => {
+      const current = this.#currentTags();
+      const catalog = this.$tags();
+      if (!current || !catalog.length || untracked(this.#tagsResolved)) return;
+      const idByCode = new Map(catalog.map((tag) => [tag.code, tag.id]));
+      this.#initialTagIds = current.map((tag) => idByCode.get(tag.code)).filter((id): id is number => id !== undefined);
+      this.$tagIds.set(this.#initialTagIds);
+      this.#tagsResolved.set(true);
+    });
     if (this.$inventoryEnabled()) this.#units.load();
     this.#loadMissingRecipes();
     // Si ya es pack se carga lo guardado; si recién pasa a serlo, parte vacío.
@@ -131,8 +163,9 @@ export class UpdateProductModalComponent implements OnDestroy {
     this.#isSaving.set(true);
     try {
       const imageFileId = await this.#upload.resolveSelection(this.#image, 'products');
+      const context = { inventoryEnabled: this.$inventoryEnabled(), chefNoteEnabled: this.#chefNoteEnabled() };
       this.updateService.update(this.product.id, {
-        ...toUpdateProductDto(this.form, this.product, { inventoryEnabled: this.$inventoryEnabled() }),
+        ...toUpdateProductDto(this.form, this.product, context),
         ...(imageFileId !== undefined ? { imageFileId } : {}),
       });
     } catch (error) {

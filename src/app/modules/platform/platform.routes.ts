@@ -25,6 +25,9 @@ const routes: Routes = [
       { path: 'invoices', loadComponent: () => import('./pages/platform-invoices').then((m) => m.PlatformInvoicesComponent) },
       // Query params opcionales: active (true|false), page.
       { path: 'support-access', loadComponent: () => import('./pages/platform-support-access').then((m) => m.PlatformSupportAccessComponent) },
+      // Query param opcional: tab (audit).
+      { path: 'legal', pathMatch: 'full', loadComponent: () => import('./pages/platform-legal').then((m) => m.PlatformLegalComponent) },
+      { path: 'legal/:id', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./pages/platform-legal-document').then((m) => m.PlatformLegalDocumentComponent) },
       { path: 'settings', canDeactivate: [unsavedChangesGuard], loadComponent: () => import('./pages/platform-settings').then((m) => m.PlatformSettingsComponent) },
     ],
   },

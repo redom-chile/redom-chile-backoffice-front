@@ -1,0 +1,102 @@
+@let locked = $locked();
+@let reorderable = !locked && !$reordering() && $busyId() === null;
+@if ($missing()) {
+<app-menu-dynamic-stage-banner class="mb-4 block" />
+}
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <p class="text-muted-foreground text-sm">La carta cambia sola según la hora: destaca o muestra solo lo de cada momento.</p>
+  <app-button *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" type="button" impact="bold" tone="primary" shape="rounded" [disabled]="locked" (buttonClick)="create()">
+    <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4" aria-hidden="true">add</app-icon>Nuevo momento</span>
+  </app-button>
+</div>
+
+@if ($error() && !$missing()) {
+<div class="flex flex-col items-center gap-3 py-12 text-center">
+  <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+  <p class="text-muted-foreground text-sm">{{ $errorMessage() }}</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="moments.reload()">Reintentar</app-button>
+</div>
+} @else if (moments.isLoading() && !$loaded()) {
+<div class="space-y-3">
+  @for (row of [1, 2, 3]; track row) {
+  <div class="glass space-y-2 rounded-[1rem] p-4">
+    <app-skeleton size="xs" style="width: 160px" />
+    <app-skeleton size="sm" style="width: 70%" />
+  </div>
+  }
+</div>
+} @else if (!$list().length) {
+<app-empty-state icon="schedule" title="Aún no tienes momentos" description="Ej.: Desayuno de 08:00 a 11:30 con cafés y sándwiches, o Happy hour de 18:00 a 21:00 solo con tragos." />
+} @else {
+<ol
+  cdkDropList
+  cdkDropListLockAxis="y"
+  class="space-y-3"
+  aria-label="Momentos del día, en orden"
+  [class.opacity-60]="moments.isLoading()"
+  [cdkDropListDisabled]="!reorderable"
+  (cdkDropListDropped)="drop($event)">
+  @for (moment of $list(); track moment.id; let index = $index, first = $first, last = $last) {
+  @let busy = $busyId() === moment.id;
+  <li
+    cdkDrag
+    class="glass flex flex-col gap-3 rounded-[1rem] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+    [class.ring-2]="$conflictId() === moment.id"
+    [class.ring-red-500]="$conflictId() === moment.id">
+    <div class="flex min-w-0 flex-1 items-start gap-2">
+      @if (!locked) {
+      <div class="flex shrink-0 items-center">
+        <button type="button" cdkDragHandle [class]="handleClass" [attr.aria-label]="'Arrastra para mover ' + moment.name" title="Arrastra para ordenar">
+          <app-icon class="h-5 w-5" aria-hidden="true">drag_indicator</app-icon>
+        </button>
+        <app-menu-dynamic-move-buttons [label]="moment.name" [first]="first" [last]="last" [disabled]="!reorderable" (moveUp)="move(index, -1)" (moveDown)="move(index, 1)" />
+      </div>
+      }
+      <span class="bg-primary/10 text-primary inline-flex size-10 shrink-0 items-center justify-center rounded-xl">
+        @if (moment.icon && iconLabel(moment.icon)) {
+        <app-carta-icon [name]="asIcon(moment.icon)" [size]="20" />
+        } @else {
+        <app-icon class="h-5 w-5" aria-hidden="true">schedule</app-icon>
+        }
+      </span>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="text-foreground min-w-0 truncate font-semibold">{{ moment.name }}</h3>
+          @if (isLive(moment)) {
+          <span class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">Ahora en la carta</span>
+          }
+          @if ($conflictId() === moment.id) {
+          <span class="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">Se cruza con el horario elegido</span>
+          }
+        </div>
+        <div class="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+          <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">calendar_month</app-icon>{{ days(moment) }}
+          </span>
+          <span class="bg-muted/50 text-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+            <app-icon class="h-3.5 w-3.5" aria-hidden="true">schedule</app-icon>{{ time(moment) }}
+          </span>
+          <span class="bg-primary/10 text-primary rounded-full px-2 py-0.5 font-medium">{{ modeLabels[moment.mode] }}</span>
+          <span class="bg-muted/50 text-foreground rounded-full px-2 py-0.5">{{ counts(moment) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+      <label class="flex items-center gap-2 text-sm">
+        <span class="text-muted-foreground">{{ moment.isActive ? 'Activo' : 'Inactivo' }}</span>
+        <app-toggle [ariaLabel]="'Activar ' + moment.name" [checked]="moment.isActive" [disabled]="busy || locked" (changed)="toggle(moment, $event)" />
+      </label>
+      <div *appCheckPermission="PERMISSIONS.PUBLIC_MENU.MANAGE_MARKETING" class="flex items-center">
+        <button type="button" class="text-muted-foreground hover:text-foreground inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Editar ' + moment.name" (click)="edit(moment)">
+          <app-icon class="h-5 w-5" aria-hidden="true">edit</app-icon>
+        </button>
+        <button type="button" class="text-muted-foreground hover:text-destructive inline-flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="busy || locked" [attr.aria-label]="'Eliminar ' + moment.name" (click)="remove(moment)">
+          <app-icon class="h-5 w-5" aria-hidden="true">delete</app-icon>
+        </button>
+      </div>
+    </div>
+  </li>
+  }
+</ol>
+}

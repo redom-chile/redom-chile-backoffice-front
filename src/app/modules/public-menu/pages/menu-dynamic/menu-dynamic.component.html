@@ -1,0 +1,102 @@
+@let tab = $tab();
+<app-header-dashboard title="Carta dinámica" subtitle="Que tu carta muestre lo correcto en el momento correcto, en cada local.">
+  <a
+    *appCheckPermission="PERMISSIONS.PUBLIC_MENU.SEE_MODULE"
+    routerLink="/settings/public-menu"
+    class="glass-row text-foreground hidden h-9 items-center gap-1 rounded-full px-3 text-sm font-medium sm:inline-flex">
+    <app-icon class="h-4 w-4" aria-hidden="true">qr_code_2</app-icon>Carta pública
+  </a>
+</app-header-dashboard>
+
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+  <nav appTabList class="glass-input -mx-1 flex w-full gap-1 overflow-x-auto rounded-full p-1 lg:w-fit" aria-label="Secciones de la carta dinámica">
+    @for (item of tabs; track item.id) {
+    <button
+      type="button"
+      [id]="'dynamic-tab-' + item.id"
+      class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-sm font-medium"
+      [class]="tab === item.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+      [appTab]="tab === item.id"
+      tabPanel="dynamic-panel"
+      (click)="selectTab(item.id)">
+      <app-icon class="h-4 w-4" aria-hidden="true">{{ item.icon }}</app-icon>{{ item.label }}
+      @if (isLocked(item.feature)) {
+      <app-icon class="h-3.5 w-3.5 opacity-70" aria-hidden="true">lock</app-icon><span class="sr-only">(no incluido en tu plan)</span>
+      }
+    </button>
+    }
+  </nav>
+
+  <div class="w-full lg:max-w-xs">
+    <label for="dynamic-location" class="text-foreground mb-1 block text-sm font-medium">Local</label>
+    @if ($isLoadingLocations()) {
+    <div class="bg-muted h-[42px] w-full animate-pulse rounded-lg"></div>
+    } @else {
+    <select id="dynamic-location" class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none" [disabled]="!$locations().length" (change)="onLocationChange($event)">
+      @for (location of $locations(); track location.locationId) {
+      <option [value]="location.locationId" [selected]="location.locationId === $locationId()">{{ location.locationName }}</option>
+      }
+    </select>
+    }
+  </div>
+</div>
+
+@if (!$canManage()) {
+<p class="text-muted-foreground mb-4 flex items-center gap-1 text-xs">
+  <app-icon class="h-4 w-4" aria-hidden="true">lock</app-icon>
+  Solo quien administra el marketing de la carta puede hacer cambios. Puedes mirar la configuración.
+</p>
+}
+@if ($catalogFailed()) {
+<div class="mb-4 flex flex-wrap items-center gap-2 rounded-[1rem] border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
+  <app-icon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true">warning</app-icon>
+  <p class="text-foreground flex-1">No se pudieron cargar tus productos y categorías: verás solo sus números.</p>
+  <app-button impact="light" size="small" type="button" (buttonClick)="catalog.reload()">Reintentar</app-button>
+</div>
+}
+
+<div id="dynamic-panel" role="tabpanel" [attr.aria-labelledby]="'dynamic-tab-' + tab">
+  @if (!$tabAllowed()) {
+  <app-marketing-upsell-card [feature]="$tabInfo().feature" [description]="$tabInfo().description" />
+  } @else if ($settingsError(); as message) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] py-12 text-center">
+    <app-icon class="text-destructive h-12 w-12" aria-hidden="true">error_outline</app-icon>
+    <p class="text-muted-foreground text-sm">{{ message }}</p>
+    <app-button impact="light" size="small" type="button" (buttonClick)="settings.reload()">Reintentar</app-button>
+  </div>
+  } @else if (!$isLoadingLocations() && !$locations().length) {
+  <div class="glass flex flex-col items-center gap-3 rounded-[1rem] px-5 py-10 text-center">
+    <app-icon class="text-muted-foreground h-10 w-10" aria-hidden="true">storefront</app-icon>
+    <p class="text-foreground font-medium">Aún no tienes locales</p>
+    <a routerLink="/business/location" class="text-primary text-sm font-medium hover:underline">Crear local</a>
+  </div>
+  } @else if ($locationId(); as locationId) {
+  @switch (tab) {
+  @case ('moments') {
+  <app-menu-dynamic-moments [locationId]="locationId" [timeZone]="$timeZone()" [catalog]="$catalog()" [catalogLoading]="$catalogLoading()" />
+  }
+  @case ('seasons') {
+  <app-menu-dynamic-seasons
+    [locationId]="locationId"
+    [locationName]="$location()?.locationName ?? ''"
+    [timeZone]="$timeZone()"
+    [catalog]="$catalog()"
+    [catalogLoading]="$catalogLoading()" />
+  }
+  @case ('daily') {
+  <app-menu-dynamic-daily [locationId]="locationId" [timeZone]="$timeZone()" [catalog]="$catalog()" [catalogLoading]="$catalogLoading()" />
+  }
+  @case ('suggestions') {
+  <app-menu-dynamic-suggestions
+    [locationId]="locationId"
+    [locationName]="$location()?.locationName ?? ''"
+    [hasPlus]="$hasPlus()"
+    [catalog]="$catalog()"
+    [catalogLoading]="$catalogLoading()" />
+  }
+  @case ('weather') {
+  <app-menu-dynamic-weather [locationId]="locationId" [hasCoordinates]="$hasCoordinates()" [catalog]="$catalog()" [catalogLoading]="$catalogLoading()" />
+  }
+  }
+  }
+</div>

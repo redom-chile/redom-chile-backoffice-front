@@ -1,0 +1,186 @@
+@let editable = $editable();
+@let busy = $busy();
+@let value = $value();
+@let id = $id();
+@let errors = $errors();
+<div class="flex flex-col gap-3 border-t border-[var(--border)] pt-4">
+  <div class="flex items-center justify-between gap-2">
+    <h3 class="text-foreground font-semibold">Clientes reconocidos</h3>
+    @if (!$hasFeature()) {
+    <span class="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+      <app-icon class="h-3.5 w-3.5" aria-hidden="true">lock</app-icon>{{ $planBadge() }}
+    </span>
+    }
+  </div>
+
+  @if (!$hasFeature()) {
+  <div class="glass-row flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-muted-foreground text-sm">Tus clientes se identifican con su correo, la carta recuerda sus preferencias y les muestra "Lo de siempre".</p>
+    <app-button impact="light" size="small" type="button" icon="workspace_premium" (buttonClick)="upsell()">Ver planes</app-button>
+  </div>
+  }
+
+  <div class="glass-row flex items-center justify-between gap-3 rounded-xl p-3" [class.opacity-70]="!$hasFeature()">
+    <div class="min-w-0">
+      <p class="text-foreground text-sm font-medium">Reconocer a mis clientes en la carta</p>
+      <p class="text-muted-foreground text-xs">Recuerda sus preferencias (dieta, alérgenos, idioma) y sus pedidos anteriores.</p>
+    </div>
+    <app-toggle [checked]="value.enabled" [disabled]="!editable || !!busy" (changed)="setEnabled($event)" />
+  </div>
+
+  @if ($hasFeature() && value.enabled) {
+  <!-- Forma de reconocer -->
+  <fieldset class="glass-row flex flex-col gap-2 rounded-xl p-3">
+    <legend class="sr-only">Cómo reconocer a tus clientes</legend>
+    <p class="text-foreground text-sm font-medium">Cómo reconocerlos</p>
+    <label class="flex items-start gap-2 rounded-lg px-1 py-1 text-sm" [class.cursor-pointer]="editable">
+      <input
+        type="radio"
+        class="accent-primary mt-0.5 h-4 w-4"
+        [name]="id + '-mode'"
+        [checked]="value.mode === 'verified'"
+        [disabled]="!editable || !!busy"
+        (change)="setMode('verified')" />
+      <span>
+        <span class="text-foreground block">Con código por correo (recomendado)</span>
+        <span class="text-muted-foreground block text-xs">Su perfil sirve en cualquier dispositivo y en todos los locales Redom.</span>
+      </span>
+    </label>
+    <label class="flex items-start gap-2 rounded-lg px-1 py-1 text-sm" [class.cursor-pointer]="editable">
+      <input
+        type="radio"
+        class="accent-primary mt-0.5 h-4 w-4"
+        [name]="id + '-mode'"
+        [checked]="value.mode === 'browserOnly'"
+        [disabled]="!editable || !!busy"
+        (change)="setMode('browserOnly')" />
+      <span>
+        <span class="text-foreground block">Solo en el dispositivo del cliente (sin código)</span>
+        <span class="text-muted-foreground block text-xs">Sin código; lo guardado se pierde si cambia de dispositivo o borra el navegador.</span>
+      </span>
+    </label>
+
+    @if (value.mode === 'verified') {
+    <div class="mt-1 flex flex-col gap-1.5 border-t border-[var(--border)] pt-2">
+      <p class="text-muted-foreground text-xs">El código se envía por correo. WhatsApp vendrá más adelante. Si no le llega, el cliente puede revisar spam o promociones y pedir otro cuando termine la cuenta regresiva.</p>
+
+      @if ($otpUsage(); as usage) {
+      <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm tabular-nums" [class]="usage.reached ? 'font-medium text-amber-700 dark:text-amber-300' : 'text-foreground'">
+          @if (usage.limit !== null) {
+          {{ usage.used }} de {{ usage.limit }} códigos este mes
+          } @else {
+          {{ usage.used }} {{ usage.used === 1 ? 'código' : 'códigos' }} este mes
+          }
+        </p>
+        @if (usage.reached) {
+        <app-button impact="light" size="small" type="button" icon="workspace_premium" (buttonClick)="upsell()">Ver planes</app-button>
+        }
+      </div>
+      <p class="text-muted-foreground text-xs">
+        Los códigos por correo casi no tienen costo: el máximo mensual de tu plan solo protege contra abusos. Si se alcanza, tus clientes siguen usando la carta y sus preferencias se guardan en su dispositivo.
+      </p>
+      }
+    </div>
+    }
+  </fieldset>
+
+  <!-- Qué pide y qué muestra (sin identidad en modo browserOnly; los valores guardados no se tocan) -->
+  @if (value.mode === 'browserOnly') {
+  <p class="text-muted-foreground text-xs">En este modo el cliente guarda sus preferencias solo en su dispositivo: no hay "Lo de siempre" ni saldo.</p>
+  } @else {
+  <fieldset class="glass-row flex flex-col gap-1.5 rounded-xl p-3">
+    <legend class="sr-only">Qué pide y qué muestra la carta</legend>
+    <p class="text-foreground text-sm font-medium">Qué pide y qué muestra</p>
+    <p class="text-muted-foreground text-xs">Siempre pide el correo (lo verifica con el código); el nombre es opcional.</p>
+    <label class="flex items-center gap-2 rounded-lg px-1 py-1 text-sm" [class.cursor-pointer]="editable">
+      <input type="checkbox" class="accent-primary h-4 w-4" [checked]="value.askPhone" [disabled]="!editable || !!busy" (change)="setCheck('askPhone', $any($event.target).checked)" />
+      <span class="text-foreground">Pedir teléfono (opcional, no se verifica)</span>
+    </label>
+    <label class="flex items-center gap-2 rounded-lg px-1 py-1 text-sm" [class.cursor-pointer]="editable">
+      <input type="checkbox" class="accent-primary h-4 w-4" [checked]="value.showUsual" [disabled]="!editable || !!busy" (change)="setCheck('showUsual', $any($event.target).checked)" />
+      <span class="text-foreground">Mostrar "Lo de siempre"</span>
+    </label>
+    <label class="flex items-center gap-2 rounded-lg px-1 py-1 text-sm" [class.cursor-pointer]="editable">
+      <input type="checkbox" class="accent-primary h-4 w-4" [checked]="value.showLoyalty" [disabled]="!editable || !!busy" (change)="setCheck('showLoyalty', $any($event.target).checked)" />
+      <span class="text-foreground">Mostrar su saldo de fidelización</span>
+    </label>
+    @if (value.showLoyalty && $loyaltyHint(); as hint) {
+    <p class="text-xs text-amber-700 dark:text-amber-300">{{ hint }}</p>
+    }
+  </fieldset>
+  }
+
+  <!-- Consentimiento y privacidad -->
+  <div class="glass-row flex flex-col gap-3 rounded-xl p-3">
+    <div>
+      <label [for]="id + '-consent'" class="text-foreground mb-1 block text-sm font-medium">Texto de consentimiento</label>
+      <textarea
+        [id]="id + '-consent'"
+        rows="3"
+        class="glass-input w-full resize-y rounded-md px-3 py-2 text-sm"
+        [placeholder]="$redomConsent()"
+        [class.border-red-500]="!!errors.consentText"
+        [value]="$consentText()"
+        [disabled]="!editable"
+        (input)="onText('consentText', $event)"></textarea>
+      <div class="mt-1 flex flex-wrap items-start justify-between gap-2 text-xs">
+        @if (errors.consentText; as error) {
+        <span class="text-red-600 dark:text-red-400">{{ error }}</span>
+        } @else if (!$consentText().trim()) {
+        <span class="text-muted-foreground">
+          Vacío, se muestra el texto de Redom.
+          @if (editable) {
+          <button type="button" class="text-primary font-medium hover:underline" (click)="setConsent($redomConsent())">Editar a partir de él</button>
+          }
+        </span>
+        } @else {
+        @if (editable) {
+        <button type="button" class="text-primary font-medium hover:underline" (click)="setConsent('')">Usar el texto de Redom</button>
+        } @else {
+        <span></span>
+        }
+        }
+        <span class="text-muted-foreground tabular-nums" [class.text-red-600]="!!errors.consentText">{{ $consentText().trim().length }}/{{ consentMax }}</span>
+      </div>
+    </div>
+
+    <div>
+      <label [for]="id + '-privacy'" class="text-foreground mb-1 block text-sm font-medium">Política de privacidad del local</label>
+      <input
+        [id]="id + '-privacy'"
+        type="url"
+        autocomplete="off"
+        class="glass-input w-full rounded-md px-3 py-2 text-sm"
+        placeholder="https://tulocal.cl/privacidad"
+        [class.border-red-500]="!!errors.privacyUrl"
+        [value]="$privacyUrl()"
+        [disabled]="!editable"
+        (input)="onText('privacyUrl', $event)" />
+      @if (errors.privacyUrl; as error) {
+      <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+      } @else {
+      <p class="text-muted-foreground mt-1 text-xs">Opcional. La carta muestra siempre la política de Redom y, si la agregas, también la tuya.</p>
+      }
+    </div>
+
+    @if (editable) {
+    <div class="flex flex-wrap justify-end gap-2">
+      @if ($hasTextChanges()) {
+      <app-button impact="light" size="small" type="button" [disabled]="busy === 'texts'" (buttonClick)="discardTexts()">Descartar</app-button>
+      }
+      <app-button
+        impact="bold"
+        tone="primary"
+        size="small"
+        type="button"
+        [disabled]="!$hasTextChanges() || !$textsValid() || !!busy"
+        [isLoading]="busy === 'texts'"
+        (buttonClick)="saveTexts()">
+        Guardar textos
+      </app-button>
+    </div>
+    }
+  </div>
+  }
+</div>

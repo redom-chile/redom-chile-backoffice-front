@@ -3,11 +3,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgClass } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
+import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
+import { PlanLockBadgeComponent } from 'src/app/modules/products/shared';
 import { ImageSelection } from 'src/app/core/services/file-upload';
 import { RouterLink } from '@angular/router';
 import { IconComponent, ImagePickerComponent } from 'src/ui';
 import { STOCK_MODE_OPTIONS, UnitDto, unitLabel } from 'src/app/modules/inventory/data-access';
 import { CategoryDto } from '../../../categories/data-access';
+import { CHEF_NOTE_MAX } from '../../data-access';
+import { ProductDescriptionAiComponent } from '../menu-ai-assist';
 import {
   createVarietyForm,
   duplicatedVarietyNames,
@@ -23,7 +27,7 @@ import {
 
 @Component({
   selector: 'app-product-form-fields',
-  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, IconComponent, ImagePickerComponent, PlanLockBadgeComponent, ProductDescriptionAiComponent],
   templateUrl: './product-form-fields.component.html',
 })
 export class ProductFormFieldsComponent implements OnInit {
@@ -34,10 +38,19 @@ export class ProductFormFieldsComponent implements OnInit {
   readonly $pricesExcludeVat = this.businessSettings.$pricesExcludeVat;
   readonly $vatRate = this.businessSettings.$vatRate;
 
+  // Nota del chef: requiere menu_design; sin la función se muestra bloqueada con la mejora de plan.
+  readonly #entitlements = inject(EntitlementsService);
+  readonly #upsell = inject(PlanUpsellService);
+  readonly $chefNoteEnabled = computed(() => this.#entitlements.hasFeature('menu_design'));
+  readonly chefNoteMax = CHEF_NOTE_MAX;
+  readonly $chefNoteLength = signal(0);
+
   readonly form = input.required<ProductForm>();
   readonly categories = input<CategoryDto[]>([]);
   // Solo al crear: al editar, el SKU existente no debe cambiar al renombrar.
   readonly autoSuggestSku = input(true);
+  // Producto guardado (al editar): habilita "Sugerir con IA" en la descripción.
+  readonly productId = input<number | null>(null);
   readonly currentImageUrl = input<string | null | undefined>(null);
   readonly uploading = input(false);
   readonly uploadProgress = input(0);
@@ -77,7 +90,9 @@ export class ProductFormFieldsComponent implements OnInit {
     'w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100';
 
   ngOnInit(): void {
-    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties } = this.form().controls;
+    const { name, sku, categoryId, subCategoryId, stockMode, isPack, hasVarieties, chefNote } = this.form().controls;
+    this.$chefNoteLength.set(chefNote.value?.length ?? 0);
+    chefNote.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$chefNoteLength.set(value?.length ?? 0));
     this.$hasVarieties.set(!!hasVarieties.value);
     this.$isPack.set(!!isPack.value);
     isPack.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.$isPack.set(!!value));
@@ -94,6 +109,17 @@ export class ProductFormFieldsComponent implements OnInit {
       this.$selectedCategoryId.set(value);
       subCategoryId.setValue(null);
     });
+  }
+
+  showChefNotePlans() {
+    this.#upsell.open({ features: ['menu_design'] });
+  }
+
+  /** La sugerencia elegida queda en el formulario; se guarda con "Guardar". */
+  setDescription(text: string) {
+    const control = this.form().controls.productDescription;
+    control.setValue(text);
+    control.markAsDirty();
   }
 
   regenerateSku() {

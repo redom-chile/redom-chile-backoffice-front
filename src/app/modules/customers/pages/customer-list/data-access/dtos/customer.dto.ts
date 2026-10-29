@@ -4,6 +4,9 @@ export type CustomerListItemDto = Readonly<{
   name: string;
   mobile: string;
   email: string | null;
+  // Etapa 10: se identificó con código en la carta.
+  isVerified: boolean;
+  verifiedAt: string | null;
 }>;
 
 export type CustomerFiltersDto = Readonly<{

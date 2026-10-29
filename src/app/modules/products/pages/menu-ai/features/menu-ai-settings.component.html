@@ -1,0 +1,172 @@
+@let settings = $settings();
+@let canEdit = $canEdit();
+@if (store.$settingsLoading()) {
+<div class="flex flex-col gap-3" aria-busy="true">
+  @for (i of [1, 2, 3]; track i) {
+  <div class="bg-muted h-28 animate-pulse rounded-[1rem]"></div>
+  }
+</div>
+} @else if (settings) {
+@if (!store.$canManageSettings()) {
+<p class="text-muted-foreground mb-4 text-sm" role="note">Solo quien administra la carta pública puede cambiar esta configuración.</p>
+}
+
+<div class="flex flex-col gap-4">
+  <section id="menu-ai-setting-isEnabled" tabindex="-1" class="glass rounded-[1rem] p-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]" [class.ring-2]="isInvalid('isEnabled')" [class.ring-red-500]="isInvalid('isEnabled')" aria-labelledby="menu-ai-enable-title">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 id="menu-ai-enable-title" class="text-foreground font-semibold">Usar IA para mejorar mi carta</h2>
+        <p class="text-muted-foreground text-sm">Sugiere descripciones y etiquetas. Nunca publica sola: tú eliges qué aplicar.</p>
+      </div>
+      <app-toggle [checked]="$isEnabled()" [disabled]="!canEdit" ariaLabel="Usar IA para mejorar mi carta" (changed)="set('isEnabled', $isEnabled, $event)" />
+    </div>
+  </section>
+
+  <section class="glass rounded-[1rem] p-4" aria-labelledby="menu-ai-style-title">
+    <h2 id="menu-ai-style-title" class="text-foreground mb-3 font-semibold">Estilo de las descripciones</h2>
+
+    <span id="menu-ai-tone" class="text-foreground mb-1 block text-sm font-medium">Tono</span>
+    <div
+      id="menu-ai-setting-tone"
+      tabindex="-1"
+      class="glass-input flex w-full gap-1 rounded-full p-1 outline-none sm:w-fit"
+      [class.ring-2]="isInvalid('tone')"
+      [class.ring-red-500]="isInvalid('tone')"
+      role="radiogroup"
+      aria-labelledby="menu-ai-tone"
+      [attr.aria-invalid]="isInvalid('tone') || null">
+      @for (tone of tones; track tone.id) {
+      <button
+        type="button"
+        role="radio"
+        class="inline-flex h-9 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium sm:flex-none"
+        [class]="$tone() === tone.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-checked]="$tone() === tone.id"
+        [disabled]="!canEdit"
+        (click)="set('tone', $tone, tone.id)">
+        {{ tone.label }}
+      </button>
+      }
+    </div>
+    <p class="text-muted-foreground mt-2 text-sm" aria-live="polite">
+      <span class="text-foreground font-medium">Ejemplo:</span> “{{ $toneExample() }}”
+    </p>
+
+    <span id="menu-ai-length" class="text-foreground mt-4 mb-1 block text-sm font-medium">Largo</span>
+    <div
+      id="menu-ai-setting-length"
+      tabindex="-1"
+      class="grid gap-2 rounded-lg outline-none sm:grid-cols-2"
+      [class.ring-2]="isInvalid('length')"
+      [class.ring-red-500]="isInvalid('length')"
+      role="radiogroup"
+      aria-labelledby="menu-ai-length"
+      [attr.aria-invalid]="isInvalid('length') || null">
+      @for (length of lengths; track length.id) {
+      <label class="cursor-pointer" [class.pointer-events-none]="!canEdit">
+        <input type="radio" name="menu-ai-length" class="peer sr-only" [checked]="$length() === length.id" [disabled]="!canEdit" (change)="set('length', $length, length.id)" />
+        <span class="glass-row peer-checked:ring-primary block rounded-lg p-3 peer-checked:ring-2 peer-focus-visible:ring-2">
+          <span class="block text-sm font-semibold">{{ length.label }}</span>
+          <span class="text-muted-foreground block text-xs">{{ length.detail }}</span>
+        </span>
+      </label>
+      }
+    </div>
+  </section>
+
+  <section class="glass rounded-[1rem] p-4" aria-labelledby="menu-ai-limit-title">
+    <h2 id="menu-ai-limit-title" class="text-foreground mb-1 font-semibold">Límite mensual</h2>
+    <p class="text-muted-foreground mb-3 text-sm">
+      Cuántos productos puede describir la IA al mes.
+      @if ($planLimit() !== null) {
+      Tu plan permite {{ $planLimit() }}; puedes poner un tope menor.
+      }
+    </p>
+    <label for="menu-ai-setting-monthlyLimit" class="text-foreground mb-1 block text-sm font-medium">Tope propio</label>
+    <input
+      id="menu-ai-setting-monthlyLimit"
+      type="number"
+      inputmode="numeric"
+      min="0"
+      [attr.max]="$planLimit()"
+      class="glass-input w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none sm:max-w-[12rem]"
+      [placeholder]="$planLimit() !== null ? 'El del plan (' + $planLimit() + ')' : 'Sin límite'"
+      [value]="$limitText()"
+      [disabled]="!canEdit"
+      [attr.aria-invalid]="!!$limitError() || isInvalid('monthlyLimit')"
+      aria-describedby="menu-ai-limit-help"
+      (input)="onLimit($event)" />
+    @let limitError = $limitError() || (isInvalid('monthlyLimit') ? $serverError() : null);
+    <p id="menu-ai-limit-help" class="mt-1 text-xs" [class]="limitError ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'">
+      {{ limitError || ($planLimit() === null ? 'Tu plan no tiene límite. Déjalo vacío para no poner tope.' : 'Déjalo vacío para usar el límite del plan.') }}
+    </p>
+    @if (store.$quota(); as quota) {
+    <div class="mt-3 sm:max-w-sm">
+      <app-menu-ai-quota [quota]="quota" />
+    </div>
+    }
+  </section>
+
+  <section id="menu-ai-setting-insightsEnabled" tabindex="-1" class="glass rounded-[1rem] p-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]" [class.ring-2]="isInvalid('insightsEnabled')" [class.ring-red-500]="isInvalid('insightsEnabled')" aria-labelledby="menu-ai-insights-title">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 id="menu-ai-insights-title" class="text-foreground font-semibold">Sugerencias de precio y promociones</h2>
+        <p class="text-muted-foreground text-sm">Con tus ventas y el food cost te avisamos de márgenes bajos, precios a revisar y días flojos.</p>
+      </div>
+      <app-toggle [checked]="$insightsEnabled()" [disabled]="!canEdit" ariaLabel="Recibir sugerencias de precio y promociones" (changed)="set('insightsEnabled', $insightsEnabled, $event)" />
+    </div>
+    @if ($insightsEnabled()) {
+    <span id="menu-ai-frequency" class="text-foreground mt-3 mb-1 block text-sm font-medium">Frecuencia</span>
+    <div
+      id="menu-ai-setting-insightsFrequency"
+      tabindex="-1"
+      class="glass-input flex w-full gap-1 rounded-full p-1 outline-none sm:w-fit"
+      [class.ring-2]="isInvalid('insightsFrequency')"
+      [class.ring-red-500]="isInvalid('insightsFrequency')"
+      role="radiogroup"
+      aria-labelledby="menu-ai-frequency"
+      [attr.aria-invalid]="isInvalid('insightsFrequency') || null">
+      @for (frequency of frequencies; track frequency.id) {
+      <button
+        type="button"
+        role="radio"
+        class="inline-flex h-9 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium sm:flex-none"
+        [class]="$frequency() === frequency.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
+        [attr.aria-checked]="$frequency() === frequency.id"
+        [disabled]="!canEdit"
+        (click)="set('insightsFrequency', $frequency, frequency.id)">
+        {{ frequency.label }}
+      </button>
+      }
+    </div>
+    }
+  </section>
+</div>
+
+@if (canEdit && $dirty()) {
+<div class="sticky bottom-0 z-10 mt-4 pb-2">
+  <div class="glass flex flex-col gap-2 rounded-[1rem] p-3 shadow-lg sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-foreground text-sm font-medium">
+      Tienes cambios sin guardar
+      @if ($serverError() && !isInvalid('monthlyLimit')) {
+      <span class="block text-xs text-red-600 dark:text-red-400" role="alert">{{ $serverError() }}</span>
+      }
+    </p>
+    <div class="flex flex-wrap justify-end gap-2">
+      <app-button impact="none" tone="primary" size="small" type="button" [disabled]="$saving()" (buttonClick)="discard()">Descartar</app-button>
+      <app-button impact="bold" tone="primary" size="small" type="button" icon="save" [isLoading]="$saving()" [disabled]="!!$limitError()" (buttonClick)="save()">
+        Guardar
+      </app-button>
+    </div>
+  </div>
+</div>
+}
+} @else if (!store.$canViewSettings()) {
+<app-empty-state icon="lock" title="Sin acceso a la configuración" description="Necesitas el permiso para ver la carta pública. Pídeselo a quien administra tu negocio." />
+} @else if (store.$unavailable()) {
+<app-empty-state icon="tune" title="Configuración no disponible" description="Este servidor no tiene la IA para la carta." />
+} @else {
+<app-empty-state icon="cloud_off" title="No se pudo cargar la configuración" description="Inténtalo de nuevo en unos minutos.">
+  <app-button impact="light" tone="primary" size="small" type="button" icon="refresh" (buttonClick)="store.settingsResource.reload()">Reintentar</app-button>
+</app-empty-state>
+}

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,9 +14,11 @@ import {
   CreateProductModalComponent,
   DeleteProductModalComponent,
   ProductModalResult,
+  ProductsOrderListComponent,
   ProductsTableComponent,
   UpdateProductModalComponent,
 } from './features';
+import { sortCategoryTree } from 'src/app/modules/products/shared';
 import { FiltersProductTableComponent, ProductTableFilters } from './ui';
 
 const PER_PAGE = 10;
@@ -42,6 +44,7 @@ function toQuery(params: ParamMap): ProductListQuery {
     IconComponent,
     EmptyStateComponent,
     ProductsTableComponent,
+    ProductsOrderListComponent,
     FiltersProductTableComponent,
     CheckPermissionDirective,
   ],
@@ -66,6 +69,17 @@ export class ProductListComponent implements OnInit {
 
   private readonly filtersComponent = viewChild(FiltersProductTableComponent);
 
+  // "Ordenar": con una categoría elegida y el orden de la carta en manual.
+  readonly $sortMode = this.#settings.$menuSortMode;
+  readonly $ordering = signal(false);
+  readonly $selectedCategory = computed(() => {
+    const id = this.$query().categoryId;
+    if (id === null) return null;
+    const all = this.$categories().flatMap((category) => [category, ...(category.subcategories ?? [])]);
+    return all.find((category) => category.id === id) ?? null;
+  });
+  readonly $canOrder = computed(() => this.$query().categoryId !== null && this.$sortMode() === 'manual');
+
   readonly $query = toSignal(this.route.queryParamMap.pipe(map(toQuery)), {
     initialValue: toQuery(this.route.snapshot.queryParamMap),
   });
@@ -78,7 +92,8 @@ export class ProductListComponent implements OnInit {
   readonly $response = this.getAllService.$products;
   readonly $products = computed(() => this.$response()?.data ?? []);
   readonly $pagination = computed(() => this.$response()?.pagination ?? null);
-  readonly $categories = computed(() => this.getAllCategoriesService.$categories() ?? []);
+  // En el orden de la carta (filtro y nombres).
+  readonly $categories = computed(() => sortCategoryTree(this.getAllCategoriesService.$categories() ?? [], this.$sortMode()));
   readonly $errorMessage = computed(() => {
     const status = this.getAllService.$error();
     return status ? getProductErrorMessage(status) : null;
@@ -104,6 +119,22 @@ export class ProductListComponent implements OnInit {
     collect(this.$categories());
     return names;
   });
+
+  constructor() {
+    // Sin categoría o en orden alfabético no hay nada que ordenar a mano.
+    effect(() => {
+      if (!this.$canOrder()) untracked(() => this.$ordering.set(false));
+    });
+  }
+
+  startOrdering() {
+    if (this.$canOrder()) this.$ordering.set(true);
+  }
+
+  finishOrdering() {
+    this.$ordering.set(false);
+    this.getAllService.retry();
+  }
 
   ngOnInit(): void {
     if (!this.$categories().length) this.getAllCategoriesService.getAll();
@@ -183,6 +214,11 @@ export class ProductListComponent implements OnInit {
       return;
     }
     this.getAllService.retry();
+  }
+
+  // Etapa 9: Carta → Mejorar con IA.
+  openMenuAi() {
+    this.router.navigate(['/products/improve']);
   }
 
   private navigate(queryParams: Record<string, string | number | null>) {

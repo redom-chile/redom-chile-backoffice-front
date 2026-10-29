@@ -330,8 +330,9 @@ export class CollectPaymentModalComponent implements OnDestroy {
     const lines = this.$selectedLines();
     if (!lines.length) return;
     const total = this.$preview();
+    const showTax = await this.businessSettings.showTaxOnPreBillFor(order.locationId);
     const html = billTicketHtml({
-      businessName: this.businessesService.$businesses()?.[0]?.name ?? 'REDOM',
+      businessName: this.businessesService.$current()?.name ?? 'REDOM',
       title: 'PRECUENTA POR PERSONA',
       invoiceNo: order.invoiceNo,
       tableName: order.tableName,
@@ -350,6 +351,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
       discount: 0,
       total,
       taxAmount: order.finalTotal > 0 ? Math.round((order.taxAmount * total) / order.finalTotal) : 0,
+      showTax,
       paid: 0,
       remaining: total,
       suggestedTipPercent: this.$suggestedTipPercent(),

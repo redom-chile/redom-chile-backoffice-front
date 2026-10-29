@@ -119,7 +119,13 @@ export type OwnerPlanDto = Readonly<{
 export type CheckoutAction = 'purchase' | 'renewal' | 'upgrade' | 'scheduled';
 
 /** manual: transferencia (fase 4). flow: tarjeta registrada en Flow (fase 5). */
-export type CheckoutRequestDto = Readonly<{ priceId: number; couponCode?: string; method: 'manual' | 'flow' }>;
+export type CheckoutRequestDto = Readonly<{
+  priceId: number;
+  couponCode?: string;
+  method: 'manual' | 'flow';
+  // subscriptionTerms y dataProcessingAgreement vigentes, mientras el negocio no los haya aceptado (#77).
+  acceptedVersionIds?: number[];
+}>;
 
 export type CheckoutResultDto = Readonly<{
   action: CheckoutAction;

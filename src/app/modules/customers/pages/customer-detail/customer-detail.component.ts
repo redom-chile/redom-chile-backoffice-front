@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ButtonComponent, ConfirmModalComponent, ConfirmModalData, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { formatCurrency, formatDateTime, ORDER_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { CustomerDetailDto, CustomerService } from './data-access';
@@ -12,7 +13,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
-  imports: [RouterLink, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent, CheckPermissionDirective],
+  imports: [RouterLink, MatTooltipModule, ButtonComponent, IconComponent, SkeletonComponent, StatusBadgeComponent, CheckPermissionDirective],
   templateUrl: './customer-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

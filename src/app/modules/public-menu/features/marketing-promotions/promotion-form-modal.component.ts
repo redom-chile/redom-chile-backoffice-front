@@ -31,6 +31,16 @@ export type PromotionFormModalData = Readonly<{
   timeZone: string | null;
   /** Local elegido en el filtro de la página (al crear). */
   locationId?: number | null;
+  /** Al crear: valores sugeridos (por ejemplo, desde Mejorar mi carta). */
+  draft?: PromotionDraft;
+}>;
+
+export type PromotionDraft = Readonly<{
+  name: string;
+  target: MarketingTarget;
+  discountType: PromotionDiscountType;
+  value: number;
+  daysOfWeek?: readonly number[];
 }>;
 
 type Field = 'name' | 'target' | 'value' | 'channels' | 'schedule';
@@ -56,6 +66,7 @@ export class PromotionFormModalComponent {
   readonly #fb = inject(FormBuilder);
 
   readonly promotion = this.data.promotion ?? null;
+  readonly #draft = this.promotion ? null : (this.data.draft ?? null);
   readonly nameMax = NAME_MAX;
   readonly targetTypes = TARGET_TYPES;
   readonly targetLabels = TARGET_TYPE_LABELS;
@@ -65,21 +76,23 @@ export class PromotionFormModalComponent {
   readonly channelLabels: Record<PriceChannel, string> = { in_store: 'En el local (caja y QR de mesa)', online: 'Online (retiro y delivery)' };
 
   readonly form = this.#fb.group({
-    name: this.#fb.nonNullable.control(this.promotion?.name ?? ''),
+    name: this.#fb.nonNullable.control(this.promotion?.name ?? this.#draft?.name ?? ''),
     targetType: this.#fb.nonNullable.control<PromotionTargetType>(this.promotion?.targetType ?? 'product'),
-    discountType: this.#fb.nonNullable.control<PromotionDiscountType>(this.promotion?.discountType ?? 'percent'),
-    value: this.#fb.control<number | null>(this.promotion ? Number(this.promotion.value) : null),
+    discountType: this.#fb.nonNullable.control<PromotionDiscountType>(this.promotion?.discountType ?? this.#draft?.discountType ?? 'percent'),
+    value: this.#fb.control<number | null>(this.promotion ? Number(this.promotion.value) : (this.#draft?.value ?? null)),
     locationId: this.#fb.nonNullable.control<string>(String(this.promotion ? (this.promotion.locationId ?? '') : (this.data.locationId ?? ''))),
   });
   readonly $value = toSignal(this.form.valueChanges.pipe(map(() => this.form.getRawValue()), startWith(this.form.getRawValue())), {
     initialValue: this.form.getRawValue(),
   });
 
-  readonly $target = signal<MarketingTarget | null>(this.promotion ? { id: this.promotion.targetId, name: targetNameOf(this.promotion) } : null);
+  readonly $target = signal<MarketingTarget | null>(this.promotion ? { id: this.promotion.targetId, name: targetNameOf(this.promotion) } : (this.#draft?.target ?? null));
   readonly $channels = signal<PriceChannel[]>([...(this.promotion?.channels ?? CHANNELS)]);
   readonly $isActive = signal(this.promotion?.isActive ?? true);
   readonly #originalSchedule = scheduleFromEntity(this.promotion, this.data.timeZone);
-  readonly $schedule = signal<ScheduleFormValue>(this.#originalSchedule);
+  readonly $schedule = signal<ScheduleFormValue>(
+    this.#draft?.daysOfWeek?.length ? { ...this.#originalSchedule, days: [...this.#draft.daysOfWeek] } : this.#originalSchedule,
+  );
 
   readonly $isSaving = signal(false);
   readonly $submitted = signal(false);

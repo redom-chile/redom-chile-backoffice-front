@@ -1,0 +1,218 @@
+@let form = $form();
+@let current = $current();
+<section class="glass rounded-[1rem] p-4" aria-labelledby="legal-editor-title">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+    <div class="min-w-0">
+      <h2 id="legal-editor-title" class="text-foreground text-lg font-semibold">
+        {{ current ? 'Borrador de la versión ' + current.version : 'Nuevo borrador' }}
+      </h2>
+      <p class="text-muted-foreground text-xs">
+        @if ($isDirty()) {
+          <span class="text-amber-700 dark:text-amber-400">Cambios sin guardar</span>
+        } @else if (current) {
+          Guardado
+        } @else {
+          Aún no se guarda
+        }
+      </p>
+    </div>
+    <button type="button" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 rounded-md p-1.5 text-sm" [disabled]="$busy()" (click)="closed.emit()">
+      <app-icon class="h-5 w-5">close</app-icon>
+      Cerrar editor
+    </button>
+  </div>
+
+  <!-- Datos de la versión -->
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label for="legal-ed-version" class="mb-1 block text-sm font-medium">Número de versión</label>
+      @if (current) {
+        <input id="legal-ed-version" type="text" disabled class="glass-input w-full rounded-md px-3 py-2 opacity-60" [value]="'v' + current.version" />
+      } @else {
+        <select
+          id="legal-ed-version"
+          class="glass-input w-full rounded-md px-3 py-2"
+          [class.border-red-500]="$errorField() === 'version'"
+          [value]="form.versionNumber"
+          (change)="patch({ versionNumber: value($event) })">
+          <option value="">Nueva (v{{ $nextVersion() }})</option>
+          @for (number of $existingNumbers(); track number) {
+            <option [value]="number">v{{ number }}: agregar otro idioma</option>
+          }
+        </select>
+      }
+    </div>
+    <div>
+      <label for="legal-ed-language" class="mb-1 block text-sm font-medium">Idioma</label>
+      <select
+        id="legal-ed-language"
+        class="glass-input w-full rounded-md px-3 py-2"
+        [class.border-red-500]="$errorField() === 'language'"
+        [value]="form.language"
+        (change)="patch({ language: value($event) })">
+        @for (language of languages; track language) {
+          <option [value]="language" [disabled]="$takenLanguages().has(language)">
+            {{ languageLabels[language] }}{{ $takenLanguages().has(language) ? ' (ya existe)' : '' }}
+          </option>
+        }
+      </select>
+    </div>
+    <div class="sm:col-span-2">
+      <span class="mb-1 block text-sm font-medium" id="legal-ed-effective-label">Vigente desde (hora de Chile)</span>
+      <div class="flex gap-2" role="group" aria-labelledby="legal-ed-effective-label">
+        <input
+          type="date"
+          aria-label="Fecha de vigencia"
+          class="glass-input min-w-0 flex-1 rounded-md px-3 py-2"
+          [class.border-red-500]="$errorField() === 'effectiveAt'"
+          [value]="form.effectiveDate"
+          (change)="patch({ effectiveDate: value($event) })" />
+        <input
+          type="time"
+          aria-label="Hora de vigencia"
+          class="glass-input w-28 rounded-md px-3 py-2"
+          [value]="form.effectiveTime"
+          (change)="patch({ effectiveTime: value($event) })" />
+        @if (form.effectiveDate || form.effectiveTime) {
+          <button type="button" class="text-muted-foreground hover:text-foreground rounded-md p-1.5" title="Quitar fecha" aria-label="Quitar fecha" (click)="clearEffective()">
+            <app-icon class="h-5 w-5">backspace</app-icon>
+          </button>
+        }
+      </div>
+      <p class="text-muted-foreground mt-1 text-xs">
+        @if ($isScheduled()) {
+          Se programará: entra en vigencia en esa fecha y hora.
+        } @else if ($effectiveInPast()) {
+          La fecha ya pasó: al publicar rige de inmediato.
+        } @else {
+          Vacío: rige apenas se publique.
+        }
+      </p>
+    </div>
+  </div>
+
+  <!-- Cambio material -->
+  <label class="mt-4 flex cursor-pointer items-start justify-between gap-3">
+    <span>
+      <span class="text-foreground block text-sm font-medium">Cambio material</span>
+      <span class="text-muted-foreground block text-xs">
+        Actívalo si el cambio afecta derechos u obligaciones: quienes aceptaron una versión anterior deberán aceptar de nuevo (y se les puede avisar por
+        correo). Desactívalo para correcciones menores: solo se informa y las aceptaciones anteriores siguen valiendo.
+        @if (!document().isRequired) {
+          Este documento es opcional, así que nunca bloquea a nadie.
+        }
+      </span>
+    </span>
+    <input type="checkbox" role="switch" class="peer sr-only" [checked]="form.isMaterialChange" (change)="patch({ isMaterialChange: $any($event.target).checked })" />
+    <span
+      class="relative mt-0.5 h-6 w-11 shrink-0 rounded-full bg-gray-300 transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-5 peer-focus-visible:ring-2 dark:bg-gray-600"
+      aria-hidden="true"></span>
+  </label>
+
+  <!-- Resumen -->
+  <div class="mt-4">
+    <label for="legal-ed-summary" class="mb-1 block text-sm font-medium">Resumen de cambios</label>
+    <textarea
+      id="legal-ed-summary"
+      rows="2"
+      [attr.maxlength]="summaryMax"
+      placeholder="Ej: Agregamos la sección de pagos con tarjeta."
+      class="glass-input w-full resize-y rounded-md px-3 py-2 text-sm"
+      [class.border-red-500]="$errorField() === 'changeSummary'"
+      [value]="form.changeSummary"
+      (input)="patch({ changeSummary: value($event) })"></textarea>
+    <p class="text-muted-foreground mt-1 flex justify-between gap-2 text-xs">
+      <span>Se muestra al pedir la aceptación y en el correo de aviso.</span>
+      <span class="tabular-nums">{{ form.changeSummary.length }}/{{ summaryMax }}</span>
+    </p>
+  </div>
+
+  <!-- Contenido con vista previa -->
+  <div class="mt-4">
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <span class="text-sm font-medium" id="legal-ed-content-label">Contenido (markdown, sin HTML) *</span>
+      <div class="glass-input flex rounded-md p-1 lg:hidden" role="tablist" aria-label="Escribir o ver">
+        <button
+          type="button"
+          role="tab"
+          class="rounded px-3 py-1 text-xs font-medium"
+          [attr.aria-selected]="$view() === 'write'"
+          [class]="$view() === 'write' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+          (click)="$view.set('write')">
+          Escribir
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="rounded px-3 py-1 text-xs font-medium"
+          [attr.aria-selected]="$view() === 'preview'"
+          [class]="$view() === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
+          (click)="$view.set('preview')">
+          Vista previa
+        </button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div [class.hidden]="$view() !== 'write'" class="lg:block!">
+        <textarea
+          aria-labelledby="legal-ed-content-label"
+          rows="22"
+          spellcheck="true"
+          placeholder="# Términos de uso&#10;&#10;## 1. Objeto&#10;&#10;Texto del documento…"
+          class="glass-input h-full min-h-[22rem] w-full resize-y rounded-md px-3 py-2 font-mono text-sm"
+          [class.border-red-500]="!!$contentError()"
+          [value]="form.content"
+          (input)="patch({ content: value($event) })"></textarea>
+        <p class="mt-1 flex justify-between gap-2 text-xs">
+          <span [class]="$contentError() ? 'text-destructive' : 'text-muted-foreground'">{{ $contentError() ?? 'Títulos con #, listas con -, negrita con **texto**, enlaces con [texto](https://…).' }}</span>
+          <span class="text-muted-foreground shrink-0 tabular-nums">{{ form.content.length.toLocaleString('es-CL') }}</span>
+        </p>
+      </div>
+      <div [class.hidden]="$view() !== 'preview'" class="lg:block!">
+        <div class="h-full min-h-[22rem] rounded-md border border-[var(--border)] p-4" aria-live="polite">
+          @if (form.content.trim()) {
+            <app-markdown [content]="form.content" />
+          } @else {
+            <p class="text-muted-foreground text-sm">La vista previa aparece aquí.</p>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF -->
+  <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+    <span class="font-medium">PDF (opcional, hasta 10 MB)</span>
+    @if (form.fileId) {
+      <span class="glass-input inline-flex max-w-full items-center gap-2 rounded-md px-3 py-1.5">
+        <app-icon class="h-5 w-5 text-red-600 dark:text-red-400">picture_as_pdf</app-icon>
+        @if ($pdfUrl()) {
+          <a [href]="$pdfUrl()" target="_blank" rel="noopener noreferrer" class="text-primary truncate hover:underline">{{ $fileName() ?? 'Ver PDF adjunto' }}</a>
+        } @else {
+          <span class="truncate">{{ $fileName() ?? 'PDF adjunto' }}</span>
+        }
+        <button type="button" class="text-muted-foreground hover:text-foreground rounded p-0.5" aria-label="Quitar PDF" [disabled]="$busy()" (click)="removePdf()">
+          <app-icon class="h-4 w-4">close</app-icon>
+        </button>
+      </span>
+    }
+    <label class="text-primary inline-flex cursor-pointer items-center gap-1 font-medium hover:underline" [class.pointer-events-none]="$busy()" [class.opacity-50]="$busy()">
+      <app-icon class="h-5 w-5">upload_file</app-icon>
+      {{ $isUploading() ? 'Subiendo…' : form.fileId ? 'Reemplazar PDF' : 'Subir PDF' }}
+      <input type="file" accept="application/pdf,.pdf" class="sr-only" [disabled]="$busy()" (change)="handlePdf($event)" />
+    </label>
+    <p class="text-muted-foreground w-full text-xs">El hash de la versión incluye el contenido y el PDF.</p>
+  </div>
+
+  <!-- Acciones -->
+  <div class="mt-5 flex flex-col-reverse gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:justify-end">
+    <app-button type="button" impact="light" [disabled]="$busy() || (!$isDirty() && !$isNew())" [isLoading]="$isSaving()" (buttonClick)="handleSave()">
+      Guardar borrador
+    </app-button>
+    @if (canPublish()) {
+      <app-button type="button" impact="bold" [disabled]="$busy()" [isLoading]="$isPublishing()" (buttonClick)="handlePublish()">
+        {{ $isScheduled() ? 'Guardar y programar' : $isDirty() || $isNew() ? 'Guardar y publicar ahora' : 'Publicar ahora' }}
+      </app-button>
+    }
+  </div>
+</section>
