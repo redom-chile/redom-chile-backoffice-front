@@ -52,8 +52,7 @@ export class MenuService implements OnDestroy {
     const isLocked = (route: string | null | undefined) =>
       missingPlanFeatures(planRequirementForUrl(route), (code) => this.#entitlements.hasFeature(code)).length > 0;
     // Se hereda del ítem original (no se copia) para que siga viendo el expanded/active que le marca la navegación.
-    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) =>
-      Object.assign(Object.create(item) as SubMenuItem, changes);
+    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
     // El SUPERADMIN no gestiona negocios: solo ve la plataforma y el centro de ayuda.
     // En modo soporte, solo la carta del negocio que lo autorizó (con los candados de su plan).
     if (roles.has('SUPERADMIN')) {
@@ -62,8 +61,7 @@ export class MenuService implements OnDestroy {
           .map((group) => ({
             ...group,
             items: group.items.flatMap((item) => {
-              if (!item.children)
-                return isSupportUrl(item.route) ? [isLocked(item.route) ? derive(item, { locked: true }) : item] : [];
+              if (!item.children) return isSupportUrl(item.route) ? [isLocked(item.route) ? derive(item, { locked: true }) : item] : [];
               const children = item.children
                 .filter((child) => isVisible(child) && isSupportUrl(child.route))
                 .map((child) => (isLocked(child.route) ? derive(child, { locked: true }) : child));
@@ -73,21 +71,15 @@ export class MenuService implements OnDestroy {
           .filter((group) => group.items.length > 0);
       }
       return this._pagesMenu()
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => isVisible(item) && isSuperAdminUrl(item.route)),
-        }))
+        .map((group) => ({ ...group, items: group.items.filter((item) => isVisible(item) && isSuperAdminUrl(item.route)) }))
         .filter((group) => group.items.length > 0);
     }
     return this._pagesMenu().map((group) => ({
       ...group,
       items: group.items.filter(isVisible).map((item) => {
         if (!item.children) return isLocked(item.route) ? derive(item, { locked: true }) : item;
-        const children = item.children
-          .filter(isVisible)
-          .map((child) => (isLocked(child.route) ? derive(child, { locked: true }) : child));
-        const changed =
-          children.length !== item.children.length || children.some((child, i) => child !== item.children![i]);
+        const children = item.children.filter(isVisible).map((child) => (isLocked(child.route) ? derive(child, { locked: true }) : child));
+        const changed = children.length !== item.children.length || children.some((child, i) => child !== item.children![i]);
         if (!changed) return item;
         return derive(item, { children, locked: children.length > 0 && children.every((child) => child.locked) });
       }),
@@ -104,8 +96,7 @@ export class MenuService implements OnDestroy {
       const permission = item.permission ?? permissionForUrl(item.route);
       return permission ? this.#access.can(permission) : isPublicUrl(item.route);
     };
-    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) =>
-      Object.assign(Object.create(item) as SubMenuItem, changes);
+    const derive = (item: SubMenuItem, changes: Partial<SubMenuItem>) => Object.assign(Object.create(item) as SubMenuItem, changes);
 
     return menus
       .map((group) => ({

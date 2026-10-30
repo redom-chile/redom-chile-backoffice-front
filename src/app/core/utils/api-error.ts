@@ -60,7 +60,7 @@ export function readApiError(error: unknown): ApiError {
   return {
     status: error.status,
     code: typeof body.code === 'string' ? body.code : null,
-    message: String(Array.isArray(raw) ? raw[0] ?? '' : raw ?? ''),
+    message: String(Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')),
     details: body.details && typeof body.details === 'object' ? (body.details as Record<string, unknown>) : {},
   };
 }

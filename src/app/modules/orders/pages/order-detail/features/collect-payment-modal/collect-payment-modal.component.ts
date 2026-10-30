@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  OnDestroy,
-  signal,
-  untracked,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
@@ -34,25 +25,12 @@ import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/busin
 import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
 import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
 import { formatCurrency } from '../../../order-list/ui';
-import {
-  GetOrderByIdService,
-  modifierLabel,
-  OrderDetailDto,
-  OrderLineDto,
-  orderVariationLabel,
-  packItemLabel,
-} from '../../data-access';
+import { GetOrderByIdService, modifierLabel, OrderDetailDto, OrderLineDto, orderVariationLabel, packItemLabel } from '../../data-access';
 
 export type CollectPaymentResult = 'paid' | 'partial' | 'dismissed';
 
 type CollectMode = 'amount' | 'products';
-type RegisteredPayment = Readonly<{
-  method: PaymentMethod;
-  amount: number;
-  tip: number;
-  change: number;
-  products: string;
-}>;
+type RegisteredPayment = Readonly<{ method: PaymentMethod; amount: number; tip: number; change: number; products: string }>;
 
 type TipOption = Readonly<{ label: string; percent: number | null }>;
 
@@ -177,8 +155,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
     } else {
       const amount = this.$amount();
       if (amount <= 0) return 'Ingresa el monto a pagar';
-      if (amount > this.$remaining())
-        return `El monto no puede superar el saldo (${formatCurrency(this.$remaining())})`;
+      if (amount > this.$remaining()) return `El monto no puede superar el saldo (${formatCurrency(this.$remaining())})`;
     }
     if (this.$tip() < 0) return 'La propina no puede ser negativa';
     if (!this.$byProducts() && this.$isCash() && this.$tendered() > 0 && this.$tendered() < this.$due())
@@ -340,9 +317,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
   }
 
   selectAll() {
-    this.$selection.set(
-      Object.fromEntries(this.$pendingLines().map((line) => [line.lineId, line.pendingQuantity ?? 0])),
-    );
+    this.$selection.set(Object.fromEntries(this.$pendingLines().map((line) => [line.lineId, line.pendingQuantity ?? 0])));
   }
 
   clearSelection() {
@@ -450,14 +425,10 @@ export class CollectPaymentModalComponent implements OnDestroy {
     }
 
     if (error.code === ApiErrorCode.CASH_REGISTER_AMBIGUOUS) {
-      const ids = Array.isArray(error.details['registerIds'])
-        ? (error.details['registerIds'] as unknown[]).map(Number)
-        : [];
+      const ids = Array.isArray(error.details['registerIds']) ? (error.details['registerIds'] as unknown[]).map(Number) : [];
       this.cashService.getRegisters({ locationId }).subscribe({
         next: (registers) => {
-          const options = registers.filter(
-            (register) => ids.includes(register.id) || (!ids.length && register.openSession),
-          );
+          const options = registers.filter((register) => ids.includes(register.id) || (!ids.length && register.openSession));
           openRegisterPicker(this.dialog, {
             title: '¿Con qué caja cobras?',
             message: 'Hay varias cajas abiertas en este local. Este equipo recordará la que elijas.',
@@ -474,10 +445,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
     }
 
     // La caja guardada ya no sirve (borrada, desactivada o de otro local): se olvida para elegir otra.
-    if (
-      request.cashRegisterId &&
-      /cash register (not found|is inactive)|belongs to another location/i.test(error.message)
-    ) {
+    if (request.cashRegisterId && /cash register (not found|is inactive)|belongs to another location/i.test(error.message)) {
       this.cashDevice.select(locationId, null);
       this.cashContext.refresh();
     }

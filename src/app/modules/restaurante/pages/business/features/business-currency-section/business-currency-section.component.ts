@@ -40,9 +40,7 @@ export class BusinessCurrencySectionComponent {
   // Si la zona guardada no está en la lista, se agrega para no perderla.
   protected readonly $timeZones = computed(() => {
     const saved = this.#savedTimeZone();
-    return TIME_ZONES.some((zone) => zone.value === saved)
-      ? TIME_ZONES
-      : [{ value: saved, label: saved }, ...TIME_ZONES];
+    return TIME_ZONES.some((zone) => zone.value === saved) ? TIME_ZONES : [{ value: saved, label: saved }, ...TIME_ZONES];
   });
 
   protected readonly $currencyChanged = computed(() => this.$currencyId() !== this.#savedCurrencyId());

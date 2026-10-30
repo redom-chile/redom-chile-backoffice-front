@@ -3,12 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { PERMISSIONS } from 'src/app/core/permissions';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { EntitlementsService } from 'src/app/core/services/entitlements';
-import {
-  PLAN_LIMIT_REACHED_TOOLTIP,
-  PlanLockedNoticeComponent,
-  PlanUsageComponent,
-  planLimitGate,
-} from 'src/app/shared/components/plan-limit';
+import { PLAN_LIMIT_REACHED_TOOLTIP, PlanLockedNoticeComponent, PlanUsageComponent, planLimitGate } from 'src/app/shared/components/plan-limit';
 import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { HeaderDashboardComponent, ButtonComponent, EmptyStateComponent, ToastService } from 'src/ui';
 import { BusinessLocationListComponent } from './features/business-location-list';
@@ -70,8 +65,7 @@ export class BusinessLocationComponent implements OnDestroy {
       if (this.$updateService.$success()) this.$getAll.retry();
       if (this.$deleteService.$success()) this.$getAll.retry();
       // Crear o eliminar cambia el uso del plan.
-      if (this.$createService.$success() || this.$deleteService.$success())
-        untracked(() => this.#entitlements.refresh());
+      if (this.$createService.$success() || this.$deleteService.$success()) untracked(() => this.#entitlements.refresh());
     });
 
     effect(() => {
@@ -83,8 +77,7 @@ export class BusinessLocationComponent implements OnDestroy {
           this.$getAll.retry();
         });
       }
-      if (this.$activateService.$hasError())
-        untracked(() => this.#toast.show('No se pudo actualizar la sucursal', 'error'));
+      if (this.$activateService.$hasError()) untracked(() => this.#toast.show('No se pudo actualizar la sucursal', 'error'));
     });
   }
 
@@ -92,7 +85,7 @@ export class BusinessLocationComponent implements OnDestroy {
     if (!this.limitGate.allow()) return;
     // Primera sucursal: se sugiere el nombre del negocio.
     const isFirst = (this.$locations() ?? []).length === 0;
-    const suggestedName = isFirst ? this.#settings.$settings()?.name ?? '' : '';
+    const suggestedName = isFirst ? (this.#settings.$settings()?.name ?? '') : '';
     this.dialog.open(CreateBusinessLocationModalComponent, { width: '90%', data: { suggestedName } });
   }
 

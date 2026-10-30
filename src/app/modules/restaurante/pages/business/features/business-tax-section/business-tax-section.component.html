@@ -1,9 +1,7 @@
 <app-card>
   <div class="border-border border-b border-dashed p-4">
     <h2 class="text-foreground text-base font-semibold">Datos fiscales</h2>
-    <p class="text-muted-foreground mt-0.5 text-xs">
-      Se usan para calcular el IVA de tus ventas y en los documentos del negocio.
-    </p>
+    <p class="text-muted-foreground mt-0.5 text-xs">Se usan para calcular el IVA de tus ventas y en los documentos del negocio.</p>
   </div>
 
   <div class="grid gap-4 p-4 sm:grid-cols-2">
@@ -29,9 +27,7 @@
       } @else if ($canEdit() && !$isOwner()) {
       <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">{{ ownerOnlyNote }}</p>
       } @else {
-      <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">
-        RUT de la empresa o persona que vende. Opcional.
-      </p>
+      <p id="business-rut-hint" class="text-muted-foreground mt-1 text-xs">RUT de la empresa o persona que vende. Opcional.</p>
       }
     </div>
 
@@ -68,7 +64,7 @@
           <input
             type="radio"
             name="business-sell-price-tax"
-            class="accent-primary size-4 mt-0.5 shrink-0"
+            class="accent-primary mt-0.5 size-4 shrink-0"
             [value]="option.value"
             [checked]="$sellPriceTax() === option.value"
             (change)="$sellPriceTax.set(option.value)" />
@@ -81,9 +77,12 @@
       </div>
       @if ($example(); as example) {
       <p class="text-foreground mt-2 text-xs tabular-nums">
-        Ejemplo: producto a {{ example.price }} @if ($sellPriceTax() === 'excludes') { → el cliente paga
-        {{ example.total }} (IVA {{ example.vat }}). } @else { → el cliente paga {{ example.price }} (incluye IVA
-        {{ example.includedVat }}). }
+        Ejemplo: producto a {{ example.price }}
+        @if ($sellPriceTax() === 'excludes') {
+        → el cliente paga {{ example.total }} (IVA {{ example.vat }}).
+        } @else {
+        → el cliente paga {{ example.price }} (incluye IVA {{ example.includedVat }}).
+        }
       </p>
       }
       <p class="text-muted-foreground mt-1 text-xs">
@@ -96,9 +95,7 @@
   @if ($canEdit()) {
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
     @if ($hasChanges()) {
-    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()"
-      >Descartar</app-button
-    >
+    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()">Descartar</app-button>
     }
     <app-button
       impact="bold"

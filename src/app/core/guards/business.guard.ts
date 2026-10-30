@@ -4,13 +4,7 @@ import { map, of, switchMap } from 'rxjs';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
 import { isSupportUrl, SUPPORT_HOME, SupportModeService } from '../services/support-mode';
 import { WhoamiDto } from '../services/whoami/dtos';
-import {
-  isSuperAdmin,
-  isSuperAdminUrl,
-  needsLocationStep,
-  SUPERADMIN_HOME,
-  WhoamiService,
-} from '../services/whoami/whoami.service';
+import { isSuperAdmin, isSuperAdminUrl, needsLocationStep, SUPERADMIN_HOME, WhoamiService } from '../services/whoami/whoami.service';
 
 // Con sesión pero sin negocio, o dueño sin ningún local activo → onboarding (sin negocio el backend responde 403 en casi todo).
 // Si whoami no trae locationsCount (respuesta antigua), solo se exige el negocio.

@@ -6,6 +6,6 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'carta/**', renderMode: RenderMode.Client },
   {
     path: '**',
-    renderMode: RenderMode.Prerender,
-  },
+    renderMode: RenderMode.Prerender
+  }
 ];

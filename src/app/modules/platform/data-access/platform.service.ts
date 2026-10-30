@@ -104,9 +104,7 @@ export class PlatformService {
 
   // --- Negocios ---
   getBusinesses(filters: PlatformBusinessFiltersDto): Observable<StandardizedPagination<PlatformBusinessItemDto>> {
-    return this.#http.get<StandardizedPagination<PlatformBusinessItemDto>>(`${BASE}/businesses`, {
-      params: toHttpParams(filters),
-    });
+    return this.#http.get<StandardizedPagination<PlatformBusinessItemDto>>(`${BASE}/businesses`, { params: toHttpParams(filters) });
   }
 
   /** Lectura auditada. */
@@ -138,9 +136,7 @@ export class PlatformService {
 
   // --- Cobros y pagos ---
   getInvoices(filters: PlatformInvoiceFiltersDto): Observable<StandardizedPagination<PlatformInvoiceDto>> {
-    return this.#http.get<StandardizedPagination<PlatformInvoiceDto>>(`${BASE}/invoices`, {
-      params: toHttpParams(filters),
-    });
+    return this.#http.get<StandardizedPagination<PlatformInvoiceDto>>(`${BASE}/invoices`, { params: toHttpParams(filters) });
   }
 
   /** Pago recibido por otro medio, ya confirmado. 409 INVOICE_NOT_PAYABLE si está pagado o anulado. */
@@ -174,15 +170,8 @@ export class PlatformService {
 
   // --- Accesos de soporte (#50) ---
   /** active=true (por defecto): solo vigentes; false: todos. */
-  getSupportAccesses(filters: {
-    active?: boolean;
-    businessId?: number;
-    page?: number;
-    perPage?: number;
-  }): Observable<StandardizedPagination<PlatformSupportAccessDto>> {
-    return this.#http.get<StandardizedPagination<PlatformSupportAccessDto>>(`${BASE}/support-access`, {
-      params: toHttpParams(filters),
-    });
+  getSupportAccesses(filters: { active?: boolean; businessId?: number; page?: number; perPage?: number }): Observable<StandardizedPagination<PlatformSupportAccessDto>> {
+    return this.#http.get<StandardizedPagination<PlatformSupportAccessDto>>(`${BASE}/support-access`, { params: toHttpParams(filters) });
   }
 
   /** Termina el acceso antes (el dueño recibe un correo). 404 SUPPORT_ACCESS_NOT_FOUND si ya terminó. */

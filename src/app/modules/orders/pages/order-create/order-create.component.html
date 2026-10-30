@@ -8,10 +8,9 @@
   <div class="mb-4">
     @if (mode === 'add') {
     <h1 class="text-foreground text-xl font-semibold">
-      Agregar productos @if ($order(); as order) {
-      <span class="text-muted-foreground font-mono text-base"
-        >· {{ order.invoiceNo }} · {{ order.tableName ?? 'Sin mesa' }}</span
-      >
+      Agregar productos
+      @if ($order(); as order) {
+      <span class="text-muted-foreground font-mono text-base">· {{ order.invoiceNo }} · {{ order.tableName ?? 'Sin mesa' }}</span>
       }
     </h1>
     <p class="text-muted-foreground text-sm">Si es un pedido de cocina, se enviará una comanda solo con lo nuevo.</p>
@@ -22,13 +21,8 @@
   </div>
 
   @if ($noLocations()) {
-  <app-empty-state
-    icon="storefront"
-    title="Primero crea tu local"
-    description="Para tomar pedidos necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
-    <a
-      routerLink="/business/location"
-      class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
+  <app-empty-state icon="storefront" title="Primero crea tu local" description="Para tomar pedidos necesitas al menos una sucursal. Créala con su nombre y dirección, y vuelve aquí.">
+    <a routerLink="/business/location" class="bg-primary inline-flex h-10 items-center gap-2 rounded-full px-5 text-sm font-medium text-white hover:opacity-90">
       <app-icon class="h-4 w-4">add_business</app-icon>Crear local
     </a>
   </app-empty-state>
@@ -61,8 +55,7 @@
             <option [ngValue]="null">Sin mesa</option>
             @for (table of $tables(); track table.id) {
             <option [ngValue]="table.id" [disabled]="table.status === 'blocked'">
-              {{ table.name
-              }}{{ table.status === 'blocked' ? ' (bloqueada)' : table.status === 'occupied' ? ' (ocupada)' : '' }}
+              {{ table.name }}{{ table.status === 'blocked' ? ' (bloqueada)' : table.status === 'occupied' ? ' (ocupada)' : '' }}
             </option>
             }
           </select>
@@ -93,11 +86,7 @@
       @if (mode === 'create') {
       <!-- Al agregar productos no hay nota general: cada producto lleva la suya -->
       <form [formGroup]="form" class="space-y-3">
-        <textarea
-          formControlName="kitchenNote"
-          rows="2"
-          placeholder="Nota general del pedido (opcional). Se imprime en la comanda."
-          [class]="inputClass"></textarea>
+        <textarea formControlName="kitchenNote" rows="2" placeholder="Nota general del pedido (opcional). Se imprime en la comanda." [class]="inputClass"></textarea>
         <label class="flex cursor-pointer items-center justify-between gap-3 text-sm">
           <span class="text-foreground">Enviar a cocina</span>
           <input type="checkbox" formControlName="isKitchenOrder" class="h-5 w-5 accent-[var(--primary)]" />
@@ -106,15 +95,7 @@
       }
 
       <div>
-        <app-button
-          full
-          impact="bold"
-          tone="primary"
-          shape="rounded"
-          size="large"
-          [disabled]="$isSaving() || !$canSave()"
-          [isLoading]="$isSaving()"
-          (buttonClick)="handleSubmit()">
+        <app-button full impact="bold" tone="primary" shape="rounded" size="large" [disabled]="$isSaving() || !$canSave()" [isLoading]="$isSaving()" (buttonClick)="handleSubmit()">
           {{ mode === 'add' ? 'Agregar al pedido' : 'Confirmar pedido' }}
         </app-button>
         @if ($missing(); as missing) {

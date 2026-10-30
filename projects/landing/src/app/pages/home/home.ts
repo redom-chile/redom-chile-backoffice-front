@@ -15,11 +15,7 @@ import { AmbientBackground } from '../../ui/ambient-background';
   imports: [AmbientBackground, SiteHeader, Hero, Features, BrandColors, Steps, Pricing, Faq, SiteFooter],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a
-      href="#funciones"
-      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-black"
-      >Saltar al contenido</a
-    >
+    <a href="#funciones" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:text-black focus:px-4 focus:py-2">Saltar al contenido</a>
     <lnd-ambient-background />
     <lnd-site-header />
     <main>

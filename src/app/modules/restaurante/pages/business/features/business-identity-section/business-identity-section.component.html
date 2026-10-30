@@ -1,9 +1,7 @@
 <app-card>
   <div class="border-border border-b border-dashed p-4">
     <h2 class="text-foreground text-base font-semibold">Identidad</h2>
-    <p class="text-muted-foreground mt-0.5 text-xs">
-      Cómo se ve tu negocio en el sistema, en el POS y en los comprobantes.
-    </p>
+    <p class="text-muted-foreground mt-0.5 text-xs">Cómo se ve tu negocio en el sistema, en el POS y en los comprobantes.</p>
   </div>
 
   <div class="border-border border-b border-dashed p-4">
@@ -32,9 +30,7 @@
       @if ($canEditName()) {
       <div class="flex justify-end gap-2">
         @if ($nameChanged()) {
-        <app-button impact="light" type="button" [disabled]="$isSavingName()" (buttonClick)="discardName()"
-          >Descartar</app-button
-        >
+        <app-button impact="light" type="button" [disabled]="$isSavingName()" (buttonClick)="discardName()">Descartar</app-button>
         }
         <app-button
           impact="bold"
@@ -60,11 +56,10 @@
       [progress]="$uploadProgress()"
       [disabled]="$isSavingLogo() || !$canEdit()"
       (selectionChange)="$logoSelection.set($event)" />
-    } @if ($logoSelection().kind !== 'keep' && $canEdit()) {
+    }
+    @if ($logoSelection().kind !== 'keep' && $canEdit()) {
     <div class="mt-3 flex justify-end gap-2">
-      <app-button impact="light" type="button" [disabled]="$isSavingLogo()" (buttonClick)="discardLogo()"
-        >Descartar</app-button
-      >
+      <app-button impact="light" type="button" [disabled]="$isSavingLogo()" (buttonClick)="discardLogo()">Descartar</app-button>
       <app-button
         impact="bold"
         tone="primary"
@@ -80,9 +75,7 @@
 
   <div class="p-4">
     <p class="text-foreground text-sm font-medium">Color de marca</p>
-    <p class="text-muted-foreground mb-3 text-xs">
-      Se aplica al instante en la app de todo tu equipo: botones, menú, login y POS.
-    </p>
+    <p class="text-muted-foreground mb-3 text-xs">Se aplica al instante en la app de todo tu equipo: botones, menú, login y POS.</p>
     <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="Color de marca">
       @for (color of themeColors; track color.name) {
       <button
@@ -92,7 +85,7 @@
         [attr.aria-label]="color.label"
         [title]="color.label"
         [disabled]="!!$savingColor() || !$canEdit()"
-        class="focus-visible:ring-foreground size-10 relative flex items-center justify-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-transparent transition-transform hover:scale-110 focus-visible:ring-2 disabled:cursor-wait"
+        class="focus-visible:ring-foreground relative flex size-10 items-center justify-center rounded-full text-white shadow-sm ring-offset-2 ring-offset-transparent transition-transform hover:scale-110 focus-visible:ring-2 disabled:cursor-wait"
         [class.ring-2]="$currentColor() === color.name"
         [class.ring-foreground]="$currentColor() === color.name"
         [style.backgroundColor]="color.hex"

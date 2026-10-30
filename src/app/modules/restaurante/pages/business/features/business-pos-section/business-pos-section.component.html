@@ -33,8 +33,11 @@
       <div>
         <p class="text-foreground text-sm font-medium">Mesero obligatorio al tomar pedidos</p>
         <p class="text-muted-foreground mt-0.5 text-xs">
-          @if ($waiterEnabled()) { No se podrá crear un pedido sin elegir mesero. } @else { Activa "Uso meseros" para
-          poder exigirlo. }
+          @if ($waiterEnabled()) {
+          No se podrá crear un pedido sin elegir mesero.
+          } @else {
+          Activa "Uso meseros" para poder exigirlo.
+          }
         </p>
       </div>
       <app-toggle
@@ -48,8 +51,8 @@
       <div>
         <p class="text-foreground text-sm font-medium">Caja y turnos</p>
         <p class="text-muted-foreground mt-0.5 text-xs">
-          Se abre la caja con un fondo, se cobra dentro del turno y se cierra con arqueo ciego y reporte Z. Apagado, el
-          POS cobra sin caja.
+          Se abre la caja con un fondo, se cobra dentro del turno y se cierra con arqueo ciego y reporte Z.
+          Apagado, el POS cobra sin caja.
         </p>
         @if ($cashEnabled()) {
         <p class="mt-1 flex flex-wrap gap-x-3 text-xs">
@@ -84,9 +87,7 @@
       @if ($tipError(); as error) {
       <p id="business-tip-hint" class="mt-1 text-xs text-red-500">{{ error }}</p>
       } @else {
-      <p id="business-tip-hint" class="text-muted-foreground mt-1 text-xs">
-        Se propone al cobrar y en la precuenta. 0 = sin sugerencia.
-      </p>
+      <p id="business-tip-hint" class="text-muted-foreground mt-1 text-xs">Se propone al cobrar y en la precuenta. 0 = sin sugerencia.</p>
       }
     </div>
 
@@ -124,9 +125,7 @@
   @if ($canEdit()) {
   <div class="border-border flex justify-end gap-2 border-t border-dashed p-4">
     @if ($hasChanges()) {
-    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()"
-      >Descartar</app-button
-    >
+    <app-button impact="light" type="button" [disabled]="$isSaving() || !$canEdit()" (buttonClick)="discard()">Descartar</app-button>
     }
     <app-button
       impact="bold"

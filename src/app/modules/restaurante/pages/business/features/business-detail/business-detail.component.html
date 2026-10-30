@@ -32,7 +32,8 @@
       <app-button impact="bold" tone="primary" shape="rounded" (buttonClick)="retrySettings()">Reintentar</app-button>
     </div>
   </app-card>
-  } @else { @for (card of [1, 2, 3]; track card) {
+  } @else {
+  @for (card of [1, 2, 3]; track card) {
   <app-card>
     <div class="space-y-3 p-4" aria-busy="true" aria-label="Cargando configuración del negocio">
       <app-skeleton size="xs" style="width: 160px" />
@@ -40,7 +41,8 @@
       <app-skeleton size="sm" />
     </div>
   </app-card>
-  } }
+  }
+  }
 
   <app-card>
     <div class="border-border border-b border-dashed p-4">
@@ -50,30 +52,26 @@
       @if (business.startDate) {
       <div>
         <dt class="text-muted-foreground text-xs">Fecha de inicio</dt>
-        <dd class="text-foreground text-sm">{{ business.startDate | date : 'longDate' }}</dd>
+        <dd class="text-foreground text-sm">{{ business.startDate | date: 'longDate' }}</dd>
       </div>
       }
       <div>
         <dt class="text-muted-foreground text-xs">Creado</dt>
-        <dd class="text-foreground text-sm">{{ business.createdAt | date : 'longDate' }}</dd>
+        <dd class="text-foreground text-sm">{{ business.createdAt | date: 'longDate' }}</dd>
       </div>
       <div>
         <dt class="text-muted-foreground text-xs">Última actualización</dt>
-        <dd class="text-foreground text-sm">{{ business.updatedAt | date : 'longDate' }}</dd>
+        <dd class="text-foreground text-sm">{{ business.updatedAt | date: 'longDate' }}</dd>
       </div>
     </dl>
-    <a
-      routerLink="/business/location"
-      class="glass-row border-border flex items-center justify-between gap-3 border-t border-dashed p-4">
+    <a routerLink="/business/location" class="glass-row border-border flex items-center justify-between gap-3 border-t border-dashed p-4">
       <span class="flex items-center gap-3">
         <span class="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
           <app-icon class="h-5 w-5">location_on</app-icon>
         </span>
         <span>
           <span class="text-foreground block text-sm font-semibold">Sucursales</span>
-          <span class="text-muted-foreground block text-xs"
-            >Locales donde vendes: dirección, contacto y stock propio.</span
-          >
+          <span class="text-muted-foreground block text-xs">Locales donde vendes: dirección, contacto y stock propio.</span>
         </span>
       </span>
       <app-icon class="text-muted-foreground h-5 w-5">chevron_right</app-icon>

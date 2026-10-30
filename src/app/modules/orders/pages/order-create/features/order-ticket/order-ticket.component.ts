@@ -2,16 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { IconComponent } from 'src/ui';
 import { formatCurrency } from '../../../order-list/ui';
-import {
-  CartLine,
-  cartLineTotal,
-  cartLineUnitPrice,
-  cartPricing,
-  cartTotal,
-  modifierLabel,
-  packChoiceLabel,
-  QUICK_NOTES,
-} from '../cart-line';
+import { CartLine, cartLineTotal, cartLineUnitPrice, cartPricing, cartTotal, modifierLabel, packChoiceLabel, QUICK_NOTES } from '../cart-line';
 
 export type CartNoteChange = Readonly<{ key: string; note: string }>;
 
