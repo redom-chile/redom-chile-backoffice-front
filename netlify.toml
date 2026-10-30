@@ -11,6 +11,14 @@ command = "npm run build -- --configuration development"
 [build.environment]
 NODE_VERSION = "22"
 
+# Backend de restaurantes: AWS API Gateway
+[[redirects]]
+from = "/restaurant/*"
+to = "https://8wsrt1c4dk.execute-api.us-east-1.amazonaws.com/restaurant/:splat"
+status = 200
+force = true
+
+# Rutas de Angular: debe permanecer al final
 [[redirects]]
 from = "/*"
 to = "/index.html"
