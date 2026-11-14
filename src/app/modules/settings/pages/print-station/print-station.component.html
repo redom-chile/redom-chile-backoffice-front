@@ -44,6 +44,18 @@
         </div>
       </div>
 
+      <div>
+        <span class="text-foreground mb-1 block text-sm font-medium">Tamaño del texto</span>
+        <p class="text-muted-foreground mb-2 text-xs">Para la precuenta, el comprobante y la comanda que se imprimen desde este equipo.</p>
+        <div class="grid grid-cols-3 gap-2">
+          @for (size of textSizes; track size.id) {
+          <button type="button" class="rounded-lg border-2 px-3 py-2 text-sm font-medium" [class]="$config().textSize === size.id ? 'border-primary bg-primary/10 text-primary' : 'glass-row border-transparent'" [attr.aria-pressed]="$config().textSize === size.id" (click)="selectTextSize(size.id)">
+            {{ size.label }}
+          </button>
+          }
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 gap-2">
         @if ($isRunning()) {
         <app-button full impact="light" tone="danger" shape="rounded" icon="stop" (buttonClick)="stop()">Detener</app-button>

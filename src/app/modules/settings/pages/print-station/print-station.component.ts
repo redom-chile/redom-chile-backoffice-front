@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { firstValueFrom, interval } from 'rxjs';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
 import { ButtonComponent, HeaderDashboardComponent, ToastService } from 'src/ui';
-import { kitchenTicketHtml, PaperWidth, printHtml, testTicketHtml } from 'src/app/shared/utils/printing';
+import { kitchenTicketHtml, PaperWidth, printHtml, testTicketHtml, TicketTextSize } from 'src/app/shared/utils/printing';
 import { GetAllPrintersService } from '../printer-list/data-access';
 import { getPrintAgentId, PendingPrintJobDto, PrintJobsService, PrintStationConfigService } from './data-access';
 import { PrintLogComponent, PrintLogEntry, PrintSetupGuideComponent } from './ui';
@@ -45,6 +45,11 @@ export class PrintStationComponent implements OnInit {
   readonly $printedCount = signal(0);
   readonly $failedCount = signal(0);
   readonly paperWidths: PaperWidth[] = [80, 58];
+  readonly textSizes: ReadonlyArray<{ id: TicketTextSize; label: string }> = [
+    { id: 'normal', label: 'Normal' },
+    { id: 'large', label: 'Grande' },
+    { id: 'xlarge', label: 'Muy grande' },
+  ];
   // Mismo id en cada recarga: así el backend sabe qué comandas reservó este equipo.
   readonly agentId = getPrintAgentId();
 
@@ -70,6 +75,10 @@ export class PrintStationComponent implements OnInit {
     this.configService.update({ printerId, enabled: false });
   }
 
+  selectTextSize(textSize: TicketTextSize) {
+    this.configService.update({ textSize });
+  }
+
   selectPaper(paperWidth: PaperWidth) {
     this.configService.update({ paperWidth });
   }
@@ -91,7 +100,7 @@ export class PrintStationComponent implements OnInit {
 
   async printTest() {
     try {
-      await printHtml(testTicketHtml(this.$printer()?.name ?? 'Predeterminada del equipo'), this.$config().paperWidth);
+      await printHtml(testTicketHtml(this.$printer()?.name ?? 'Predeterminada del equipo'), this.$config().paperWidth, this.$config().textSize);
       this.addLog({ title: 'Prueba de impresión', detail: 'Ticket local, no pasa por el backend', result: 'test' });
     } catch {
       this.toast.show('El navegador no pudo imprimir', 'error');
@@ -136,7 +145,7 @@ export class PrintStationComponent implements OnInit {
       : `${job.stationName ?? 'Comanda'} · ${job.items.length} ${job.items.length === 1 ? 'producto' : 'productos'}`;
     try {
       const html = isTest ? testTicketHtml(this.$printer()?.name ?? 'Predeterminada del equipo') : kitchenTicketHtml(job);
-      await printHtml(html, this.$config().paperWidth);
+      await printHtml(html, this.$config().paperWidth, this.$config().textSize);
       await firstValueFrom(this.printJobs.updateStatus({ id: job.id, status: 'printed' }));
       this.$printedCount.update((count) => count + 1);
       this.addLog({ title, detail, result: isTest ? 'test' : 'printed' });
