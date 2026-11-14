@@ -358,7 +358,7 @@ export class CollectPaymentModalComponent implements OnDestroy {
       note: 'Montos estimados: el sistema calcula el monto final al cobrar',
     });
     try {
-      await printHtml(html, this.printConfig.$config().paperWidth);
+      await printHtml(html, this.printConfig.$config().paperWidth, this.printConfig.$config().textSize);
     } catch {
       this.toast.show('No se pudo imprimir la precuenta', 'error');
     }

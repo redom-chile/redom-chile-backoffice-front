@@ -197,7 +197,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
       suggestedTipPercent: this.businessSettings.$suggestedTipPercent(),
     });
     try {
-      await printHtml(html, this.printConfig.$config().paperWidth);
+      await printHtml(html, this.printConfig.$config().paperWidth, this.printConfig.$config().textSize);
     } catch {
       this.toast.show('No se pudo imprimir la precuenta', 'error');
     }
