@@ -106,6 +106,16 @@
       <app-icon class="h-5 w-5">{{ saving() ? 'hourglass_empty' : 'send' }}</app-icon>
       {{ order() ? 'Agregar a la cuenta' : 'Enviar pedido' }}
     </button>
+    @if (!order() && $canDirectSale()) {
+    <button
+      type="button"
+      class="col-span-2 flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-green-600 text-base font-semibold text-green-700 disabled:opacity-40"
+      [disabled]="saving() || !cart().length"
+      title="Registra la venta sin enviarla a cocina y abre el cobro"
+      (click)="directSale.emit()">
+      <app-icon class="h-5 w-5">point_of_sale</app-icon>Venta directa: cobrar ahora
+    </button>
+    }
     @if (order(); as current) {
     @if (current.status === 'ORDERED') {
     <app-loyalty-redeem-button
