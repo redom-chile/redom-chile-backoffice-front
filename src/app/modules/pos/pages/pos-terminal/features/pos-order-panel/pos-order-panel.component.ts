@@ -35,6 +35,8 @@ export class PosOrderPanelComponent {
   readonly customerChange = output<CustomerDto | null>();
   readonly sendToKitchenChange = output<boolean>();
   readonly submitOrder = output<void>();
+  // Venta directa: crear sin cocina y cobrar de inmediato.
+  readonly directSale = output<void>();
   readonly collect = output<void>();
   // Canje de fidelización: hay que recargar la cuenta.
   readonly loyaltyRedeemed = output<void>();
@@ -56,6 +58,8 @@ export class PosOrderPanelComponent {
     this.access.can(this.order() ? PERMISSIONS.ORDERS.UPDATE_ORDER : PERMISSIONS.ORDERS.CREATE_ORDER),
   );
   readonly $canCollect = computed(() => this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT));
+  // Venta directa: quien crea pedidos y cobra (cajero, administrador).
+  readonly $canDirectSale = computed(() => this.access.can(PERMISSIONS.ORDERS.CREATE_ORDER) && this.$canCollect());
 
   readonly kitchenStatus = KITCHEN_STATUS;
   readonly formatCurrency = formatCurrency;

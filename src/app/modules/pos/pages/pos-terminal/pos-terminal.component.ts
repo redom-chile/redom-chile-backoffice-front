@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, OnDestroy, OnInit, output, signal, untracked } from '@angular/core';
 import { EntitlementsService, PlanUpsellService } from 'src/app/core/services/entitlements';
 import { fromEvent, merge, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -135,6 +135,8 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
   readonly $cart = signal<CartLine[]>([]);
   readonly $customer = signal<CustomerDto | null>(null);
   readonly $sendToKitchen = signal(true);
+  // Venta directa: el pedido se crea sin pasar por cocina y el cobro se abre apenas carga.
+  readonly $pendingDirectSale = signal(false);
   readonly $quantities = computed(() => quantitiesByProduct(this.$cart()));
   readonly $kitchenNote = signal('');
   readonly $isSaving = computed(
@@ -154,8 +156,20 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
       const created = this.createService.$created();
       if (!created) return;
       this.createService.reset();
+      if (this.$pendingDirectSale()) {
+        this.toast.show(`Venta ${created.invoiceNo} registrada: falta cobrarla`, 'success');
+        this.afterOrderSaved(created.transactionId, true);
+        return;
+      }
       this.toast.show(`Pedido ${created.invoiceNo} enviado`, 'success');
       this.afterOrderSaved(created.transactionId);
+    });
+
+    // Venta directa: con el pedido ya cargado, se abre el cobro.
+    effect(() => {
+      if (!this.$pendingDirectSale() || !this.$order()) return;
+      this.$pendingDirectSale.set(false);
+      untracked(() => this.handleCollect());
     });
 
     effect(() => {
@@ -182,7 +196,9 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.createService.$error();
-      if (error) this.handleSaveError(error, false);
+      if (!error) return;
+      this.$pendingDirectSale.set(false);
+      this.handleSaveError(error, false);
     });
 
     effect(() => {
@@ -363,6 +379,26 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Venta directa (cajero o administrador): crea el pedido sin enviarlo a cocina y abre el cobro.
+  handleDirectSale() {
+    const locationId = this.$locationId();
+    if (!this.$cart().length || !locationId || this.$orderId() || this.$isSaving()) return;
+    if (this.entitlements.isLocked('locations', locationId)) {
+      this.upsell.open({ resource: 'locations' });
+      return;
+    }
+    this.$pendingDirectSale.set(true);
+    this.createService.create({
+      locationId,
+      products: toOrderProducts(this.$cart()),
+      resTableId: this.$table()?.id,
+      resWaiterId: this.$waiter()?.code,
+      contactId: this.$customer()?.id,
+      isKitchenOrder: false,
+      staffNote: this.$kitchenNote().trim() || undefined,
+    });
+  }
+
   handleCollect() {
     const order = this.$order();
     if (!order) return;
@@ -409,9 +445,10 @@ export class PosTerminalComponent implements OnInit, OnDestroy {
     this.orderService.retry();
   }
 
-  private afterOrderSaved(orderId: number) {
+  private afterOrderSaved(orderId: number, directSale = false) {
     this.$kitchenNote.set('');
-    if (this.terminalMode()) {
+    // En la terminal se bloquea al enviar; una venta directa sigue al cobro.
+    if (this.terminalMode() && !directSale) {
       this.tablesService.retry();
       this.lock();
       return;
