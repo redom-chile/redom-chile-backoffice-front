@@ -46,7 +46,7 @@
         @for (font of fonts; track font.id) {
         @let on = d.font === font.id;
         <label
-          class="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
+          class="relative flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
           [class]="on ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'">
           <input type="radio" class="sr-only" [name]="id + '-font'" [value]="font.id" [checked]="on" (change)="patch({ font: font.id })" />
           <span class="text-foreground w-10 shrink-0 text-center text-2xl leading-none" [style.font-family]="fontFamily(font.id, 'heading')" aria-hidden="true">Aa</span>
@@ -75,7 +75,7 @@
         @for (style of cardStyles; track style.id) {
         @let on = d.cardStyle === style.id;
         <label
-          class="flex cursor-pointer flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
+          class="relative flex cursor-pointer flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition-colors has-[:disabled]:cursor-not-allowed has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--primary)]"
           [class]="on ? 'border-primary bg-primary/5' : 'border-[var(--border)] hover:border-primary/50'">
           <input type="radio" class="sr-only" [name]="id + '-card'" [value]="style.id" [checked]="on" (change)="selectCardStyle(style.id)" />
           <app-icon class="h-6 w-6" [class]="on ? 'text-primary' : 'text-muted-foreground'" aria-hidden="true">{{ style.icon }}</app-icon>

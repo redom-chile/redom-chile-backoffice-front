@@ -9,9 +9,10 @@
     <!-- Header -->
     <app-navbar />
     <!-- main content -->
+    <!-- relative: los elementos absolutos de las páginas (p. ej. inputs sr-only) quedan dentro del área con scroll y no estiran la ventana -->
     <div
       id="main-content"
-      class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-auto">
+      class="relative scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-auto">
       <div class="mx-auto px-4 py-4 sm:px-8 lg:container">
         <!-- Modo soporte (#50): el SUPERADMIN gestiona la carta de un negocio -->
         <app-support-mode-banner />
