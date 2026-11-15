@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core';
-import { map, Observable, switchMap, tap, firstValueFrom } from 'rxjs';
+import { map, Observable, switchMap, tap } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
 import { SupportModeService } from '../support-mode/support-mode.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
@@ -134,26 +134,6 @@ export class BusinessSettingsService {
   readonly $cashActive = computed(() => this.$cashManagementEnabled() && this.#entitlements.hasFeature('cash'));
   readonly $posSettings = computed<ResolvedPosSettings>(() => parsePosSettings(this.#settings()?.posSettings));
   /** Mostrar "IVA incluido" en la precuenta impresa (por defecto sí). */
-  readonly $showTaxOnPreBill = computed(() => this.$posSettings().showTaxOnPreBill);
-  readonly #preBillTaxByLocation = new Map<number, boolean>();
-
-  /** Para imprimir la precuenta: sin business:get-settings (cajero, mesero) se toma de POST /pos/details. */
-  async showTaxOnPreBillFor(locationId: number | null | undefined): Promise<boolean> {
-    if (this.#settings()) return this.$showTaxOnPreBill();
-    if (!locationId) return true;
-    const cached = this.#preBillTaxByLocation.get(locationId);
-    if (cached !== undefined) return cached;
-    try {
-      const details = await firstValueFrom(
-        this.#http.post<{ showTaxOnPreBill?: boolean }>(`${ApiPathEnum.RESTAURANT}/pos/details`, { locationId }),
-      );
-      const value = details?.showTaxOnPreBill !== false;
-      this.#preBillTaxByLocation.set(locationId, value);
-      return value;
-    } catch {
-      return true;
-    }
-  }
   /** Propina sugerida (%): 0 = sin sugerencia; sin configuración cargada se usa el valor previo (10). */
   readonly $suggestedTipPercent = computed(() => {
     const value = this.#settings()?.suggestedTipPercent;

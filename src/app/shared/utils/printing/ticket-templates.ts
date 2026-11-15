@@ -28,8 +28,6 @@ export type BillTicketData = Readonly<{
   discount: number;
   total: number;
   taxAmount: number;
-  // false: no se imprime la línea "IVA incluido" (opción del negocio). Por defecto se muestra.
-  showTax?: boolean;
   paid: number;
   remaining: number;
   // Propina sugerida en porcentaje (0 para no mostrarla).
@@ -83,7 +81,8 @@ export function billTicketHtml(bill: BillTicketData): string {
         `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>${modifierLines(line.modifiers, 'sub')}`,
     )
     .join('');
-  const tip = Math.round((bill.total * bill.suggestedTipPercent) / 100);
+  // Solo subtotal (lo que falta por pagar, con descuento aplicado), propina sugerida y total.
+  const tip = Math.round((bill.remaining * bill.suggestedTipPercent) / 100);
   return `
     <h2>${escapeHtml(bill.businessName)}</h2>
     <div class="center big">${escapeHtml(bill.title ?? 'PRECUENTA')}</div>
@@ -93,17 +92,13 @@ export function billTicketHtml(bill: BillTicketData): string {
     <div class="sep"></div>
     ${lines}
     <div class="sep"></div>
-    <div class="row"><span>Subtotal</span><span>${money(bill.subtotal)}</span></div>
-    ${bill.discount > 0 ? `<div class="row"><span>Descuento</span><span>-${money(bill.discount)}</span></div>` : ''}
-    <div class="row total"><span>TOTAL</span><span>${money(bill.total)}</span></div>
-    ${bill.showTax !== false ? `<div class="row muted"><span>IVA incluido</span><span>${money(bill.taxAmount)}</span></div>` : ''}
-    ${bill.paid > 0 ? `<div class="row"><span>Pagado</span><span>${money(bill.paid)}</span></div><div class="row total"><span>SALDO</span><span>${money(bill.remaining)}</span></div>` : ''}
-    ${bill.suggestedTipPercent > 0 ? `<div class="sep"></div><div class="row"><span>Propina sugerida ${bill.suggestedTipPercent}%</span><span>${money(tip)}</span></div><div class="row"><span>Total con propina</span><span>${money(bill.remaining + tip)}</span></div>` : ''}
+    <div class="row"><span>Subtotal</span><span>${money(bill.remaining)}</span></div>
+    ${tip > 0 ? `<div class="row"><span>Propina sugerida (${bill.suggestedTipPercent}%)</span><span>${money(tip)}</span></div>` : ''}
+    <div class="row total"><span>TOTAL</span><span>${money(bill.remaining + tip)}</span></div>
     <div class="sep"></div>
     ${bill.note ? `<div class="center muted">${escapeHtml(bill.note)}</div>` : ''}
     <div class="center muted">Documento no válido como boleta</div>
-    <div class="center">¡Gracias por su visita!</div>
-    ${brand(3.5)}`;
+    <div class="center">¡Gracias por su visita!</div>`;
 }
 
 export type PaymentReceiptData = Readonly<{
@@ -116,7 +111,6 @@ export type PaymentReceiptData = Readonly<{
   discount: number;
   total: number;
   taxAmount: number;
-  showTax?: boolean;
   // Pagos vigentes del pedido (sin anulados). method: etiqueta ya traducida ("Efectivo").
   payments: ReadonlyArray<{ method: string; amount: number; tip: number; tendered: number | null; change: number }>;
 }>;
@@ -129,18 +123,8 @@ export function paymentReceiptHtml(receipt: PaymentReceiptData): string {
         `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>${modifierLines(line.modifiers, 'sub')}`,
     )
     .join('');
-  const payments = receipt.payments
-    .map(
-      (payment) =>
-        `<div class="row"><span>${escapeHtml(payment.method)}</span><span>${money(payment.amount)}</span></div>` +
-        (payment.tip > 0 ? `<div class="row sub"><span>Propina</span><span>${money(payment.tip)}</span></div>` : '') +
-        (payment.tendered && payment.tendered > 0
-          ? `<div class="row sub"><span>Recibido</span><span>${money(payment.tendered)}</span></div><div class="row sub"><span>Vuelto</span><span>${money(payment.change)}</span></div>`
-          : ''),
-    )
-    .join('');
   const tips = receipt.payments.reduce((sum, payment) => sum + payment.tip, 0);
-  const paid = receipt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  // Solo subtotal (lo consumido, con descuento aplicado), propina y total.
   return `
     <h2>${escapeHtml(receipt.businessName)}</h2>
     <div class="center big">COMPROBANTE DE PAGO</div>
@@ -150,19 +134,12 @@ export function paymentReceiptHtml(receipt: PaymentReceiptData): string {
     <div class="sep"></div>
     ${lines}
     <div class="sep"></div>
-    <div class="row"><span>Subtotal</span><span>${money(receipt.subtotal)}</span></div>
-    ${receipt.discount > 0 ? `<div class="row"><span>Descuento</span><span>-${money(receipt.discount)}</span></div>` : ''}
-    <div class="row total"><span>TOTAL</span><span>${money(receipt.total)}</span></div>
-    ${receipt.showTax !== false ? `<div class="row muted"><span>IVA incluido</span><span>${money(receipt.taxAmount)}</span></div>` : ''}
-    <div class="sep"></div>
-    <div><b>Pagos</b></div>
-    ${payments}
-    <div class="row total"><span>PAGADO</span><span>${money(paid)}</span></div>
-    ${tips > 0 ? `<div class="row"><span>Total con propina</span><span>${money(paid + tips)}</span></div>` : ''}
+    <div class="row"><span>Subtotal</span><span>${money(receipt.total)}</span></div>
+    ${tips > 0 ? `<div class="row"><span>Propina (voluntaria)</span><span>${money(tips)}</span></div>` : ''}
+    <div class="row total"><span>TOTAL</span><span>${money(receipt.total + tips)}</span></div>
     <div class="sep"></div>
     <div class="center muted">Documento no válido como boleta</div>
-    <div class="center">¡Gracias por su visita!</div>
-    ${brand(3.5)}`;
+    <div class="center">¡Gracias por su visita!</div>`;
 }
 
 export function testTicketHtml(printerName: string): string {

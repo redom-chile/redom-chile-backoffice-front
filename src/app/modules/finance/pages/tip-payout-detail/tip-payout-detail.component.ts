@@ -9,6 +9,7 @@ import { PAYMENT_METHOD_LABELS } from 'src/app/modules/cash/data-access';
 import { resultError, resultValue, toRemoteResult } from 'src/app/modules/inventory/shared';
 import { formatCurrency } from 'src/app/modules/orders/pages/order-list/ui';
 import { printHtml } from 'src/app/shared/utils/printing/browser-print';
+import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
 import { ButtonComponent, IconComponent, SkeletonComponent, ToastService } from 'src/ui';
 import { getFinanceErrorMessage, TIP_MODE_LABELS, TipPayoutDto, TipsService } from '../../data-access';
 import { formatPaidAt } from '../../features/payable-payments/payable-format';
@@ -27,6 +28,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
 })
 export class TipPayoutDetailComponent {
   readonly #route = inject(ActivatedRoute);
+  readonly #printConfig = inject(PrintStationConfigService);
   readonly #dialog = inject(MatDialog);
   readonly #tips = inject(TipsService);
   readonly #settings = inject(BusinessSettingsService);
@@ -63,7 +65,7 @@ export class TipPayoutDetailComponent {
     if (this.$isPrinting()) return;
     this.$isPrinting.set(true);
     try {
-      await printHtml(tipReceiptHtml(payout, this.#settings.$settings()?.name), 80);
+      await printHtml(tipReceiptHtml(payout, this.#settings.$settings()?.name), this.#printConfig.$config().paperWidth, this.#printConfig.$config().textSize);
       this.$justCreated.set(false);
     } catch {
       this.#toast.show('No se pudo imprimir el comprobante', 'error');
