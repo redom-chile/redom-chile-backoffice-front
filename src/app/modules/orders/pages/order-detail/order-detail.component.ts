@@ -36,6 +36,7 @@ import {
 import { GetOrderPaymentsService, PaymentDto } from 'src/app/modules/payments/pages/payment-list/data-access';
 import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/business/data-access';
 import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
+import { PaymentReceiptService } from './features/payment-receipt';
 import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
 import {
   PaymentsTableComponent,
@@ -75,6 +76,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   private readonly paymentsService = inject(GetOrderPaymentsService);
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
+  private readonly receipt = inject(PaymentReceiptService);
   private readonly businessSettings = inject(BusinessSettingsService);
   private readonly access = inject(AccessService);
 
@@ -168,6 +170,14 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   handleRetry() {
     this.getByIdService.retry();
     this.paymentsService.retry();
+  }
+
+  async handlePrintReceipt(order: OrderDetailDto) {
+    try {
+      await this.receipt.print(order);
+    } catch {
+      this.toast.show('No se pudo imprimir el comprobante de pago', 'error');
+    }
   }
 
   async handlePrintBill(order: OrderDetailDto) {

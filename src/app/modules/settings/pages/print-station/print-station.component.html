@@ -56,6 +56,14 @@
         </div>
       </div>
 
+      <label for="station-auto-receipt" class="flex cursor-pointer items-start justify-between gap-3">
+        <span>
+          <span class="text-foreground block text-sm font-medium">Imprimir comprobante al cobrar</span>
+          <span class="text-muted-foreground block text-xs">Cuando una cuenta queda pagada desde este equipo, se imprime el comprobante de pago.</span>
+        </span>
+        <input id="station-auto-receipt" type="checkbox" class="mt-0.5 h-5 w-5 shrink-0 accent-[var(--primary)]" [checked]="$config().autoPaymentReceipt" (change)="toggleAutoPaymentReceipt($event)" />
+      </label>
+
       <div class="grid grid-cols-2 gap-2">
         @if ($isRunning()) {
         <app-button full impact="light" tone="danger" shape="rounded" icon="stop" (buttonClick)="stop()">Detener</app-button>
