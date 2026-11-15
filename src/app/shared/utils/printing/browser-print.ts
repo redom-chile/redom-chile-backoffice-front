@@ -37,7 +37,7 @@ export function printHtml(
     }
 
     doc.open();
-    doc.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><style>${ticketStyles(paperWidth, textSize)}</style></head><body>${bodyHtml}</body></html>`);
+    doc.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><style>${ticketStyles(paperWidth, textSize)}</style></head><body>${bodyHtml}<div class="feed">.</div></body></html>`);
     doc.close();
 
     const run = () => {
@@ -65,18 +65,22 @@ export function printHtml(
 }
 
 function ticketStyles(paperWidth: PaperWidth, textSize: TicketTextSize): string {
-  // El área imprimible real es algo menor que el ancho del rollo.
-  const printable = paperWidth === 58 ? 48 : 72;
+  // El área imprimible real es menor que el rollo (cabezal de 48 mm en 58 y 72 mm en 80), con margen para que no se corte a la derecha.
+  const printable = paperWidth === 58 ? 44 : 68;
   return `
     @page { size: ${paperWidth}mm auto; margin: 0; }
     * { box-sizing: border-box; }
-    body { width: ${printable}mm; margin: 0 auto; padding: 2mm 0 6mm; font-family: 'Courier New', monospace; font-size: ${(BASE_FONT_PX[textSize] ?? BASE_FONT_PX[DEFAULT_TICKET_TEXT_SIZE])[paperWidth]}px; line-height: 1.3; color: #000; }
+    body { width: ${printable}mm; margin: 0 auto; padding: 2mm 0 0; font-family: 'Courier New', monospace; font-size: ${(BASE_FONT_PX[textSize] ?? BASE_FONT_PX[DEFAULT_TICKET_TEXT_SIZE])[paperWidth]}px; line-height: 1.3; color: #000; }
     h1 { font-size: 1.6em; margin: 0 0 1mm; text-align: center; }
     h2 { font-size: 1.15em; margin: 0; text-align: center; }
     .center { text-align: center; }
     .muted { font-size: 0.9em; }
     .sep { border-top: 1px dashed #000; margin: 2mm 0; }
     .row { display: flex; justify-content: space-between; gap: 2mm; }
+    .row > span, .item > span { min-width: 0; overflow-wrap: anywhere; }
+    .row > span:last-child { flex-shrink: 0; text-align: right; }
+    /* Algunos drivers descartan el blanco final: el punto obliga a avanzar el papel hasta pasar el corte. */
+    .feed { padding-top: 16mm; text-align: center; font-size: 6px; line-height: 1; }
     .item { display: flex; gap: 2mm; margin: 1mm 0; font-size: 1.15em; }
     .qty { font-weight: bold; min-width: 8mm; }
     .mod { margin-left: 10mm; font-weight: bold; }

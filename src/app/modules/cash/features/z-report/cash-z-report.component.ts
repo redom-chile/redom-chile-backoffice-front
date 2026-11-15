@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { formatDateTimeFull } from 'src/app/modules/inventory/shared';
 import { formatCurrency, formatDateTime } from 'src/app/modules/orders/pages/order-list/ui';
 import { printHtml } from 'src/app/shared/utils/printing/browser-print';
+import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-station/data-access';
 import { ButtonComponent, IconComponent, ToastService } from 'src/ui';
 import {
   CASH_MOVEMENT_LABELS,
@@ -30,6 +31,7 @@ type TotalCard = Readonly<{ label: string; value: number; count?: number; tone?:
 })
 export class CashZReportComponent {
   readonly #toast = inject(ToastService);
+  readonly #printConfig = inject(PrintStationConfigService);
 
   readonly session = input.required<CashSessionDto>();
   readonly showHeader = input(true);
@@ -96,7 +98,7 @@ export class CashZReportComponent {
     if (this.$isPrinting()) return;
     this.$isPrinting.set(true);
     try {
-      await printHtml(zReportHtml(this.session()), 80);
+      await printHtml(zReportHtml(this.session()), this.#printConfig.$config().paperWidth, this.#printConfig.$config().textSize);
     } catch {
       this.#toast.show('No se pudo abrir la impresión', 'error');
     } finally {

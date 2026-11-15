@@ -2,7 +2,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiPathEnum } from 'src/environments';
-import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { PaymentDto } from 'src/app/modules/payments/pages/payment-list/data-access';
 import { paymentMethodLabel } from 'src/app/modules/payments/pages/payment-list/ui/payment-methods';
 import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/business/data-access';
@@ -14,7 +13,6 @@ import { modifierLabel, OrderDetailDto, orderVariationLabel, packItemLabel } fro
 @Injectable({ providedIn: 'root' })
 export class PaymentReceiptService {
   readonly #http = inject(HttpClient);
-  readonly #businessSettings = inject(BusinessSettingsService);
   readonly #businesses = inject(FindMyBusinessesService);
   readonly #printConfig = inject(PrintStationConfigService);
 
@@ -25,14 +23,11 @@ export class PaymentReceiptService {
 
   async print(order: OrderDetailDto): Promise<void> {
     // Consulta propia: no pisa el listado de pagos que muestra el detalle del pedido.
-    const [payments, showTax] = await Promise.all([
-      firstValueFrom(
-        this.#http.get<PaymentDto[]>(`${ApiPathEnum.RESTAURANT}/payments`, {
-          params: new HttpParams().set('transactionId', order.transactionId),
-        }),
-      ),
-      this.#businessSettings.showTaxOnPreBillFor(order.locationId),
-    ]);
+    const payments = await firstValueFrom(
+      this.#http.get<PaymentDto[]>(`${ApiPathEnum.RESTAURANT}/payments`, {
+        params: new HttpParams().set('transactionId', order.transactionId),
+      }),
+    );
     const html = paymentReceiptHtml({
       businessName: this.#businesses.$current()?.name ?? 'REDOM',
       invoiceNo: order.invoiceNo,
@@ -51,7 +46,6 @@ export class PaymentReceiptService {
       discount: order.totalBeforeTax - order.finalTotal,
       total: order.finalTotal,
       taxAmount: order.taxAmount,
-      showTax,
       payments: payments
         .filter((payment) => !payment.cancelled)
         .map((payment) => ({
