@@ -26,6 +26,7 @@ import { PrintStationConfigService } from 'src/app/modules/settings/pages/print-
 import { billTicketHtml, printHtml } from 'src/app/shared/utils/printing';
 import { formatCurrency } from '../../../order-list/ui';
 import { GetOrderByIdService, modifierLabel, OrderDetailDto, OrderLineDto, orderVariationLabel, packItemLabel } from '../../data-access';
+import { PaymentReceiptService } from '../payment-receipt/payment-receipt.service';
 
 export type CollectPaymentResult = 'paid' | 'partial' | 'dismissed';
 
@@ -63,6 +64,8 @@ export class CollectPaymentModalComponent implements OnDestroy {
   private readonly orderService = inject(GetOrderByIdService);
   private readonly businessesService = inject(FindMyBusinessesService);
   private readonly printConfig = inject(PrintStationConfigService);
+  private readonly receipt = inject(PaymentReceiptService);
+  readonly $isPrintingReceipt = signal(false);
   private readonly businessSettings = inject(BusinessSettingsService);
   private readonly dialog = inject(MatDialog);
   private readonly cashService = inject(CashService);
@@ -208,6 +211,8 @@ export class CollectPaymentModalComponent implements OnDestroy {
       this.paymentService.reset();
       this.lastRequest = null;
       if (this.businessSettings.$cashActive()) this.cashContext.refresh();
+      // Cuenta pagada: comprobante de pago si este equipo lo tiene activado.
+      if (result.remaining <= 0 && this.receipt.autoPrint) untracked(() => void this.printReceipt());
       if (result.remaining > 0) {
         const change = payment.change > 0 ? ` · Vuelto ${formatCurrency(payment.change)}` : '';
         this.toast.show(
@@ -330,7 +335,6 @@ export class CollectPaymentModalComponent implements OnDestroy {
     const lines = this.$selectedLines();
     if (!lines.length) return;
     const total = this.$preview();
-    const showTax = await this.businessSettings.showTaxOnPreBillFor(order.locationId);
     const html = billTicketHtml({
       businessName: this.businessesService.$current()?.name ?? 'REDOM',
       title: 'PRECUENTA POR PERSONA',
@@ -351,16 +355,27 @@ export class CollectPaymentModalComponent implements OnDestroy {
       discount: 0,
       total,
       taxAmount: order.finalTotal > 0 ? Math.round((order.taxAmount * total) / order.finalTotal) : 0,
-      showTax,
       paid: 0,
       remaining: total,
       suggestedTipPercent: this.$suggestedTipPercent(),
       note: 'Montos estimados: el sistema calcula el monto final al cobrar',
     });
     try {
-      await printHtml(html, this.printConfig.$config().paperWidth);
+      await printHtml(html, this.printConfig.$config().paperWidth, this.printConfig.$config().textSize);
     } catch {
       this.toast.show('No se pudo imprimir la precuenta', 'error');
+    }
+  }
+
+  async printReceipt() {
+    if (this.$isPrintingReceipt()) return;
+    this.$isPrintingReceipt.set(true);
+    try {
+      await this.receipt.print(this.$order());
+    } catch {
+      this.toast.show('No se pudo imprimir el comprobante de pago', 'error');
+    } finally {
+      this.$isPrintingReceipt.set(false);
     }
   }
 

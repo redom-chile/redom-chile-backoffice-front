@@ -283,6 +283,7 @@
   <ng-template app-slot="footer">
     <div class="flex justify-end gap-3">
       @if ($isPaid()) {
+      <app-button type="button" impact="light" icon="receipt_long" [disabled]="$isPrintingReceipt()" [isLoading]="$isPrintingReceipt()" (buttonClick)="printReceipt()">Imprimir comprobante</app-button>
       <app-button type="button" impact="bold" tone="primary" (buttonClick)="handleClose()">Listo</app-button>
       } @else {
       <app-button type="button" impact="light" [disabled]="$isLoading()" (buttonClick)="handleClose()">

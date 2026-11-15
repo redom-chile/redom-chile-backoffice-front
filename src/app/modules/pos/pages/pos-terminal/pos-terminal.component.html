@@ -98,6 +98,7 @@
         (customerChange)="$customer.set($event)"
         (sendToKitchenChange)="$sendToKitchen.set($event)"
         (submitOrder)="handleSubmit()"
+        (directSale)="handleDirectSale()"
         (collect)="handleCollect()"
         (loyaltyRedeemed)="handleLoyaltyRedeemed()"
         [savingCustomer]="$isSavingCustomer()"
