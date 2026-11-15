@@ -932,78 +932,123 @@ interface PaginationMeta {
 
 # 12. ROADMAP REDOM
 
+> **Última actualización:** 2026-11-15 (revisado contra el código, las rutas, el menú, `plan-routes.ts`, `git log` de todas las ramas, `PENDIENTES.md`, `BACKEND-REQUESTS.md` y `docs/plan-carta-personalizada.md`).
+>
+> **Estados:** ✅ hecho · 🟡 parcial (se dice qué falta) · ⬜ pendiente.
+> **Dónde está:** salvo que se diga otra cosa, todo lo ✅ está **en master (producción)**. Casi nada está probado de punta a punta (ver `PENDIENTES.md` § 2.4 y "Pruebas pendientes").
+>
+> **Trabajo fuera de master:**
+> - Rama `GR-39-parte-2` (y `GR-39-parte-2_master`, mismo cambio sobre master): **etapa 10.2** (panel de clientes, módulo `messaging`, `/carta/encuesta` y `/carta/baja`), **sin fusionar**. El resto de sus commits (etapas 8–11 y legal) ya están en master con otro hash.
+> - Rama actual `fix/pos-impresion-carta-master` (4 commits, sin fusionar): venta directa sin cocina en el POS, tamaño del texto de los tickets por equipo, comprobante de pago al terminar el cobro y arreglo del scroll en Diseño de la carta.
+> - `GR-39` y `feat/brand-logo` no tienen nada nuevo: sus commits ya están en master (cherry-pick). Las ramas `*_dev` / `develop` solo suman commits de ambiente.
+
 ## FASE 1 — MVP COMERCIAL
 
-> **Objetivo:** Un restaurante puede recibir un pedido, procesarlo, enviarlo a las estaciones correspondientes, imprimirlo, cobrarlo y verlo reflejado en sus indicadores.
+> **Objetivo:** un restaurante recibe un pedido, lo procesa, lo envía a sus estaciones, lo imprime, lo cobra y lo ve en sus indicadores.
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 1.1 | **Activar permissionGuard en rutas** | 🟡 Definido, no usado | `permissionGuard`, `roleGuard` | Agregar `data: { viewPermission }` a todas las rutas | Ninguna |
-| 1.2 | **Extender catálogo de permisos** | 🟡 Solo RBAC admin | `permissions.enum.ts` | Agregar módulos: products, categories, tables, orders, pos, kitchen, inventory, customers, reports | Backend debe exponer mismos permisos |
-| 1.3 | **Selector de negocio activo** | 🔴 No existe | `Dropdown` (a crear), `WhoamiService` | Dropdown en navbar que cambia `restaurantId`/`branchId` activo | Backend debe soportar multi-business |
-| 1.4 | **Categorías** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppConfirmModal`, `AppFiltersTable`, `AppPaginationTable`, `AppToast` | CRUD completo siguiendo patrón `data-access/` | Endpoint REST para categorías |
-| 1.5 | **Productos** | 🔴 No existe | Mismos que categorías + `AppBadge`, `AppToggle` | CRUD + imágenes + disponibilidad + asignación a categorías | Endpoint REST para productos |
-| 1.6 | **Sectores** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppBadge`, `AppConfirmModal`, `AppToast` | CRUD de sectores/salones | Endpoint REST para sectores |
-| 1.7 | **Mesas** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppBadge`, `AppToggle`, `AppConfirmModal`, `AppIcon`, `AppToast` | CRUD de mesas + vista floor plan + asignación a sectores | Endpoint REST para mesas |
-| 1.8 | **QR por mesa** | 🔴 No existe | `AppModalCard`, `AppButton`, `AppIcon` | Generación de URL + descarga de QR por mesa | Endpoint que devuelva URL de carta por mesa |
-| 1.9 | **POS — Punto de venta** | 🔴 No existe | `AppCard`, `AppButton`, `AppIcon`, `AppBadge`, `AppToast`, `AppToggle`, `BottomNavbarComponent`, glass utilities | Layout full-screen, catálogo de productos, carrito, cálculo de total, métodos de pago, impresión | Endpoints: productos, pedidos, pagos |
-| 1.10 | **Pedidos — Crear** | 🔴 No existe | `AppTable`, `AppBadge`, `AppButton`, `AppIcon`, `AppModalCard` | Formulario de pedido: seleccionar mesa, agregar productos, cantidades, notas, enviar | Endpoint REST para crear pedido |
-| 1.11 | **Pedidos — Estados** | 🔴 No existe | `AppBadge`, `AppButton`, `AppIcon`, `AppToast` | Flujo de estados: pendiente → en preparación → listo → entregado → pagado. Cambio de estado con badges de colores | Endpoint REST para cambio de estado |
-| 1.12 | **Cocina/KDS** | 🔴 No existe | `AppCard`, `AppBadge`, `AppButton`, `AppIcon`, `AppToast` | Layout full-screen, colas por estación, tarjetas de pedidos, timer, cambio de estado, sonido | WebSocket o SSE + endpoints REST |
-| 1.13 | **Impresión** | 🔴 No existe | `AppButton`, `AppIcon`, `AppToast` | Integración con impresora térmica (comanda, boleta) | Servicio de impresión |
-| 1.14 | **Pagos** | 🔴 No existe | `AppModalCard`, `AppButton`, `AppIcon`, `AppToast` | Modal de pago: efectivo, tarjeta, split. Cálculo de vuelto. Cierre de pedido | Endpoint REST para pagos |
-| 1.15 | **Dashboard real** | 🟡 Placeholder | `AppHeaderDashboard`, `AppCard`, `AppAreaChart`, `AppBadge` | Reconstruir con KPIs reales: ventas del día, pedidos activos, productos más vendidos, ocupación | Endpoints de métricas/analytics |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 1.1 | Activar `permissionGuard` en rutas | ✅ | Por mapa de rutas (`core/permissions/permission-routes.ts`) en vez de `data.viewPermission`; `enforcePermissions` encendido en todos los ambientes |
+| 1.2 | Catálogo de permisos extendido | ✅ | Constantes por servicio (auth / restaurant / billing), igual que el backend. #16 (ver todas las reservas) sigue abierto |
+| 1.3 | Selector de negocio activo | 🟡 | "Mis negocios" en Mi negocio y Perfil; un cambio de negocio desde el navbar: por verificar |
+| 1.4 | Categorías | ✅ | `/products/categories`, orden manual (#68) |
+| 1.5 | Productos | ✅ | Imágenes, disponibilidad, variedades, etiquetas; "Agotados de hoy" |
+| 1.6 | Sectores | ✅ | `/sectors` |
+| 1.7 | Mesas | ✅ | `/tables` con pestañas por sector. Vista de plano (floor plan): por verificar |
+| 1.8 | QR por mesa | ✅ | Modal con QR descargable. #29/#54: la URL del QR debe apuntar a la landing (`redom.cl/carta`) en cada ambiente |
+| 1.9 | POS | ✅ | `/pos` + terminal de salón (`/settings/terminal`). 🟡 Venta directa sin cocina solo en rama `fix/pos-impresion-carta-master` |
+| 1.10 | Pedidos — crear | ✅ | `/orders/new`, modificadores en el pedido |
+| 1.11 | Pedidos — estados | ✅ | Badges y cambio de estado |
+| 1.12 | Cocina / KDS | 🟡 | `/kitchen` con estaciones; se refresca por intervalo (sin WebSocket ni sonido) |
+| 1.13 | Impresión | 🟡 | Impresoras, estación de impresión (`/settings/print-station`), comanda, precuenta (con opción sin IVA, #70) y reporte Z en master. Falta: token de dispositivo (#15), prueba en térmica real de 58 mm, y lo de la rama actual (tamaño de texto, comprobante de pago) |
+| 1.14 | Pagos | ✅ | Efectivo/tarjeta/medios configurables, dividir la cuenta y pagar por producto (#40), propina sugerida (#41 abierto). Falta E2E de "dividir por productos" |
+| 1.15 | Dashboard real | ✅ | KPIs, pedidos recientes, más vendidos y "primeros pasos". Sin placeholders NFT |
 
 ## FASE 2 — OPERACIÓN
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 2.1 | **Carta digital** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppToggle`, `AppBadge` | Ordenamiento de productos en carta, precios, destacados, visibilidad | Endpoint REST para menú/carta |
-| 2.2 | **Extras y modificadores** | 🔴 No existe | `AppModalCard`, `AppButton`, `AppToggle`, `AppBadge` | Extender productos con extras (agregados, opciones, modificadores) | Endpoint REST para extras |
-| 2.3 | **Split de cuentas** | 🔴 No existe | `AppModalCard`, `AppButton`, `AppIcon`, `AppBadge` | Modal de división de cuenta: por persona, por producto, porcentaje | Extender endpoint de pagos |
-| 2.4 | **Reservas** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppBadge`, `AppFiltersTable`, `AppPaginationTable`, `AppToast` | Calendario de reservas, asignación a mesas, confirmación, recordatorios | Endpoint REST para reservas + calendario |
-| 2.5 | **Historial de pedidos** | 🔴 No existe | `AppTable`, `AppPaginationTable`, `AppFiltersTable`, `AppBadge`, `AppModalCard` | Vista de historial con filtros (fecha, mesa, estado, monto) | Endpoint REST para historial |
-| 2.6 | **Clientes básicos** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppFiltersTable`, `AppPaginationTable`, `AppBadge` | CRUD clientes, historial de visitas y consumo | Endpoint REST para clientes |
-| 2.7 | **Notificaciones en tiempo real** | 🔴 No existe | `AppToast`, `AppBadge`, `AppIcon` | WebSocket service — notificar nuevos pedidos, cambios de estado | WebSocket server |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 2.1 | Carta digital (administración) | ✅ | Productos, orden, destacados, visibilidad; ver "Carta pública" abajo |
+| 2.2 | Extras y modificadores | 🟡 | `/products/modifiers`. Falta: eliminar opciones guardadas (#34) y que `GET /products` traiga los sets (#35) |
+| 2.3 | Split de cuentas | ✅ | Por producto y por partes (ver 1.14) |
+| 2.4 | Reservas | 🟡 | `/bookings`, reservas desde la carta (#53). Falta asignar mesero/encargado (#71) y horario del local (#62) |
+| 2.5 | Historial de pedidos | ✅ | `/orders` y `/payments` con filtros |
+| 2.6 | Clientes básicos | ✅ | `/customers` (listado y ficha). Panel y actividad: rama `GR-39-parte-2` |
+| 2.7 | Notificaciones en tiempo real | ⬜ | No hay WebSocket/SSE; KDS, pedidos de clientes y caja se refrescan por intervalo o al volver a la ventana |
+| 2.8 | Caja y turnos *(no estaba)* | 🟡 | `/cash`, `/settings/registers`, reporte Z (80 mm). Ajustes del backend #43 |
+| 2.9 | Onboarding *(no estaba)* | ✅ | Alta del negocio en pocos pasos y configuración del POS (#42) |
+| 2.10 | Horarios del local *(no estaba)* | ✅ | `/settings/schedules` |
 
 ## FASE 3 — INVENTARIO Y RENTABILIDAD
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 3.1 | **Inventario** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppToggle`, `AppBadge`, `AppFiltersTable`, `AppPaginationTable`, `AppToast` | CRUD ingredientes, stock, alertas de stock bajo, movimientos | Endpoint REST para inventario |
-| 3.2 | **Recetas** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppBadge`, `AppToast` | Asociar ingredientes a productos con cantidades, rendimiento, merma | Endpoint REST para recetas |
-| 3.3 | **Costos** | 🔴 No existe | `AppCard`, `AppAreaChart`, `AppTable`, `AppBadge` | Cálculo de costo por producto, margen, rentabilidad. Fichas de costo | Endpoint de costos |
-| 3.4 | **Proveedores** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppFiltersTable`, `AppPaginationTable`, `AppToast` | CRUD proveedores, órdenes de compra, recepción | Endpoint REST para proveedores |
-| 3.5 | **Compras** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppFiltersTable`, `AppPaginationTable`, `AppToast` | Registro de compras a proveedores, entrada de inventario | Endpoint REST para compras |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 3.1 | Inventario | 🟡 | Fases 1–5: stock, ajustes, conteos, transferencias, kardex, unidades, lotes. Solo fase 1 probada E2E. Abiertos #31–#33, #36–#38, #66 |
+| 3.2 | Recetas | ✅ | Editor de recetas, descuento automático por venta, producción/preparaciones |
+| 3.3 | Costos | ✅ | Food cost y consumo |
+| 3.4 | Proveedores | 🟡 | Se crean desde la compra (modal); sin pantalla propia. #49: crear proveedor pide el permiso de clientes |
+| 3.5 | Compras | ✅ | Compras y órdenes de compra con detalle |
+| 3.6 | Finanzas *(no estaba)* | 🟡 | Gastos, recurrentes, categorías, cuentas por pagar, propinas y reparto, "Plata por llegar" (comisiones de medios de pago). Ajustes #44, #45 |
 
 ## FASE 4 — CLIENTES Y CRECIMIENTO
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 4.1 | **CRM** | 🔴 No existe | `AppTable`, `AppCard`, `AppButton`, `AppBadge`, `AppFiltersTable`, `AppPaginationTable`, `AppAreaChart` | Perfil de cliente, historial, preferencias, frecuencia, ticket promedio | Extender endpoint de clientes |
-| 4.2 | **Fidelización** | 🔴 No existe | `AppCard`, `AppBadge`, `AppTable`, `AppButton` | Programa de puntos, recompensas, niveles, cupones | Endpoint REST para fidelización |
-| 4.3 | **Carta pública (QR)** | 🔴 No existe | `AppCard`, `AppBadge`, `AppButton`, `AppIcon`, `AppSkeleton`, glass utilities | App/web pública que consume carta por restaurantId. Diseño mobile-first | Endpoint público de carta |
-| 4.4 | **Pedidos desde QR** | 🔴 No existe | `AppButton`, `AppBadge`, `AppIcon`, `AppToast`, `AppCard`, glass utilities | Flujo: cliente escanea QR → ve carta → hace pedido → llega a cocina | Endpoint público de pedidos |
-| 4.5 | **Marketing** | 🔴 No existe | `AppTable`, `AppModalCard`, `AppButton`, `AppBadge` | Campañas, email/SMS, segmentación | Endpoint REST para campañas |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 4.1 | CRM | 🟡 | Clientes reconocidos por correo (etapa 10) en master. **Panel de clientes (segmentos, CSV, actividad) en rama `GR-39-parte-2`, sin fusionar** |
+| 4.2 | Fidelización | ✅ | `/loyalty`, canje en el POS. #61 abierto (descuento canjeado editable) |
+| 4.3 | Carta pública (QR) | ✅ | Etapas 1–11 en master (detalle abajo). Vive en la landing (`projects/landing`, `redom.cl/carta`) |
+| 4.4 | Pedidos desde QR | ✅ | Etapa 3 (mesa) y 5 (retiro y delivery con comprobante); bandeja `/customer-orders` |
+| 4.5 | Marketing | 🟡 | Marketing de la carta (promos, banners, packs) en master. **Mensajería por correo (automáticos y campañas) en rama `GR-39-parte-2`, sin fusionar; bloqueada por #81**. WhatsApp ⬜ |
+
+### Carta pública e innovación (`docs/plan-carta-personalizada.md`) *(no estaba)*
+
+| Etapa | Contenido | Estado |
+|---|---|---|
+| 1–7 | Carta por local, marketing, pedidos en mesa y packs, mesero/cuenta/reservas/encuesta, retiro y delivery, API pública/webhooks/widget, idiomas con IA y fidelización | ✅ master (sin E2E contra la API real) |
+| 8 | Diseño (plantillas, tipografías, historia, chef) | ✅ master. Arreglo de scroll en rama actual |
+| 9 | Contenido con IA (`/products/improve`) | ✅ master (sin fotos con IA: etapa 9b ⬜) |
+| 10 | Cliente reconocido por correo | ✅ master |
+| 10.1 | Módulo legal global (términos, privacidad, consentimientos; Plataforma → Legal) | ✅ master. #79 abierto; textos por revisar con abogado |
+| 10.2 | Mensajería y panel de clientes | 🟡 rama `GR-39-parte-2`, sin fusionar ni probar; #81 bloqueante |
+| 11 | Carta dinámica (momentos, temporadas, plato del día, clima, sugerencias) | ✅ master |
+| 12 | Mesa compartida (+ pago online, Mercado Pago OAuth) | ⬜ |
+| 13 | Comunidad y juegos | ⬜ |
+| 14 | Mesero virtual con IA | ⬜ |
 
 ## FASE 5 — INTELIGENCIA
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 5.1 | **Analytics avanzado** | 🔴 No existe | `AppCard`, `AppAreaChart`, `AppHeaderDashboard`, `AppBadge`, `AppTable` | Dashboard con KPIs avanzados, tendencias, comparativas, forecast | Endpoints de analytics |
-| 5.2 | **Reportes** | 🔴 No existe | `AppTable`, `AppCard`, `AppButton`, `AppFiltersTable`, `AppHeaderDashboard` | Reportes exportables (PDF, Excel): ventas, inventario, clientes, impuestos | Endpoints de reportes |
-| 5.3 | **Predicción de demanda** | 🔴 No existe | `AppCard`, `AppAreaChart`, `AppBadge` | ML básico: predicción de ventas, sugerencia de compras | IA/ML backend |
-| 5.4 | **Optimización de menú** | 🔴 No existe | `AppTable`, `AppCard`, `AppAreaChart`, `AppBadge` | Análisis de rentabilidad por producto, sugerencia de precios | Backend analytics |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 5.1 | Analytics avanzado | 🟡 | Dashboard con KPIs básicos; estadísticas de la carta y del asistente. Sin tendencias ni forecast |
+| 5.2 | Reportes | 🟡 | Reporte Z, exportación CSV en Plataforma (pagos) y legal (CSV/PDF). Sin reportes exportables de ventas/inventario (inventario "sin exportar a Excel/CSV") |
+| 5.3 | Predicción de demanda | ⬜ | |
+| 5.4 | Optimización de menú | 🟡 | Sugerencias de precio y promociones con IA (etapa 9); sin análisis de rentabilidad por producto más allá de food cost |
+| 5.5 | Centro de ayuda y asistente con IA *(no estaba)* | ✅ | `/help`, administración de artículos, revisión y uso/costos. Falta recargar artículos con el menú nuevo |
 
 ## FASE 6 — ECOSISTEMA
 
-| # | Funcionalidad | Estado actual | Componentes reutilizables | Trabajo necesario | Dependencias |
-|---|--------------|---------------|--------------------------|-------------------|-------------|
-| 6.1 | **Multi-sucursal** | 🔴 No existe | `AppTable`, `AppCard`, `AppButton`, `AppBadge`, `BusinessSelector` | Gestión centralizada de múltiples sucursales, consolidación de datos | Endpoints multi-branch |
-| 6.2 | **Marketplace** | 🔴 No existe | `AppCard`, `AppButton`, `AppBadge`, `AppIcon` | Integración con apps de delivery (Uber Eats, Rappi, PedidosYa) | APIs externas |
-| 6.3 | **App móvil nativa** | 🔴 No existe | `BottomNavbarComponent`, glass utilities | PWA o app nativa con Ionic/Capacitor reutilizando componentes | Infraestructura PWA |
-| 6.4 | **White label** | 🔴 No existe | Todo el theme system | Personalización de colores, logo, nombre por cliente | Multi-tenant backend |
-| 6.5 | **Facturación electrónica** | 🔴 No existe | `AppButton`, `AppModalCard`, `AppToast` | Integración con SII (Chile) u otros organismos tributarios | API de facturación |
+| # | Funcionalidad | Estado | Nota |
+|---|---|---|---|
+| 6.1 | Multi-sucursal | 🟡 | Sucursales (`/business/location`), transferencias entre locales (`multiLocation`). Sin consolidación de datos entre sucursales |
+| 6.2 | Marketplace (Uber Eats, Rappi, PedidosYa) | ⬜ | La API pública y los webhooks (etapa 6) son la base |
+| 6.3 | App móvil / PWA | ⬜ | Sin service worker; la carta y la terminal son responsive |
+| 6.4 | White label | 🟡 | Por negocio: logo, colores y diseño de la carta (`menu_branding`, `menu_design`). Color de marca del restaurante en el backoffice pendiente (#30) |
+| 6.5 | Facturación electrónica (SII) | ⬜ | No hay integración |
+| 6.6 | Planes, suscripciones y Plataforma (superadmin) *(no estaba)* | ✅ | Entitlements por plan (`plan-routes.ts`, candados en menú), Mi suscripción, pago manual y con Flow, proceso diario; Plataforma: negocios, planes, cobros, descuentos, accesos de soporte, legal, ajustes. Abiertos #47, #48, precios de planes por definir |
+| 6.7 | Landing *(no estaba)* | ✅ | `projects/landing` (SSR): planes desde el API, asistente con IA y la carta pública |
+| 6.8 | Pagos online desde la carta | ⬜ | Junto con la etapa 12 (Mercado Pago OAuth); comisión de Redom por decidir |
+
+## Próximos pasos (por prioridad)
+
+1. **Probar y fusionar la etapa 10.2** (rama `GR-39-parte-2` → master). Antes, el backend debe resolver **#81** (los enlaces de encuesta y baja de los correos apuntan al backoffice; se pide `PUBLIC_MENU_URL`, que además cierra #54).
+2. **Cerrar la rama actual** `fix/pos-impresion-carta-master` (venta directa, tickets, comprobante) y probar en impresora térmica real.
+3. **Backend bloqueante o con más impacto:** #39 (token renovado responde 401; la sesión dura 2 h) · #71 (asignar mesero/encargado a reservas) · #79 (ajustes del módulo legal) · #15 (token de dispositivo para impresión) · #29/#54 (URLs públicas de la carta por ambiente) · #48 (CORS con varios orígenes).
+4. **Resto de solicitudes abiertas** (`BACKEND-REQUESTS.md`): #16, #28, #30–#38, #41, #43–#45, #47, #49, #51, #52, #55–#57, #59–#62, #65, #66; #25 por decidir.
+5. **Pruebas de punta a punta** de la carta (etapas 1–11) contra la API real, Safari iOS, fidelización, variedades, inventario fases 2–5, caja y finanzas.
+6. **Etapa 12 · Mesa compartida** (con pago online desde la carta).
+7. **Etapa 13 · Comunidad y juegos.**
+8. **Etapa 14 · Mesero virtual con IA.**
+9. **Más adelante:** WhatsApp como canal de mensajería · tiempo real (WebSocket/SSE) · reportes exportables · facturación electrónica (SII) · PWA · integración con apps de delivery.
 
 ---
 
