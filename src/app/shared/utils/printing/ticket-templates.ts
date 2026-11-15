@@ -106,6 +106,65 @@ export function billTicketHtml(bill: BillTicketData): string {
     ${brand(3.5)}`;
 }
 
+export type PaymentReceiptData = Readonly<{
+  businessName: string;
+  invoiceNo: string;
+  tableName: string | null;
+  waiterName: string | null;
+  lines: ReadonlyArray<{ name: string; quantity: number; total: number; modifiers?: ReadonlyArray<string> | null }>;
+  subtotal: number;
+  discount: number;
+  total: number;
+  taxAmount: number;
+  showTax?: boolean;
+  // Pagos vigentes del pedido (sin anulados). method: etiqueta ya traducida ("Efectivo").
+  payments: ReadonlyArray<{ method: string; amount: number; tip: number; tendered: number | null; change: number }>;
+}>;
+
+// Comprobante de pago para el cliente al cerrar la cuenta (no es boleta).
+export function paymentReceiptHtml(receipt: PaymentReceiptData): string {
+  const lines = receipt.lines
+    .map(
+      (line) =>
+        `<div class="row"><span>${line.quantity}x ${escapeHtml(line.name)}</span><span>${money(line.total)}</span></div>${modifierLines(line.modifiers, 'sub')}`,
+    )
+    .join('');
+  const payments = receipt.payments
+    .map(
+      (payment) =>
+        `<div class="row"><span>${escapeHtml(payment.method)}</span><span>${money(payment.amount)}</span></div>` +
+        (payment.tip > 0 ? `<div class="row sub"><span>Propina</span><span>${money(payment.tip)}</span></div>` : '') +
+        (payment.tendered && payment.tendered > 0
+          ? `<div class="row sub"><span>Recibido</span><span>${money(payment.tendered)}</span></div><div class="row sub"><span>Vuelto</span><span>${money(payment.change)}</span></div>`
+          : ''),
+    )
+    .join('');
+  const tips = receipt.payments.reduce((sum, payment) => sum + payment.tip, 0);
+  const paid = receipt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+  return `
+    <h2>${escapeHtml(receipt.businessName)}</h2>
+    <div class="center big">COMPROBANTE DE PAGO</div>
+    <div class="center muted">${dateTime(new Date())}</div>
+    <div class="row muted"><span>${escapeHtml(receipt.invoiceNo)}</span><span>${escapeHtml(receipt.tableName ?? 'Sin mesa')}</span></div>
+    ${receipt.waiterName ? `<div class="muted">Atendido por: ${escapeHtml(receipt.waiterName)}</div>` : ''}
+    <div class="sep"></div>
+    ${lines}
+    <div class="sep"></div>
+    <div class="row"><span>Subtotal</span><span>${money(receipt.subtotal)}</span></div>
+    ${receipt.discount > 0 ? `<div class="row"><span>Descuento</span><span>-${money(receipt.discount)}</span></div>` : ''}
+    <div class="row total"><span>TOTAL</span><span>${money(receipt.total)}</span></div>
+    ${receipt.showTax !== false ? `<div class="row muted"><span>IVA incluido</span><span>${money(receipt.taxAmount)}</span></div>` : ''}
+    <div class="sep"></div>
+    <div><b>Pagos</b></div>
+    ${payments}
+    <div class="row total"><span>PAGADO</span><span>${money(paid)}</span></div>
+    ${tips > 0 ? `<div class="row"><span>Total con propina</span><span>${money(paid + tips)}</span></div>` : ''}
+    <div class="sep"></div>
+    <div class="center muted">Documento no válido como boleta</div>
+    <div class="center">¡Gracias por su visita!</div>
+    ${brand(3.5)}`;
+}
+
 export function testTicketHtml(printerName: string): string {
   return `
     ${brand(7)}

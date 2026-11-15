@@ -75,6 +75,10 @@ export class PrintStationComponent implements OnInit {
     this.configService.update({ printerId, enabled: false });
   }
 
+  toggleAutoPaymentReceipt(event: Event) {
+    this.configService.update({ autoPaymentReceipt: (event.target as HTMLInputElement).checked });
+  }
+
   selectTextSize(textSize: TicketTextSize) {
     this.configService.update({ textSize });
   }
