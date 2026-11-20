@@ -1,5 +1,5 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, shareReplay, Subject, switchMap, tap, throwError } from 'rxjs';
+import { BehaviorSubject, catchError, finalize, map, Observable, shareReplay, Subject, switchMap, tap, throwError, of } from 'rxjs';
 import {
   GoogleSessionDto,
   LoginInputDto,
@@ -61,6 +61,21 @@ export class AuthService {
 
   constructor(private http: HttpClient) {
     this.loadSession();
+    // Otra pestaña renovó o cerró la sesión: esta usa los mismos tokens y no pide otro refresh.
+    window.addEventListener('storage', (event) => {
+      if (event.key === this.tokenKey) this.token = event.newValue;
+      if (event.key === this.refreshTokenKey) this.refreshToken = event.newValue;
+    });
+  }
+
+  // Última actividad: la sesión local se borra al abrir la app tras 24 h sin uso (loadSession).
+  // Se actualiza con cada respuesta correcta del backend, a lo más una vez por minuto.
+  #lastActivityWrite = 0;
+  touchActivity() {
+    const now = Date.now();
+    if (!this.token || now - this.#lastActivityWrite < 60_000) return;
+    this.#lastActivityWrite = now;
+    localStorage.setItem(this.lastActivityKey, String(now));
   }
 
   private loadSession() {
@@ -175,8 +190,16 @@ export class AuthService {
   // Un solo refresh a la vez: las peticiones que reciben 401 en paralelo esperan este mismo resultado.
   #refreshInFlight$: Observable<string> | null = null;
 
-  refreshAccessToken(): Observable<string> {
-    const currentRefreshToken = this.getRefreshToken();
+  // failedToken: el token con el que falló la petición. Si otra pestaña ya renovó la sesión,
+  // se usa ese token nuevo en vez de pedir otro refresh.
+  refreshAccessToken(failedToken?: string | null): Observable<string> {
+    const storedToken = localStorage.getItem(this.tokenKey);
+    if (storedToken && failedToken && storedToken !== failedToken) {
+      this.token = storedToken;
+      this.refreshToken = localStorage.getItem(this.refreshTokenKey);
+      return of(storedToken);
+    }
+    const currentRefreshToken = localStorage.getItem(this.refreshTokenKey) ?? this.getRefreshToken();
     if (!currentRefreshToken) {
       this.clearSession();
       return throwError(() => new Error('No refresh token available'));
@@ -184,17 +207,25 @@ export class AuthService {
     if (this.#refreshInFlight$) return this.#refreshInFlight$;
 
     this.#refreshInFlight$ = this.http
-      .post<{ accessToken: string; refreshToken: string }>(`${ApiPathEnum.AUTH}/auth/refresh-token`, {
+      // El backend responde la sesión como el login (token, refreshToken, legal) y también accessToken.
+      .post<Partial<SessionDto> & { accessToken?: string }>(`${ApiPathEnum.AUTH}/auth/refresh-token`, {
         refreshToken: currentRefreshToken,
       })
       .pipe(
-        // El refresh token rota: se reemplazan ambos.
-        tap((response) => {
-          this.saveToken(response.accessToken);
-          this.saveRefreshToken(response.refreshToken);
-          localStorage.setItem(this.lastActivityKey, String(Date.now()));
+        map((response) => {
+          const token = response.token ?? response.accessToken;
+          if (!token) throw new Error('Refresh sin token');
+          return { token, refreshToken: response.refreshToken ?? null, restricted: !!response.legal?.restricted };
         }),
-        map((response) => response.accessToken),
+        // El refresh token rota: se reemplazan ambos.
+        tap(({ token, refreshToken, restricted }) => {
+          this.saveToken(token);
+          this.saveRefreshToken(refreshToken);
+          localStorage.setItem(this.lastActivityKey, String(Date.now()));
+          // Documentos legales nuevos por aceptar: la app lleva a aceptarlos (no se cierra la sesión).
+          if (restricted) this.#legal.setRestricted(true);
+        }),
+        map(({ token }) => token),
         catchError((error: HttpErrorResponse) => {
           this.clearSession();
           return throwError(() => error);

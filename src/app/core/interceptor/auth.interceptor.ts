@@ -1,7 +1,7 @@
-import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, switchMap, tap, throwError } from 'rxjs';
 import { AuthService } from 'src/app/modules/auth/pages/data-access';
 import { ApiPathEnum } from 'src/environments';
 import { ToastService } from 'src/ui';
@@ -37,10 +37,14 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
   };
 
   return next(withToken(req, token)).pipe(
+    // Cada respuesta correcta cuenta como actividad: la sesión no se borra mientras se use la app.
+    tap((event) => {
+      if (event instanceof HttpResponse) authService.touchActivity();
+    }),
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401) return throwError(() => error);
-      // Refresh con cola: si ya hay uno en curso, se espera ese mismo.
-      return authService.refreshAccessToken().pipe(
+      // Refresh con cola: si ya hay uno en curso, se espera ese mismo. Si otra pestaña ya renovó, se usa su token.
+      return authService.refreshAccessToken(token).pipe(
         catchError((refreshError) => {
           endSession();
           return throwError(() => (refreshError instanceof HttpErrorResponse ? error : refreshError));
