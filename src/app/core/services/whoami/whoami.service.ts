@@ -2,17 +2,18 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
 import {
   BehaviorSubject,
+  EMPTY,
+  Observable,
+  Subject,
   catchError,
   debounceTime,
-  EMPTY,
   filter,
+  finalize,
   fromEvent,
   map,
   merge,
-  Observable,
   of,
   shareReplay,
-  Subject,
   switchMap,
   takeUntil,
   tap,
@@ -30,6 +31,17 @@ const isOwner = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code ===
  * Con negocio: ¿falta el paso "Tu local"? undefined si whoami no trae locationsCount (hay que consultar los locales).
  */
 export const isSuperAdmin = (whoami: WhoamiDto) => whoami.roles.some((role) => role.code === 'SUPERADMIN');
+
+/** Roles y locales activos que trae el login (SessionDto.home). */
+export type SessionHomeHint = Readonly<{ roleCodes: string[]; locationsCount: number }>;
+
+/** Misma decisión que homeRoute() con whoami: plataforma, onboarding o el resumen. */
+export function homeFromSession(home: SessionHomeHint & Readonly<{ restaurantId: number | null }>): string {
+  if (home.roleCodes.includes('SUPERADMIN')) return SUPERADMIN_HOME;
+  if (!home.restaurantId) return '/onboarding';
+  if (home.roleCodes.includes('OWNER') && home.locationsCount === 0) return '/onboarding';
+  return '/dashboard/admin';
+}
 
 /** Inicio del equipo de Redom (SUPERADMIN): la plataforma, no la gestión de un negocio. */
 export const SUPERADMIN_HOME = '/platform/summary';
@@ -78,11 +90,8 @@ export class WhoamiService implements OnDestroy {
     switchMap(() =>
       this.#legal.$restricted()
         ? EMPTY
-        : this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
-            map((whoami) => (isFullWhoami(whoami) ? whoami : null)),
+        : this.load().pipe(
             filter((whoami): whoami is WhoamiDto => !!whoami),
-            tap((whoami) => this.#latest.set(whoami)),
-            catchError(() => EMPTY),
             tap(() => localStorage.setItem('lastActivity', String(Date.now()))),
           ),
     ),
@@ -114,11 +123,24 @@ export class WhoamiService implements OnDestroy {
    */
   load(): Observable<WhoamiDto | null> {
     if (this.#legal.$restricted()) return of(null);
-    return this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
+    // Una sola petición a la vez: al iniciar sesión, el refresco y homeRoute() comparten la misma.
+    this.#inFlight$ ??= this.#httpClient.get<WhoamiDto>(`${ApiPathEnum.AUTH}/users/whoami`).pipe(
       map((whoami) => (isFullWhoami(whoami) ? whoami : null)),
       tap((whoami) => whoami && this.#latest.set(whoami)),
       catchError(() => of(null)),
+      finalize(() => (this.#inFlight$ = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+    return this.#inFlight$;
+  }
+
+  #inFlight$: Observable<WhoamiDto | null> | null = null;
+
+  /** Datos del login para elegir la primera pantalla sin esperar whoami. Se usan una sola vez. */
+  #sessionHome: (SessionHomeHint & Readonly<{ restaurantId: number | null }>) | null = null;
+
+  seedHome(home: SessionHomeHint | null | undefined, restaurantId: number | null | undefined) {
+    this.#sessionHome = home ? { ...home, restaurantId: restaurantId ?? null } : null;
   }
 
   /**
@@ -139,6 +161,11 @@ export class WhoamiService implements OnDestroy {
   // Adónde ir después de iniciar sesión: sin negocio o sin local → onboarding.
   // SUPERADMIN → Plataforma: no gestiona negocios.
   homeRoute(): Observable<string> {
+    // Recién iniciada la sesión: el login ya trae roles y locales, no hace falta esperar whoami
+    // (que se carga de fondo para el menú y los permisos).
+    const home = this.#sessionHome;
+    this.#sessionHome = null;
+    if (home) return of(homeFromSession(home));
     return this.load().pipe(
       switchMap((whoami) => {
         if (whoami && isSuperAdmin(whoami)) return of(SUPERADMIN_HOME);
@@ -148,6 +175,7 @@ export class WhoamiService implements OnDestroy {
   }
 
   forget() {
+    this.#sessionHome = null;
     this.#latest.set(undefined);
     this.#sessionUser.set(null);
   }

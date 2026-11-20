@@ -300,6 +300,7 @@ export class AuthService {
     const { profileImageUrl: _signedUrl, ...storableUser } = session.userData;
     localStorage.setItem(this.userDataKey, JSON.stringify(storableUser));
     this.#whoami.seedFromSession(session.userData);
+    this.#whoami.seedHome(session.home, session.userData.restaurantId);
     this.currentUserLoginOn.next(true);
     this.currentUserData.next({
       token: { token: session.token },
