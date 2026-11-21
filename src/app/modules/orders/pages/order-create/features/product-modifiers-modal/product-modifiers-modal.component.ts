@@ -77,6 +77,11 @@ export class ProductModifiersModalComponent {
   readonly $basePrice = computed(
     () => this.varieties.find((variety) => variety.variationId === this.$variationId())?.price ?? this.data.basePrice,
   );
+  // Al agregar (no al editar) un producto con 2+ variedades se elige cuántas de cada una (C48).
+  readonly isMultiVariety = !this.isEditing && this.varieties.length > 1;
+  // variationId → cantidad; parte sin ninguna elegida.
+  readonly $varietyQuantities = signal<Record<number, number>>({});
+  readonly $varietyTotalQuantity = computed(() => Object.values(this.$varietyQuantities()).reduce((sum, qty) => sum + qty, 0));
 
   // --- Pack ---
   private readonly toast = inject(ToastService);
@@ -121,7 +126,7 @@ export class ProductModifiersModalComponent {
   // Los precios del catálogo pueden ser netos: la estimación suma el IVA como el backend.
   readonly $pricing = cartPricing(inject(BusinessSettingsService));
   readonly $unitPrice = computed(() => cartUnitPrice(this.$basePrice(), this.$modifiers(), this.$pricing(), packExtras(this.$packChoices())));
-  readonly $canConfirm = computed(() => !this.isPack || this.$packValid());
+  readonly $canConfirm = computed(() => (!this.isPack || this.$packValid()) && (!this.isMultiVariety || this.$varietyTotalQuantity() > 0));
 
   constructor() {
     if (this.data.packProductId === undefined) return;
@@ -173,7 +178,31 @@ export class ProductModifiersModalComponent {
     });
   }
 
-  readonly $total = computed(() => this.$unitPrice() * this.$quantity());
+  readonly $total = computed(() => {
+    if (!this.isMultiVariety) return this.$unitPrice() * this.$quantity();
+    const quantities = this.$varietyQuantities();
+    const modifiers = this.$modifiers();
+    const pricing = this.$pricing();
+    const extras = packExtras(this.$packChoices());
+    return this.varieties.reduce(
+      (sum, variety) => sum + cartUnitPrice(variety.price, modifiers, pricing, extras) * (quantities[variety.variationId] ?? 0),
+      0,
+    );
+  });
+
+  varietyQuantity(variationId: number): number {
+    return this.$varietyQuantities()[variationId] ?? 0;
+  }
+
+  changeVarietyQuantity(variationId: number, delta: number) {
+    this.$varietyQuantities.update((quantities) => {
+      const next = Math.min(MAX_PRODUCT_QUANTITY, Math.max(0, (quantities[variationId] ?? 0) + delta));
+      const updated = { ...quantities };
+      if (next > 0) updated[variationId] = next;
+      else delete updated[variationId];
+      return updated;
+    });
+  }
 
   timesOf(option: ProductModifierOptionDto): number {
     return this.$selected()[option.variationId] ?? 0;
@@ -217,6 +246,19 @@ export class ProductModifiersModalComponent {
 
   handleConfirm() {
     if (!this.$canConfirm()) return;
+    if (this.isMultiVariety) {
+      const quantities = this.$varietyQuantities();
+      this.dialogRef.close({
+        quantity: this.$varietyTotalQuantity(),
+        note: this.$note().trim(),
+        modifiers: this.$modifiers(),
+        varietyQuantities: this.varieties
+          .filter((variety) => (quantities[variety.variationId] ?? 0) > 0)
+          .map((variety) => ({ variationId: variety.variationId, quantity: quantities[variety.variationId] })),
+        ...(this.isPack ? { packChoices: this.$packChoices() } : {}),
+      });
+      return;
+    }
     const variationId = this.$variationId();
     this.dialogRef.close({
       ...(this.varieties.length && variationId !== null ? { variationId } : {}),

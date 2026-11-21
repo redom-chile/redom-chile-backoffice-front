@@ -46,6 +46,8 @@ export type PosSettings = Readonly<{
   isServiceStaffRequired?: boolean;
   // Línea "IVA incluido" en la precuenta impresa; ausente = true (#70).
   showTaxOnPreBill?: boolean;
+  // Ticket de anulación en cocina al anular un producto ya enviado; ausente = true (C46).
+  printVoidTickets?: boolean;
   // Solo del front: false si el negocio nunca guardó estas opciones (no se envía al backend).
   configured?: boolean;
 }>;
