@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from 
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, tap, throwError } from 'rxjs';
-import { AuthService } from 'src/app/modules/auth/pages/data-access';
+import { AuthService, isSessionRejected } from 'src/app/modules/auth/pages/data-access';
 import { ApiPathEnum } from 'src/environments';
 import { ToastService } from 'src/ui';
 
@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
 const isPublic = (url: string) => PUBLIC_PATHS.some((path) => url.startsWith(path)) && !url.endsWith('/login/logout');
 
 let lastSessionEnd = 0;
+let lastConnectionWarning = 0;
 
 const withToken = (req: HttpRequest<unknown>, token: string) =>
   req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
@@ -46,7 +47,13 @@ export const AuthInterceptor: HttpInterceptorFn = (req, next) => {
       // Refresh con cola: si ya hay uno en curso, se espera ese mismo. Si otra pestaña ya renovó, se usa su token.
       return authService.refreshAccessToken(token).pipe(
         catchError((refreshError) => {
-          endSession();
+          // La sesión se cierra solo si el backend la rechazó (401/403). Si el servidor o la red
+          // fallaron un momento, se avisa y la sesión sigue: la próxima acción reintenta (C37.1).
+          if (isSessionRejected(refreshError)) endSession();
+          else if (Date.now() - lastConnectionWarning > 10_000) {
+            lastConnectionWarning = Date.now();
+            toast.show('No pudimos conectar con el servidor. Reintenta en unos segundos.', 'warning');
+          }
           return throwError(() => (refreshError instanceof HttpErrorResponse ? error : refreshError));
         }),
         switchMap((newToken) =>

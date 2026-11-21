@@ -1,5 +1,17 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, shareReplay, Subject, switchMap, tap, throwError, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  catchError,
+  finalize,
+  map,
+  Observable,
+  shareReplay,
+  Subject,
+  switchMap,
+  tap,
+  throwError,
+  of,
+} from 'rxjs';
 import {
   GoogleSessionDto,
   LoginInputDto,
@@ -14,6 +26,15 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiPathEnum } from 'src/environments';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { LegalSessionStore } from 'src/app/core/services/legal/legal-session.store';
+
+/**
+ * true: el backend rechazó la sesión (401 o 403, o el refresh respondió sin token) y hay
+ * que cerrarla. false: error de red o del servidor (0, 5xx), la sesión se mantiene.
+ */
+export function isSessionRejected(error: unknown): boolean {
+  if (error instanceof HttpErrorResponse) return error.status === 401 || error.status === 403;
+  return true;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -143,13 +164,10 @@ export class AuthService {
     this.#isLoading$.next(true);
 
     return this.http
-      .post<SessionDto>(
-        `${ApiPathEnum.AUTH}/login/authenticate-user`,
-        {
-          email: loginInput.email,
-          password: loginInput.password,
-        },
-      )
+      .post<SessionDto>(`${ApiPathEnum.AUTH}/login/authenticate-user`, {
+        email: loginInput.email,
+        password: loginInput.password,
+      })
       .pipe(
         tap(() => this.#isLoading$.next(true)),
         tap(() => this.#error$.next(undefined)),
@@ -226,8 +244,10 @@ export class AuthService {
           if (restricted) this.#legal.setRestricted(true);
         }),
         map(({ token }) => token),
-        catchError((error: HttpErrorResponse) => {
-          this.clearSession();
+        // Solo un rechazo de la sesión la cierra. Un error de red o del servidor (Redis o la API
+        // caídos un momento) la mantiene: la próxima acción vuelve a intentar (C37.1).
+        catchError((error: unknown) => {
+          if (isSessionRejected(error)) this.clearSession();
           return throwError(() => error);
         }),
         finalize(() => (this.#refreshInFlight$ = null)),
