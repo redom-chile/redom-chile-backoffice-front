@@ -27,7 +27,8 @@ function countItems(lots: readonly StockLotDto[]): number {
     @let counts = $counts();
     @if (variant() === 'card') {
     @if (counts || data.isLoading()) {
-    <div class="glass-tile-soft flex h-full w-full flex-col gap-2 rounded-2xl p-4 text-left">
+    <!-- Franja izquierda como las tarjetas del Resumen: rosado con vencidos, amarillo con por vencer. -->
+    <div class="bg-card flex h-full w-full flex-col gap-2 rounded-2xl border border-l-[6px] border-[var(--border)] p-4 text-left" [class]="$stripe()">
       <div class="flex items-center justify-between gap-2">
         <p class="text-muted-foreground text-sm">Por vencer / Vencidos</p>
         <span
@@ -134,6 +135,13 @@ export class ExpiryAlertComponent {
     if (counts?.expired) return 'bg-red-500/15 text-red-600';
     if (counts?.expiring) return 'bg-amber-500/15 text-amber-600';
     return 'bg-primary/10 text-primary';
+  });
+
+  readonly $stripe = computed(() => {
+    const counts = this.$counts();
+    if (counts?.expired) return 'border-l-rose-400';
+    if (counts?.expiring) return 'border-l-amber-400';
+    return 'border-l-primary';
   });
 
   onDays(event: Event) {

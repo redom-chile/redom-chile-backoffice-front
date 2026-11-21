@@ -9,7 +9,8 @@ import { IconComponent } from 'src/ui';
   imports: [IconComponent, RouterLink, MatTooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="glass-tile-soft flex h-full flex-col gap-2 rounded-2xl p-4">
+    <!-- Mismo estilo que las comandas de cocina, con la franja de color a la izquierda: sube, baja o neutro. -->
+    <div class="bg-card flex h-full flex-col gap-2 rounded-2xl border border-l-[6px] border-[var(--border)] p-4" [class]="$stripe()">
       <div class="flex items-center justify-between gap-2">
         <p class="text-muted-foreground text-sm">{{ label() }}</p>
         <!-- Explicación del indicador: mouse, teclado (Tab) o mantener presionado en el teléfono. -->
@@ -57,16 +58,25 @@ export class KpiCardComponent {
   readonly link = input<string | null>(null);
   readonly linkLabel = input('Ver');
 
+  // Verde azulado si sube, rosado si baja; sin comparación, el color principal.
+  readonly $stripe = computed(() => {
+    const delta = this.$delta();
+    if (!delta) return 'border-l-primary';
+    if (delta.trend === 'up') return 'border-l-teal-500';
+    if (delta.trend === 'down') return 'border-l-rose-400';
+    return 'border-l-[var(--border)]';
+  });
+
   readonly $delta = computed(() => {
     const current = this.current();
     const previous = this.previous();
     if (current === null || previous === null) return null;
-    if (previous === 0) return current === 0 ? null : { text: 'Nuevo', icon: 'trending_up', tone: 'text-green-600' };
+    if (previous === 0) return current === 0 ? null : { text: 'Nuevo', icon: 'trending_up', tone: 'text-teal-700 dark:text-teal-300', trend: 'up' as const };
     const change = ((current - previous) / previous) * 100;
     const rounded = Math.round(change);
-    if (rounded === 0) return { text: '0%', icon: 'trending_flat', tone: 'text-muted-foreground' };
+    if (rounded === 0) return { text: '0%', icon: 'trending_flat', tone: 'text-muted-foreground', trend: 'flat' as const };
     return rounded > 0
-      ? { text: `+${rounded}%`, icon: 'trending_up', tone: 'text-green-600' }
-      : { text: `${rounded}%`, icon: 'trending_down', tone: 'text-red-600' };
+      ? { text: `+${rounded}%`, icon: 'trending_up', tone: 'text-teal-700 dark:text-teal-300', trend: 'up' as const }
+      : { text: `${rounded}%`, icon: 'trending_down', tone: 'text-rose-600 dark:text-rose-400', trend: 'down' as const };
   });
 }
