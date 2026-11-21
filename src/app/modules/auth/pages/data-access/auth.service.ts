@@ -1,5 +1,17 @@
 import { Injectable, inject, Injector } from '@angular/core';
-import { BehaviorSubject, catchError, finalize, map, Observable, shareReplay, Subject, switchMap, tap, throwError } from 'rxjs';
+import {
+  BehaviorSubject,
+  catchError,
+  finalize,
+  map,
+  Observable,
+  shareReplay,
+  Subject,
+  switchMap,
+  tap,
+  throwError,
+  of,
+} from 'rxjs';
 import {
   GoogleSessionDto,
   LoginInputDto,
@@ -14,6 +26,15 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ApiPathEnum } from 'src/environments';
 import { WhoamiService } from 'src/app/core/services/whoami/whoami.service';
 import { LegalSessionStore } from 'src/app/core/services/legal/legal-session.store';
+
+/**
+ * true: el backend rechazó la sesión (401 o 403, o el refresh respondió sin token) y hay
+ * que cerrarla. false: error de red o del servidor (0, 5xx), la sesión se mantiene.
+ */
+export function isSessionRejected(error: unknown): boolean {
+  if (error instanceof HttpErrorResponse) return error.status === 401 || error.status === 403;
+  return true;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -61,6 +82,21 @@ export class AuthService {
 
   constructor(private http: HttpClient) {
     this.loadSession();
+    // Otra pestaña renovó o cerró la sesión: esta usa los mismos tokens y no pide otro refresh.
+    window.addEventListener('storage', (event) => {
+      if (event.key === this.tokenKey) this.token = event.newValue;
+      if (event.key === this.refreshTokenKey) this.refreshToken = event.newValue;
+    });
+  }
+
+  // Última actividad: la sesión local se borra al abrir la app tras 24 h sin uso (loadSession).
+  // Se actualiza con cada respuesta correcta del backend, a lo más una vez por minuto.
+  #lastActivityWrite = 0;
+  touchActivity() {
+    const now = Date.now();
+    if (!this.token || now - this.#lastActivityWrite < 60_000) return;
+    this.#lastActivityWrite = now;
+    localStorage.setItem(this.lastActivityKey, String(now));
   }
 
   private loadSession() {
@@ -128,13 +164,10 @@ export class AuthService {
     this.#isLoading$.next(true);
 
     return this.http
-      .post<SessionDto>(
-        `${ApiPathEnum.AUTH}/login/authenticate-user`,
-        {
-          email: loginInput.email,
-          password: loginInput.password,
-        },
-      )
+      .post<SessionDto>(`${ApiPathEnum.AUTH}/login/authenticate-user`, {
+        email: loginInput.email,
+        password: loginInput.password,
+      })
       .pipe(
         tap(() => this.#isLoading$.next(true)),
         tap(() => this.#error$.next(undefined)),
@@ -175,8 +208,16 @@ export class AuthService {
   // Un solo refresh a la vez: las peticiones que reciben 401 en paralelo esperan este mismo resultado.
   #refreshInFlight$: Observable<string> | null = null;
 
-  refreshAccessToken(): Observable<string> {
-    const currentRefreshToken = this.getRefreshToken();
+  // failedToken: el token con el que falló la petición. Si otra pestaña ya renovó la sesión,
+  // se usa ese token nuevo en vez de pedir otro refresh.
+  refreshAccessToken(failedToken?: string | null): Observable<string> {
+    const storedToken = localStorage.getItem(this.tokenKey);
+    if (storedToken && failedToken && storedToken !== failedToken) {
+      this.token = storedToken;
+      this.refreshToken = localStorage.getItem(this.refreshTokenKey);
+      return of(storedToken);
+    }
+    const currentRefreshToken = localStorage.getItem(this.refreshTokenKey) ?? this.getRefreshToken();
     if (!currentRefreshToken) {
       this.clearSession();
       return throwError(() => new Error('No refresh token available'));
@@ -184,19 +225,29 @@ export class AuthService {
     if (this.#refreshInFlight$) return this.#refreshInFlight$;
 
     this.#refreshInFlight$ = this.http
-      .post<{ accessToken: string; refreshToken: string }>(`${ApiPathEnum.AUTH}/auth/refresh-token`, {
+      // El backend responde la sesión como el login (token, refreshToken, legal) y también accessToken.
+      .post<Partial<SessionDto> & { accessToken?: string }>(`${ApiPathEnum.AUTH}/auth/refresh-token`, {
         refreshToken: currentRefreshToken,
       })
       .pipe(
-        // El refresh token rota: se reemplazan ambos.
-        tap((response) => {
-          this.saveToken(response.accessToken);
-          this.saveRefreshToken(response.refreshToken);
-          localStorage.setItem(this.lastActivityKey, String(Date.now()));
+        map((response) => {
+          const token = response.token ?? response.accessToken;
+          if (!token) throw new Error('Refresh sin token');
+          return { token, refreshToken: response.refreshToken ?? null, restricted: !!response.legal?.restricted };
         }),
-        map((response) => response.accessToken),
-        catchError((error: HttpErrorResponse) => {
-          this.clearSession();
+        // El refresh token rota: se reemplazan ambos.
+        tap(({ token, refreshToken, restricted }) => {
+          this.saveToken(token);
+          this.saveRefreshToken(refreshToken);
+          localStorage.setItem(this.lastActivityKey, String(Date.now()));
+          // Documentos legales nuevos por aceptar: la app lleva a aceptarlos (no se cierra la sesión).
+          if (restricted) this.#legal.setRestricted(true);
+        }),
+        map(({ token }) => token),
+        // Solo un rechazo de la sesión la cierra. Un error de red o del servidor (Redis o la API
+        // caídos un momento) la mantiene: la próxima acción vuelve a intentar (C37.1).
+        catchError((error: unknown) => {
+          if (isSessionRejected(error)) this.clearSession();
           return throwError(() => error);
         }),
         finalize(() => (this.#refreshInFlight$ = null)),
@@ -269,6 +320,7 @@ export class AuthService {
     const { profileImageUrl: _signedUrl, ...storableUser } = session.userData;
     localStorage.setItem(this.userDataKey, JSON.stringify(storableUser));
     this.#whoami.seedFromSession(session.userData);
+    this.#whoami.seedHome(session.home, session.userData.restaurantId);
     this.currentUserLoginOn.next(true);
     this.currentUserData.next({
       token: { token: session.token },

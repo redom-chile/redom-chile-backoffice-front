@@ -18,11 +18,18 @@ import { PendingDocumentDto, SessionLegalDto } from 'src/app/core/services/legal
  * Con `legal.restricted` el token solo sirve para aceptar documentos (/legal/*, whoami mínimo y logout):
  * refreshToken llega null y userData solo trae code y email.
  */
+/** Para elegir la primera pantalla sin esperar whoami (null en sesión restringida o si el backend no pudo leerlo). */
+export type SessionHomeDto = Readonly<{
+  roleCodes: string[];
+  locationsCount: number;
+}>;
+
 export type SessionDto = Readonly<{
   token: string;
   refreshToken: string | null;
   userData: SessionUserDataDto;
   legal?: SessionLegalDto;
+  home?: SessionHomeDto | null;
 }>;
 
 // Google además indica si la cuenta se creó en este inicio de sesión (va al onboarding).

@@ -352,6 +352,8 @@ export type BillingJobSummaryDto = Readonly<{
   emails: number;
   overridesExpired: number;
   errors: number;
+  // Primeros errores de la corrida ("<paso>: <mensaje>"), máximo 5
+  errorSamples?: string[];
 }>;
 
 // --- Accesos de soporte (#50) ---
