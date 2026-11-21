@@ -59,6 +59,9 @@ export type CartItemConfig = Readonly<{
   modifiers: CartModifier[];
   // Solo packs; si no viene se conservan las de la línea.
   packChoices?: CartPackChoice[];
+  // Al agregar un producto con varias variedades: cuántas de cada una (una línea por variedad, C48).
+  // Si viene, reemplaza a variationId y quantity.
+  varietyQuantities?: ReadonlyArray<Readonly<{ variationId: number; quantity: number }>>;
 }>;
 
 export const QUICK_NOTES = ['sin palta', 'sin mayo', 'sin cebolla', 'sin tomate', 'sin sal', 'bien cocido', 'término medio', 'para llevar'];
