@@ -6,6 +6,9 @@ import { toHttpParams } from 'src/app/modules/inventory/data-access';
 import { ApiPathEnum } from 'src/environments';
 import { PlanLimitCode } from 'src/app/core/services/entitlements';
 import {
+  MonitoringOverviewDto,
+  MonitoringRange,
+  MonitoringRunDto,
   PlatformSupportAccessDto,
   BillingJobSummaryDto,
   PlatformInvoiceDto,
@@ -104,7 +107,9 @@ export class PlatformService {
 
   // --- Negocios ---
   getBusinesses(filters: PlatformBusinessFiltersDto): Observable<StandardizedPagination<PlatformBusinessItemDto>> {
-    return this.#http.get<StandardizedPagination<PlatformBusinessItemDto>>(`${BASE}/businesses`, { params: toHttpParams(filters) });
+    return this.#http.get<StandardizedPagination<PlatformBusinessItemDto>>(`${BASE}/businesses`, {
+      params: toHttpParams(filters),
+    });
   }
 
   /** Lectura auditada. */
@@ -136,7 +141,9 @@ export class PlatformService {
 
   // --- Cobros y pagos ---
   getInvoices(filters: PlatformInvoiceFiltersDto): Observable<StandardizedPagination<PlatformInvoiceDto>> {
-    return this.#http.get<StandardizedPagination<PlatformInvoiceDto>>(`${BASE}/invoices`, { params: toHttpParams(filters) });
+    return this.#http.get<StandardizedPagination<PlatformInvoiceDto>>(`${BASE}/invoices`, {
+      params: toHttpParams(filters),
+    });
   }
 
   /** Pago recibido por otro medio, ya confirmado. 409 INVOICE_NOT_PAYABLE si está pagado o anulado. */
@@ -164,14 +171,31 @@ export class PlatformService {
   }
 
   /** Proceso diario de cobros (normalmente a las 09:00 UTC). Correrlo dos veces el mismo día no duplica cobros ni correos. */
+  /** Salud de las APIs: estado, disponibilidad, latencia, caídas y errores del rango (C42). */
+  getMonitoring(range: MonitoringRange): Observable<MonitoringOverviewDto> {
+    return this.#http.get<MonitoringOverviewDto>(`${BASE}/monitoring`, { params: { range } });
+  }
+
+  /** Chequea las APIs ahora (lo mismo que hace el sistema cada minuto). */
+  runMonitoringCheck(): Observable<MonitoringRunDto> {
+    return this.#http.post<MonitoringRunDto>(`${BASE}/monitoring/check`, {});
+  }
+
   runDailyJob(): Observable<BillingJobSummaryDto> {
     return this.#http.post<BillingJobSummaryDto>(`${ApiPathEnum.BILLING}/platform/jobs/billing-daily`, {});
   }
 
   // --- Accesos de soporte (#50) ---
   /** active=true (por defecto): solo vigentes; false: todos. */
-  getSupportAccesses(filters: { active?: boolean; businessId?: number; page?: number; perPage?: number }): Observable<StandardizedPagination<PlatformSupportAccessDto>> {
-    return this.#http.get<StandardizedPagination<PlatformSupportAccessDto>>(`${BASE}/support-access`, { params: toHttpParams(filters) });
+  getSupportAccesses(filters: {
+    active?: boolean;
+    businessId?: number;
+    page?: number;
+    perPage?: number;
+  }): Observable<StandardizedPagination<PlatformSupportAccessDto>> {
+    return this.#http.get<StandardizedPagination<PlatformSupportAccessDto>>(`${BASE}/support-access`, {
+      params: toHttpParams(filters),
+    });
   }
 
   /** Termina el acceso antes (el dueño recibe un correo). 404 SUPPORT_ACCESS_NOT_FOUND si ya terminó. */

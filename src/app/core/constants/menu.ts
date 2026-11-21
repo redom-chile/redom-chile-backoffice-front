@@ -201,6 +201,7 @@ export class Menu {
           role: 'SUPERADMIN',
           children: [
             { label: 'Resumen', route: '/platform/summary' },
+            { label: 'Monitoreo', route: '/platform/monitoring' },
             { label: 'Negocios', route: '/platform/businesses' },
             { label: 'Planes', route: '/platform/plans' },
             { label: 'Pagos por revisar', route: '/platform/payments-review' },
