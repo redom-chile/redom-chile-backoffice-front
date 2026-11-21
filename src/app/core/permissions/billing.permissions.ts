@@ -55,4 +55,9 @@ export const BILLING_PERMISSIONS = {
     SEE_MODULE: 'platform-summary:see-module',
     GET_SUMMARY: 'platform-summary:get-summary',
   },
+  PLATFORM_MONITORING: {
+    SEE_MODULE: 'platform-monitoring:see-module',
+    GET_MONITORING: 'platform-monitoring:get-monitoring',
+    RUN_CHECK: 'platform-monitoring:run-check',
+  },
 } as const;

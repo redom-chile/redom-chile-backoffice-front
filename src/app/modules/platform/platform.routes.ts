@@ -12,6 +12,7 @@ const routes: Routes = [
     children: [
       { path: '', redirectTo: 'summary', pathMatch: 'full' },
       { path: 'summary', loadComponent: () => import('./pages/platform-summary').then((m) => m.PlatformSummaryComponent) },
+      { path: 'monitoring', loadComponent: () => import('./pages/platform-monitoring').then((m) => m.PlatformMonitoringComponent) },
       // Query params opcionales: search, status, planId, overdue, trialEndingInDays, page.
       { path: 'businesses', pathMatch: 'full', loadComponent: () => import('./pages/platform-businesses').then((m) => m.PlatformBusinessesComponent) },
       { path: 'businesses/:id', loadComponent: () => import('./pages/platform-business-detail').then((m) => m.PlatformBusinessDetailComponent) },
