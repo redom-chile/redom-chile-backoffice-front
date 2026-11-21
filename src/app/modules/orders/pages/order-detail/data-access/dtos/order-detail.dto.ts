@@ -80,5 +80,34 @@ export type OrderDetailDto = Readonly<{
   transactionDate: string;
   createdAt: string;
   updatedAt: string;
+  // Productos con algo por vender (los anulados por completo solo están en voids).
   lines: OrderLineDto[];
+  // Productos anulados de la cuenta, del más nuevo al más antiguo (C46).
+  voids?: OrderLineVoidDto[];
+}>;
+
+/** Por qué se anuló un producto (backend: VOID_REASONS). */
+export type VoidReason = 'order_error' | 'customer_changed' | 'out_of_stock' | 'took_too_long' | 'other';
+
+export type OrderLineVoidDto = Readonly<{
+  id: number;
+  lineId: number;
+  productName: string;
+  quantity: number;
+  amount: number;
+  reason: VoidReason;
+  note: string | null;
+  createdAt: string;
+}>;
+
+export type VoidOrderLineRequestDto = Readonly<{ quantity?: number; reason: VoidReason; note?: string }>;
+
+export type VoidOrderLineResultDto = Readonly<{
+  voidId: number;
+  remainingQuantity: number;
+  amount: number;
+  finalTotal: number;
+  totalPaid: number;
+  orderClosed: boolean;
+  voidTicketPrinted: boolean;
 }>;

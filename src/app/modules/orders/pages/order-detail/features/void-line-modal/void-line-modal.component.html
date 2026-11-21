@@ -1,0 +1,107 @@
+<app-modal-card>
+  <ng-template app-slot="header">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Anular producto</h2>
+  </ng-template>
+
+  <div class="flex flex-col gap-4 py-2">
+    <div class="flex items-start gap-3">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-600">
+        <app-icon class="h-5 w-5">remove_shopping_cart</app-icon>
+      </div>
+      <div class="min-w-0">
+        <p class="text-foreground font-semibold">{{ data.line.productName }}</p>
+        @if (variation) {
+        <p class="text-muted-foreground text-sm">{{ variation }}</p>
+        }
+        <p class="text-muted-foreground text-sm">En la cuenta: {{ data.line.quantity }} · {{ formatCurrency(data.line.lineTotal) }}</p>
+      </div>
+    </div>
+
+    @if (maxQuantity <= 0) {
+    <p class="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+      Este producto ya está pagado. Para anularlo, anula primero el pago.
+    </p>
+    } @else {
+    @if (maxQuantity > 1) {
+    <div class="flex items-center justify-between gap-3">
+      <span class="text-foreground text-sm font-medium" id="void-quantity-label">Cantidad a anular</span>
+      <div class="flex items-center gap-2" role="group" aria-labelledby="void-quantity-label">
+        <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="$quantity() <= 1" aria-label="Anular uno menos" (click)="change(-1)">
+          <app-icon class="h-5 w-5">remove</app-icon>
+        </button>
+        <span class="text-foreground w-8 text-center text-lg font-semibold tabular-nums" aria-live="polite">{{ $quantity() }}</span>
+        <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-40" [disabled]="$quantity() >= maxQuantity" aria-label="Anular uno más" (click)="change(1)">
+          <app-icon class="h-5 w-5">add</app-icon>
+        </button>
+      </div>
+    </div>
+    @if (maxQuantity < data.line.quantity) {
+    <p class="text-muted-foreground -mt-2 text-xs">Puedes anular hasta {{ maxQuantity }}: el resto ya está pagado.</p>
+    }
+    }
+
+    <div class="flex flex-col gap-2">
+      <span class="text-foreground text-sm font-medium" id="void-reason-label">Motivo</span>
+      <div class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="void-reason-label">
+        @for (reason of reasons; track reason.value) {
+        <button
+          type="button"
+          role="radio"
+          class="rounded-full border px-3 py-1.5 text-sm transition"
+          [class]="$reason() === reason.value ? 'border-red-500 bg-red-500/10 font-medium text-red-700 dark:text-red-400' : 'border-[var(--border)] text-foreground hover:bg-[var(--muted)]'"
+          [attr.aria-checked]="$reason() === reason.value"
+          (click)="$reason.set(reason.value)">
+          {{ reason.label }}
+        </button>
+        }
+      </div>
+      <label class="sr-only" for="void-note">Detalle del motivo</label>
+      <input
+        id="void-note"
+        type="text"
+        maxlength="255"
+        class="h-10 rounded-lg border border-[var(--border)] bg-transparent px-3 text-sm"
+        [placeholder]="$reason() === 'other' ? 'Cuéntanos qué pasó (obligatorio)' : 'Detalle (opcional)'"
+        [ngModel]="$note()"
+        (ngModelChange)="$note.set($event)" />
+    </div>
+
+    @switch (kitchenStatus) {
+    @case ('received') {
+    <p class="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+      <app-icon class="h-4 w-4 shrink-0">soup_kitchen</app-icon>
+      Cocina ya recibió este producto. Se le avisará de la anulación con un ticket, si está activado.
+    </p>
+    }
+    @case ('cooked') {
+    <p class="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+      <app-icon class="h-4 w-4 shrink-0">soup_kitchen</app-icon>
+      Cocina ya lo preparó.@if ($returnsStock()) { Lo usado se registrará como merma. }
+    </p>
+    }
+    @case ('served') {
+    <p class="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+      <app-icon class="h-4 w-4 shrink-0">room_service</app-icon>
+      Ya se sirvió.@if ($returnsStock()) { Lo usado se registrará como merma. }
+    </p>
+    }
+    }
+
+    <div class="flex items-center justify-between border-t border-[var(--border)] pt-3 text-sm">
+      <span class="text-muted-foreground">Se descuenta de la cuenta</span>
+      <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency($amount()) }}</span>
+    </div>
+    }
+  </div>
+
+  <ng-template app-slot="footer">
+    <div class="flex justify-end gap-3">
+      <app-button type="button" impact="light" [disabled]="$saving()" (buttonClick)="handleCancel()">Volver</app-button>
+      @if (maxQuantity > 0) {
+      <app-button type="button" impact="bold" tone="danger" [disabled]="!$canConfirm()" [isLoading]="$saving()" (buttonClick)="handleConfirm()">
+        Anular {{ $quantity() > 1 ? $quantity() : '' }}
+      </app-button>
+      }
+    </div>
+  </ng-template>
+</app-modal-card>

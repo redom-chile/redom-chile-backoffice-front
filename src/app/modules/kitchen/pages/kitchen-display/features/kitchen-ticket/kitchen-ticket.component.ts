@@ -7,6 +7,10 @@ import { KitchenOrderDto } from '../../data-access';
 // Minutos a partir de los cuales la comanda se marca como demorada.
 const WARNING_MINUTES = 10;
 const LATE_MINUTES = 20;
+// Minutos en que la comanda lleva la etiqueta "Nueva".
+const NEW_MINUTES = 2;
+
+const TONE_LABELS = { ok: 'A tiempo', warning: 'Por vencer', late: 'Atrasada' } as const;
 
 @Component({
   selector: 'app-kitchen-ticket',
@@ -31,6 +35,8 @@ export class KitchenTicketComponent {
   readonly $tone = computed(() =>
     this.$minutes() >= LATE_MINUTES ? 'late' : this.$minutes() >= WARNING_MINUTES ? 'warning' : 'ok',
   );
+  readonly $toneLabel = computed(() => TONE_LABELS[this.$tone()]);
+  readonly $isNew = computed(() => this.$minutes() < NEW_MINUTES);
   readonly $elapsed = computed(() => {
     const minutes = this.$minutes();
     return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;

@@ -20,7 +20,8 @@ import { resultValue, toRemoteResult } from '../../../../shared';
     @if ($count() !== null || count.isLoading()) {
     <button
       type="button"
-      class="glass-tile-soft flex h-full w-full flex-col gap-2 rounded-2xl p-4 text-left transition hover:opacity-90"
+      class="bg-card flex h-full w-full flex-col gap-2 rounded-2xl border border-l-[6px] border-[var(--border)] p-4 text-left transition hover:opacity-90"
+      [class]="$count() ? 'border-l-rose-400' : 'border-l-primary'"
       [disabled]="!$count()"
       (click)="activate.emit()">
       <div class="flex items-center justify-between gap-2">

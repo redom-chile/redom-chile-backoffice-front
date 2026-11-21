@@ -22,7 +22,13 @@ export function addProductToCart(dialog: MatDialog, cart: WritableSignal<CartLin
     varieties,
     ...(isPack ? { packProductId: product.id } : {}),
   }).subscribe((config) => {
-    if (config) cart.update((lines) => addConfiguredToCart(lines, product, config));
+    if (!config) return;
+    const { varietyQuantities, ...shared } = config;
+    // Una línea por variedad; la nota y las opciones aplican a todas.
+    const configs = varietyQuantities?.length
+      ? varietyQuantities.map(({ variationId, quantity }) => ({ ...shared, variationId, quantity }))
+      : [shared];
+    cart.update((lines) => configs.reduce((acc, current) => addConfiguredToCart(acc, product, current), lines));
   });
 }
 

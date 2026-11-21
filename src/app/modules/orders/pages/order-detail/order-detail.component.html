@@ -16,10 +16,16 @@
         }
       </div>
       <div class="text-muted-foreground mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-        <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">table_bar</app-icon>{{ order.tableName ?? 'Sin mesa' }}</span>
-        <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">badge</app-icon>{{ order.waiterName ?? 'Sin mesero' }}</span>
+        <span class="inline-flex items-center gap-1"
+          ><app-icon class="h-4 w-4">table_bar</app-icon>{{ order.tableName ?? 'Sin mesa' }}</span
+        >
+        <span class="inline-flex items-center gap-1"
+          ><app-icon class="h-4 w-4">badge</app-icon>{{ order.waiterName ?? 'Sin mesero' }}</span
+        >
         @if (order.contactId && order.customerName) {
-        <a [routerLink]="['/customers', order.contactId]" class="hover:text-primary inline-flex items-center gap-1"><app-icon class="h-4 w-4">person</app-icon>{{ order.customerName }}</a>
+        <a [routerLink]="['/customers', order.contactId]" class="hover:text-primary inline-flex items-center gap-1"
+          ><app-icon class="h-4 w-4">person</app-icon>{{ order.customerName }}</a
+        >
         } @else {
         <span class="inline-flex items-center gap-1"><app-icon class="h-4 w-4">person</app-icon>Sin cliente</span>
         }
@@ -32,26 +38,60 @@
     @if ($isOpen()) {
     <div class="flex flex-wrap gap-2">
       @if ($canCollect()) {
-      <app-button impact="bold" tone="primary" shape="rounded" icon="point_of_sale" (buttonClick)="handleCollect(order)">
+      <app-button
+        impact="bold"
+        tone="primary"
+        shape="rounded"
+        icon="point_of_sale"
+        (buttonClick)="handleCollect(order)">
         Cobrar
       </app-button>
-      }
-      @if ($canServe() && $hasPendingLines()) {
-      <app-button impact="light" tone="primary" shape="rounded" icon="room_service" [disabled]="$isMarkingOrder()" [isLoading]="$isMarkingOrder()" (buttonClick)="handleServeAll(order)">
+      } @if ($canServe() && $hasPendingLines()) {
+      <app-button
+        impact="light"
+        tone="primary"
+        shape="rounded"
+        icon="room_service"
+        [disabled]="$isMarkingOrder()"
+        [isLoading]="$isMarkingOrder()"
+        (buttonClick)="handleServeAll(order)">
         Marcar todo servido
       </app-button>
       }
-      <app-button impact="light" tone="primary" shape="rounded" icon="receipt" (buttonClick)="handlePrintBill(order)">Precuenta</app-button>
+      <app-button impact="light" tone="primary" shape="rounded" icon="receipt" (buttonClick)="handlePrintBill(order)"
+        >Precuenta</app-button
+      >
       @if (order.totalPaid > 0 && order.remaining <= 0) {
-      <app-button impact="light" tone="primary" shape="rounded" icon="receipt_long" (buttonClick)="handlePrintReceipt(order)">Comprobante de pago</app-button>
+      <app-button
+        impact="light"
+        tone="primary"
+        shape="rounded"
+        icon="receipt_long"
+        (buttonClick)="handlePrintReceipt(order)"
+        >Comprobante de pago</app-button
+      >
       }
-      <app-loyalty-redeem-button [transactionId]="order.transactionId" [contactId]="order.contactId" [customerName]="order.customerName" (redeemed)="handleLoyaltyRedeemed()" />
+      <app-loyalty-redeem-button
+        [transactionId]="order.transactionId"
+        [contactId]="order.contactId"
+        [customerName]="order.customerName"
+        (redeemed)="handleLoyaltyRedeemed()" />
       <ng-container *appCheckPermission="PERMISSIONS.ORDERS.UPDATE_ORDER">
-        <app-button impact="light" tone="primary" shape="rounded" icon="add" (buttonClick)="handleAddItems(order)">Agregar productos</app-button>
-        <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(order)">Editar</app-button>
+        <app-button impact="light" tone="primary" shape="rounded" icon="add" (buttonClick)="handleAddItems(order)"
+          >Agregar productos</app-button
+        >
+        <app-button impact="light" tone="primary" shape="rounded" icon="edit" (buttonClick)="handleEdit(order)"
+          >Editar</app-button
+        >
       </ng-container>
       <!-- Si tiene pagos vigentes, el backend responde ORDER_HAS_PAYMENTS y se avisa con un toast -->
-      <app-button *appCheckPermission="PERMISSIONS.ORDERS.CANCEL_ORDER" impact="light" tone="danger" shape="rounded" icon="block" (buttonClick)="handleCancelOrder(order)">
+      <app-button
+        *appCheckPermission="PERMISSIONS.ORDERS.CANCEL_ORDER"
+        impact="light"
+        tone="danger"
+        shape="rounded"
+        icon="block"
+        (buttonClick)="handleCancelOrder(order)">
         Cancelar pedido
       </app-button>
     </div>
@@ -66,17 +106,41 @@
         [canServe]="$canServe()"
         [showKitchenStatus]="order.isKitchenOrder"
         [pendingLineId]="$pendingLineId()"
-        (serveLine)="handleServeLine($event)" />
+        [canVoid]="$canVoid()"
+        (serveLine)="handleServeLine($event)"
+        (voidLine)="handleVoidLine(order, $event)" />
 
-      @if (order.additionalNotes || order.staffNote) {
+      @if (order.voids?.length) {
+      <!-- Productos anulados (C46): quedan a la vista con su motivo -->
+      <section class="glass rounded-[1rem] p-4" aria-labelledby="voids-title">
+        <h2 id="voids-title" class="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wider">
+          Anulados
+        </h2>
+        <ul class="divide-[var(--border)] divide-y text-sm">
+          @for (item of order.voids; track item.id) {
+          <li class="flex items-start justify-between gap-3 py-2">
+            <div class="min-w-0">
+              <p class="text-muted-foreground line-through">{{ item.quantity }}× {{ item.productName }}</p>
+              <p class="text-muted-foreground text-xs">
+                {{ voidReasonLabel(item.reason) }}@if (item.note) { · {{ item.note }} } ·
+                {{ formatDateTime(item.createdAt) }}
+              </p>
+            </div>
+            <span class="text-muted-foreground shrink-0 tabular-nums line-through">{{
+              formatCurrency(item.amount)
+            }}</span>
+          </li>
+          }
+        </ul>
+      </section>
+      } @if (order.additionalNotes || order.staffNote) {
       <div class="glass space-y-3 rounded-[1rem] p-4 text-sm">
         @if (order.staffNote) {
         <div>
           <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Nota para cocina</p>
           <p class="text-foreground mt-1 whitespace-pre-line">{{ order.staffNote }}</p>
         </div>
-        }
-        @if (order.additionalNotes) {
+        } @if (order.additionalNotes) {
         <div>
           <p class="text-muted-foreground text-xs font-medium uppercase tracking-wider">Nota general</p>
           <p class="text-foreground mt-1 whitespace-pre-line">{{ order.additionalNotes }}</p>
