@@ -2,7 +2,11 @@
   <div class="flex items-center justify-between gap-2">
     <h2 class="text-foreground truncate font-semibold">{{ title() }}</h2>
     @if (order(); as current) {
-    <a [routerLink]="['/orders', current.transactionId]" class="text-primary shrink-0 font-mono text-xs hover:underline">{{ current.invoiceNo }}</a>
+    <a
+      [routerLink]="['/orders', current.transactionId]"
+      class="text-primary shrink-0 font-mono text-xs hover:underline"
+      >{{ current.invoiceNo }}</a
+    >
     }
   </div>
 
@@ -12,7 +16,7 @@
 
   <!-- Lo que ya se pidió en la cuenta abierta -->
   @if (order(); as current) {
-  <div class="rounded-lg border border-[var(--border)] p-2">
+  <div class="border-[var(--border)] rounded-lg border p-2">
     <p class="text-muted-foreground mb-1 text-xs font-medium uppercase tracking-wider">En la cuenta</p>
     <ul class="max-h-40 space-y-1 overflow-y-auto text-sm">
       @for (line of current.lines; track line.lineId) {
@@ -31,24 +35,40 @@
             <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="item.resLineOrderStatus" fallback="—" />
             }
           </div>
-          }
-          @for (mod of line.modifiers; track mod.variationId) {
+          } @for (mod of line.modifiers; track mod.variationId) {
           <p class="text-muted-foreground truncate pl-4 text-xs">{{ lineModifierLabel(line, mod) }}</p>
-          }
-          @if (line.sellLineNote) {
+          } @if (line.sellLineNote) {
           <p class="truncate pl-4 text-xs italic text-amber-600 dark:text-amber-400">“{{ line.sellLineNote }}”</p>
           }
         </div>
         @if (current.isKitchenOrder && !isPackLine(line)) {
         <app-status-badge class="shrink-0" [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
+        } @if ($canVoid()) {
+        <button
+          type="button"
+          class="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red-600 hover:bg-red-500/10 dark:text-red-400"
+          [attr.aria-label]="'Anular ' + line.productName"
+          title="Anular"
+          (click)="voidLine.emit(line)">
+          <app-icon class="h-4 w-4">remove_shopping_cart</app-icon>
+        </button>
         }
+      </li>
+      } @for (item of current.voids ?? []; track item.id) {
+      <li
+        class="text-muted-foreground flex items-start justify-between gap-2"
+        [title]="voidReasonLabel(item.reason) + (item.note ? ': ' + item.note : '')">
+        <p class="min-w-0 truncate line-through">{{ item.quantity }}× {{ item.productName }}</p>
+        <span class="shrink-0 text-xs">Anulado</span>
       </li>
       }
     </ul>
     @if (current.staffNote) {
-    <p class="mt-2 whitespace-pre-line rounded bg-amber-500/10 px-2 py-1 text-xs italic text-amber-700">{{ current.staffNote }}</p>
+    <p class="mt-2 whitespace-pre-line rounded bg-amber-500/10 px-2 py-1 text-xs italic text-amber-700">
+      {{ current.staffNote }}
+    </p>
     }
-    <div class="mt-2 flex justify-between border-t border-[var(--border)] pt-2 text-sm">
+    <div class="border-[var(--border)] mt-2 flex justify-between border-t pt-2 text-sm">
       <span class="text-muted-foreground">Saldo por pagar</span>
       <span class="text-foreground font-semibold tabular-nums">{{ formatCurrency(current.remaining) }}</span>
     </div>
@@ -59,13 +79,14 @@
   </div>
   } @else {
   <!-- Sin permiso para editar: el cliente solo se muestra -->
-  <div class="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm">
+  <div class="border-[var(--border)] flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
     <app-icon class="text-muted-foreground h-5 w-5 shrink-0">person</app-icon>
     <span class="text-muted-foreground shrink-0">Cliente:</span>
-    <span class="text-foreground min-w-0 truncate font-medium">{{ current.contactId ? (current.customerName ?? 'Cliente') : 'Sin cliente' }}</span>
+    <span class="text-foreground min-w-0 truncate font-medium">{{
+      current.contactId ? current.customerName ?? 'Cliente' : 'Sin cliente'
+    }}</span>
   </div>
-  }
-  } @else if (!loadingOrder()) {
+  } } @else if (!loadingOrder()) {
   <app-customer-selector [selected]="customer()" (selectedChange)="customerChange.emit($event)" />
   }
 
@@ -93,7 +114,12 @@
 
   <label class="flex cursor-pointer items-center justify-between gap-3 text-sm">
     <span class="text-foreground">Enviar a cocina</span>
-    <input type="checkbox" class="h-5 w-5 accent-[var(--primary)]" [checked]="sendToKitchen()" [disabled]="!!order()" (change)="sendToKitchenChange.emit($any($event.target).checked)" />
+    <input
+      type="checkbox"
+      class="h-5 w-5 accent-[var(--primary)]"
+      [checked]="sendToKitchen()"
+      [disabled]="!!order()"
+      (change)="sendToKitchenChange.emit($any($event.target).checked)" />
   </label>
 
   <div class="grid grid-cols-2 gap-2">
@@ -115,9 +141,7 @@
       (click)="directSale.emit()">
       <app-icon class="h-5 w-5">point_of_sale</app-icon>Venta directa: cobrar ahora
     </button>
-    }
-    @if (order(); as current) {
-    @if (current.status === 'ORDERED') {
+    } @if (order(); as current) { @if (current.status === 'ORDERED') {
     <app-loyalty-redeem-button
       class="col-span-2"
       variant="pos"
@@ -126,8 +150,7 @@
       [customerName]="current.customerName"
       [disabled]="saving()"
       (redeemed)="loyaltyRedeemed.emit()" />
-    }
-    @if (current.remaining > 0 && $canCollect()) {
+    } @if (current.remaining > 0 && $canCollect()) {
     <button
       type="button"
       class="col-span-2 flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-green-600 text-base font-semibold text-green-700 disabled:opacity-40"
@@ -136,7 +159,6 @@
       (click)="collect.emit()">
       <app-icon class="h-5 w-5">point_of_sale</app-icon>Cobrar {{ formatCurrency(current.remaining) }}
     </button>
-    }
-    }
+    } }
   </div>
 </div>

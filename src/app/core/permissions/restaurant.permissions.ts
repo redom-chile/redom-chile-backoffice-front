@@ -121,6 +121,7 @@ export const RESTAURANT_PERMISSIONS = {
     CREATE_ORDER: 'orders:create-order',
     UPDATE_ORDER: 'orders:update-order',
     CANCEL_ORDER: 'orders:cancel-order',
+    VOID_LINE: 'orders:void-line',
     MARK_SERVED: 'orders:mark-served',
   },
   PAYMENTS: {

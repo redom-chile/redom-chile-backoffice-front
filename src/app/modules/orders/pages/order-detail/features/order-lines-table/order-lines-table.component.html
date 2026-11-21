@@ -2,28 +2,27 @@
   <div class="overflow-x-auto">
     <table class="min-w-full">
       <thead>
-        <tr class="text-muted-foreground border-b border-[var(--border)] text-left text-xs font-medium uppercase tracking-wider">
+        <tr
+          class="text-muted-foreground border-[var(--border)] border-b text-left text-xs font-medium uppercase tracking-wider">
           <th class="px-4 py-3">Producto</th>
           <th class="px-4 py-3 text-center">Cant.</th>
           <th class="hidden px-4 py-3 text-right sm:table-cell">Precio</th>
           <th class="px-4 py-3 text-right">Subtotal</th>
           @if (showKitchenStatus()) {
           <th class="px-4 py-3 text-center">Cocina</th>
-          }
-          @if (canServe()) {
+          } @if (canServe() || canVoid()) {
           <th class="px-4 py-3"><span class="sr-only">Acciones</span></th>
           }
         </tr>
       </thead>
       <tbody>
         @for (line of lines(); track line.lineId) {
-        <tr class="border-b border-[var(--border)] last:border-0">
+        <tr class="border-[var(--border)] border-b last:border-0">
           <td class="px-4 py-3">
             <p class="text-foreground font-medium">{{ line.productName }}</p>
             @if (variationLabel(line); as variation) {
             <p class="text-muted-foreground text-xs">{{ variation }}</p>
-            }
-            @if (line.modifiers?.length) {
+            } @if (line.modifiers?.length) {
             <ul class="mt-1 space-y-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
               @for (modifier of line.modifiers; track modifier.lineId) {
               <li class="text-foreground/80 flex items-baseline gap-2 text-sm">
@@ -36,8 +35,7 @@
               </li>
               }
             </ul>
-            }
-            @if (line.packItems?.length) {
+            } @if (line.packItems?.length) {
             <!-- Productos del pack: cada uno con su estado de cocina -->
             <ul class="mt-1 space-y-1" [attr.aria-label]="'Productos del pack ' + line.productName">
               @for (item of line.packItems; track item.lineId) {
@@ -45,41 +43,42 @@
                 <span class="min-w-0 break-words">· {{ packItemLabel(item) }}</span>
                 @if (showKitchenStatus()) {
                 <app-status-badge [map]="kitchenStatus" [status]="item.resLineOrderStatus" fallback="—" />
-                }
-                @if (canServe() && item.resLineOrderStatus !== 'served') {
+                } @if (canServe() && item.resLineOrderStatus !== 'served') {
                 <button
                   type="button"
                   class="glass-row inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium disabled:opacity-50"
                   [disabled]="pendingLineId() !== null"
                   [attr.aria-label]="'Marcar ' + item.name + ' como servido'"
                   (click)="serveLine.emit(item.lineId)">
-                  <app-icon class="h-4 w-4">{{ pendingLineId() === item.lineId ? 'hourglass_empty' : 'room_service' }}</app-icon>
+                  <app-icon class="h-4 w-4">{{
+                    pendingLineId() === item.lineId ? 'hourglass_empty' : 'room_service'
+                  }}</app-icon>
                   Servir
                 </button>
                 }
               </li>
               }
             </ul>
-            }
-            @if (line.sellLineNote) {
+            } @if (line.sellLineNote) {
             <p class="mt-0.5 text-xs italic text-amber-600">“{{ line.sellLineNote }}”</p>
             }
             <!-- Pago por productos (dividir la cuenta) -->
-            @switch (paidState(line)) {
-            @case ('paid') {
-            <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
+            @switch (paidState(line)) { @case ('paid') {
+            <span
+              class="bg-green-500/15 mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
               <app-icon class="h-3.5 w-3.5">check_circle</app-icon>Pagado
             </span>
-            }
-            @case ('partial') {
+            } @case ('partial') {
             <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+              <span
+                class="bg-amber-500/15 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                 Pagado {{ formatQuantity(line.paidQuantity ?? 0) }} de {{ formatQuantity(line.quantity) }}
               </span>
-              <span class="text-muted-foreground text-xs tabular-nums">Pendiente {{ formatCurrency(line.pendingAmount) }}</span>
+              <span class="text-muted-foreground text-xs tabular-nums"
+                >Pendiente {{ formatCurrency(line.pendingAmount) }}</span
+              >
             </div>
-            }
-            }
+            } }
           </td>
           <td class="text-foreground px-4 py-3 text-center font-semibold tabular-nums">{{ line.quantity }}</td>
           <td class="text-muted-foreground hidden px-4 py-3 text-right text-sm tabular-nums sm:table-cell">
@@ -94,20 +93,32 @@
             <app-status-badge [map]="kitchenStatus" [status]="line.resLineOrderStatus" fallback="—" />
             }
           </td>
-          }
-          @if (canServe()) {
+          } @if (canServe() || canVoid()) {
           <td class="px-4 py-3 text-right">
-            @if (!isPackLine(line) && line.resLineOrderStatus !== 'served') {
-            <button
-              type="button"
-              class="glass-row inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium disabled:opacity-50"
-              [disabled]="pendingLineId() !== null"
-              [attr.aria-label]="'Marcar ' + line.productName + ' como servido'"
-              (click)="serveLine.emit(line.lineId)">
-              <app-icon class="h-4 w-4">{{ pendingLineId() === line.lineId ? 'hourglass_empty' : 'room_service' }}</app-icon>
-              Servir
-            </button>
-            }
+            <div class="flex flex-wrap justify-end gap-2">
+              @if (canServe() && !isPackLine(line) && line.resLineOrderStatus !== 'served') {
+              <button
+                type="button"
+                class="glass-row inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium disabled:opacity-50"
+                [disabled]="pendingLineId() !== null"
+                [attr.aria-label]="'Marcar ' + line.productName + ' como servido'"
+                (click)="serveLine.emit(line.lineId)">
+                <app-icon class="h-4 w-4">{{
+                  pendingLineId() === line.lineId ? 'hourglass_empty' : 'room_service'
+                }}</app-icon>
+                Servir
+              </button>
+              } @if (canVoid()) {
+              <button
+                type="button"
+                class="inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
+                [attr.aria-label]="'Anular ' + line.productName"
+                (click)="voidLine.emit(line)">
+                <app-icon class="h-4 w-4">remove_shopping_cart</app-icon>
+                Anular
+              </button>
+              }
+            </div>
           </td>
           }
         </tr>

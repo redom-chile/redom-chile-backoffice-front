@@ -7,6 +7,8 @@ export type PendingPrintJobDto = Readonly<{
   id: number;
   printerId: number;
   stationId: number | null;
+  // order: comanda; void: productos anulados de la cuenta (C46).
+  kind?: 'order' | 'void';
   stationName: string | null;
   attempts: number;
   createdAt: string;

@@ -5,3 +5,4 @@ export * from './mark-order-served.service';
 export * from './mark-line-served.service';
 export * from './dtos';
 export * from './order-line-labels';
+export * from './void-order-line.service';

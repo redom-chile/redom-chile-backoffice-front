@@ -12,7 +12,32 @@
   </ng-template>
 
   <div class="space-y-4 px-1 pb-1">
-    @if (varieties.length) {
+    @if (isMultiVariety) {
+    <fieldset>
+      <legend class="text-foreground mb-2 flex w-full items-baseline justify-between gap-2 text-sm font-semibold">
+        <span>Variedad</span>
+        <span class="text-muted-foreground text-xs font-normal">Elige cuántas de cada una</span>
+      </legend>
+      <ul class="space-y-1.5">
+        @for (variety of varieties; track variety.variationId) {
+        @let qty = varietyQuantity(variety.variationId);
+        <li class="glass-row flex min-h-12 items-center gap-2 rounded-lg border-2 px-3 py-1.5" [class.border-primary]="qty > 0" [class.border-transparent]="qty === 0">
+          <span class="text-foreground min-w-0 flex-1 break-words text-sm">{{ variety.name }}</span>
+          <span class="text-muted-foreground shrink-0 text-sm tabular-nums">{{ formatCurrency(variety.price) }}</span>
+          <div class="flex shrink-0 items-center gap-1" role="group" [attr.aria-label]="'Cantidad de ' + variety.name">
+            <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="qty <= 0" [attr.aria-label]="'Restar uno de ' + variety.name" (click)="changeVarietyQuantity(variety.variationId, -1)">
+              <app-icon class="h-4 w-4">remove</app-icon>
+            </button>
+            <span class="text-foreground w-8 text-center text-sm font-semibold tabular-nums">{{ qty }}</span>
+            <button type="button" class="glass-row flex h-9 w-9 items-center justify-center rounded-md disabled:opacity-40" [disabled]="qty >= maxQuantity" [attr.aria-label]="'Sumar uno de ' + variety.name" (click)="changeVarietyQuantity(variety.variationId, 1)">
+              <app-icon class="h-4 w-4">add</app-icon>
+            </button>
+          </div>
+        </li>
+        }
+      </ul>
+    </fieldset>
+    } @else if (varieties.length) {
     <fieldset>
       <legend class="text-foreground mb-2 text-sm font-semibold">Variedad</legend>
       <ul class="space-y-1.5">
@@ -139,6 +164,7 @@
         (input)="onNote($event)" />
     </div>
 
+    @if (!isMultiVariety) {
     <div class="flex items-center justify-between gap-3">
       <span class="text-foreground text-sm font-semibold">Cantidad</span>
       <div class="flex items-center gap-1">
@@ -151,6 +177,7 @@
         </button>
       </div>
     </div>
+    }
   </div>
 
   <ng-template app-slot="footer">
@@ -160,7 +187,7 @@
     </div>
     <div class="grid grid-cols-2 gap-2">
       <app-button type="button" full impact="light" (buttonClick)="handleCancel()">Cancelar</app-button>
-      <app-button type="button" full impact="bold" [disabled]="!$canConfirm()" (buttonClick)="handleConfirm()">{{ isEditing ? 'Guardar' : 'Agregar' }}</app-button>
+      <app-button type="button" full impact="bold" [disabled]="!$canConfirm()" (buttonClick)="handleConfirm()">{{ isEditing ? 'Guardar' : isMultiVariety && $varietyTotalQuantity() > 1 ? 'Agregar ' + $varietyTotalQuantity() : 'Agregar' }}</app-button>
     </div>
   </ng-template>
 </app-modal-card>

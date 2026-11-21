@@ -1,59 +1,65 @@
 @let o = order();
+@let tone = $tone();
+<!-- Diseño "Cocina" del rediseño del backoffice: borde superior y etiqueta según el tiempo de espera -->
 <article
-  class="glass flex h-full flex-col overflow-hidden rounded-xl border-t-4"
-  [class.border-green-500]="$tone() === 'ok'"
-  [class.border-amber-500]="$tone() === 'warning'"
-  [class.border-red-500]="$tone() === 'late'"
-  [attr.aria-label]="'Comanda ' + o.invoiceNo + ', ' + (o.tableName ?? 'sin mesa')">
-  <header class="flex items-start justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
-    <div class="min-w-0">
-      <p class="text-foreground truncate text-xl font-bold">{{ o.tableName ?? 'Sin mesa' }}</p>
-      <p class="text-muted-foreground truncate text-xs">
+  class="bg-card flex h-full flex-col overflow-hidden rounded-2xl border border-t-[6px] border-[var(--border)]"
+  [class]="tone === 'late' ? 'border-t-rose-400' : tone === 'warning' ? 'border-t-amber-400' : 'border-t-teal-500'"
+  [attr.aria-label]="'Comanda ' + (o.tableName ?? 'sin mesa') + ', ' + $toneLabel().toLowerCase() + ($isNew() ? ', nueva' : '')">
+  <!-- La etiqueta de tiempo va en su propia línea para que el nombre de la mesa no se corte -->
+  <header class="flex flex-col items-start gap-2 px-4 py-3.5" [class]="tone === 'late' ? 'bg-rose-500/15' : ''">
+    <div class="w-full min-w-0">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p class="text-foreground min-w-0 text-2xl font-bold leading-tight break-words">{{ o.tableName ?? 'Sin mesa' }}</p>
+        @if ($isNew()) {
+        <span class="shrink-0 rounded-md bg-amber-400 px-2 py-0.5 text-xs font-bold text-stone-900">Nueva</span>
+        }
+      </div>
+      <p class="text-muted-foreground truncate text-sm">
         <span class="font-mono">{{ o.invoiceNo }}</span>{{ o.waiterName ? ' · ' + o.waiterName : '' }}
       </p>
     </div>
     <span
-      class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold tabular-nums"
-      [class]="$tone() === 'late' ? 'bg-red-500/15 text-red-600' : $tone() === 'warning' ? 'bg-amber-500/15 text-amber-700' : 'bg-green-500/15 text-green-700'">
-      <app-icon class="h-4 w-4">schedule</app-icon>{{ $elapsed() }}
+      class="whitespace-nowrap rounded-lg px-2.5 py-1 text-[15px] font-bold tabular-nums"
+      [class]="
+        tone === 'late'
+          ? 'bg-rose-400 text-stone-900'
+          : tone === 'warning'
+            ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+            : 'bg-teal-500/15 text-teal-700 dark:text-teal-300'
+      ">
+      {{ $toneLabel() }} · {{ $elapsed() }}
     </span>
   </header>
 
   @if ($orderNotes().length) {
-  <div class="flex items-start gap-2 border-b border-amber-500/30 bg-amber-500/15 px-4 py-2 text-amber-700 dark:text-amber-300">
-    <app-icon class="mt-0.5 h-5 w-5 shrink-0">sticky_note_2</app-icon>
-    <div class="min-w-0 space-y-0.5">
-      @for (note of $orderNotes(); track note) {
-      <p class="text-sm font-semibold leading-snug break-words">{{ note }}</p>
-      }
-    </div>
+  <div class="mx-4 mb-1 space-y-0.5 rounded-lg bg-amber-400/20 px-2.5 py-2 text-amber-800 dark:text-amber-300">
+    @for (note of $orderNotes(); track note) {
+    <p class="text-[15px] font-semibold leading-snug break-words">Nota: {{ note }}</p>
+    }
   </div>
   }
 
-  <ul class="flex-1 space-y-2 px-4 py-3">
+  <ul class="flex flex-1 flex-col gap-3 px-4 py-3.5">
     @for (line of o.lineOrders; track line.lineId) {
     <li class="flex items-start gap-3">
-      <span class="bg-primary/15 text-primary flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-lg font-bold tabular-nums">
+      <span class="text-foreground flex h-9 min-w-9 items-center justify-center rounded-lg bg-[var(--border)] px-1.5 text-xl font-bold tabular-nums">
         {{ line.quantity }}
       </span>
-      <div class="min-w-0 pt-0.5">
-        <p class="text-foreground text-base font-semibold leading-tight">{{ line.productName }}</p>
-        @if (variationLabel(line.variationName); as variation) {
-        <p class="text-muted-foreground text-sm">{{ variation }}</p>
-        }
+      <div class="min-w-0 pt-1">
+        <p class="text-foreground text-[17px] font-semibold leading-snug">
+          {{ line.productName }}@if (variationLabel(line.variationName); as variation) { <span class="text-muted-foreground font-medium">· {{ variation }}</span> }
+        </p>
         @if (line.modifiers?.length) {
         <!-- Modificadores: instrucciones de preparación, destacadas y distintas de la nota -->
-        <ul class="mt-1 space-y-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
+        <ul class="mt-0.5" [attr.aria-label]="'Modificadores de ' + line.productName">
           @for (modifier of line.modifiers; track $index) {
-          <li class="text-primary flex items-start gap-1 text-base font-bold leading-snug">
-            <span aria-hidden="true">+</span><span class="min-w-0 break-words">{{ modifier }}</span>
-          </li>
+          <li class="text-primary text-[17px] font-bold leading-snug break-words">+ {{ modifier }}</li>
           }
         </ul>
         }
         @if (line.sellLineNote?.trim(); as note) {
-        <p class="mt-1 inline-flex items-start gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-sm font-semibold text-amber-700 dark:text-amber-300">
-          <app-icon class="mt-0.5 h-4 w-4 shrink-0">priority_high</app-icon><span class="break-words">{{ note }}</span>
+        <p class="mt-1 inline-block rounded-md bg-amber-400/20 px-2 py-0.5 text-[15px] font-semibold break-words text-amber-800 dark:text-amber-300">
+          Nota: {{ note }}
         </p>
         }
       </div>
@@ -61,13 +67,15 @@
     }
   </ul>
 
-  <footer *appCheckPermission="PERMISSIONS.KITCHEN.MARK_COOKED" class="border-t border-[var(--border)] p-3">
+  <footer *appCheckPermission="PERMISSIONS.KITCHEN.MARK_COOKED" class="px-4 pb-4">
     <button
       type="button"
-      class="flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-green-600 text-lg font-semibold text-white active:scale-[0.98] disabled:opacity-50"
+      class="bg-primary text-primary-foreground flex h-[60px] w-full items-center justify-center gap-2 rounded-[14px] text-[19px] font-bold active:scale-[0.98] disabled:opacity-50"
       [disabled]="busy()"
       (click)="markReady.emit(o)">
-      <app-icon class="h-6 w-6">{{ busy() ? 'hourglass_empty' : 'check' }}</app-icon>
+      @if (busy()) {
+      <app-icon class="h-6 w-6">hourglass_empty</app-icon>
+      }
       Listo · {{ $itemCount() }} {{ $itemCount() === 1 ? 'ítem' : 'ítems' }}
     </button>
   </footer>

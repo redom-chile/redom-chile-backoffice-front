@@ -2,8 +2,21 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { RouterLink } from '@angular/router';
 import { IconComponent } from 'src/ui';
 import { AccessService, PERMISSIONS } from 'src/app/core/permissions';
-import { isPackLine, OrderDetailDto, OrderLineDto, OrderLineModifierDto, packItemLabel } from 'src/app/modules/orders/pages/order-detail/data-access';
-import { CartLine, CartNoteChange, CustomerSelectorComponent, modifierLabel, OrderTicketComponent } from 'src/app/modules/orders/pages/order-create/features';
+import {
+  isPackLine,
+  OrderDetailDto,
+  OrderLineDto,
+  OrderLineModifierDto,
+  packItemLabel,
+  voidReasonLabel,
+} from 'src/app/modules/orders/pages/order-detail/data-access';
+import {
+  CartLine,
+  CartNoteChange,
+  CustomerSelectorComponent,
+  modifierLabel,
+  OrderTicketComponent,
+} from 'src/app/modules/orders/pages/order-create/features';
 import { CustomerDto } from 'src/app/modules/orders/pages/order-create/data-access';
 import { formatCurrency, KITCHEN_STATUS, StatusBadgeComponent } from 'src/app/modules/orders/pages/order-list/ui';
 import { LoyaltyRedeemButtonComponent } from 'src/app/modules/loyalty/features/loyalty-redeem';
@@ -11,7 +24,14 @@ import { LoyaltyRedeemButtonComponent } from 'src/app/modules/loyalty/features/l
 @Component({
   selector: 'app-pos-order-panel',
   standalone: true,
-  imports: [RouterLink, IconComponent, OrderTicketComponent, CustomerSelectorComponent, StatusBadgeComponent, LoyaltyRedeemButtonComponent],
+  imports: [
+    RouterLink,
+    IconComponent,
+    OrderTicketComponent,
+    CustomerSelectorComponent,
+    StatusBadgeComponent,
+    LoyaltyRedeemButtonComponent,
+  ],
   templateUrl: './pos-order-panel.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -43,13 +63,21 @@ export class PosOrderPanelComponent {
   // Asignar o cambiar el cliente de la cuenta abierta.
   readonly orderCustomerChange = output<CustomerDto | null>();
   readonly savingCustomer = input(false);
+  // Anular un producto ya enviado a la cuenta (C46).
+  readonly voidLine = output<OrderLineDto>();
+  readonly voidReasonLabel = voidReasonLabel;
 
   // El detalle solo trae id y nombre del cliente.
   readonly $orderCustomer = computed<CustomerDto | null>(() => {
     const order = this.order();
-    return order?.contactId ? { id: order.contactId, name: order.customerName ?? 'Cliente', mobile: '', email: null } : null;
+    return order?.contactId
+      ? { id: order.contactId, name: order.customerName ?? 'Cliente', mobile: '', email: null }
+      : null;
   });
   readonly $canEditOrder = computed(() => this.access.can(PERMISSIONS.ORDERS.UPDATE_ORDER));
+  readonly $canVoid = computed(
+    () => this.order()?.status === 'ORDERED' && this.access.can(PERMISSIONS.ORDERS.VOID_LINE),
+  );
 
   private readonly access = inject(AccessService);
 

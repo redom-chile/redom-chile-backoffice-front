@@ -4,3 +4,4 @@ export * from './update-order-modal';
 export * from './cancel-order-modal';
 export * from './collect-payment-modal';
 export * from './payment-receipt';
+export * from './void-line-modal';

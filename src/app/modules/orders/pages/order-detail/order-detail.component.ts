@@ -8,6 +8,7 @@ import { CheckPermissionDirective } from 'src/app/shared/directives';
 import { BusinessSettingsService } from 'src/app/core/services/business-settings';
 import { getOrderErrorMessage, GetServiceStaffService } from '../order-list/data-access';
 import {
+  formatCurrency,
   formatDateTime,
   formatRelative,
   KITCHEN_STATUS,
@@ -23,7 +24,9 @@ import {
   modifierLabel,
   packItemLabel,
   OrderDetailDto,
+  OrderLineDto,
   orderVariationLabel,
+  voidReasonLabel,
 } from './data-access';
 import {
   CancelOrderModalComponent,
@@ -32,6 +35,9 @@ import {
   OrderLinesTableComponent,
   OrderModalResult,
   UpdateOrderModalComponent,
+  VoidLineModalComponent,
+  VoidLineModalData,
+  VoidLineModalResult,
 } from './features';
 import { GetOrderPaymentsService, PaymentDto } from 'src/app/modules/payments/pages/payment-list/data-access';
 import { FindMyBusinessesService } from 'src/app/modules/restaurante/pages/business/data-access';
@@ -86,6 +92,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   readonly orderStatus = ORDER_STATUS;
   readonly paymentStatus = PAYMENT_STATUS;
   readonly formatDateTime = formatDateTime;
+  readonly formatCurrency = formatCurrency;
   readonly formatRelative = formatRelative;
 
   readonly $orderId = signal<number | null>(null);
@@ -111,7 +118,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   readonly $hasPendingLines = computed(() =>
     // Un pack no tiene estado propio: cuentan sus productos.
     (this.$order()?.lines ?? []).some((line) =>
-      isPackLine(line) ? (line.packItems ?? []).some((item) => item.resLineOrderStatus !== 'served') : line.resLineOrderStatus !== 'served',
+      isPackLine(line)
+        ? (line.packItems ?? []).some((item) => item.resLineOrderStatus !== 'served')
+        : line.resLineOrderStatus !== 'served',
     ),
   );
   readonly $payments = computed(() => {
@@ -120,8 +129,7 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   });
   readonly $isLoadingPayments = computed(() => this.paymentsService.$isLoading() ?? false);
   readonly $canCollect = computed(
-    () =>
-      this.$isOpen() && (this.$order()?.remaining ?? 0) > 0 && this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT),
+    () => this.$isOpen() && (this.$order()?.remaining ?? 0) > 0 && this.access.can(PERMISSIONS.PAYMENTS.CREATE_PAYMENT),
   );
 
   readonly $isMarkingOrder = computed(() => this.markOrderService.$isLoading() ?? false);
@@ -193,7 +201,10 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
           quantity: line.quantity,
           // Incluye los modificadores.
           total: line.lineTotal,
-          modifiers: [...(line.packItems ?? []).map(packItemLabel), ...(line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier))],
+          modifiers: [
+            ...(line.packItems ?? []).map(packItemLabel),
+            ...(line.modifiers ?? []).map((modifier) => modifierLabel(line, modifier)),
+          ],
         };
       }),
       subtotal: order.totalBeforeTax,
@@ -246,6 +257,33 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   // El canje cambia el total (descuento) o agrega la línea del producto gratis.
   handleLoyaltyRedeemed() {
     this.handleRetry();
+  }
+
+  // Anular productos de la cuenta abierta (C46).
+  readonly $canVoid = computed(() => this.$isOpen() && this.access.can(PERMISSIONS.ORDERS.VOID_LINE));
+  readonly voidReasonLabel = voidReasonLabel;
+
+  handleVoidLine(order: OrderDetailDto, line: OrderLineDto) {
+    this.dialog
+      .open<VoidLineModalComponent, VoidLineModalData, VoidLineModalResult>(VoidLineModalComponent, {
+        width: '480px',
+        maxWidth: '95vw',
+        disableClose: true,
+        data: { orderId: order.transactionId, line, isKitchenOrder: order.isKitchenOrder },
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (!result) return;
+        this.toast.show(
+          result.orderClosed
+            ? 'Producto anulado. Lo demás ya estaba pagado: la cuenta quedó cerrada.'
+            : result.voidTicketPrinted
+            ? 'Producto anulado. Se avisó a cocina.'
+            : 'Producto anulado',
+          'success',
+        );
+        this.handleRetry();
+      });
   }
 
   handleServeLine(lineId: number) {

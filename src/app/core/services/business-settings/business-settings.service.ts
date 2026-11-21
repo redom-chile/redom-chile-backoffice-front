@@ -40,7 +40,7 @@ export type ResolvedPosSettings = Readonly<Required<PosSettings> & { configured:
 
 /**
  * El GET devuelve pos_settings como texto JSON con claves snake_case
- * ({ waiter_enabled, tables_enabled, is_service_staff_required, show_tax_on_pre_bill }); se acepta también un objeto.
+ * ({ waiter_enabled, tables_enabled, is_service_staff_required, show_tax_on_pre_bill, print_void_tickets }); se acepta también un objeto.
  */
 export function parsePosSettings(raw: unknown): ResolvedPosSettings {
   let stored: Record<string, unknown> = {};
@@ -64,6 +64,8 @@ export function parsePosSettings(raw: unknown): ResolvedPosSettings {
     isServiceStaffRequired: flag('isServiceStaffRequired', 'is_service_staff_required'),
     // Sin valor guardado se muestra (comportamiento previo).
     showTaxOnPreBill: (stored['showTaxOnPreBill'] ?? stored['show_tax_on_pre_bill']) !== false,
+    // Sin valor guardado se imprime el ticket de anulación.
+    printVoidTickets: (stored['printVoidTickets'] ?? stored['print_void_tickets']) !== false,
   };
 }
 
