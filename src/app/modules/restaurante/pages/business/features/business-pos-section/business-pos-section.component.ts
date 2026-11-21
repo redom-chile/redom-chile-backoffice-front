@@ -9,7 +9,7 @@ import { getBusinessErrorMessage } from '../../data-access';
 
 const TIP_MODES: readonly TipDistributionMode[] = ['individual', 'equal', 'points'];
 
-/** Sección "Punto de venta": mesas, meseros, propina sugerida, reparto de propinas y caja y turnos. */
+/** Sección "Punto de venta": mesas, meseros, ticket de anulación, propina sugerida, reparto de propinas y caja y turnos. */
 @Component({
   selector: 'app-business-pos-section',
   imports: [RouterLink, CardComponent, ButtonComponent, ToggleComponent],
@@ -33,6 +33,7 @@ export class BusinessPosSectionComponent {
   protected readonly $tablesEnabled = linkedSignal(() => this.#saved().tablesEnabled);
   protected readonly $waiterEnabled = linkedSignal(() => this.#saved().waiterEnabled);
   protected readonly $staffRequired = linkedSignal(() => this.#saved().isServiceStaffRequired);
+  protected readonly $printVoidTickets = linkedSignal(() => this.#saved().printVoidTickets);
   // Texto del input: permite dejarlo vacío mientras se escribe.
   protected readonly $tipPercent = linkedSignal(() => String(this.#savedTip()));
   protected readonly $cashEnabled = linkedSignal(() => this.#settings.$cashManagementEnabled());
@@ -65,6 +66,7 @@ export class BusinessPosSectionComponent {
     if (this.$waiterEnabled() !== saved.waiterEnabled) changes.waiterEnabled = this.$waiterEnabled();
     if (this.#effectiveStaffRequired() !== saved.isServiceStaffRequired)
       changes.isServiceStaffRequired = this.#effectiveStaffRequired();
+    if (this.$printVoidTickets() !== saved.printVoidTickets) changes.printVoidTickets = this.$printVoidTickets();
     return changes;
   });
   readonly #tipChanged = computed(() => this.#tipValue() !== this.#savedTip());
@@ -95,6 +97,7 @@ export class BusinessPosSectionComponent {
     this.$tablesEnabled.set(saved.tablesEnabled);
     this.$waiterEnabled.set(saved.waiterEnabled);
     this.$staffRequired.set(saved.isServiceStaffRequired);
+    this.$printVoidTickets.set(saved.printVoidTickets);
     this.$tipPercent.set(String(this.#savedTip()));
     this.$cashEnabled.set(this.#settings.$cashManagementEnabled());
     this.$tipMode.set(this.#savedTipMode());
